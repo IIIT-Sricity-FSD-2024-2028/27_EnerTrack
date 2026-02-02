@@ -2,7 +2,7 @@
 # Problem Statement: Campus Energy and Renewables Management
 # Last Updated: 2026-02-02
 - name: System Administrator
-  definition: A technical person responsible for configuring, monitoring, and maintaining the Campus Energy & Sustainability Management Platform. This role oversees system-level operations including setting up data, generating performance reports and analytics of Energy consumption and ensuring the smooth functioning of all activities within the energy management system.
+  definition: A technical person responsible for configuring, monitoring, and maintaining the Campus Energy & Renewables Management Platform. This role oversees system-level operations, including setting up data, generating performance reports and analytics of Energy consumption and ensuring the smooth functioning of all activities within the energy management system.
   examples:
     - "The System Administrator is setting energy limits for a building."
     - "The System Administrator is gathering a monthly data report showing total campus electricity usage."
@@ -12,7 +12,7 @@
     - Technical Administrator
 
 - name: Finance Analyst
-  definition: A financial professional who manages the economic aspects of campus energy and sustainability operations. This role is a view only role which tracks utility expenditures, evaluates the financial implications of energy consumption patterns across the university and provides cost-benefit analysis to the university management to support decisions regarding energy investments and conservation initiatives.
+  definition: A financial professional who manages the economic aspects of campus energy and sustainability operations. This role is a view only role that tracks utility expenditures, evaluates the financial implications of energy consumption patterns across the university and provides cost-benefit analysis to the university management to support decisions regarding energy investments and conservation initiatives.
   examples:
     - "The finance analyst is  reviewing  electricity bills and identifies buildings with unexpectedly high costs."
     - "The finance analyst is calculating how much money is saved after installing solar panels."
@@ -22,19 +22,19 @@
     - Financial Staff
 
 - name: Technician
-  definition: An operational staff member who handles technical maintenance and troubleshooting of campus energy systems. This role responds to real-time alerts, diagnoses equipment malfunctions, performs maintenance activities  and ensures the physical infrastructure supporting energy management operates reliably.
+  definition: An operational staff member who handles technical maintenance and troubleshooting of campus energy systems. This role responds to real-time alerts, diagnoses equipment malfunctions, performs maintenance activities,  and ensures the physical infrastructure supporting energy management operates reliably.
   examples:
     - "The technician gets an anomaly alert when a lab suddenly uses too much power at night."
     - "The technician finds that the broken AC is causing high power usage."
-    - "The technician creates a repair task fixes the AC and marks the task as done."
+    - "The technician creates a repair task, fixes the AC, and marks the task as done."
   aliases:
     - Maintenance Technician
     - Maintenance Staff
 
 - name: Sustainability Officer
-  definition: A Sustainability officer is responsible for planning and managing the institution’s sustainability efforts. They oversee eco-friendly initiatives on campus, track environmental impact like energy use and waste, prepare sustainability reports, and ensure the organisation meets environmental standards while promoting responsible practices.
+  definition: A Sustainability Officer is responsible for planning and managing the institution’s sustainability efforts. They oversee eco-friendly initiatives on campus, track environmental impact like energy use and waste, prepare sustainability reports, and ensure the organisation meets environmental standards while promoting responsible practices.
   examples:
-    - "The sustainability officer checks how much carbon emission the campus produces."
+    - "The sustainability officer checks how much carbon emissions the campus produces."
     - "The sustainability officer starts an awareness program to save energy across the campus."
     - "The sustainability officer prepares a report showing energy savings and emissions reduced."
   aliases:
@@ -42,7 +42,7 @@
     - Green Campus Officer (GCO)
 
 - name: Report
-  definition: A report is a system-generated summary that presents analysed energy, cost, maintenance, or sustainability data for a selected time period, enabling stakeholders to review performance, make decisions, and track trends.A report has various forms some including visual representations in the form charts and graphs.
+  definition: A report is a system-generated summary that presents analyzed energy, cost, maintenance, or sustainability data for a selected time period, enabling stakeholders to review performance, make decisions, and track trends.A report has various forms some including visual representations in the form charts and graphs.
   examples:
     - "The GCO is generating the sustainability report for this quarter."
     - "The report will be forwarded to the university management by Thursday."
@@ -60,9 +60,9 @@
     - Alarm
 
 - name: Budget
-  definition: Budget is the planned financial allocation set for energy usage over a defined period, used by the system as a reference to evaluate and control actual energy spending.
+  definition: A budget is the planned financial allocation set for energy usage over a defined period, used by the system as a reference to evaluate and control actual energy spending.
   examples:
-    - "The budget for next year’s energy consumption in our campus will be decided soon by the finance analyst."
+    - "The budget for next year’s energy consumption on our campus will be decided soon by the finance analyst."
     - "The budget allotted by the finance analyst for hot water usage is too low for the entire hostel."
   aliases:
     - Energy Budget
@@ -71,26 +71,26 @@
 - name: Cost
   definition: Cost is the actual monetary amount incurred from energy consumption over a defined period, calculated by the system based on measured usage and applicable tariffs.
   examples:
-    - "The energy cost for the month of march was one of the highest ever in the university’s history."
-    - "The students are aware now of their daily energy usage. Hence the cost is less than the allotted budget for this month."
+    - "The energy cost for the month of March was one of the highest ever in the university’s history."
+    - "The students are aware now of their daily energy usage. Hence, the cost is less than the allotted budget for this month."
   aliases:
     - Energy cost
     - Bill
 
 - name: Real-Time Energy Data
-  definition: The continuous stream of consumption information is monitored by the system to detect potential anomalies and report it to the technician if found.
+  definition: The continuous stream of consumption information is monitored by the system to detect potential anomalies and report them to the technician if found.
   examples:
     - "Monitor Real-Time Energy Data for spikes."
-    - "Real-Time Energy Data is missing for academic block."
+    - "Real-Time Energy Data is missing for the academic block."
   aliases:
     - Live Data
     - Energy Data
 
 - name: Maintenance work order
-  definition: A maintenance work order is the process of assignment of Maintenance tasks created by the system based on priorities when an anomaly is identified, assigning a technician to inspect, repair, or maintain equipment and track the progress until the issue is resolved.
+  definition: A maintenance work order is the process of assignment of Maintenance tasks created by the system based on priorities when an anomaly is identified, assigning a technician to inspect, repair, or maintain equipment, and track the progress until the issue is resolved.
   examples:
     - "The system has to create the maintenance work order for the technician to fix the faulty equipment in the most efficient way."
-    - "The technician will not work on a faculty’s or student’s room without a maintenance work order has been generated by the system."
+    - "The technician will not work on a faculty’s or student’s room without a maintenance work order that has been generated by the system."
   aliases:
     - Work order
   
@@ -102,17 +102,18 @@
   aliases:
     - Maintenance work
 
-- name : Fault 
+- name: Fault 
   definition: A fault is an abnormal condition in an electrical load, meter, or subsystem where its behaviour or measured values deviate from the defined safe or expected operating range causing an anomaly alert, indicating a possible failure or malfunction that requires investigation or maintenance.
   examples:
-    - "We are experiencing a fault in appliances from G07 room of the academic block."
+    - "We are experiencing a fault in the appliances in the G07 room of the academic block."
     - "The fault we detected at G07 was fixed by the technician."
   aliases:
     - Appliance Fault
     
 - name: Faulty Equipment
-  definition: A faulty equipment is an electric or any energy consuming equipment that is classfied as fault by the system.It requires immediate attention to by fixed by a technician.
+  definition: A faulty piece of equipment is an electric or any energy-consuming equipment that is classified as a fault by the system. It requires immediate attention to by fixed by a technician.
   examples:
     - "The AC in G07 is a fault equipment."
     - "The faulty equipment was fixed by the technician."
+
 
