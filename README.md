@@ -27,7 +27,8 @@ Responsible for managing sustainability initiatives, tracking environmental impa
 
 ## Planned Features for Each Actor
 
-System Administrator  
+System Administrator 
+
 1. Monitor and Configure System  
 Oversees system health, manages configurations, and controls user access and integrations.  
 
@@ -35,6 +36,7 @@ Oversees system health, manages configurations, and controls user access and int
 Generates system-wide operational, energy, and performance reports for monitoring and compliance.
 
 Technician  
+
 3. Real-Time Alerts for Anomalies  
 Receives instant notifications when energy usage exceeds predefined thresholds or abnormal patterns are detected.  
 
@@ -45,6 +47,7 @@ Identifies malfunctioning equipment and abnormal system behavior through energy 
 Creates and tracks maintenance tasks linked to detected faults and alerts.
 
 Finance Analyst  
+
 6. Manage Utility Costs  
 Tracks and analyzes utility expenditures across campus infrastructure to support budgeting and cost control.  
 
@@ -52,6 +55,7 @@ Tracks and analyzes utility expenditures across campus infrastructure to support
 Assesses financial benefits and return on investment of energy efficiency measures and sustainability initiatives.
 
 Sustainability Officer  
+
 8. Monitor Environmental Impact  
 Tracks environmental indicators such as carbon emissions and energy intensity derived from campus energy usage.  
 
