@@ -1,8 +1,8 @@
 # Domain: Sustainability and Green Economy
 # Problem Statement: Campus Energy and Renewables Management
-# Last Updated: 2026-02-02
+# Last Updated: 2026-02-06
 - name: System Administrator
-  definition: A technical person responsible for configuring, monitoring, and maintaining the Campus Energy & Renewables Management Platform. This role oversees system-level operations, including setting up data, generating performance reports and analytics of Energy consumption and ensuring the smooth functioning of all activities within the energy management system.
+  definition: A technical person responsible for troubleshooting, monitoring, and maintaining the Campus Energy & Renewables Management Platform. This role oversees system-level operations, including setting up data, monitoring performance metrics and analytics of Energy consumption and ensuring the smooth functioning of all activities within the energy management system.
   examples:
     - "The System Administrator is setting energy limits for a building."
     - "The System Administrator is gathering a monthly data report showing total campus electricity usage."
@@ -115,5 +115,6 @@
   examples:
     - "The AC in G07 is a fault equipment."
     - "The faulty equipment was fixed by the technician."
+
 
 
