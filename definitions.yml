@@ -1,6 +1,6 @@
 # Domain: Sustainability and Green Economy
 # Problem Statement: Campus Energy and Renewables Management
-# Last Updated: 2026-02-06
+# Last Updated: 2026-03-03
 - name: System Administrator
   definition: A technical person responsible for troubleshooting, monitoring, and maintaining the Campus Energy & Renewables Management Platform. This role oversees system-level operations, including setting up data, monitoring performance metrics and analytics of Energy consumption and ensuring the smooth functioning of all activities within the energy management system.
   examples:
@@ -10,7 +10,11 @@
   aliases:
     - System Manager
     - Technical Administrator
-
+- name: Dashboard
+  definition: A post-login view that showcases an authenticated System Administrator the options to monitor or maintain the System.
+  examples:
+    - "The Dashboard is only available to the System Administrator"
+    - "The Dashboard is shown to a system administrator to monitor, troubleshoot or maintain the system after he/she is authenticated by valid credentials"
 - name: Finance Analyst
   definition: A financial professional who manages the economic aspects of campus energy and sustainability operations. This role is a view only role that tracks utility expenditures, evaluates the financial implications of energy consumption patterns across the university and provides cost-benefit analysis to the university management to support decisions regarding energy investments and conservation initiatives.
   examples:
@@ -115,6 +119,7 @@
   examples:
     - "The AC in G07 is a fault equipment."
     - "The faulty equipment was fixed by the technician."
+
 
 
 
