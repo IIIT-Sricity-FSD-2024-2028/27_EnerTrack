@@ -124,37 +124,7 @@
     - "The AC in G07 is a fault equipment."
     - "The faulty equipment was fixed by the technician."
 
-- name: Dashboard
-  definition: The primary user interface presented to any authenticated user immediately after login. It acts as a centralized, role-specific control panel that provides access to all authorized system operations and features relevant to that user.
-  examples:
-    - "Upon login, the system automatically routes the user to their respective Dashboard based on their assigned role."
-  aliases:
-    - User Home
-    - Main Interface
-  sub_types:
-    - name: System Administrator Dashboard
-      definition: The administrative interface presented to the System Administrator upon login. It serves as a central control panel for navigating to all high-level platform operations, including monitoring system health, managing user access, and executing system maintenance tasks.
-      examples:
-        - "The System Administrator Dashboard displays real-time platform uptime and alerts for pending data backups."
-        - "From the System Administrator Dashboard, the user can navigate to the user management portal."
-      
-    - name: Finance Analyst Dashboard
-      definition: The financial overview interface presented to the Finance Analyst upon login. It provides a centralized hub to track utility expenditures, compare defined budgets against actual energy costs, and access financial and cost-benefit reports.
-      examples:
-        - "The Finance Analyst Dashboard highlights which campus buildings are currently exceeding their monthly energy budget."
-        - "The user downloaded the quarterly expenditure report directly from the Finance Analyst Dashboard."
-      
-    - name: Technician Dashboard
-      definition: The operational interface presented to the Technician upon login. It serves as the primary workspace to view real-time anomaly alerts, manage assigned maintenance work orders, and update the resolution status of faulty equipment.
-      examples:
-        - "The Technician Dashboard immediately displayed a red alert for an equipment fault in the academic block."
-        - "The technician marked the AC repair task as complete directly on their Technician Dashboard."
-      
-    - name: Sustainability Officer Dashboard
-      definition: The environmental monitoring interface presented to the Sustainability Officer upon login. It acts as a central command centre to track campus carbon emissions, evaluate the progress of energy-saving initiatives, and generate comprehensive sustainability reports.
-      examples:
-        - "The Sustainability Officer Dashboard shows a visual graph of the carbon emissions reduced over the last month."
-        - "The user initiated a new campus-wide energy report from the Sustainability Officer Dashboard."
+
 
 
 
