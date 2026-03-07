@@ -1,6 +1,6 @@
 # Domain: Sustainability and Green Economy
 # Problem Statement: Campus Energy and Renewables Management
-# Last Updated: 2026-03-05
+# Last Updated: 2026-03-06
 - name: System
   definition: The core software and underlying infrastructure of the Campus Energy & Renewables Management Platform. It requires ongoing oversight, updates, and troubleshooting by the System Administrator to ensure reliable operation.
   examples:
@@ -10,6 +10,15 @@
     - Application
     - App
     - Software
+    
+- name: Dashboard
+  definition: The primary user interface presented to any authenticated user immediately after login. It acts as a centralized, role-specific control panel that provides access to all authorized system operations, monitoring tools, and features relevant to that user's role.
+  examples:
+    - "Upon successful login, the system automatically routes the user to their respective Dashboard based on their assigned role."
+  aliases:
+    - User Dashboard
+    - Main Interface
+  
 - name: System Administrator
   definition: A technical person responsible for monitoring and maintaining the system of the Campus Energy & Renewables Management Platform. This role oversees system-level operations, including setting up data, monitoring performance metrics and analytics of Energy consumption and ensuring the smooth functioning of all activities within the energy management system.
   examples:
@@ -19,6 +28,20 @@
   aliases:
     - System Manager
     - Technical Administrator
+
+- name: System Monitoring
+  definition: An activity where the System Administrator decides to select monitoring to check on the system. The System Administrator will have the option to view system status, monitor performance metrics, and check alerts and logs.
+  examples:
+    - "The System Administrator will select monitoring to view system status for the campus energy grid."
+  aliases:
+    - Health monitoring
+  
+- name: System Alert
+  definition: A warning created by the system when it spots a possible fault. The administrator will check alerts and logs to see these warnings, which tells them it is time to start troubleshooting to identify the issue and fix it.
+  examples:
+    - "The administrator reads the system alert so they can identify the issue and resolve system issues."
+  aliases:
+    - System Warning
 - name: Finance Analyst
   definition: A financial professional who manages the economic aspects of campus energy and sustainability operations. This role is a view only role that tracks utility expenditures, evaluates the financial implications of energy consumption patterns across the university and provides cost-benefit analysis to the university management to support decisions regarding energy investments and conservation initiatives.
   examples:
@@ -123,6 +146,7 @@
   examples:
     - "The AC in G07 is a fault equipment."
     - "The faulty equipment was fixed by the technician."
+
 
 
 
