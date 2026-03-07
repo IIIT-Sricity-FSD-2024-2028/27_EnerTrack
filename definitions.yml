@@ -80,22 +80,22 @@
     - Tracked Appliances 
 
 - name: Budget
-  definition: A budget is the planned financial allocation set for energy usage over a defined period, used by the system as a reference to evaluate and control actual energy spending.
+  definition: The approved financial allocation set for a specific utility (such as a selected department, building, or the entire campus) over a chosen time period. The system uses this target to compare against the actual cost, allowing the user to determine the budget variance and overall status (e.g., "Under budget" or "Needs review").
   examples:
-    - "The budget for next year’s energy consumption on our campus will be decided soon by the finance analyst."
-    - "The budget allotted by the finance analyst for hot water usage is too low for the entire hostel."
+    - "The Finance Analyst reviewed the Budget vs Actual cards to see if the academic building's utility stayed within its approved monthly budget."
+    - "The system flagged the gas utility with a 'Needs review' status because its actual cost exceeded the budget."
   aliases:
-    - Energy Budget
-    - Campus Energy Budget
+    - Utility Budget
+    - Approved Allocation
 
 - name: Cost
-  definition: Cost is the actual monetary amount incurred from energy consumption over a defined period, calculated by the system based on measured usage and applicable tariffs.
+  definition: The actual monetary expense incurred by a specific utility over a selected time period. The system calculates this current utility spend by combining retrieved consumption data with base utility rates, applicable tariffs, taxes, and demand charges before comparing it against the budget.
   examples:
-    - "The energy cost for the month of March was one of the highest ever in the university’s history."
-    - "The students are aware now of their daily energy usage. Hence, the cost is less than the allotted budget for this month."
+    - "The actual cost for the science department's utility was higher than expected this month due to peak demand charges."
+    - "The Finance Analyst used the cost breakdown panel to view the calculated cost of electricity, gas, and water utilities."
   aliases:
-    - Energy cost
-    - Bill
+    - Actual Cost
+    - Utility Spend
 
 - name: Technician
   definition: An operational staff member who handles technical maintenance and troubleshooting of campus energy systems. This role responds to real-time alerts, diagnoses equipment malfunctions, performs maintenance activities,  and ensures the physical infrastructure supporting energy management operates reliably.
@@ -174,6 +174,7 @@
   examples:
     - "The AC in G07 is a fault equipment."
     - "The faulty equipment was fixed by the technician."
+
 
 
 
