@@ -52,11 +52,11 @@
     - App Maintenance
 
 - name: Finance Analyst
-  definition: A financial professional who manages the economic aspects of campus energy and sustainability operations. This role is a view only role that tracks utility expenditures, evaluates the financial implications of energy consumption patterns across the university and provides cost-benefit analysis to the university management to support decisions regarding energy investments and conservation initiatives.
+  definition: A user who interacts with the system to calculate utility costs, generate reports, and evaluate the financial impacts of energy projects. The user can also select generate reports to export this data as a PDF or CSV. Furthermore, they evaluate new projects by calculating financial metrics (like ROI and NPV) and performing trend analysis to determine if an investment is financially viable.
   examples:
-    - "The finance analyst is  reviewing  electricity bills and identifies buildings with unexpectedly high costs."
-    - "The finance analyst is calculating how much money is saved after installing solar panels."
-    - "The  finance analyst prepares budget forecasts based on historical energy consumption trends."
+    - "The Finance Analyst will calculate utility costs to see exactly how much money the academic building's appliances cost to run last month."
+    - "The Finance Analayst will select generate reports to export the recent utility data as a PDF for the university management."
+    - "Before approving the new solar panels, the Finance Analyst will calculate financial metrics to ensure the project is financially viable."
   aliases:
     - Financial Analyst
     - Financial Staff
@@ -155,6 +155,7 @@
   examples:
     - "The AC in G07 is a fault equipment."
     - "The faulty equipment was fixed by the technician."
+
 
 
 
