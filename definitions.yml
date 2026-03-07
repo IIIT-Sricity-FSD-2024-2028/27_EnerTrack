@@ -61,6 +61,42 @@
     - Financial Analyst
     - Financial Staff
 
+ - name: Financial Report
+  definition: A generated summary of energy costs and savings. The finance analyst creates it by configuring settings such as select filters, select time period, select category, and select data scope, and then clicking generate report. The system then displays a report preview showing projected costs, actual versus budget comparisons, and top cost drivers before the user chooses an output format to export as PDF or CSV.
+  examples:
+    - "The Finance Analyst generated a monthly Financial Report to see the actual versus budget status for the campus electricity."
+    - "After viewing the report preview, the user decided to export as PDF to share the identified savings with the university management."
+  aliases:
+    - Cost Report
+    - Financial Summary
+    
+- name: Utility
+  definition: A set of appliances that consume electricity for a selected department, a specific building, or the entire campus over a given time period chosen by the financial analyst. The system uses this grouping to calculate utility costs and generate financial reports.
+  examples:
+    - "The Finance Analyst calculated the cost of the utility for the academic building to check last month's expenses."
+    - "The user selected a specific time period to see how much the utility cost the science department."
+  aliases:
+    - Energy Load
+    - Tracked Appliances 
+
+- name: Budget
+  definition: A budget is the planned financial allocation set for energy usage over a defined period, used by the system as a reference to evaluate and control actual energy spending.
+  examples:
+    - "The budget for next year’s energy consumption on our campus will be decided soon by the finance analyst."
+    - "The budget allotted by the finance analyst for hot water usage is too low for the entire hostel."
+  aliases:
+    - Energy Budget
+    - Campus Energy Budget
+
+- name: Cost
+  definition: Cost is the actual monetary amount incurred from energy consumption over a defined period, calculated by the system based on measured usage and applicable tariffs.
+  examples:
+    - "The energy cost for the month of March was one of the highest ever in the university’s history."
+    - "The students are aware now of their daily energy usage. Hence, the cost is less than the allotted budget for this month."
+  aliases:
+    - Energy cost
+    - Bill
+
 - name: Technician
   definition: An operational staff member who handles technical maintenance and troubleshooting of campus energy systems. This role responds to real-time alerts, diagnoses equipment malfunctions, performs maintenance activities,  and ensures the physical infrastructure supporting energy management operates reliably.
   examples:
@@ -99,24 +135,7 @@
     - Abnormality Alert
     - Alarm
 
-- name: Budget
-  definition: A budget is the planned financial allocation set for energy usage over a defined period, used by the system as a reference to evaluate and control actual energy spending.
-  examples:
-    - "The budget for next year’s energy consumption on our campus will be decided soon by the finance analyst."
-    - "The budget allotted by the finance analyst for hot water usage is too low for the entire hostel."
-  aliases:
-    - Energy Budget
-    - Campus Energy Budget
-
-- name: Cost
-  definition: Cost is the actual monetary amount incurred from energy consumption over a defined period, calculated by the system based on measured usage and applicable tariffs.
-  examples:
-    - "The energy cost for the month of March was one of the highest ever in the university’s history."
-    - "The students are aware now of their daily energy usage. Hence, the cost is less than the allotted budget for this month."
-  aliases:
-    - Energy cost
-    - Bill
-
+    
 - name: Real-Time Energy Data
   definition: The continuous stream of consumption information is monitored by the system to detect potential anomalies and report them to the technician if found.
   examples:
@@ -155,6 +174,7 @@
   examples:
     - "The AC in G07 is a fault equipment."
     - "The faulty equipment was fixed by the technician."
+
 
 
 
