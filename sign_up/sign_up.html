@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EnerTrack Sign Up</title>
+    <link rel="stylesheet" href="sign_up.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- BACKGROUND -->
+    <div class="background">
+        <img src="../sign_in/images/Background_image.png" alt="background">
+    </div>
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <div class="logo">
+            <img src="../sign_in/images/logo.png" alt="EnerTrack Logo">
+        </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="main">
+
+        <!-- CARD -->
+        <div class="card">
+
+
+
+            <h1>Sign Up</h1>
+            <p class="sub">Create a free account</p>
+
+            <!-- Name -->
+            <input type="text" id="name" placeholder="Name" class="input" autocomplete="off">
+            <span class="field-error" id="nameError"></span>
+
+            <!-- Email -->
+            <input type="email" id="email" placeholder="Email" class="input" autocomplete="off">
+            <span class="field-error" id="emailError"></span>
+
+            <!-- Password -->
+            <div class="password-wrap">
+                <input type="password" id="password" placeholder="Password" class="input" autocomplete="new-password">
+                <span class="eye" id="togglePassword" onclick="togglePass()">
+                    <!-- Crossed-out eye (hidden) -->
+                    <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C6 20 1.73 14 1.73 12c0-.9.6-2.3 1.7-3.7" />
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10.27 6 10.27 8 0 .73-.22 1.6-.67 2.5" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                    <!-- Open eye (visible) -->
+                    <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" style="display:none;">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                </span>
+            </div>
+            <span class="field-error" id="passwordError"></span>
+
+            <!-- Role dropdown -->
+            <div class="select-wrap">
+                <select id="role" class="input select" autocomplete="off">
+                    <option value="" disabled selected hidden>Role</option>
+                    <option value="admin">System Administrator</option>
+                    <option value="analyst">Financial Analyst</option>
+                    <option value="technician">Technician</option>
+                    <option value="sustainability">Sustainability Officer</option>
+                </select>
+                <span class="chevron">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </span>
+            </div>
+            <span class="field-error" id="roleError"></span>
+
+            <!-- Terms checkbox -->
+            <label class="terms">
+                <input type="checkbox" id="terms">
+                <span>Agree to Terms &amp; Conditions</span>
+            </label>
+            <span class="field-error" id="termsError"></span>
+
+            <!-- Submit -->
+            <button class="btn" id="signUpBtn" onclick="handleSignUp()">Sign Up</button>
+
+            <!-- Footer -->
+            <div class="footer">
+                <p>Already have an account?</p>
+                <a href="../sign_in/sign_in.html" class="signin-link">Sign in</a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // Toggle password visibility
+        function togglePass() {
+            const pwd = document.getElementById('password');
+            const eyeClosed = document.getElementById('eyeClosed');
+            const eyeOpen = document.getElementById('eyeOpen');
+            const isHidden = pwd.type === 'password';
+            pwd.type = isHidden ? 'text' : 'password';
+            eyeClosed.style.display = isHidden ? 'none' : 'block';
+            eyeOpen.style.display = isHidden ? 'block' : 'none';
+        }
+
+        // Sign Up validation
+        function handleSignUp() {
+            const nameEl = document.getElementById('name');
+            const emailEl = document.getElementById('email');
+            const pwdEl = document.getElementById('password');
+            const roleEl = document.getElementById('role');
+            const termsEl = document.getElementById('terms');
+
+            const fields = [
+                { el: nameEl, err: 'nameError', msg: 'Enter your name' },
+                { el: emailEl, err: 'emailError', msg: 'Enter a valid email address', isEmail: true },
+                { el: pwdEl, err: 'passwordError', msg: 'Enter a password' },
+            ];
+
+            let valid = true;
+
+            // Reset all
+            fields.forEach(f => {
+                f.el.classList.remove('input-error');
+                document.getElementById(f.err).textContent = '';
+            });
+            roleEl.classList.remove('input-error');
+            document.getElementById('roleError').textContent = '';
+            document.getElementById('termsError').textContent = '';
+
+            // Validate fields
+            for (const f of fields) {
+                if (!f.el.value.trim()) {
+                    f.el.classList.add('input-error');
+                    document.getElementById(f.err).textContent = f.msg;
+                    if (valid) f.el.focus();
+                    valid = false;
+                } else if (f.isEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.el.value.trim())) {
+                    f.el.classList.add('input-error');
+                    document.getElementById(f.err).textContent = f.msg;
+                    if (valid) f.el.focus();
+                    valid = false;
+                }
+            }
+
+            if (!roleEl.value) {
+                roleEl.classList.add('input-error');
+                document.getElementById('roleError').textContent = 'Please select a role';
+                valid = false;
+            }
+
+            if (!termsEl.checked) {
+                document.getElementById('termsError').textContent = 'You must agree to the Terms & Conditions';
+                valid = false;
+            }
+
+            if (!valid) return;
+            // Add actual sign-up logic here
+        }
+
+        // Clear error on focus
+        ['name', 'email', 'password'].forEach(id => {
+            document.getElementById(id).addEventListener('focus', function () {
+                this.classList.remove('input-error');
+                document.getElementById(id + 'Error').textContent = '';
+            });
+        });
+        document.getElementById('role').addEventListener('change', function () {
+            this.classList.remove('input-error');
+            document.getElementById('roleError').textContent = '';
+        });
+    </script>
+
+</body>
+
+</html>

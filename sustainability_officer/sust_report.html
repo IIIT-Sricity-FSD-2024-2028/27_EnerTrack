@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sustainability Dashboard - Reporting</title>
+    <link rel="stylesheet" href="sust_report.css">
+    <link rel="stylesheet" href="sust_shared.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <a href="sust_overview.html" class="sidebar-logo">
+                <img src="images/logo.png" alt="EnerTrack Logo" class="logo-icon">
+                <img src="images/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
+            </a>
+            
+            <nav class="sidebar-nav">
+                <a href="sust_overview.html" class="nav-item">
+                    <img src="images/overview_icon.png" alt="Overview">
+                    Overview
+                </a>
+                <a href="sust_monitoring.html" class="nav-item">
+                    <img src="images/environmental_impact_monitoring.png" alt="Monitoring">
+                    Environmental Impact Monitoring
+                </a>
+                <a href="sust_report.html" class="nav-item active">
+                    <img src="images/Sustainability_reporting.png" alt="Reporting">
+                    Sustainability Reporting
+                </a>
+                <a href="sust_initiatives.html" class="nav-item">
+                    <img src="images/sustainable_conservation_initiatives.png" alt="Initiatives">
+                    Sustainable Conservation Initiatives
+                </a>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <div class="sync-card">
+                    <div class="sync-dot"></div>
+                    <div class="sync-info">
+                        <h4>Data Sync: Active</h4>
+                        <p>Live meter feeds and emissio...</p>
+                    </div>
+                </div>
+                
+                <div class="profile-card">
+                    <img src="images/maya_patel.png" alt="Maya Patel" class="avatar">
+                    <div class="profile-info">
+                        <h4>Maya Patel</h4>
+                        <p>Sustainability Officer</p>
+                    </div>
+                    <button class="profile-menu" type="button" aria-label="Profile options">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <circle cx="12" cy="5" r="2"></circle>
+                            <circle cx="12" cy="12" r="2"></circle>
+                            <circle cx="12" cy="19" r="2"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <header class="page-header">
+                <h1>Sustainability Reporting</h1>
+                <p>Choose a reporting period, run the reporting pipeline, review the compiled output, handle exceptions, and export approved sustainability reports for stakeholders.</p>
+            </header>
+
+            <section class="report-panel">
+                <!-- Configuration -->
+                <h3 class="section-title">Report configuration</h3>
+                <p class="section-desc">Define the report type and date window before generating the compiled sustainability report.</p>
+
+                <label class="form-label">Report type</label>
+                <div class="type-pills">
+                    <div class="type-pill active">Yearly</div>
+                    <div class="type-pill">Quarterly</div>
+                    <div class="type-pill">Monthly</div>
+                    <div class="type-pill">Custom</div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label class="form-label">Year</label>
+                        <select class="form-select">
+                            <option>2025</option>
+                            <option>2024</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label class="form-label">Quarter</label>
+                        <select class="form-select">
+                            <option>Q2</option>
+                            <option>Q1</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label class="form-label">Month</label>
+                        <select class="form-select">
+                            <option>May</option>
+                            <option>April</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label class="form-label">Custom range</label>
+                        <input type="text" class="form-input" value="01 May 2025 - 31 May 2025" style="background-image: url('data:image/svg+xml;utf8,<svg fill=%22none%22 height=%2220%22 stroke=%22%239ca3af%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 viewBox=%220 0 24 24%22 width=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22><rect height=%2218%22 rx=%222%22 ry=%222%22 width=%2218%22 x=%223%22 y=%224%22/><line x1=%2216%22 x2=%2216%22 y1=%222%22 y2=%226%22/><line x1=%228%22 x2=%228%22 y1=%222%22 y2=%226%22/><line x1=%223%22 x2=%2221%22 y1=%2210%22 y2=%2210%22/></svg>'); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; cursor: pointer;" onclick="this.showPicker ? this.showPicker() : null">
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Pipeline -->
+                <h3 class="section-title">Reporting pipeline</h3>
+                <p class="section-desc">Progress from source retrieval to final report compilation.</p>
+
+                <div class="pipeline-badge">3 steps</div>
+
+                <div class="pipeline-section">
+                    <div class="pipeline-line"></div>
+                    <div class="pipeline-line-fill"></div>
+
+                    <div class="pipeline-track">
+                        <div class="pipeline-step active">
+                            <div class="pipeline-circle active">
+                                <img src="images/collect.png" alt="Retrieve">
+                            </div>
+                            <h4>Retrieve Data</h4>
+                        </div>
+                        <div class="pipeline-step active">
+                            <div class="pipeline-circle active">
+                                <img src="../admin/images/maintenance_metric.png" alt="Charts">
+                            </div>
+                            <h4>Generate Charts & Graphs</h4>
+                        </div>
+                        <div class="pipeline-step active">
+                            <div class="pipeline-circle active">
+                                <img src="images/generate_summary_text.png" alt="Summary">
+                            </div>
+                            <h4>Generate Summary Text</h4>
+                        </div>
+                        <div class="pipeline-step">
+                            <div class="pipeline-circle">
+                                <img src="images/generate_KPIandoutlines.png" alt="KPIs">
+                            </div>
+                            <h4>Generate KPIs & Outlines</h4>
+                        </div>
+                        <div class="pipeline-step">
+                            <div class="pipeline-circle">
+                                <img src="images/compile_report.png" alt="Compile">
+                            </div>
+                            <h4>Compile Report</h4>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Generate Button -->
+            <button class="btn-block-dark">Generate Report</button>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Monitor - EnerTrack</title>
+    <link rel="stylesheet" href="admin_monitor.css">
+    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="dashboard">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <a href="admin_overview.html" class="sidebar-logo">
+                <img class="logo-icon" src="images/SVG.png" alt="logo">
+                <img class="logo-text" src="images/EnerTrack_text.png" alt="EnerTrack">
+            </a>
+
+            <nav class="sidebar-nav">
+
+                <a href="admin_overview.html" class="nav-item">
+                    <img src="images/maintenance_overview_unselected.png">
+                    Overview
+                </a>
+
+                <div class="nav-section">
+                    <a href="admin_monitor.html" class="nav-section-title active-pill">MONITORING</a>
+                    <div class="nav-group">
+                        <div class="nav-subitem">
+                            <img src="images/maintenance_monitor.png">
+                            System Health
+                        </div>
+                        <div class="nav-subitem">
+                            <!-- <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="18" y="3" width="4" height="18"></rect>
+                                <rect x="10" y="8" width="4" height="13"></rect>
+                                <rect x="2" y="13" width="4" height="8"></rect>
+                            </svg> -->
+                            <img src="images/maintenance_metric.png">
+                            Performance Metrics
+                        </div>
+                        <div class="nav-subitem">
+                            <!-- <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg> -->
+                            <img src="images/maintenance_alert.png">
+                            Alerts
+                            <span class="alerts-badge">3</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <a href="admin_maintain.html" class="nav-section-title">MAINTENANCE</a>
+                    <div class="nav-group">
+                        <div class="nav-subitem">
+                            <img src="images/maintenance_backup.png">
+                            Backups
+                        </div>
+                        <div class="nav-subitem">
+                            <img src="images/maintenance_system.png">
+                            System Updates
+                        </div>
+                        <div class="nav-subitem">
+                            <img src="images/maintenance_troubleshooting.png">
+                            Troubleshooting
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <a href="#" class="profile-card">
+                <img src="../sign_in/images/logo.png" alt="Profile" class="profile-img">
+                <div class="profile-info">
+                    <strong>Aadithya Mouli</strong>
+                    <span>System Administrator</span>
+                </div>
+            </a>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <header class="page-header">
+                <p>Live monitoring: last refresh 5s ago • Auto-refresh every 30s</p>
+            </header>
+
+            <div class="content-grid-monitor">
+
+                <!-- System Health Snapshot -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <img src="images/monitoring_green_system_health.png" alt="System Health Snapshot">
+                            System health snapshot
+                        </div>
+                        <button class="btn-secondary clickable" onclick="refreshMonitor()">
+                            <img src="images/monitoring_refresh.png" alt="Manual Refresh">
+                            Manual refresh
+                        </button>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>Core services</h4>
+                            <span class="badge badge-success">All green</span>
+                        </div>
+                        <p class="desc">API gateway, auth, database, cache</p>
+                        <div class="status-footer">
+                            <span>4 / 4 healthy • No degraded services</span>
+                            <span class="muted">Latency: 120 ms p95</span>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>Background workers</h4>
+                            <span class="badge badge-warning">Minor lag</span>
+                        </div>
+                        <p class="desc">Queues, schedulers, reporting jobs</p>
+                        <div class="status-footer">
+                            <span>Queue depth: 1.2k • Oldest job: 2m 10s</span>
+                            <span class="muted">Throughput: 480 jobs/min</span>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>External dependencies</h4>
+                            <span class="badge badge-danger">Degraded</span>
+                        </div>
+                        <p class="desc">Payment provider, email, SMS, SSO</p>
+                        <div class="status-footer">
+                            <span>Payment-API latency slightly elevated</span>
+                            <span class="muted">Error rate: 0.9%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Alerts -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <img src="images/monitor_bell.png" alt="Active Alerts">
+                            Active alerts
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>Payment-API latency</h4>
+                            <span class="badge badge-warning">Warning</span>
+                        </div>
+                        <p class="desc">p95 > 250 ms for 5 minutes</p>
+                        <div class="alert-meta-box">
+                            <span class="time">04:22</span>
+                            <span class="details">Triggered in region eu-west-1 • Investigate provider status
+                                page.</span>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>Worker queue depth</h4>
+                            <span class="badge badge-warning">Warning</span>
+                        </div>
+                        <p class="desc">High-priority jobs pending > 1k</p>
+                        <div class="alert-meta-box">
+                            <span class="time">04:28</span>
+                            <span class="details">Throughput recovering after spike • Monitor for next 10
+                                minutes.</span>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>Error budget</h4>
+                            <span class="badge badge-success-outline"
+                                style="background-color:darkgreen;color:white">Within
+                                SLO</span>
+                        </div>
+                        <div class="status-footer">
+                            <span>SLO: 99.9% • Current: 99.93%</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Performance Metrics (Bottom) -->
+            <div class="panel mt-24">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <img src="images/monitoring_perf.png" alt="Performance Metrics">
+                        Performance metrics
+                    </div>
+                </div>
+
+                <div class="metric-block">
+                    <div class="metric-top">
+                        <h4>CPU & memory</h4>
+                        <span class="muted">Across all application nodes • Last 15 minutes</span>
+                    </div>
+                    <div class="progress-bar-thick">
+                        <div class="progress" style="width: 68%;"></div>
+                    </div>
+                    <div class="metric-bottom">
+                        <span>CPU: 62% avg • 78% peak</span>
+                        <span class="muted">Memory: 68% used</span>
+                    </div>
+                </div>
+
+                <div class="metric-block">
+                    <div class="metric-top">
+                        <h4>Requests & errors</h4>
+                        <span class="muted">All HTTP endpoints • Last 5 minutes</span>
+                    </div>
+                    <div class="progress-bar-thick">
+                        <div class="progress" style="width: 90%;"></div>
+                    </div>
+                    <div class="metric-bottom">
+                        <span>Requests: 8.4k/min • 99.96% success</span>
+                        <span class="muted">Error rate: 0.04%</span>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+    <!-- 
+    <script>
+        function refreshMonitor() {
+            alert("Refreshing system data...");
+        }
+    </script> -->
+</body>
+
+</html>
