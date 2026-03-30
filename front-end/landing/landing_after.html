@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EnerTrack Landing Page</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family: Georgia, "Times New Roman", serif;
+}
+
+body{
+background:#D9D9D9;
+color:#111;
+line-height:1.6;
+}
+
+/* NAVBAR */
+
+.navbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:22px 70px;
+background:#D9D9D9;
+position:sticky;
+top:0;
+z-index:10;
+}
+
+.left{
+display:flex;
+align-items:center;
+gap:22px; /* reduced gap so divider stays close */
+}
+
+.logo{
+display:flex;
+align-items:center;
+gap:8px;
+font-size:17px;
+font-weight:500;
+cursor:pointer;
+}
+
+.logo img{
+width:26px;
+cursor:pointer;
+}
+
+.fun img{
+    width: 7000px;
+    height: 300px;
+}
+/* SMALL BLACK BAR */
+
+.divider{
+width:2px;
+height:24px;
+background:#000;
+margin-left:8px;
+margin-right:8px;
+}
+
+/* NAV LINKS */
+
+.nav-links{
+display:flex;
+gap:28px;
+font-size:14px;
+cursor:pointer;
+}
+
+.nav-links a{
+text-decoration:none;
+color:#111;
+}
+
+.btn{
+background:#111;
+color:white;
+padding:10px 18px;
+border-radius:20px;
+font-size:13px;
+cursor:pointer;
+}
+
+/* HERO */
+
+.hero{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:50px 70px;
+gap:40px;
+cursor: default;
+user-select: none;
+}
+
+.hero-text small{
+font-size:18px;
+color:#333;
+}
+
+.hero-text h1{
+font-size:60px;
+font-weight:500;
+line-height:1.2;
+margin-top:10px;
+}
+
+.hero img{
+width:420px;
+border-radius:22px;
+}
+
+/* SECTION */
+
+.section{
+padding:70px;
+border-top:1px solid #ddd;
+cursor: default;
+user-select: none;
+}
+
+.section-title{
+font-size:28px;
+margin-bottom:18px;
+}
+
+.grid2{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:50px;
+align-items:center;
+}
+
+.about img{
+width:320px;
+border-radius:12px;
+}
+
+/* ROLE CARDS */
+
+.roles{
+margin-top:40px;
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:40px;
+cursor: default;
+user-select: none;
+}
+
+.role-card{
+background:#a9c7b3;
+padding:28px;
+border-radius:22px;
+box-shadow:0 6px 12px rgba(0,0,0,0.08);
+}
+
+.role-card h3{
+margin-bottom:12px;
+}
+
+.role-card li{
+margin-left:18px;
+margin-bottom:8px;
+}
+
+/* CAPABILITIES */
+
+.cap-top{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:40px;
+align-items:center;
+}
+
+.cap-grid{
+margin-top:40px;
+display:grid;
+grid-template-columns:1fr 1fr 1fr;
+gap:30px;
+}
+
+.cap-card{
+border:2px solid #2f7d4f;
+border-radius:16px;
+padding:18px;
+background:white;
+}
+
+.cap-card img{
+width:100%;
+border-radius:12px;
+margin-bottom:12px;
+}
+
+/* RESULTS */
+
+.results{
+display:grid;
+grid-template-columns:1fr 1fr;
+font-size:22px;
+align-items:center;
+}
+
+/* CONTACT */
+
+.contact{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:60px;
+}
+
+.form input,
+.form textarea{
+width:100%;
+padding:10px;
+margin-bottom:14px;
+border-radius:10px;
+border:1px solid #444;
+background:transparent;
+}
+
+.send{
+background:Black;
+color:white;
+padding:8px 18px;
+border:none;
+border-radius:14px;
+cursor:pointer;
+}
+
+/* FOOTER */
+
+.footer{
+display:flex;
+justify-content:space-between;
+padding:40px 70px;
+border-top:1px solid #ccc;
+font-size:13px;
+}
+.white-line{
+width:100%;
+height:2px;
+background:white;
+}
+.porrt{
+    font-size:20px;
+
+}
+.profile{
+width: 48px;
+height:48px;
+border-radius:50%;
+overflow:hidden;
+border:2px solid white;
+cursor:pointer;
+}
+
+.profile img{
+width:100%;
+height:100%;
+object-fit:cover;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+
+<div class="navbar">
+
+<div class="left">
+
+<div class="logo">
+<img src="images/logo3.png">
+EnerTrack
+</div>
+
+<div class="divider"></div>
+
+<div class="nav-links">
+<a>Home</a>
+<a>About</a>
+<a>Services</a>
+<a>Contact</a>
+</div>
+
+</div>
+
+<div class="profile">
+    <img src="https://i.pravatar.cc/100">
+</div>
+
+</div>
+
+
+<!-- HERO -->
+
+<div class="hero">
+
+<div class="hero-text">
+
+<small><b>_Campus Sustainability</b></small>
+
+<h1>
+Power smarter.<br>
+Spend less.<br>
+Breathe easier
+</h1>
+
+</div>
+ <div class="fun">
+
+<img src="images/logo4.jpeg">
+</div>
+
+
+</div>
+
+<div class="white-line"></div>
+
+<!-- ABOUT -->
+
+<div class="section about">
+
+<div class="grid2">
+
+<div>
+
+<h2 class="section-title">About</h2>
+
+<p>
+Building smarter campuses for a sustainable future, cam empowers educational institutions to gain full visibility into their energy consumption.
+Through real-time monitoring and data-driven insights, the platform enables administrators, finance teams, and sustainability officers to simultaneously cut energy costs by 25% and reduce carbon footprints by 40%.
+</p>
+
+</div>
+<div class="fun">
+<img src="images/logo5.jpeg">
+</div>
+</div>
+
+</div>
+
+<div class="white-line"></div>
+
+<!-- ROLES -->
+
+<div class="section">
+
+<p><b>_Roles</b></p>
+
+<div class="roles">
+
+<a href="../admin/admin_overview.html" style="text-decoration: none; color: inherit;">
+<div class="role-card">
+
+<h3>System Administrator</h3>
+
+<ul>
+<li>Monitors and maintains the energy management system.</li>
+<li>Manages system configuration and data setup.</li>
+<li>Tracks energy performance and analytics.</li>
+<li>Ensures smooth system operation.</li>
+</ul>
+
+</div>
+</a>
+
+
+<a href="../financial_analyst/finance_overview.html" style="text-decoration: none; color: inherit;">
+<div class="role-card">
+
+<h3>Financial Analyst</h3>
+
+<ul>
+<li>Calculates utility costs and financial metrics.</li>
+<li>Generates reports (PDF/CSV).</li>
+<li>Evaluates financial impact of energy projects.</li>
+<li>Performs trend analysis for investment decisions.</li>
+</ul>
+
+</div>
+</a>
+
+
+<a href="../technician/technician_overview.html" style="text-decoration: none; color: inherit;">
+<div class="role-card">
+
+<h3>Technician</h3>
+
+<ul>
+<li>Performs technical maintenance of energy systems.</li>
+<li>Responds to real-time alerts.</li>
+<li>Diagnoses equipment issues.</li>
+<li>Ensures reliable operation.</li>
+</ul>
+
+</div>
+</a>
+
+
+<a href="../sustainability_officer/sust_overview.html" style="text-decoration: none; color: inherit;">
+<div class="role-card">
+
+<h3>Sustainability Officer</h3>
+
+<ul>
+<li>Plans sustainability initiatives.</li>
+<li>Monitors environmental impact.</li>
+<li>Prepares sustainability reports.</li>
+<li>Ensures compliance with standards.</li>
+</ul>
+
+</div>
+</a>
+
+</div>
+
+</div>
+
+
+<div class="white-line"></div>
+<!-- CAPABILITIES -->
+
+<div class="section">
+
+<p><b>_Core Capabilities</b></p>
+
+<div class="cap-top">
+
+<h2>
+Real-time Insights.<br>
+Automated Alerts.<br>
+Sustainable Data.
+</h2>
+
+<p>
+This platform gives your campus complete visibility into energy consumption, renewable generation, and cost impact across all buildings.
+</p>
+
+</div>
+
+
+<div class="cap-grid">
+
+<div class="cap-card">
+
+<img src="images/logo6.jpeg">
+
+<h4>Live Energy Monitoring</h4>
+
+<p>
+Track energy use across  campus instantly. See exactly where energy flows and consumption patterns emerge.
+
+</p>
+
+</div>
+
+
+<div class="cap-card">
+
+<img src="images/logo7.jpeg">
+
+<h4>Automated Energy Detection</h4>
+
+<p>Unusual energy patterns are spotted automatically. Alerts notify technicians and facilities teams instantly when something goes wrong
+</p>
+
+</div>
+
+
+<div class="cap-card">
+
+<img src="images/logo8.jpeg">
+
+<h4>Cost Breakdown Reports</h4>
+
+<p>Finance teams get detailed utility cost analysis by building, month, and system. Understand spending and identify where cost cuts matter most.
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- RESULTS -->
+
+<div class="section">
+
+<p><b>_Results</b></p>
+
+<div class="results">
+
+<h2>
+See the impact<br>
+of smart energy<br>
+management
+</h2>
+<div class="porrt">
+<p>
+Campuses can achieve measurable reductions in<br> energy costs and carbon emissions while maintaining<br> reliable operations across all buildings.
+</p>
+</div>
+</div>
+
+</div>
+
+
+<div class="white-line"></div>
+<!-- CONTACT -->
+
+<div class="section">
+
+<p><b>_Get in touch</b></p>
+
+<div class="contact">
+
+<div>
+
+<p>
+Share your questions or campus details. We'll respond within one business day.
+</p>
+
+<br>
+
+<p>✉ email@mybusiness.com</p>
+<p>📞 +12345678900</p>
+
+</div>
+
+
+<div class="form">
+
+<label>Your Name</label>
+<input>
+
+<label>Email ID</label>
+<input>
+
+<label>Your Message</label>
+<textarea rows="4"></textarea>
+
+<button class="send">Send Message</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- FOOTER -->
+
+<div class="footer">
+
+<div>© 2026 djncjfdvnjo</div>
+
+<div>
+Privacy Policy &nbsp;&nbsp;&nbsp; Terms of Service
+</div>
+
+</div>
+
+
+</body>
+</html>

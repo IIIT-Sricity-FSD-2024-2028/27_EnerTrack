@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sustainability Dashboard - Initiatives</title>
+    <link rel="stylesheet" href="sust_initiatives.css">
+    <link rel="stylesheet" href="sust_shared.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <a href="sust_overview.html" class="sidebar-logo">
+                <img src="images/logo.png" alt="EnerTrack Logo" class="logo-icon">
+                <img src="images/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
+            </a>
+            
+            <nav class="sidebar-nav">
+                <a href="sust_overview.html" class="nav-item">
+                    <img src="images/overview_icon.png" alt="Overview">
+                    Overview
+                </a>
+                <a href="sust_monitoring.html" class="nav-item">
+                    <img src="images/environmental_impact_monitoring.png" alt="Monitoring">
+                    Environmental Impact Monitoring
+                </a>
+                <a href="sust_report.html" class="nav-item">
+                    <img src="images/Sustainability_reporting.png" alt="Reporting">
+                    Sustainability Reporting
+                </a>
+                <a href="sust_initiatives.html" class="nav-item active">
+                    <img src="images/sustainable_conservation_initiatives.png" alt="Initiatives">
+                    Sustainable Conservation Initiatives
+                </a>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <div class="sync-card">
+                    <div class="sync-dot"></div>
+                    <div class="sync-info">
+                        <h4>Data Sync: Active</h4>
+                        <p>Live meter feeds and emissio...</p>
+                    </div>
+                </div>
+                
+                <a href="#" class="profile-card">
+                    <img src="images/maya_patel.png" alt="Maya Patel" class="avatar">
+                    <div class="profile-info">
+                        <h4>Maya Patel</h4>
+                        <p>Sustainability Officer</p>
+                    </div>
+                </a>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <header class="page-header">
+                <div class="page-header-text">
+                    <h1>Sustainable Conservation Initiatives</h1>
+                    <p>Shorter labels, fewer lines, and wider cards so everything stays inside the boxes.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="badge-outline-green">
+                        <img src="../admin/images/systemops_greentick.png" width="14" alt="Active">
+                        12 Active Initiatives
+                    </div>
+                    <button class="btn-dark">+ Propose New Initiative</button>
+                </div>
+            </header>
+
+            <!-- MAIN GRID -->
+            <div class="main-grid">
+                
+                <!-- TOP LEFT: NEW INITIATIVE (1 col) -->
+                <div class="col-span-1 flex-col-gap">
+                    <section class="panel">
+                        <h2 class="panel-title">New initiative</h2>
+                        <p class="panel-sub">Creation form with the required fields.</p>
+
+                        <div class="form-group">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-input" value="LED Lighting Retrofit — Building A & B">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-textarea">Replace fluorescent lights with smart LED and occupancy controls in two high-usage buildings.</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Target energy reduction %</label>
+                            <input type="text" class="form-input" value="12%">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Estimated cost</label>
+                            <input type="text" class="form-input" value="$64,000">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Timeline</label>
+                            <div class="custom-select" data-select>
+                                <button type="button" class="select-trigger" aria-expanded="false">
+                                    <span class="select-value">3 weeks - Assessment -> Procurement -> Install</span>
+                                    <span class="select-chevron" aria-hidden="true">&#9662;</span>
+                                </button>
+                                <div class="select-menu">
+                                    <button type="button" class="select-option selected" data-value="3 weeks - Assessment -> Procurement -> Install">
+                                        <span>3 weeks - Assessment -> Procurement -> Install</span>
+                                        <span class="checkmark">&#10003;</span>
+                                    </button>
+                                    <button type="button" class="select-option" data-value="6 weeks - Assessment -> Procurement -> Install -> QA">
+                                        <span>6 weeks - Assessment -> Procurement -> Install -> QA</span>
+                                        <span class="checkmark">&#10003;</span>
+                                    </button>
+                                    <button type="button" class="select-option" data-value="8 weeks - Assessment -> Procurement -> Install -> Validation">
+                                        <span>8 weeks - Assessment -> Procurement -> Install -> Validation</span>
+                                        <span class="checkmark">&#10003;</span>
+                                    </button>
+                                    <button type="button" class="select-option" data-value="12 weeks - Multi-phase rollout">
+                                        <span>12 weeks - Multi-phase rollout</span>
+                                        <span class="checkmark">&#10003;</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                
+                <!-- TOP RIGHT: INITIATIVE PIPELINE (2 cols) -->
+                <div class="col-span-2 flex-col-gap">
+                    <section class="panel" style="height: 100%;">
+                        <h2 class="panel-title">Initiative pipeline</h2>
+                        <p class="panel-sub">Proposed → Approved → In Progress → Completed, with feasibility shown on each card.</p>
+                        
+                        <div class="pipeline-grid">
+                            <!-- Proposed -->
+                            <div class="pipeline-col">
+                                <h4>Proposed</h4>
+                                
+                                <div class="kanban-card">
+                                    <div class="kanban-header">
+                                        <h5>HVAC After-Hours Automation</h5>
+                                        <span class="badge-feasible">Feasible</span>
+                                    </div>
+                                    <div class="kanban-stats">
+                                        <div class="kanban-stats-label">Target</div>
+                                        <div class="kanban-stats-val">7.5%</div>
+                                        <div class="kanban-stats-label">Cost</div>
+                                        <div class="kanban-stats-val">$56,500</div>
+                                        <div class="kanban-stats-label">Timeline</div>
+                                        <div class="kanban-stats-val">5 weeks</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="kanban-card">
+                                    <div class="kanban-header">
+                                        <h5>Solar Carport Phase 1</h5>
+                                        <span class="badge-not-feasible">Not Feasible</span>
+                                    </div>
+                                    <div class="kanban-stats">
+                                        <div class="kanban-stats-label">Target</div>
+                                        <div class="kanban-stats-val">14%</div>
+                                        <div class="kanban-stats-label">Cost</div>
+                                        <div class="kanban-stats-val">$198,000</div>
+                                        <div class="kanban-stats-label">Timeline</div>
+                                        <div class="kanban-stats-val">16 weeks</div>
+                                    </div>
+                                </div>
+                                
+                                <h4>In Progress</h4>
+                                <div class="kanban-card">
+                                    <div class="kanban-header">
+                                        <h5>LED Lighting Retrofit</h5>
+                                        <span class="badge-feasible">Feasible</span>
+                                    </div>
+                                    <div class="kanban-stats">
+                                        <div class="kanban-stats-label">Target</div>
+                                        <div class="kanban-stats-val">12%</div>
+                                        <div class="kanban-stats-label">Cost</div>
+                                        <div class="kanban-stats-val">$64,000</div>
+                                        <div class="kanban-stats-label">Timeline</div>
+                                        <div class="kanban-stats-val">8 weeks</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="kanban-card">
+                                    <div class="kanban-header">
+                                        <h5>Chiller Optimization Tuning</h5>
+                                        <span class="badge-feasible">Feasible</span>
+                                    </div>
+                                    <div class="kanban-stats">
+                                        <div class="kanban-stats-label">Target</div>
+                                        <div class="kanban-stats-val">6.1%</div>
+                                        <div class="kanban-stats-label">Cost</div>
+                                        <div class="kanban-stats-val">$19,400</div>
+                                        <div class="kanban-stats-label">Timeline</div>
+                                        <div class="kanban-stats-val">6 weeks</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Approved / Completed -->
+                            <div class="pipeline-col">
+                                <h4>Approved</h4>
+                                
+                                <div class="kanban-card">
+                                    <div class="kanban-header">
+                                        <h5>Boiler Insulation Upgrade</h5>
+                                        <span class="badge-feasible">Feasible</span>
+                                    </div>
+                                    <div class="kanban-stats">
+                                        <div class="kanban-stats-label">Target</div>
+                                        <div class="kanban-stats-val">5%</div>
+                                        <div class="kanban-stats-label">Cost</div>
+                                        <div class="kanban-stats-val">$31,200</div>
+                                        <div class="kanban-stats-label">Timeline</div>
+                                        <div class="kanban-stats-val">3 weeks</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="kanban-card">
+                                    <div class="kanban-header">
+                                        <h5>Compressed Air Leak Program</h5>
+                                        <span class="badge-feasible">Feasible</span>
+                                    </div>
+                                    <div class="kanban-stats">
+                                        <div class="kanban-stats-label">Target</div>
+                                        <div class="kanban-stats-val">4.4%</div>
+                                        <div class="kanban-stats-label">Cost</div>
+                                        <div class="kanban-stats-val">$9,700</div>
+                                        <div class="kanban-stats-label">Timeline</div>
+                                        <div class="kanban-stats-val">4 weeks</div>
+                                    </div>
+                                </div>
+                                
+                                <h4>Completed</h4>
+                                <div class="kanban-card">
+                                    <div class="kanban-header">
+                                        <h5>Server Room Cooling Reset</h5>
+                                        <span class="badge-feasible">Feasible</span>
+                                    </div>
+                                    <div class="kanban-outcomes">
+                                        <div class="outcome-pill">16 MWh saved</div>
+                                        <div class="outcome-pill">41 tCO₂e reduced</div>
+                                        <div class="outcome-pill">$14,400 saved</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="kanban-card">
+                                    <div class="kanban-header">
+                                        <h5>Kitchen Equipment Shutdown Policy</h5>
+                                        <span class="badge-feasible">Feasible</span>
+                                    </div>
+                                    <div class="kanban-outcomes">
+                                        <div class="outcome-pill">28 MWh saved</div>
+                                        <div class="outcome-pill">82 tCO₂e reduced</div>
+                                        <div class="outcome-pill">$6,700 saved</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                
+                <!-- BOTTOM LEFT: SELECTED INITIATIVE (2 cols) -->
+                <div class="col-span-2 flex-col-gap">
+                    <section class="panel">
+                        <div class="panel-header" style="margin-bottom: 24px;">
+                            <div>
+                                <h2 class="panel-title">Selected initiative</h2>
+                                <p class="panel-sub" style="margin-bottom: 0;">Implementation tracking, evaluation, and progress decision.</p>
+                            </div>
+                            <span class="badge-track">On Track</span>
+                        </div>
+                        
+                        <div class="selected-grid">
+                            <div class="box-item">
+                                <h5>Implementation tracking</h5>
+                                <p>Targets<br>12% reduction • 2 buildings • full fixture replacement + occupancy controls installed</p>
+                            </div>
+                            <div class="box-item">
+                                <h5>Progress</h5>
+                                <p>72% complete — Building A finished • Building B flooring in progress</p>
+                            </div>
+                            <div class="box-item">
+                                <h5>Evaluation</h5>
+                                <p>Energy savings<br>18.4 MWh projected monthly savings</p>
+                            </div>
+                            
+                            <div class="box-item">
+                                <h5>Resources</h5>
+                                <p>Facilities team • vendor crew • 42 LED units installed</p>
+                            </div>
+                            <div class="box-item">
+                                <h5>Timeline</h5>
+                                <p>Week 6 of 8 • procurement cleared • install on pace</p>
+                            </div>
+                            <div class="box-item">
+                                <h5>Evaluation</h5>
+                                <p>Environmental impact<br>9.7 tCO₂e reduced per month after full rollout</p>
+                            </div>
+                            
+                            <div class="box-item" style="grid-column: span 2;">
+                                <h5>Risks</h5>
+                                <p>No major blockers. Minor fixture lead time variance monitored for Building B.</p>
+                            </div>
+                            
+                            <div class="box-item">
+                                <h5>Cost benefit</h5>
+                                <p>$21,600 forecast annual savings • 2.2-year payback</p>
+                            </div>
+                        </div>
+                        
+                        <div class="status-bars">
+                            <div class="status-bar-green">
+                                <strong>On Track</strong>
+                                <span>Continue implementation.</span>
+                            </div>
+                            <div class="status-bar-orange">
+                                <strong>Not On Track</strong>
+                                <span>Adjust strategy or discontinue.</span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                
+                <!-- BOTTOM RIGHT: TOTALS & OUTCOMES (1 col) -->
+                <div class="col-span-1 flex-col-gap">
+                    <section class="panel">
+                        <h2 class="panel-title">Completed initiative totals</h2>
+                        <p class="panel-sub">Energy saved, emissions reduced, and cost saved.</p>
+                        
+                        <div class="totals-grid">
+                            <div class="total-item">
+                                <h3>134 <span>MWh</span></h3>
+                                <p>Energy saved</p>
+                            </div>
+                            <div class="total-item">
+                                <h3>57 <span>tCO₂e</span></h3>
+                                <p>Emissions reduced</p>
+                            </div>
+                            <div class="total-item">
+                                <h3>$18,500</h3>
+                                <p>Cost saved</p>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <section class="panel" style="height: 100%;">
+                        <h2 class="panel-title">Final outcomes</h2>
+                        <p class="panel-sub">Required actions after evaluation.</p>
+                        
+                        <div class="outcomes-grid">
+                            <div class="outcome-box">
+                                <h5>Scale Up Successful Initiatives</h5>
+                                <p>Expand proven initiatives to more sites.</p>
+                            </div>
+                            <div class="outcome-box">
+                                <h5>Document Lessons Learned</h5>
+                                <p>Capture budgets, timing, and feasibility assumptions.</p>
+                            </div>
+                            <div class="outcome-box">
+                                <h5>Report Outcomes</h5>
+                                <p>Share verified savings and impacts to stakeholders.</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                
+            </div>
+
+        </main>
+    </div>
+    <script>
+        document.querySelectorAll('[data-select]').forEach((selectWrap) => {
+            const trigger = selectWrap.querySelector('.select-trigger');
+            const valueEl = trigger.querySelector('.select-value');
+            const options = selectWrap.querySelectorAll('.select-option');
+
+            trigger.addEventListener('click', (event) => {
+                event.stopPropagation();
+                document.querySelectorAll('[data-select].open').forEach((openSelect) => {
+                    if (openSelect !== selectWrap) {
+                        openSelect.classList.remove('open');
+                        openSelect.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
+                    }
+                });
+                selectWrap.classList.toggle('open');
+                trigger.setAttribute('aria-expanded', selectWrap.classList.contains('open') ? 'true' : 'false');
+            });
+
+            options.forEach((option) => {
+                option.addEventListener('click', () => {
+                    options.forEach((btn) => btn.classList.remove('selected'));
+                    option.classList.add('selected');
+                    valueEl.textContent = option.dataset.value;
+                    selectWrap.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                });
+            });
+        });
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('[data-select].open').forEach((openSelect) => {
+                openSelect.classList.remove('open');
+                openSelect.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EnerTrack Sidebar + Financial Reports</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
+}
+
+body{
+display:flex;
+height:100vh;
+background:#d3d3d3;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:260px;
+background:linear-gradient(180deg,#93E494,#93E494);
+padding:22px 18px;
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+}
+
+/* LOGO */
+
+.logo{
+display:flex;
+align-items:center;
+gap:10px;
+font-size:15px;
+font-weight:600;
+color:#1f2937;
+margin-bottom:28px;
+padding-right:180px;
+cursor:pointer;
+}
+
+.logo img{
+width:50px;
+height:24px;
+object-fit:contain;
+}
+
+/* MENU */
+
+.menu{
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+
+.menu-item{
+display:flex;
+align-items:center;
+gap:12px;
+font-size:14px;
+color:#1f2937;
+padding:10px 12px;
+border-radius:8px;
+cursor:pointer;
+}
+
+.menu-item svg{
+width:18px;
+height:18px;
+stroke-width:1.8;
+}
+
+.menu-item.active{
+background:#0f172a;
+color:white;
+}
+
+.menu-item.active svg{
+stroke:white;
+}
+
+/* PROFILE */
+
+.profile{
+background:white;
+padding:10px 12px;
+border-radius:8px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+cursor:pointer;
+}
+
+.profile-left{
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.profile img{
+width:30px;
+height:30px;
+border-radius:50%;
+}
+
+.profile-name{
+font-size:12px;
+font-weight:600;
+}
+
+.profile-role{
+font-size:10px;
+color:#6b7280;
+}
+
+/* RIGHT SIDE CONTENT */
+
+.content{
+flex:1;
+background:#f3f4f6;
+padding:40px;
+overflow:auto;
+}
+
+/* PAGE DESIGN */
+
+.container{
+max-width:1100px;
+cursor: default;
+user-select: none;
+}
+
+/* headings */
+
+h1{
+font-size:26px;
+font-weight:600;
+margin-bottom:6px;
+}
+
+.sub{
+color:#6b7280;
+font-size:14px;
+margin-bottom:26px;
+}
+
+/* section boxes */
+
+.box{
+background:white;
+border-radius:10px;
+padding:22px;
+margin-bottom:18px;
+box-shadow:0 1px 0 rgba(0,0,0,0.05);
+}
+
+.section-title{
+font-size:15px;
+font-weight:600;
+margin-bottom:6px;
+}
+
+.section-sub{
+font-size:13px;
+color:#6b7280;
+margin-bottom:14px;
+}
+
+.small-label{
+font-size:12px;
+color:#9ca3af;
+margin-bottom:6px;
+}
+
+/* inputs */
+
+.input{
+border:1px solid #e5e7eb;
+border-radius:8px;
+padding:10px 12px;
+font-size:14px;
+color:#374151;
+width:20%;
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:white;
+cursor:pointer;
+}
+
+/* toggle */
+
+.toggle{
+display:flex;
+gap:8px;
+margin-bottom:14px;
+}
+
+.pill{
+padding:6px 14px;
+border-radius:999px;
+font-size:13px;
+background:#e5e7eb;
+cursor:pointer;
+}
+
+.pill.active{
+background:#065f46;
+color:white;
+}
+
+/* option cards */
+
+.grid2{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:16px;
+}
+
+.grid3{
+display:grid;
+grid-template-columns:1fr 1fr 1fr;
+gap:16px;
+}
+
+.option{
+border:1px solid #e5e7eb;
+border-radius:10px;
+padding:16px;
+cursor:pointer;
+}
+
+.option-title{
+font-weight:600;
+margin-bottom:4px;
+}
+
+.option-sub{
+font-size:13px;
+color:#6b7280;
+}
+
+/* buttons */
+
+.btn{
+background:#166534;
+color:white;
+border:none;
+padding:10px 16px;
+border-radius:8px;
+font-size:14px;
+cursor:pointer;
+margin-right:10px;
+display:inline-flex;
+align-items:center;
+gap:8px;
+}
+
+.btn.secondary{
+background:#065f46;
+}
+
+/* metrics */
+
+.metrics{
+display:grid;
+grid-template-columns:1fr 1fr 1fr;
+gap:16px;
+margin:18px 0;
+}
+
+.metric{
+background:white;
+border-radius:10px;
+padding:18px;
+box-shadow:0 1px 0 rgba(0,0,0,0.05);
+}
+
+.metric-top{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:8px;
+}
+
+.metric-label{
+font-size:12px;
+color:#9ca3af;
+}
+
+.metric-tag{
+font-size:11px;
+background:#f3f4f6;
+padding:4px 8px;
+border-radius:999px;
+color:#374151;
+}
+
+.metric-value{
+font-size:26px;
+font-weight:600;
+margin-bottom:6px;
+}
+
+.metric-sub{
+font-size:12px;
+color:#6b7280;
+}
+
+/* result banner */
+
+.result{
+background:#d1fae5;
+padding:16px;
+border-radius:10px;
+font-weight:600;
+color:#065f46;
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-top:14px;
+font-size:14px;
+}
+
+.badge{
+background:#e5e7eb;
+padding:4px 10px;
+border-radius:999px;
+font-size:12px;
+color:#374151;
+}
+.date-field{
+font-size:15px;
+width:15%;
+cursor:pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- SIDEBAR -->
+
+<div class="sidebar">
+
+<div>
+
+<a href="../landing/landing_after.html" style="text-decoration: none; color: inherit;">
+<div class="logo">
+<img src="images/logo2.png">
+EnerTrack
+</div>
+</a>
+
+
+<div class="menu">
+
+<a href="finance_overview.html" style="text-decoration: none; color: inherit;">
+<div class="menu-item">
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<rect x="3" y="3" width="7" height="7" rx="1"/>
+<rect x="14" y="3" width="7" height="7" rx="1"/>
+<rect x="14" y="14" width="7" height="7" rx="1"/>
+<rect x="3" y="14" width="7" height="7" rx="1"/>
+</svg>
+
+Overview
+
+</div>
+</a>
+
+
+<a href="finance_reports.html" style="text-decoration: none; color: inherit;">
+<div class="menu-item active">
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/>
+<polyline points="14 2 14 8 20 8"/>
+<line x1="9" y1="17" x2="9" y2="13"/>
+<line x1="12" y1="17" x2="12" y2="11"/>
+<line x1="15" y1="17" x2="15" y2="15"/>
+</svg>
+
+Financial <br> Reports & Impact
+
+</div>
+</a>
+
+
+<a href="finance_utility_costs.html" style="text-decoration: none; color: inherit;">
+<div class="menu-item">
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<path d="M7 9v3a5 5 0 0 0 10 0V9"/>
+<line x1="10" y1="4" x2="10" y2="8"/>
+<line x1="14" y1="4" x2="14" y2="8"/>
+<path d="M12 17v3"/>
+</svg>
+
+Utility Costs
+
+</div>
+</a>
+
+</div>
+
+</div>
+
+
+
+<div class="profile">
+
+<div class="profile-left">
+
+<img src="https://i.pravatar.cc/40?img=12">
+
+<div>
+
+<div class="profile-name">
+Aadithya Mouli
+</div>
+
+<div class="profile-role">
+Finance Analyst
+</div>
+
+</div>
+
+</div>
+
+⋮
+
+</div>
+
+</div>
+
+
+
+<!-- RIGHT SIDE CONTENT -->
+
+<div class="content">
+
+<div class="container">
+
+<h1>Financial Reports & Impact</h1>
+
+<div class="sub">
+Report generation for energy savings, financial metric calculations, and final viability guidance in a single top-to-bottom workflow.
+</div>
+
+<!-- ALL SECTIONS -->
+
+<!-- Apply Filters -->
+<div class="box">
+<div class="section-title">Apply Filters</div>
+<div class="section-sub">
+Refine report output by tariff type, meter type, and report type using multi-select controls.
+</div>
+
+<div class="small-label">Selected filters</div>
+
+<div class="input">
+Select a meter type
+▾
+</div>
+
+</div>
+
+
+<!-- Time Period -->
+<div class="box">
+
+<div class="section-title">Time Period</div>
+
+<div class="section-sub">
+Choose the reporting cadence and use the relevant date input field below.
+</div>
+
+<div class="toggle">
+<div class="pill">Day</div>
+<div class="pill active">Month</div>
+<div class="pill">Year</div>
+</div>
+
+<div class="small-label">Selected time input</div>
+
+<input type="date" class="input date-field" value="2025-05-01">
+</div>
+
+
+<!-- Category -->
+<div class="box">
+
+<div class="section-title">Category</div>
+
+<div class="section-sub">
+Choose one category to drive the report and financial impact calculations.
+</div>
+
+<div class="grid2">
+
+<div class="option">
+<div class="option-title">Energy</div>
+<div class="option-sub">
+Analyze energy consumption, tariffs, savings opportunities, and financial returns.
+</div>
+</div>
+
+<div class="option">
+<div class="option-title">Operations</div>
+<div class="option-sub">
+Review operational costs, process improvements, and infrastructure-related impact.
+</div>
+</div>
+
+</div>
+
+</div>
+
+
+<!-- Data Scope -->
+<div class="box">
+
+<div class="section-title">Data Scope</div>
+
+<div class="section-sub">
+Choose one scope option and provide the reference used for the report output.
+</div>
+
+<div class="grid3">
+
+<div class="option">
+<div class="option-title">Department</div>
+<div class="option-sub">
+Use a departmental view for finance and performance analysis.
+</div>
+</div>
+
+<div class="option">
+<div class="option-title">Building</div>
+<div class="option-sub">
+Run report and impact metrics against an individual building profile.
+</div>
+</div>
+
+<div class="option">
+<div class="option-title">Campus</div>
+<div class="option-sub">
+Aggregate multiple facilities into one campus-level assessment.
+</div>
+</div>
+
+</div>
+
+</div>
+
+
+<!-- Buttons -->
+<div class="box">
+
+<div class="section-title">Generate report</div>
+
+<div class="section-sub">
+Create the filtered report before exporting and calculating downstream finance metrics.
+</div>
+
+<button class="btn">Generate Report as PDF</button>
+<button class="btn secondary">Generate Report as CSV</button>
+
+</div>
+
+<!-- Calculate Energy Saving -->
+<div class="box">
+
+<div class="section-title">Calculate Energy Saving</div>
+
+<div class="section-sub">
+Estimate projected energy savings based on baseline consumption and efficiency improvements.
+</div>
+
+<div class="small-label">Saving Value</div>
+<input class="input" placeholder="Enter projected consumption">
+
+</div>
+
+
+
+<!-- Input Budget -->
+<div class="box">
+
+<div class="section-title">Input Budget</div>
+
+<div class="section-sub">
+Provide the estimated investment required for implementing the efficiency improvement project.
+</div>
+
+<div class="small-label">Budget Amount </div>
+<input class="input" placeholder="Enter project budget">
+
+</div>
+
+
+
+<!-- Calculate Financial Metrics -->
+<div class="box">
+
+<div class="section-title">Calculate Financial Metrics</div>
+
+<div class="section-sub">
+Compute ROI, NPV, and Payback Period using energy savings and project budget inputs.
+</div>
+
+<button class="btn">
+Calculate Metrics
+</button>
+
+</div>
+<!-- Metrics -->
+<div class="metrics">
+
+<div class="metric">
+<div class="metric-top">
+<div class="metric-label">ROI</div>
+<div class="metric-tag">Return on investment</div>
+</div>
+<div class="metric-value">18.6%</div>
+<div class="metric-sub">
+Shows how much value the initiative returns relative to cost.
+</div>
+</div>
+
+
+<div class="metric">
+<div class="metric-top">
+<div class="metric-label">NPV</div>
+<div class="metric-tag">Net present value</div>
+</div>
+<div class="metric-value">$148,320</div>
+<div class="metric-sub">
+Represents present-day value after discounting future cash flows.
+</div>
+</div>
+
+
+<div class="metric">
+<div class="metric-top">
+<div class="metric-label">Payback Period</div>
+<div class="metric-tag">Recovery time</div>
+</div>
+<div class="metric-value">2.8 yrs</div>
+<div class="metric-sub">
+Estimates how long it takes for savings to recover project costs.
+</div>
+</div>
+
+</div>
+
+
+<div class="result">
+
+Financially Viable — Recommend Expansion
+
+<div class="badge">ROI ≥ Threshold</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+
+</body>
+</html>

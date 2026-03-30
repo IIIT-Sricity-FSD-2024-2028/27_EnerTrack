@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EnerTrack Utility Costs</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+}
+
+/* MAIN LAYOUT */
+
+body{
+display:flex;
+height:100vh;
+background:#eef0f2;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:260px;
+background:linear-gradient(180deg,#93E494,#93E494);
+padding:22px 18px;
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+}
+
+.logo{
+display:flex;
+align-items:center;
+gap:0px;
+font-size:18px;
+font-weight:600;
+color:#1f2937;
+margin-bottom:28px;
+cursor:pointer;
+}
+
+.logo img{
+width:50px;
+height:24px;
+object-fit:contain;
+}
+
+.menu{
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+
+.menu-item{
+display:flex;
+align-items:center;
+gap:12px;
+font-size:14px;
+color:#1f2937;
+padding:10px 12px;
+border-radius:8px;
+cursor:pointer;
+}
+
+.menu-item svg{
+width:18px;
+height:18px;
+stroke-width:1.8;
+}
+
+.menu-item.active{
+background:#0f172a;
+color:white;
+}
+
+.menu-item.active svg{
+stroke:white;
+}
+
+/* PROFILE */
+
+.profile{
+background:white;
+padding:10px 12px;
+border-radius:8px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+cursor:pointer;
+}
+
+.profile-left{
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.profile img{
+width:30px;
+height:30px;
+border-radius:50%;
+}
+
+.profile-name{
+font-size:12px;
+font-weight:600;
+}
+
+.profile-role{
+font-size:10px;
+color:#6b7280;
+}
+
+/* RIGHT CONTENT */
+
+.content{
+flex:1;
+padding:28px;
+background:#eef0f2;
+overflow:auto;
+}
+
+.container{
+max-width:1180px;
+margin:auto;
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:22px;
+}
+
+/* HEADER */
+
+.header{
+grid-column:1/3;
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+}
+
+.page-title{
+font-size:28px;
+font-weight:700;
+margin-bottom:6px;
+}
+
+.page-sub{
+font-size:13px;
+color:#6b7280;
+max-width:650px;
+line-height:1.4;
+}
+
+.sync{
+background:#ffffff;
+border-radius:10px;
+padding:8px 14px;
+font-size:12px;
+color:#374151;
+display:flex;
+align-items:center;
+gap:6px;
+box-shadow:0 1px 2px rgba(0,0,0,0.06);
+}
+
+/* CARD */
+
+.card{
+background:white;
+border-radius:14px;
+padding:22px;
+box-shadow:0 1px 2px rgba(0,0,0,0.08);
+border:1px solid #e5e7eb;
+cursor: default;
+user-select: none;
+}
+
+.card-title{
+font-size:16px;
+font-weight:700;
+margin-bottom:6px;
+}
+
+.card-sub{
+font-size:13px;
+color:#6b7280;
+margin-bottom:18px;
+line-height:1.4;
+}
+
+/* BUTTONS */
+
+.toggle{
+display:flex;
+gap:8px;
+margin-bottom:12px;
+}
+
+.toggle button{
+border:none;
+padding:8px 14px;
+border-radius:10px;
+font-size:13px;
+background:#e5e7eb;
+cursor:pointer;
+}
+
+.toggle .active{
+background:#166534;
+color:white;
+}
+
+.small-note{
+font-size:12px;
+color:#9ca3af;
+margin-bottom:12px;
+}
+
+/* INPUT */
+
+.row{
+display:flex;
+gap:12px;
+margin-bottom:20px;
+}
+
+.input{
+flex:1;
+border:1px solid #e5e7eb;
+padding:10px;
+border-radius:8px;
+font-size:13px;
+background:white;
+}
+
+/* SCOPE */
+
+.scope-grid{
+display:flex;
+gap:12px;
+margin-bottom:20px;
+}
+
+.scope{
+flex:1;
+border:1px solid #e5e7eb;
+border-radius:12px;
+padding:14px;
+cursor:pointer;
+}
+
+.scope h4{
+font-size:13px;
+margin-bottom:6px;
+}
+
+.scope p{
+font-size:12px;
+color:#6b7280;
+line-height:1.4;
+}
+
+/* FLOW */
+
+.flow{
+display:flex;
+gap:6px;
+margin:14px 0 18px;
+flex-wrap:wrap;
+}
+
+.flow span{
+background:#f3f4f6;
+padding:6px 10px;
+border-radius:999px;
+font-size:11px;
+}
+
+.main-btn{
+background:#166534;
+color:white;
+border:none;
+padding:11px;
+border-radius:8px;
+font-size:13px;
+cursor:pointer;
+width:180px;
+}
+
+/* RIGHT PANEL */
+
+.top{
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+margin-bottom:10px;
+}
+
+.export{
+display:flex;
+gap:8px;
+}
+
+.export button{
+border:1px solid #e5e7eb;
+background:#ffffff;
+padding:7px 12px;
+border-radius:8px;
+font-size:12px;
+cursor:pointer;
+}
+
+/* METRICS */
+
+.metrics{
+display:flex;
+justify-content:space-between;
+margin-bottom:18px;
+}
+
+.metric{
+font-size:13px;
+}
+
+.metric strong{
+display:block;
+font-size:20px;
+margin:3px 0;
+}
+
+.metric small{
+font-size:12px;
+color:#6b7280;
+}
+
+/* GRAPH */
+
+.graph{
+border:1px solid #e5e7eb;
+border-radius:14px;
+padding:18px;
+background:#f9fafb;
+margin-bottom:18px;
+}
+
+.tabs{
+display:flex;
+gap:8px;
+cursor:pointer;
+}
+
+.tabs div{
+padding:6px 12px;
+border-radius:999px;
+font-size:12px;
+background:#e5e7eb;
+}
+
+.tabs .active{
+background:#166534;
+color:white;
+}
+
+.bars{
+display:flex;
+align-items:flex-end;
+gap:26px;
+height:130px;
+margin-top:16px;
+}
+
+.bar-group{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:6px;
+}
+
+.bar{
+width:38px;
+border-radius:6px;
+}
+
+.green{ background:#166534; }
+.yellow{ background:#fbbf24; }
+.gray{ background:#9ca3af; }
+
+.label{
+font-size:11px;
+color:#6b7280;
+margin-top:6px;
+}
+
+.legend{
+display:flex;
+gap:18px;
+font-size:12px;
+color:#6b7280;
+margin-top:14px;
+}
+
+.dot{
+display:inline-block;
+width:8px;
+height:8px;
+border-radius:50%;
+margin-right:6px;
+}
+
+/* BUDGET */
+
+.budget{
+display:flex;
+gap:12px;
+margin-bottom:18px;
+}
+
+.budget-card{
+flex:1;
+border-radius:12px;
+padding:16px;
+border:1px solid #e5e7eb;
+font-size:13px;
+}
+
+.red{
+background:#fee2e2;
+border:none;
+}
+
+.budget-card strong{
+display:block;
+font-size:20px;
+margin:6px 0;
+}
+
+/* INSIGHTS */
+
+.insights{
+display:flex;
+gap:12px;
+}
+
+.insight{
+flex:1;
+border:1px solid #e5e7eb;
+border-radius:12px;
+padding:14px;
+}
+
+.insight h4{
+font-size:13px;
+margin-bottom:6px;
+}
+
+.insight p{
+font-size:12px;
+color:#6b7280;
+line-height:1.4;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+
+<div class="sidebar">
+
+<div>
+
+<a href="../landing/landing_after.html" style="text-decoration: none; color: inherit;">
+<div class="logo">
+<img src="images/logo2.png">
+EnerTrack
+</div>
+</a>
+
+<div class="menu">
+
+<a href="finance_overview.html" style="text-decoration: none; color: inherit;">
+<div class="menu-item">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<rect x="3" y="3" width="7" height="7" rx="1"/>
+<rect x="14" y="3" width="7" height="7" rx="1"/>
+<rect x="14" y="14" width="7" height="7" rx="1"/>
+<rect x="3" y="14" width="7" height="7" rx="1"/>
+</svg>
+Overview
+</div>
+</a>
+
+<a href="finance_reports.html" style="text-decoration: none; color: inherit;">
+<div class="menu-item">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/>
+<polyline points="14 2 14 8 20 8"/>
+<line x1="9" y1="17" x2="9" y2="13"/>
+<line x1="12" y1="17" x2="12" y2="11"/>
+<line x1="15" y1="17" x2="15" y2="15"/>
+</svg>
+Financial <br> Reports & Impact
+</div>
+</a>
+
+<a href="finance_utility_costs.html" style="text-decoration: none; color: inherit;">
+<div class="menu-item active">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<path d="M7 9v3a5 5 0 0 0 10 0V9"/>
+<line x1="10" y1="4" x2="10" y2="8"/>
+<line x1="14" y1="4" x2="14" y2="8"/>
+<path d="M12 17v3"/>
+</svg>
+Utility Costs
+</div>
+</a>
+
+</div>
+
+</div>
+
+<div class="profile">
+
+<div class="profile-left">
+
+<img src="https://i.pravatar.cc/40?img=12">
+
+<div>
+<div class="profile-name">Aadithya Mouli</div>
+<div class="profile-role">Finance Analyst</div>
+</div>
+
+</div>
+
+⋮
+
+</div>
+
+</div>
+
+
+<!-- RIGHT SIDE -->
+
+<div class="content">
+
+<div class="container">
+
+<div class="header">
+
+<div>
+
+<div class="page-title">Utility Costs</div>
+
+<div class="page-sub">
+Retrieve utility consumption, calculate total costs across your selected scope, and compare results against budget with a clear breakdown of savings, losses, and improvement opportunities.
+</div>
+
+</div>
+
+<div class="sync">🕒 Last sync 11:20 AM</div>
+
+</div>
+
+
+<!-- LEFT CARD -->
+
+<div class="card">
+
+<div class="card-title">Calculation Setup</div>
+
+<div class="card-sub">
+Define the reporting period and scope to fetch consumption data first, then calculate cost totals and variance automatically.
+</div>
+
+<div class="card-title" style="font-size:13px">Time period selector</div>
+
+<div class="toggle">
+<button class="active">Monthly</button>
+<button>Quarterly</button>
+<button>Annually</button>
+</div>
+
+<div class="small-note">
+Show relevant inputs for the selected cadence.
+</div>
+
+<div class="row">
+<input class="input" value="1 March 2025">
+<input class="input" placeholder="Enter Billing Cycle">
+</div>
+
+
+<div class="card-title" style="font-size:13px">Data scope selector</div>
+
+<div class="small-note">
+Choose one reporting scope and fill the matching input field.
+</div>
+
+<div class="scope-grid">
+
+<div class="scope">
+<h4>Department</h4>
+<p>Calculate costs for a single business unit or cost center.</p>
+</div>
+
+<div class="scope">
+<h4>Building</h4>
+<p>Analyze one location and its complete utility profile.</p>
+</div>
+
+<div class="scope">
+<h4>Campus</h4>
+<p>Roll up utility performance across a campus portfolio.</p>
+</div>
+
+</div>
+
+
+<div class="card-title" style="font-size:13px">Calculation flow</div>
+
+<div class="small-note">
+The button below triggers the full utility cost workflow in sequence.
+</div>
+
+<div class="flow">
+<span>1. Fetch consumption data</span>
+<span>2. Calculate utility cost</span>
+<span>3. Compare against budget</span>
+</div>
+
+<button class="main-btn">Retrieve & Calculate</button>
+
+</div>
+
+
+
+<!-- RIGHT CARD -->
+
+<div class="card">
+
+<div class="top">
+
+<div>
+
+<div class="card-title">Cost Breakdown & Output</div>
+
+<div class="card-sub">
+Generated utility cost view for the selected monthly department scope.
+</div>
+
+</div>
+
+<div class="export">
+<button>Export PDF</button>
+<button>Export CSV</button>
+</div>
+
+</div>
+
+
+
+<div class="metrics">
+
+<div class="metric">
+Consumption retrieved
+<strong>1.24M kWh</strong>
+<small>Across electricity, gas, and water</small>
+</div>
+
+<div class="metric">
+Calculated cost
+<strong>$186,420</strong>
+<small>After tariff and demand charges</small>
+</div>
+
+<div class="metric">
+Budget status
+<strong>+$12,580</strong>
+<small>Over current monthly budget</small>
+</div>
+
+</div>
+
+
+
+<div class="graph">
+
+<div style="display:flex;justify-content:space-between;align-items:flex-start;">
+
+<div>
+
+<div style="font-weight:600;font-size:13px;margin-bottom:4px;">
+Cost breakdown panel
+</div>
+
+<div style="font-size:12px;color:#6b7280;max-width:180px;line-height:1.4;">
+Toggle between By Energy Type, By Building, and By Time. Energy type view is currently shown.
+</div>
+
+</div>
+
+<div class="tabs">
+<div class="active">By Energy Type</div>
+<div>By Building</div>
+<div>By Time</div>
+</div>
+
+</div>
+
+
+<div class="bars">
+
+<div class="bar-group">
+<div class="bar green" style="height:78px"></div>
+<div class="bar yellow" style="height:20px"></div>
+<div class="label">Electricity</div>
+</div>
+
+<div class="bar-group">
+<div class="bar green" style="height:52px"></div>
+<div class="bar yellow" style="height:14px"></div>
+<div class="label">Gas</div>
+</div>
+
+<div class="bar-group">
+<div class="bar green" style="height:36px"></div>
+<div class="bar yellow" style="height:12px"></div>
+<div class="label">Water</div>
+</div>
+
+<div class="bar-group">
+<div class="bar gray" style="height:70px"></div>
+<div class="label">Demand</div>
+</div>
+
+<div class="bar-group">
+<div class="bar green" style="height:50px"></div>
+<div class="bar yellow" style="height:14px"></div>
+<div class="label">Wastewater</div>
+</div>
+
+</div>
+
+
+<div class="legend">
+
+<div>
+<span class="dot green"></span>
+Base utility cost
+</div>
+
+<div>
+<span class="dot yellow"></span>
+Taxes & surcharges
+</div>
+
+<div>
+<span class="dot gray"></span>
+Demand charge
+</div>
+
+</div>
+
+</div>
+
+
+
+<div class="card-title">Budget vs Actual Cost</div>
+
+<div class="card-sub">
+Three summary cards show the current budget, actual cost, and variance with savings or loss color coding.
+</div>
+
+
+<div class="budget">
+
+<div class="budget-card">
+Budget Actual
+<strong>$173,840</strong>
+Approved monthly utility allocation for the selected department.
+</div>
+
+<div class="budget-card red">
+Actual Cost
+<strong>$186,420</strong>
+Current utility spend after retrieval and calculation.
+</div>
+
+<div class="budget-card red">
+Budget Variance
+<strong>-$12,580</strong>
+Loss against target due to peak demand and gas rate pressure.
+</div>
+
+</div>
+
+
+
+<div class="card-title">Savings & Efficiency Insights</div>
+
+<div class="card-sub">
+A concise summary of gains, loss reasons, and profit improvement actions.
+</div>
+
+
+<div class="insights">
+
+<div class="insight">
+<h4>Savings & Efficiency Gains</h4>
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</div>
+
+<div class="insight">
+<h4>Loss Reasons</h4>
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</div>
+
+<div class="insight">
+<h4>Profit Improvement Strategies</h4>
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</body>
+</html>

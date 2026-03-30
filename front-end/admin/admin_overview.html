@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Overview - EnerTrack</title>
+    <link rel="stylesheet" href="admin_overview.css">
+    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="dashboard">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <a href="admin_overview.html" class="sidebar-logo">
+                <!-- <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                EnerTrack -->
+                <img class="logo-icon" src="images/SVG.png" alt="logo">
+                <img class="logo-text" src="images/EnerTrack_text.png" alt="EnerTrack">
+            </a>
+
+            <nav class="sidebar-nav">
+
+                <a href="admin_overview.html" class="nav-item active">
+                    <img src="images/maintenance_overview.png">
+                    Overview
+                </a>
+
+                <div class="nav-section">
+                    <a href="admin_monitor.html" class="nav-section-title">MONITORING</a>
+                    <div class="nav-group">
+                        <div class="nav-subitem">
+                            <img src="images/maintenance_monitor.png">
+                            System Health
+                        </div>
+                        <div class="nav-subitem">
+                            <img src="images/maintenance_metric.png">
+                            Performance Metrics
+                        </div>
+                        <div class="nav-subitem">
+                            <img src="images/maintenance_alert.png">
+                            Alerts
+                            <span class="alerts-badge" id="sidebarAlertBadge">3</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <a href="admin_maintain.html" class="nav-section-title">MAINTENANCE</a>
+                    <div class="nav-group">
+                        <div class="nav-subitem">
+                            <img src="images/maintenance_backup.png">
+                            Backups
+                        </div>
+                        <div class="nav-subitem">
+                            <img src="images/maintenance_system.png">
+                            System Updates
+                        </div>
+                        <div class="nav-subitem">
+                            <img src="images/maintenance_troubleshooting.png">
+                            Troubleshooting
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <a href="#" class="profile-card">
+                <div class="profile-img" aria-hidden="true">AM</div>
+                <div class="profile-info">
+                    <strong>Aadithya Mouli</strong>
+                    <span>System Administrator</span>
+                </div>
+            </a>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <header class="page-header">
+                <h1>Welcome back, Aadithya</h1>
+                <p>Here's what's happening with your systems today.</p>
+            </header>
+
+            <!-- STATS ROW -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>System Health</span>
+                        <img src="images/systemops_greentick.png">
+                    </div>
+                    <h2>99.9%</h2>
+                    <p class="text-success" style="color: #166534">All systems operational</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>Active Alerts</span>
+                        <img src="images/overview_alert.png" alt="Active Alerts" class="icon-danger">
+                    </div>
+                    <h2><span id="activeAlertsCount">3</span></h2>
+                    <p><span class="text-danger">+2 since yesterday</span> requires attention</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>Avg CPU Load</span>
+                        <img src="images/overview_cpu.png" alt="Avg CPU Load">
+                    </div>
+                    <h2>42%</h2>
+                    <p>Normal operating range</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>Last Backup</span>
+                        <img src="images/overview_backup.png" alt="Last Backup">
+                    </div>
+                    <h2>2h ago</h2>
+                    <p>Completed successfully at 04:00 AM</p>
+                </div>
+            </div>
+
+            <!-- MAIN GRID -->
+            <div class="content-grid">
+
+                <div class="col-left">
+                    <!-- SERVER PERFORMANCE -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <img src="images/overview_perf.png" alt="Server Performance">
+                                Server Performance (24h)
+                            </div>
+                            <button class="btn-secondary clickable">View Metrics</button>
+                        </div>
+                    </div>
+
+                    <!-- RECENT ALERTS -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title text-danger">
+                                <img src="images/overview_recent.png" alt="Recent Alerts">
+                                Recent Alerts
+                            </div>
+                            <span class="badge badge-danger"><span id="alertActionsRequired">3</span> Action
+                                Required</span>
+                        </div>
+
+                        <div class="alert-list" id="alertContainer">
+                            <!-- Alert 1 -->
+                            <div class="alert-item">
+                                <div class="alert-icon bg-danger-light text-danger">
+                                    <img src="images/overview_storage.png" alt="Storage Capacity Critical">
+                                </div>
+                                <div class="alert-content">
+                                    <h4>Storage Capacity Critical</h4>
+                                    <p>Database Volume-1 is at 94% capacity. Immediate cleanup or expansion required.
+                                    </p>
+                                    <div class="alert-meta">15 mins ago • Server: DB-Prod-01</div>
+                                </div>
+                            </div>
+                            <!-- Alert 2 -->
+                            <div class="alert-item">
+                                <div class="alert-icon bg-warning-light text-warning">
+                                    <img src="images/overview_highcpu.png" alt="High CPU Spike">
+                                </div>
+                                <div class="alert-content">
+                                    <h4>High CPU Utilization Spike</h4>
+                                    <p>Web server node experienced an 85% CPU load spike for 5 minutes.</p>
+                                    <div class="alert-meta">2 hours ago • Server: Web-Node-03</div>
+                                </div>
+                            </div>
+                            <!-- Alert 3 -->
+                            <div class="alert-item">
+                                <div class="alert-icon bg-warning-light text-warning">
+                                    <img src="images/overview_api.png" alt="API Latency Warning">
+                                </div>
+                                <div class="alert-content">
+                                    <h4>API Latency Warning</h4>
+                                    <p>Payment gateway API endpoint response time exceeded 800ms threshold.</p>
+                                    <div class="alert-meta">4 hours ago • Service: Payment-API</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-right">
+
+                    <!-- MAINTENANCE TASKS & PENDING UPDATES -->
+                    <div class="panel no-padding">
+                        <div class="panel-header padded">
+                            <div class="panel-title">
+                                <img src="images/overview_maintenance.png" alt="Maintenance Tasks">
+                                Maintenance Tasks
+                            </div>
+                        </div>
+
+                        <div class="section-divider">PENDING UPDATES</div>
+
+                        <div class="update-card mx">
+                            <div class="update-header">
+                                <h4>Ubuntu OS Security Patch</h4>
+                                <span class="badge badge-warning">Pending</span>
+                            </div>
+                            <p>Critical vulnerabilities fix (CVE-2024-XXXX). Reboot required.</p>
+                            <div class="update-footer">
+                                <span>Est. downtime: 5 mins</span>
+                                <button class="btn-dark">
+                                    <img src="images/overview_install.png" alt="Install">
+                                    Install Now
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="update-card mx">
+                            <div class="update-header">
+                                <h4>Redis Cache Version Update</h4>
+                                <span class="badge badge-gray">Scheduled</span>
+                            </div>
+                            <p>Upgrade from v6.2 to v7.0 for performance improvements.</p>
+                            <div class="update-footer">
+                                <span>Scheduled: Tonight 02:00 AM</span>
+                                <button class="btn-outline">Reschedule</button>
+                            </div>
+                        </div>
+
+                        <div class="section-divider">RECENT BACKUPS</div>
+
+                        <div class="backup-card mx">
+                            <div class="backup-header">
+                                <img src="images/overview_backup.png" alt="Database">
+                                <div>
+                                    <h4>Production Database (Full)</h4>
+                                    <span class="muted">Size: 245 GB</span>
+                                </div>
+                                <span class="badge badge-success">Success</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress" style="width: 100%;"></div>
+                            </div>
+                            <div class="backup-footer">
+                                <span>Verified with 0 errors</span>
+                                <span>Completed in 45m</span>
+                            </div>
+                        </div>
+
+                        <div class="section-divider">TROUBLESHOOTING TOOLS</div>
+
+                        <div class="tools-grid mx">
+                            <button class="tool-btn clickable">
+                                <img src="images/overview_view_systemLogs.png" alt="System Logs">
+                                View System Logs
+                            </button>
+                            <button class="tool-btn clickable">
+                                <img src="images/overview_perf.png" alt="Error Check">
+                                Error Check Scan
+                            </button>
+                            <button class="tool-btn clickable">
+                                <img src="images/overview_ssh.png" alt="Terminal">
+                                SSH Terminal
+                            </button>
+                            <button class="tool-btn clickable">
+                                <img src="images/overview_restart_service.png" alt="Restart">
+                                Restart Services
+                            </button>
+                        </div>
+                        <div class="mb-4"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- <script>
+        // Update counts intelligently
+        document.addEventListener("DOMContentLoaded", () => {
+            const alerts = document.querySelectorAll('#alertContainer .alert-item').length;
+            document.getElementById('sidebarAlertBadge').textContent = alerts;
+            document.getElementById('activeAlertsCount').textContent = alerts;
+            document.getElementById('alertActionsRequired').textContent = alerts;
+        });
+    </script> -->
+</body>
+
+</html>
