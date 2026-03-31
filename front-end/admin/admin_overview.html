@@ -16,8 +16,6 @@
         <!-- SIDEBAR -->
         <aside class="sidebar">
             <a href="admin_overview.html" class="sidebar-logo">
-                <!-- <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                EnerTrack -->
                 <img class="logo-icon" src="images/SVG.png" alt="logo">
                 <img class="logo-text" src="images/EnerTrack_text.png" alt="EnerTrack">
             </a>
@@ -133,7 +131,7 @@
                                 <img src="images/overview_perf.png" alt="Server Performance">
                                 Server Performance (24h)
                             </div>
-                            <button class="btn-secondary clickable">View Metrics</button>
+                            <button class="btn-secondary clickable" onclick="viewMetrics()">View Metrics</button>
                         </div>
                     </div>
 
@@ -144,46 +142,13 @@
                                 <img src="images/overview_recent.png" alt="Recent Alerts">
                                 Recent Alerts
                             </div>
-                            <span class="badge badge-danger"><span id="alertActionsRequired">3</span> Action
-                                Required</span>
+                            <span class="badge badge-danger">
+                                <span id="alertActionsRequired">3</span> Action Required
+                            </span>
                         </div>
 
-                        <div class="alert-list" id="alertContainer">
-                            <!-- Alert 1 -->
-                            <div class="alert-item">
-                                <div class="alert-icon bg-danger-light text-danger">
-                                    <img src="images/overview_storage.png" alt="Storage Capacity Critical">
-                                </div>
-                                <div class="alert-content">
-                                    <h4>Storage Capacity Critical</h4>
-                                    <p>Database Volume-1 is at 94% capacity. Immediate cleanup or expansion required.
-                                    </p>
-                                    <div class="alert-meta">15 mins ago • Server: DB-Prod-01</div>
-                                </div>
-                            </div>
-                            <!-- Alert 2 -->
-                            <div class="alert-item">
-                                <div class="alert-icon bg-warning-light text-warning">
-                                    <img src="images/overview_highcpu.png" alt="High CPU Spike">
-                                </div>
-                                <div class="alert-content">
-                                    <h4>High CPU Utilization Spike</h4>
-                                    <p>Web server node experienced an 85% CPU load spike for 5 minutes.</p>
-                                    <div class="alert-meta">2 hours ago • Server: Web-Node-03</div>
-                                </div>
-                            </div>
-                            <!-- Alert 3 -->
-                            <div class="alert-item">
-                                <div class="alert-icon bg-warning-light text-warning">
-                                    <img src="images/overview_api.png" alt="API Latency Warning">
-                                </div>
-                                <div class="alert-content">
-                                    <h4>API Latency Warning</h4>
-                                    <p>Payment gateway API endpoint response time exceeded 800ms threshold.</p>
-                                    <div class="alert-meta">4 hours ago • Service: Payment-API</div>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Dynamic alerts rendered here by alerts.js -->
+                        <div class="alert-list" id="alertContainer"></div>
                     </div>
                 </div>
 
@@ -200,32 +165,8 @@
 
                         <div class="section-divider">PENDING UPDATES</div>
 
-                        <div class="update-card mx">
-                            <div class="update-header">
-                                <h4>Ubuntu OS Security Patch</h4>
-                                <span class="badge badge-warning">Pending</span>
-                            </div>
-                            <p>Critical vulnerabilities fix (CVE-2024-XXXX). Reboot required.</p>
-                            <div class="update-footer">
-                                <span>Est. downtime: 5 mins</span>
-                                <button class="btn-dark">
-                                    <img src="images/overview_install.png" alt="Install">
-                                    Install Now
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="update-card mx">
-                            <div class="update-header">
-                                <h4>Redis Cache Version Update</h4>
-                                <span class="badge badge-gray">Scheduled</span>
-                            </div>
-                            <p>Upgrade from v6.2 to v7.0 for performance improvements.</p>
-                            <div class="update-footer">
-                                <span>Scheduled: Tonight 02:00 AM</span>
-                                <button class="btn-outline">Reschedule</button>
-                            </div>
-                        </div>
+                        <!-- Dynamic updates rendered here by updates.js -->
+                        <div id="overviewUpdatesContainer" class="mx"></div>
 
                         <div class="section-divider">RECENT BACKUPS</div>
 
@@ -267,7 +208,7 @@
                                 Restart Services
                             </button>
                         </div>
-                        <div class="mb-4"></div>
+                        <div style="margin-bottom:24px"></div>
                     </div>
                 </div>
 
@@ -275,15 +216,7 @@
         </main>
     </div>
 
-    <!-- <script>
-        // Update counts intelligently
-        document.addEventListener("DOMContentLoaded", () => {
-            const alerts = document.querySelectorAll('#alertContainer .alert-item').length;
-            document.getElementById('sidebarAlertBadge').textContent = alerts;
-            document.getElementById('activeAlertsCount').textContent = alerts;
-            document.getElementById('alertActionsRequired').textContent = alerts;
-        });
-    </script> -->
+    <script type="module" src="js/overview.js"></script>
 </body>
 
 </html>

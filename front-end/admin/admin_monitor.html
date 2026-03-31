@@ -35,21 +35,10 @@
                             System Health
                         </div>
                         <div class="nav-subitem">
-                            <!-- <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="18" y="3" width="4" height="18"></rect>
-                                <rect x="10" y="8" width="4" height="13"></rect>
-                                <rect x="2" y="13" width="4" height="8"></rect>
-                            </svg> -->
                             <img src="images/maintenance_metric.png">
                             Performance Metrics
                         </div>
                         <div class="nav-subitem">
-                            <!-- <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                            </svg> -->
                             <img src="images/maintenance_alert.png">
                             Alerts
                             <span class="alerts-badge">3</span>
@@ -88,7 +77,11 @@
         <!-- MAIN CONTENT -->
         <main class="main-content">
             <header class="page-header">
-                <p>Live monitoring: last refresh 5s ago • Auto-refresh every 30s</p>
+                <p>
+                    Live monitoring: last refresh
+                    <span id="refreshStamp">Just now</span>
+                    • Auto-refresh every 30s
+                </p>
             </header>
 
             <div class="content-grid-monitor">
@@ -106,41 +99,8 @@
                         </button>
                     </div>
 
-                    <div class="status-card">
-                        <div class="status-header">
-                            <h4>Core services</h4>
-                            <span class="badge badge-success">All green</span>
-                        </div>
-                        <p class="desc">API gateway, auth, database, cache</p>
-                        <div class="status-footer">
-                            <span>4 / 4 healthy • No degraded services</span>
-                            <span class="muted">Latency: 120 ms p95</span>
-                        </div>
-                    </div>
-
-                    <div class="status-card">
-                        <div class="status-header">
-                            <h4>Background workers</h4>
-                            <span class="badge badge-warning">Minor lag</span>
-                        </div>
-                        <p class="desc">Queues, schedulers, reporting jobs</p>
-                        <div class="status-footer">
-                            <span>Queue depth: 1.2k • Oldest job: 2m 10s</span>
-                            <span class="muted">Throughput: 480 jobs/min</span>
-                        </div>
-                    </div>
-
-                    <div class="status-card">
-                        <div class="status-header">
-                            <h4>External dependencies</h4>
-                            <span class="badge badge-danger">Degraded</span>
-                        </div>
-                        <p class="desc">Payment provider, email, SMS, SSO</p>
-                        <div class="status-footer">
-                            <span>Payment-API latency slightly elevated</span>
-                            <span class="muted">Error rate: 0.9%</span>
-                        </div>
-                    </div>
+                    <!-- Dynamic system health cards rendered by monitor.js -->
+                    <div id="systemHealthContainer"></div>
                 </div>
 
                 <!-- Active Alerts -->
@@ -152,43 +112,9 @@
                         </div>
                     </div>
 
-                    <div class="status-card">
-                        <div class="status-header">
-                            <h4>Payment-API latency</h4>
-                            <span class="badge badge-warning">Warning</span>
-                        </div>
-                        <p class="desc">p95 > 250 ms for 5 minutes</p>
-                        <div class="alert-meta-box">
-                            <span class="time">04:22</span>
-                            <span class="details">Triggered in region eu-west-1 • Investigate provider status
-                                page.</span>
-                        </div>
-                    </div>
-
-                    <div class="status-card">
-                        <div class="status-header">
-                            <h4>Worker queue depth</h4>
-                            <span class="badge badge-warning">Warning</span>
-                        </div>
-                        <p class="desc">High-priority jobs pending > 1k</p>
-                        <div class="alert-meta-box">
-                            <span class="time">04:28</span>
-                            <span class="details">Throughput recovering after spike • Monitor for next 10
-                                minutes.</span>
-                        </div>
-                    </div>
-
-                    <div class="status-card">
-                        <div class="status-header">
-                            <h4>Error budget</h4>
-                            <span class="badge badge-success-outline"
-                                style="background-color:darkgreen;color:white">Within
-                                SLO</span>
-                        </div>
-                        <div class="status-footer">
-                            <span>SLO: 99.9% • Current: 99.93%</span>
-                        </div>
-                    </div>
+                    <!-- SLO card + dynamic alerts rendered by alerts.js / monitor.js -->
+                    <div id="sloContainer"></div>
+                    <div id="monitorAlertContainer"></div>
                 </div>
 
             </div>
@@ -202,43 +128,13 @@
                     </div>
                 </div>
 
-                <div class="metric-block">
-                    <div class="metric-top">
-                        <h4>CPU & memory</h4>
-                        <span class="muted">Across all application nodes • Last 15 minutes</span>
-                    </div>
-                    <div class="progress-bar-thick">
-                        <div class="progress" style="width: 68%;"></div>
-                    </div>
-                    <div class="metric-bottom">
-                        <span>CPU: 62% avg • 78% peak</span>
-                        <span class="muted">Memory: 68% used</span>
-                    </div>
-                </div>
-
-                <div class="metric-block">
-                    <div class="metric-top">
-                        <h4>Requests & errors</h4>
-                        <span class="muted">All HTTP endpoints • Last 5 minutes</span>
-                    </div>
-                    <div class="progress-bar-thick">
-                        <div class="progress" style="width: 90%;"></div>
-                    </div>
-                    <div class="metric-bottom">
-                        <span>Requests: 8.4k/min • 99.96% success</span>
-                        <span class="muted">Error rate: 0.04%</span>
-                    </div>
-                </div>
-
+                <!-- Dynamic metrics rendered by monitor.js -->
+                <div id="perfMetricsContainer"></div>
             </div>
         </main>
     </div>
-    <!-- 
-    <script>
-        function refreshMonitor() {
-            alert("Refreshing system data...");
-        }
-    </script> -->
+
+    <script type="module" src="js/monitorPage.js"></script>
 </body>
 
 </html>
