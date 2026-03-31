@@ -32,218 +32,76 @@
         <div class="card">
 
             <h1>Sign In</h1>
-            <p class="sub">or <a href="../sign_up/sign_up.html" class="create-link">create an account</a></p>
+            <p class="sub">or <a href="#" class="create-link">create an account</a></p>
 
             <form id="signInForm" novalidate>
-                <input type="email" id="email" placeholder="yourname@gmail.com" class="input" autocomplete="off">
+                <input type="email" id="email" placeholder="yourname@gmail.com" class="input" autocomplete="off" required autofocus maxlength="50">
                 <span class="field-error" id="emailError"></span>
 
                 <div class="password-wrap">
-                    <input type="password" id="password" placeholder="··········" class="input" autocomplete="new-password">
-                    <span class="eye" id="togglePassword" onclick="togglePass()">
-                        <!-- Crossed-out eye (password hidden) -->
-                        <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                            fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C6 20 1.73 14 1.73 12c0-.9.6-2.3 1.7-3.7" />
-                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10.27 6 10.27 8 0 .73-.22 1.6-.67 2.5" />
-                            <line x1="1" y1="1" x2="23" y2="23" />
-                        </svg>
-                        <!-- Open eye (password visible) -->
-                        <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                            fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
-                            stroke-linejoin="round" style="display:none;">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
-                        </svg>
+                    <input type="password" id="password" placeholder="··········" class="input" autocomplete="new-password" minlength="8" required maxlength="50">
+                <span class="eye" id="togglePassword" onclick="togglePass()">
+                    <!-- Crossed-out eye (password hidden) -->
+                    <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C6 20 1.73 14 1.73 12c0-.9.6-2.3 1.7-3.7" />
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10.27 6 10.27 8 0 .73-.22 1.6-.67 2.5" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                    <!-- Open eye (password visible) -->
+                    <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" style="display:none;">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
                     </span>
                 </div>
-                <span class="field-error" id="passwordError"></span>
+            <span class="field-error" id="passwordError"></span>
 
-                <div class="options">
-                    <label class="remember">
-                        <input type="checkbox" id="rememberMe">
-                        <span>Remember Me</span>
-                    </label>
-                    <a href="#" class="forgot">Forgot your password?</a>
-                </div>
+            <div class="options">
+                <label class="remember">
+                    <input type="checkbox" id="rememberMe">
+                    <span>Remember Me</span>
+                </label>
+                <a href="#" class="forgot" onclick="alert('Check your mail for password updation')">Forgot your password?</a>
+            </div>
 
-                <!-- ROLE SELECTION -->
-                <div class="roles">
-                    <button type="button" class="role active" id="role-admin" onclick="selectRole(this)">
-                        <img src="images/admin_logo.png">
-                        <p>System<br>Administrator</p>
-                    </button>
-                    <button type="button" class="role" id="role-analyst" onclick="selectRole(this)">
-                        <img src="images/FA_logo.png">
-                        <p>Financial<br>Analyst</p>
-                    </button>
-                    <button type="button" class="role" id="role-tech" onclick="selectRole(this)">
-                        <img src="images/T_logo.png">
-                        <p>Technician</p>
-                    </button>
-                    <button type="button" class="role" id="role-sustain" onclick="selectRole(this)">
-                        <img src="images/SO_png.png">
-                        <p>Sustainability<br>Officer</p>
-                    </button>
-                </div>
+            <!-- ROLE SELECTION -->
+            <div class="roles">
+                <button class="role active" id="role-admin" onclick="selectRole(this)">
+                    <img src="images/admin_logo.png">
+                    <p>System<br>Administrator</p>
+                </button>
+                <button class="role" id="role-analyst" onclick="selectRole(this)">
+                    <img src="images/FA_logo.png">
+                    <p>Financial<br>Analyst</p>
+                </button>
+                <button class="role" id="role-tech" onclick="selectRole(this)">
+                    <img src="images/T_logo.png">
+                    <p>Technician</p>
+                </button>
+                <button class="role" id="role-sustain" onclick="selectRole(this)">
+                    <img src="images/SO_png.png">
+                    <p>Sustainability<br>Officer</p>
+                </button>
+            </div>
 
-                <button type="submit" class="btn" id="signInBtn">Sign In</button>
+            <button type="submit" class="btn" id="signInBtn">Sign In</button>
             </form>
 
             <div class="footer">
                 <p>Don't have an account?</p>
-                <a href="../sign_up/sign_up.html" class="register-link">Register</a>
+                <a href="#" class="register-link">Register</a>
             </div>
 
         </div>
 
     </div>
 
-    <script>
-        // Toggle password visibility and eye icon
-        function togglePass() {
-            const pwd = document.getElementById('password');
-            const eyeClosed = document.getElementById('eyeClosed');
-            const eyeOpen = document.getElementById('eyeOpen');
-            const isHidden = pwd.type === 'password';
-            pwd.type = isHidden ? 'text' : 'password';
-            eyeClosed.style.display = isHidden ? 'none' : 'block';
-            eyeOpen.style.display = isHidden ? 'block' : 'none';
-        }
-
-        // Flag to prevent focus listeners from clearing errors during validation
-        let isValidating = false;
-
-        // Role selection
-        function selectRole(el) {
-            document.querySelectorAll('.role').forEach(r => r.classList.remove('active'));
-            el.classList.add('active');
-        }
-
-        function showError(inputEl, errorEl, message) {
-            inputEl.classList.add('input-error');
-            errorEl.textContent = message;
-        }
-
-        function validateEmail(emailVal) {
-            const allowedDomains = ['@gmail.com', '@yahoo.com', '@outlook.com'];
-            if (!emailVal) return 'Enter a valid email address.';
-            const localPart = emailVal.split('@')[0];
-            if (!localPart) return 'Enter a valid email address.';
-            const hasAllowedDomain = allowedDomains.some(domain => emailVal.endsWith(domain));
-            return hasAllowedDomain ? '' : 'Please use a valid domain (e.g., @gmail.com).';
-        }
-
-        function validatePassword(passwordVal) {
-            if (passwordVal.length < 8) {
-                return 'Password must be at least 8 characters long.';
-            }
-
-            let hasUpper = false;
-            let hasNumber = false;
-            let hasSpecial = false;
-            let hasSpace = false;
-            const specialChars = "!@#$%^&*()_+-=[]{}|;:',.<>?/`~";
-
-            for (const ch of passwordVal) {
-                if (ch === ' ') hasSpace = true;
-                else if (ch >= 'A' && ch <= 'Z') hasUpper = true;
-                else if (ch >= '0' && ch <= '9') hasNumber = true;
-                else if (specialChars.includes(ch)) hasSpecial = true;
-            }
-
-            if (hasSpace) return 'Password must not contain spaces.';
-            if (!hasUpper) return 'Must contain at least 1 uppercase letter.';
-            if (!hasNumber) return 'Must contain at least 1 number.';
-            if (!hasSpecial) return 'Must contain at least 1 special character.';
-            return '';
-        }
-
-        // Sign In handler with stricter validation from sign_in2
-        function handleSignIn(event) {
-            event.preventDefault();
-            isValidating = true;
-
-            const emailEl = document.getElementById('email');
-            const pwdEl = document.getElementById('password');
-            const emailErr = document.getElementById('emailError');
-            const pwdErr = document.getElementById('passwordError');
-            const emailVal = emailEl.value.trim().toLowerCase();
-            const pwdVal = pwdEl.value;
-            let valid = true;
-
-            // Reset errors
-            emailEl.classList.remove('input-error');
-            pwdEl.classList.remove('input-error');
-            emailErr.textContent = '';
-            pwdErr.textContent = '';
-
-            const emailMessage = validateEmail(emailVal);
-            if (emailMessage) {
-                showError(emailEl, emailErr, emailMessage);
-                valid = false;
-            }
-
-            const passwordMessage = validatePassword(pwdVal);
-            if (passwordMessage) {
-                showError(pwdEl, pwdErr, passwordMessage);
-                valid = false;
-            }
-
-            if (!valid) {
-                // Focus first invalid field after a tiny delay so errors stay visible
-                setTimeout(function () {
-                    if (emailMessage) emailEl.focus();
-                    else if (passwordMessage) pwdEl.focus();
-                    
-                    // Reset the flag after the focus event has had time to fire
-                    setTimeout(function() {
-                        isValidating = false;
-                    }, 50);
-                }, 50);
-                return;
-            }
-            
-            isValidating = false;
-
-            // Navigate based on selected role
-            navigateByRole();
-        }
-
-        // Navigate to the appropriate overview page based on the selected role
-        function navigateByRole() {
-            const activeRole = document.querySelector('.role.active');
-            if (!activeRole) return;
-
-            const roleId = activeRole.id;
-            const rolePages = {
-                'role-admin': '../admin/admin_overview.html',
-                'role-analyst': '../financial_analyst/finance_overview.html',
-                'role-tech': '../technician/technician_overview.html',
-                'role-sustain': '../sustainability_officer/sust_overview.html'
-            };
-
-            const destination = rolePages[roleId];
-            if (destination) {
-                window.location.href = destination;
-            }
-        }
-
-        document.getElementById('signInForm').addEventListener('submit', handleSignIn);
-
-        // Clear errors on focus
-        document.getElementById('email').addEventListener('focus', function () {
-            if (isValidating) return;
-            this.classList.remove('input-error');
-            document.getElementById('emailError').textContent = '';
-        });
-        document.getElementById('password').addEventListener('focus', function () {
-            if (isValidating) return;
-            this.classList.remove('input-error');
-            document.getElementById('passwordError').textContent = '';
-        });
-    </script>
+    <!-- Validation Logic -->
+    <script src="sign_in.js"></script>
 
 </body>
 

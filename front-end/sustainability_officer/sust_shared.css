@@ -9,8 +9,6 @@
     --s-text-muted: #7a8594;
     --s-card-border: #d8dde2;
     --s-nav-active: #0f172a;
-    --s-sidebar-width: 272px;
-    --s-main-min-width: 760px;
 }
 
 * {
@@ -22,29 +20,23 @@ body {
     font-family: 'Inter', sans-serif;
     background: var(--s-bg-page);
     color: var(--s-text-strong);
-    min-height: 100vh;
-    overflow-x: auto;
-    overflow-y: hidden;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .dashboard {
     display: flex;
     min-height: 100vh;
-    height: 100vh;
-    min-width: calc(var(--s-sidebar-width) + var(--s-main-min-width));
 }
 
 .sidebar {
-    width: var(--s-sidebar-width);
-    flex: 0 0 var(--s-sidebar-width);
+    width: 272px;
     height: 100vh;
     background: var(--s-bg-sidebar);
     border-right: 1px solid var(--s-sidebar-border);
     display: flex;
     flex-direction: column;
     padding: 16px 18px 18px;
-    overflow-y: auto;
-    overflow-x: hidden;
 }
 
 .sidebar-logo {
@@ -126,8 +118,6 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    text-decoration: none;
-    color: inherit;
 }
 
 .sync-dot {
@@ -186,11 +176,8 @@ body {
 
 .main-content {
     flex: 1;
-    min-width: var(--s-main-min-width);
-    height: 100vh;
     padding: 30px 30px 24px;
     overflow-y: auto;
-    overflow-x: hidden;
 }
 
 button {
@@ -216,13 +203,8 @@ button {
 }
 
 @media (max-width: 1366px) {
-    :root {
-        --s-sidebar-width: 258px;
-        --s-main-min-width: 700px;
-    }
-
     .sidebar {
-        padding: 16px;
+        width: 258px;
     }
 
     .main-content {
@@ -231,9 +213,31 @@ button {
 }
 
 @media (max-width: 1100px) {
-    :root {
-        --s-sidebar-width: 236px;
-        --s-main-min-width: 640px;
+    body {
+        height: auto;
+        overflow: auto;
+    }
+
+    .dashboard {
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        min-height: 0;
+    }
+
+    .sidebar-bottom {
+        margin-top: 12px;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .sync-card,
+    .profile-card {
+        flex: 1 1 280px;
     }
 
     .main-content {
@@ -242,11 +246,6 @@ button {
 }
 
 @media (max-width: 700px) {
-    :root {
-        --s-sidebar-width: 214px;
-        --s-main-min-width: 560px;
-    }
-
     .nav-item {
         font-size: 14px;
         padding: 10px 11px;
@@ -259,6 +258,6 @@ button {
 
     .sync-card,
     .profile-card {
-        padding: 10px;
+        flex: 1 1 100%;
     }
 }
