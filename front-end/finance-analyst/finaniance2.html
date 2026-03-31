@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EnerTrack – Financial Reports & Impact</title>
+<style>
+*{ margin:0; padding:0; box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+body{ display:flex; height:100vh; background:#d3d3d3; }
+
+/* SIDEBAR */
+.sidebar{ width:260px; background:#93E494; padding:22px 18px; display:flex; flex-direction:column; justify-content:space-between; flex-shrink:0; }
+.logo{ font-size:15px; font-weight:600; color:#1f2937; margin-bottom:28px; cursor:pointer; }
+.menu{ display:flex; flex-direction:column; gap:8px; }
+.menu-item{ display:flex; align-items:center; gap:12px; font-size:14px; color:#1f2937; padding:10px 12px; border-radius:8px; cursor:pointer; }
+.menu-item svg{ width:18px; height:18px; stroke-width:1.8; }
+.menu-item.active{ background:#0f172a; color:white; }
+.menu-item.active svg{ stroke:white; }
+.profile{ background:white; padding:10px 12px; border-radius:8px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 6px rgba(0,0,0,0.08); cursor:pointer; }
+.profile-left{ display:flex; align-items:center; gap:8px; }
+.profile img{ width:30px; height:30px; border-radius:50%; }
+.profile-name{ font-size:12px; font-weight:600; }
+.profile-role{ font-size:10px; color:#6b7280; }
+
+/* CONTENT */
+.content{ flex:1; background:#f3f4f6; padding:40px; overflow:auto; }
+.container{ max-width:1100px; cursor:default; user-select:none; }
+h1{ font-size:26px; font-weight:600; margin-bottom:6px; }
+.sub{ color:#6b7280; font-size:14px; margin-bottom:26px; }
+.box{ background:white; border-radius:10px; padding:22px; margin-bottom:18px; box-shadow:0 1px 0 rgba(0,0,0,0.05); }
+.section-title{ font-size:15px; font-weight:600; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
+.section-sub{ font-size:13px; color:#6b7280; margin-bottom:14px; }
+
+/* TABLE */
+.tbl-wrap{ overflow-x:auto; }
+table{ width:100%; border-collapse:collapse; font-size:13px; }
+thead th{ text-align:left; padding:10px 12px; background:#f9fafb; color:#6b7280; font-weight:600; font-size:12px; border-bottom:1px solid #e5e7eb; }
+tbody tr{ border-bottom:1px solid #f3f4f6; }
+tbody tr:hover{ background:#f9fafb; }
+tbody td{ padding:10px 12px; color:#374151; vertical-align:middle; }
+.action-cell{ display:flex; gap:6px; flex-wrap:wrap; }
+
+/* BUTTONS */
+.action-btn{ padding:4px 10px; border:none; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600; }
+.btn-view{   background:#e5e7eb; color:#374151; }
+.btn-edit{   background:#dbeafe; color:#1d4ed8; }
+.btn-delete{ background:#fee2e2; color:#b91c1c; }
+.btn-approve{ background:#dcfce7; color:#166534; }
+.btn-export{ background:#f3e8ff; color:#7c3aed; }
+.main-btn{ background:#166534; color:white; border:none; padding:9px 16px; border-radius:8px; font-size:14px; cursor:pointer; margin-right:8px; }
+.main-btn:hover{ background:#14532d; }
+
+/* FILTERS */
+.filter-row{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.filter-row select, .filter-row input{ border:1px solid #e5e7eb; border-radius:8px; padding:7px 12px; font-size:13px; background:white; cursor:pointer; }
+
+/* METRICS */
+.metrics{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin:18px 0; }
+.metric{ background:white; border-radius:10px; padding:18px; box-shadow:0 1px 0 rgba(0,0,0,0.05); }
+.metric-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.metric-label{ font-size:12px; color:#9ca3af; }
+.metric-tag{ font-size:11px; background:#f3f4f6; padding:4px 8px; border-radius:999px; color:#374151; }
+.metric-value{ font-size:26px; font-weight:600; margin-bottom:6px; }
+.metric-sub{ font-size:12px; color:#6b7280; }
+.result{ background:#d1fae5; padding:16px; border-radius:10px; font-weight:600; color:#065f46; display:flex; justify-content:space-between; align-items:center; margin-top:14px; font-size:14px; }
+.badge{ padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+.badge-success{ background:#dcfce7; color:#166534; }
+.badge-warning{ background:#fef3c7; color:#92400e; }
+.badge-danger{  background:#fee2e2; color:#b91c1c; }
+.badge-gray{    background:#f3f4f6; color:#374151; }
+
+/* SUMMARY TILES */
+.summary-tiles{ display:flex; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
+.tile{ background:white; border-radius:10px; padding:14px 18px; box-shadow:0 1px 0 rgba(0,0,0,0.05); min-width:140px; }
+.tile-label{ font-size:12px; color:#9ca3af; margin-bottom:4px; }
+.tile-value{ font-size:20px; font-weight:700; }
+
+/* CALC INPUTS */
+.calc-row{ display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+.calc-row input{ border:1px solid #e5e7eb; border-radius:8px; padding:9px 12px; font-size:14px; width:240px; }
+
+/* TAG */
+.tag{ padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; text-transform:capitalize; background:#f3f4f6; color:#374151; }
+
+/* ROLE BAR */
+.role-bar{ background:#0f172a; color:white; padding:8px 18px; font-size:12px; display:flex; align-items:center; gap:12px; position:fixed; top:0; left:0; right:0; z-index:1000; }
+.role-bar select{ background:#1f2937; color:white; border:1px solid #374151; padding:4px 8px; border-radius:6px; font-size:12px; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<!-- DEV ROLE BAR -->
+<div class="role-bar">
+  <span>🔧 Dev Role:</span>
+  <select id="role-switcher">
+    <option value="finance_analyst">Finance Analyst</option>
+    <option value="superuser">Super User</option>
+    <option value="enduser">End User</option>
+  </select>
+</div>
+
+<div style="display:flex;width:100%;margin-top:34px;height:calc(100vh - 34px)">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div>
+    <div class="logo">EnerTrack</div>
+    <div class="menu">
+      <div class="menu-item" data-page="finaniance.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </div>
+      <div class="menu-item active" data-page="finaniance2.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="17" x2="9" y2="13"/><line x1="12" y1="17" x2="12" y2="11"/><line x1="15" y1="17" x2="15" y2="15"/></svg>
+        Financial<br>Reports &amp; Impact
+      </div>
+      <div class="menu-item" data-page="finaniance3.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 9v3a5 5 0 0 0 10 0V9"/><line x1="10" y1="4" x2="10" y2="8"/><line x1="14" y1="4" x2="14" y2="8"/><path d="M12 17v3"/></svg>
+        Utility Costs
+      </div>
+    </div>
+  </div>
+  <div class="profile">
+    <div class="profile-left">
+      <img src="https://i.pravatar.cc/40?img=12">
+      <div>
+        <div class="profile-name">Aadithya Mouli</div>
+        <div class="profile-role">Finance Analyst</div>
+      </div>
+    </div>⋮
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+  <div class="container">
+    <h1>Financial Reports &amp; Impact</h1>
+    <div class="sub">Manage reports, invoices, and financial metrics in a single workflow.</div>
+
+    <!-- ── REPORTS TABLE ── -->
+    <div class="box">
+      <div class="section-title">
+        Financial Reports
+        <button class="main-btn" id="btn-add-report" data-perm="create">+ Generate Report</button>
+      </div>
+      <div class="section-sub">View, edit, and delete generated financial impact reports.</div>
+      <div class="filter-row">
+        <select id="report-filter-category">
+          <option value="all">All Categories</option>
+          <option value="energy">Energy</option>
+          <option value="operations">Operations</option>
+        </select>
+        <select id="report-filter-status">
+          <option value="all">All Statuses</option>
+          <option value="viable">Viable</option>
+          <option value="marginal">Marginal</option>
+          <option value="not-viable">Not Viable</option>
+        </select>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th><th>Period</th><th>Category</th><th>Scope</th>
+              <th>ROI</th><th>NPV</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="reports-tbody">
+            <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:32px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── INVOICES TABLE ── -->
+    <div class="box">
+      <div class="section-title">
+        Utility Invoices
+        <button class="main-btn" id="btn-add-invoice" data-perm="create">+ Add Invoice</button>
+      </div>
+      <div class="section-sub">Approve, edit, or delete utility invoices. Pending invoices require approval.</div>
+
+      <div class="summary-tiles">
+        <div class="tile"><div class="tile-label">Total Invoice Value</div><div class="tile-value" id="inv-total">—</div></div>
+        <div class="tile"><div class="tile-label">Pending Approval</div><div class="tile-value" id="inv-pending">—</div></div>
+        <div class="tile"><div class="tile-label">Overdue</div><div class="tile-value" id="inv-overdue" style="color:#dc2626">—</div></div>
+      </div>
+
+      <div class="filter-row">
+        <select id="invoice-filter-status">
+          <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="overdue">Overdue</option>
+        </select>
+        <select id="invoice-filter-dept">
+          <option value="all">All Departments</option>
+          <option value="dept-001">Computer Science</option>
+          <option value="dept-002">Electronics</option>
+          <option value="dept-003">Data Science</option>
+          <option value="dept-004">Mechanical</option>
+          <option value="dept-005">Civil Engineering</option>
+        </select>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Invoice #</th><th>Vendor</th><th>Department</th><th>Amount</th>
+              <th>Type</th><th>Due Date</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="invoice-tbody">
+            <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:32px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── CALCULATE METRICS ── -->
+    <div class="box">
+      <div class="section-title">Calculate Financial Metrics</div>
+      <div class="section-sub">Enter projected savings and budget to compute ROI, NPV, and Payback Period.</div>
+      <div class="calc-row">
+        <input id="calc-saving" type="number" placeholder="Projected annual savings ($)" min="1">
+        <input id="calc-budget" type="number" placeholder="Project budget ($)" min="1">
+        <button class="main-btn" id="btn-calculate">Calculate Metrics</button>
+      </div>
+    </div>
+
+    <!-- METRICS CARDS -->
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-top"><div class="metric-label">ROI</div><div class="metric-tag">Return on investment</div></div>
+        <div class="metric-value" id="metric-roi">18.5%</div>
+        <div class="metric-sub">Value returned relative to cost.</div>
+      </div>
+      <div class="metric">
+        <div class="metric-top"><div class="metric-label">NPV</div><div class="metric-tag">Net present value</div></div>
+        <div class="metric-value" id="metric-npv">$148,320</div>
+        <div class="metric-sub">Present-day value of future cash flows.</div>
+      </div>
+      <div class="metric">
+        <div class="metric-top"><div class="metric-label">Payback Period</div><div class="metric-tag">Recovery time</div></div>
+        <div class="metric-value" id="metric-payback">2.8 yrs</div>
+        <div class="metric-sub">Time to recover project costs.</div>
+      </div>
+    </div>
+
+    <div class="result" id="viability-result">
+      Financially Viable — Recommend Expansion
+      <div class="badge badge-success">ROI ≥ Threshold</div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script type="module" src="js/reportsPage.js"></script>
+</body>
+</html>

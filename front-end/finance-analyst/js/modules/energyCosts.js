@@ -1,0 +1,353 @@
+/**
+ * energyCosts.js
+ * CRUD operations for energy cost records (Utility Costs page).
+ */
+
+import FinanceDB from "../data/mockData.js";
+import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, can } from "../utils/utils.js";
+import { logActivity } from "./activity.js";
+
+/* ── RENDER TABLE ─────────────────────────────────── */
+
+export function renderCostTable(filter = {}) {
+  const tbody = document.getElementById("cost-tbody");
+  if (!tbody) return;
+
+  let records = [...FinanceDB.energyCosts];
+
+  if (filter.scope && filter.scope !== "all") records = records.filter(r => r.scope === filter.scope);
+  if (filter.period && filter.period !== "") records = records.filter(r => r.period === filter.period);
+
+  if (records.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:32px">No records found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = records.map(rec => `
+    <tr data-id="${rec.id}">
+      <td>${rec.period}</td>
+      <td style="text-transform:capitalize">${rec.scope}</td>
+      <td>${rec.scopeLabel}</td>
+      <td>${formatCurrency(rec.electricity)}</td>
+      <td>${formatCurrency(rec.gas)}</td>
+      <td>${formatCurrency(rec.water)}</td>
+      <td><strong>${formatCurrency(rec.total)}</strong></td>
+      <td>${badgeHTML(rec.status)}</td>
+      <td class="action-cell">
+        <button class="action-btn btn-view"   onclick="CostModule.viewCostRecord('${rec.id}')">View</button>
+        ${can("edit")   ? `<button class="action-btn btn-edit"   onclick="CostModule.editCostRecord('${rec.id}')">Edit</button>` : ""}
+        ${can("delete") ? `<button class="action-btn btn-delete" onclick="CostModule.deleteCostRecord('${rec.id}')">Delete</button>` : ""}
+      </td>
+    </tr>
+  `).join("");
+}
+
+/* ── VIEW ─────────────────────────────────────────── */
+
+export function viewCostRecord(id) {
+  const rec = FinanceDB.energyCosts.find(r => r.id === id);
+  if (!rec) return;
+
+  openModal({
+    title: `Cost Record — ${rec.scopeLabel} (${rec.period})`,
+    bodyHTML: `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;font-size:14px">
+        <div><strong>Period</strong><p>${rec.period}</p></div>
+        <div><strong>Scope</strong><p style="text-transform:capitalize">${rec.scope}</p></div>
+        <div><strong>Reference</strong><p>${rec.scopeLabel}</p></div>
+        <div><strong>Status</strong><p>${badgeHTML(rec.status)}</p></div>
+        <div><strong>Electricity</strong><p>${formatCurrency(rec.electricity)}</p></div>
+        <div><strong>Gas</strong><p>${formatCurrency(rec.gas)}</p></div>
+        <div><strong>Water</strong><p>${formatCurrency(rec.water)}</p></div>
+        <div><strong>Demand</strong><p>${formatCurrency(rec.demand)}</p></div>
+        <div><strong>Total Cost</strong><p><strong>${formatCurrency(rec.total)}</strong></p></div>
+        <div><strong>Budget</strong><p>${formatCurrency(rec.budget)}</p></div>
+        <div><strong>Variance</strong><p style="color:${rec.variance >= 0 ? '#166534':'#dc2626'}">${rec.variance >= 0 ? '+' : ''}${formatCurrency(rec.variance)}</p></div>
+      </div>`,
+    confirmLabel: "Close",
+    cancelLabel: "",
+    onConfirm: () => {}
+  });
+}
+
+/* ── ADD ──────────────────────────────────────────── */
+
+export function openAddCostModal() {
+  if (!can("create")) { showToast("Permission denied.", "error"); return; }
+
+  const deptOptions = FinanceDB.departments.map(d => `<option value="${d.id}|dept|${d.name}">${d.name}</option>`).join("");
+  const bldgOptions = FinanceDB.buildings.map(b => `<option value="${b.id}|building|${b.name}">${b.name}</option>`).join("");
+
+  openModal({
+    title: "Add Energy Cost Record",
+    bodyHTML: `
+      <form id="add-cost-form" novalidate>
+        <div class="fm-row">
+          <div class="fm-group">
+            <label>Period * (YYYY-MM or YYYY-QN)</label>
+            <input id="ac-period" placeholder="e.g. 2025-03">
+          </div>
+          <div class="fm-group">
+            <label>Scope *</label>
+            <select id="ac-scope-type" onchange="CostModule._toggleScopeSelect()">
+              <option value="">Select scope</option>
+              <option value="department">Department</option>
+              <option value="building">Building</option>
+            </select>
+          </div>
+        </div>
+        <div class="fm-group" id="ac-scope-dept" style="display:none">
+          <label>Department *</label>
+          <select id="ac-dept-ref"><option value="">Choose department</option>${deptOptions}</select>
+        </div>
+        <div class="fm-group" id="ac-scope-bldg" style="display:none">
+          <label>Building *</label>
+          <select id="ac-bldg-ref"><option value="">Choose building</option>${bldgOptions}</select>
+        </div>
+        <div class="fm-row">
+          <div class="fm-group">
+            <label>Electricity ($) *</label>
+            <input id="ac-elec" type="number" placeholder="0" min="0">
+          </div>
+          <div class="fm-group">
+            <label>Gas ($) *</label>
+            <input id="ac-gas" type="number" placeholder="0" min="0">
+          </div>
+        </div>
+        <div class="fm-row">
+          <div class="fm-group">
+            <label>Water ($) *</label>
+            <input id="ac-water" type="number" placeholder="0" min="0">
+          </div>
+          <div class="fm-group">
+            <label>Demand Charge ($) *</label>
+            <input id="ac-demand" type="number" placeholder="0" min="0">
+          </div>
+        </div>
+        <div class="fm-group">
+          <label>Budget ($) *</label>
+          <input id="ac-budget" type="number" placeholder="0" min="1">
+        </div>
+      </form>`,
+    confirmLabel: "Add Record",
+    onConfirm: () => _submitAddCost()
+  });
+}
+
+// Toggle department/building select visibility
+export function _toggleScopeSelect() {
+  const type = document.getElementById("ac-scope-type")?.value;
+  document.getElementById("ac-scope-dept").style.display = type === "department" ? "" : "none";
+  document.getElementById("ac-scope-bldg").style.display = type === "building"   ? "" : "none";
+}
+window._toggleScopeSelect = _toggleScopeSelect;
+
+function _submitAddCost() {
+  const form = document.getElementById("add-cost-form");
+  if (!form) return;
+
+  const fields = {
+    period:    document.getElementById("ac-period"),
+    scopeType: document.getElementById("ac-scope-type"),
+    elec:      document.getElementById("ac-elec"),
+    gas:       document.getElementById("ac-gas"),
+    water:     document.getElementById("ac-water"),
+    demand:    document.getElementById("ac-demand"),
+    budget:    document.getElementById("ac-budget")
+  };
+
+  clearAllErrors(form);
+  let valid = true;
+
+  // Period format validation
+  const periodVal = fields.period.value.trim();
+  const periodOk = /^\d{4}-(0[1-9]|1[0-2]|Q[1-4])$/.test(periodVal);
+  if (!periodVal) { showFieldError(fields.period, "Period is required."); valid = false; }
+  else if (!periodOk) { showFieldError(fields.period, "Format must be YYYY-MM or YYYY-Q1 to YYYY-Q4."); valid = false; }
+
+  if (!fields.scopeType.value) { showFieldError(fields.scopeType, "Select a scope type."); valid = false; }
+
+  // Scope ref
+  const scopeType = fields.scopeType.value;
+  const deptRef = document.getElementById("ac-dept-ref");
+  const bldgRef = document.getElementById("ac-bldg-ref");
+  let scopeValue = "";
+
+  if (scopeType === "department") {
+    scopeValue = deptRef?.value ?? "";
+    if (!scopeValue) { showFieldError(deptRef, "Select a department."); valid = false; }
+  } else if (scopeType === "building") {
+    scopeValue = bldgRef?.value ?? "";
+    if (!scopeValue) { showFieldError(bldgRef, "Select a building."); valid = false; }
+  }
+
+  // Numeric fields
+  for (const key of ["elec","gas","water","demand","budget"]) {
+    const val = Number(fields[key]?.value);
+    if (fields[key]?.value === "" || isNaN(val) || val < 0) {
+      showFieldError(fields[key], "Must be a valid non-negative number."); valid = false;
+    }
+  }
+
+  if (!valid) { showToast("Please fix the errors.", "warning"); return; }
+
+  const [scopeId, , scopeLabel] = scopeValue.split("|");
+  const elec   = Number(fields.elec.value);
+  const gas    = Number(fields.gas.value);
+  const water  = Number(fields.water.value);
+  const demand = Number(fields.demand.value);
+  const total  = elec + gas + water + demand;
+  const budget = Number(fields.budget.value);
+  const variance = budget - total;
+
+  const newRec = {
+    id: generateId("ec"),
+    period: periodVal,
+    scope: scopeType,
+    scopeRef: scopeId,
+    scopeLabel,
+    electricity: elec, gas, water, demand, total, budget, variance,
+    status: variance > 0 ? "under-budget" : variance === 0 ? "on-budget" : "over-budget"
+  };
+
+  FinanceDB.energyCosts.push(newRec);
+  logActivity("energy", `Cost record added for ${scopeLabel}`, `Period: ${periodVal}, Total: ${formatCurrency(total)}`);
+  renderCostTable();
+  updateCostSummary();
+  showToast("Energy cost record added.", "success");
+}
+
+/* ── EDIT ─────────────────────────────────────────── */
+
+export function editCostRecord(id) {
+  if (!can("edit")) { showToast("Permission denied.", "error"); return; }
+  const rec = FinanceDB.energyCosts.find(r => r.id === id);
+  if (!rec) return;
+
+  openModal({
+    title: `Edit Cost Record — ${rec.scopeLabel}`,
+    bodyHTML: `
+      <form id="edit-cost-form" novalidate>
+        <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Period: <strong>${rec.period}</strong> — Scope: <strong>${rec.scopeLabel}</strong></p>
+        <div class="fm-row">
+          <div class="fm-group">
+            <label>Electricity ($) *</label>
+            <input id="ecc-elec" type="number" value="${rec.electricity}" min="0">
+          </div>
+          <div class="fm-group">
+            <label>Gas ($) *</label>
+            <input id="ecc-gas" type="number" value="${rec.gas}" min="0">
+          </div>
+        </div>
+        <div class="fm-row">
+          <div class="fm-group">
+            <label>Water ($) *</label>
+            <input id="ecc-water" type="number" value="${rec.water}" min="0">
+          </div>
+          <div class="fm-group">
+            <label>Demand ($) *</label>
+            <input id="ecc-demand" type="number" value="${rec.demand}" min="0">
+          </div>
+        </div>
+        <div class="fm-group">
+          <label>Budget ($) *</label>
+          <input id="ecc-budget" type="number" value="${rec.budget}" min="1">
+        </div>
+      </form>`,
+    confirmLabel: "Save Changes",
+    onConfirm: () => _submitEditCost(id)
+  });
+}
+
+function _submitEditCost(id) {
+  const form = document.getElementById("edit-cost-form");
+  if (!form) return;
+
+  const fields = {
+    elec:   document.getElementById("ecc-elec"),
+    gas:    document.getElementById("ecc-gas"),
+    water:  document.getElementById("ecc-water"),
+    demand: document.getElementById("ecc-demand"),
+    budget: document.getElementById("ecc-budget")
+  };
+
+  clearAllErrors(form);
+  let valid = true;
+
+  for (const [key, el] of Object.entries(fields)) {
+    const val = Number(el.value);
+    if (el.value === "" || isNaN(val) || val < 0) {
+      showFieldError(el, "Must be a valid non-negative number."); valid = false;
+    }
+  }
+  if (Number(fields.budget.value) <= 0) {
+    showFieldError(fields.budget, "Budget must be greater than zero."); valid = false;
+  }
+
+  if (!valid) { showToast("Please fix the errors.", "warning"); return; }
+
+  const idx = FinanceDB.energyCosts.findIndex(r => r.id === id);
+  const elec   = Number(fields.elec.value);
+  const gas    = Number(fields.gas.value);
+  const water  = Number(fields.water.value);
+  const demand = Number(fields.demand.value);
+  const total  = elec + gas + water + demand;
+  const budget = Number(fields.budget.value);
+  const variance = budget - total;
+
+  FinanceDB.energyCosts[idx] = {
+    ...FinanceDB.energyCosts[idx],
+    electricity: elec, gas, water, demand, total, budget, variance,
+    status: variance > 0 ? "under-budget" : variance === 0 ? "on-budget" : "over-budget"
+  };
+
+  logActivity("energy", `Cost record updated for ${FinanceDB.energyCosts[idx].scopeLabel}`, `Total: ${formatCurrency(total)}`);
+  renderCostTable();
+  updateCostSummary();
+  showToast("Cost record updated.", "success");
+}
+
+/* ── DELETE ───────────────────────────────────────── */
+
+export function deleteCostRecord(id) {
+  if (!can("delete")) { showToast("Permission denied.", "error"); return; }
+  const rec = FinanceDB.energyCosts.find(r => r.id === id);
+  if (!rec) return;
+
+  openModal({
+    title: "Delete Cost Record",
+    bodyHTML: `<p>Delete the <strong>${rec.scopeLabel}</strong> record for <strong>${rec.period}</strong>? This cannot be undone.</p>`,
+    confirmLabel: "Delete",
+    danger: true,
+    onConfirm: () => {
+      FinanceDB.energyCosts = FinanceDB.energyCosts.filter(r => r.id !== id);
+      logActivity("energy", `Cost record deleted for ${rec.scopeLabel}`, `Period: ${rec.period}`);
+      renderCostTable();
+      updateCostSummary();
+      showToast("Cost record deleted.", "success");
+    }
+  });
+}
+
+/* ── SUMMARY ──────────────────────────────────────── */
+
+export function updateCostSummary() {
+  const all = FinanceDB.energyCosts;
+  const totalCost   = all.reduce((s, r) => s + r.total, 0);
+  const totalBudget = all.reduce((s, r) => s + r.budget, 0);
+  const overBudget  = all.filter(r => r.status === "over-budget").length;
+
+  _setText("cost-total",      formatCurrency(totalCost));
+  _setText("cost-budget",     formatCurrency(totalBudget));
+  _setText("cost-over-count", overBudget);
+}
+
+function _setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+/* ── EXPORT NAMESPACE ─────────────────────────────── */
+const CostModule = { renderCostTable, viewCostRecord, openAddCostModal, _toggleScopeSelect, editCostRecord, deleteCostRecord, updateCostSummary };
+window.CostModule = CostModule;
+export default CostModule;
