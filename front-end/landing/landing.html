@@ -25,7 +25,7 @@
         </div>
         <div class="right-nav">
             <a href="../sign_in/sign_in.html" class="btn-primary">Sign In</a>
-            <a href="../sign_in/sign_in.html" class="profile-circle">
+            <a href="../finance-analyst/finance_overview.html" class="profile-circle">
                 <img src="https://i.pravatar.cc/100" alt="User Profile">
             </a>
         </div>
@@ -303,6 +303,49 @@
                 track.scrollTo({ left: i * 336, behavior: 'smooth' });
             });
         });
+
+        // Dynamic Role-Based Redirection for Profile Icon
+        function updateProfileLink() {
+            const profileLink = document.querySelector('.profile-circle');
+            if (!profileLink) return;
+
+            // Check for active sessions across modules
+            // 1. Finance Analyst
+            const financeSess = sessionStorage.getItem('enertrack_finance_session');
+            const financeDB = localStorage.getItem('EnerTrack_FinanceDB');
+            if (financeSess || financeDB) {
+                profileLink.href = '../finance-analyst/finance_overview.html';
+                return;
+            }
+
+            // 2. Admin
+            const adminSess = sessionStorage.getItem('enertrack_session');
+            if (adminSess) {
+                profileLink.href = '../admin/admin_overview.html';
+                return;
+            }
+
+            // 3. Technician
+            const techDB = sessionStorage.getItem('et_tech_db_v1');
+            if (techDB) {
+                profileLink.href = '../technician/technician_overview.html';
+                return;
+            }
+
+            // 4. Sustainability Officer
+            const sustUser = sessionStorage.getItem('et_current_user');
+            const sustDB = sessionStorage.getItem('et_sust_db_v1');
+            if (sustUser || sustDB) {
+                profileLink.href = '../sustainability_officer/sust_overview.html';
+                return;
+            }
+
+            // Default fallback if no session is active
+            profileLink.href = '../sign_in/sign_in.html';
+        }
+
+        // Initialize redirection logic
+        updateProfileLink();
     </script>
 </body>
 </html>
