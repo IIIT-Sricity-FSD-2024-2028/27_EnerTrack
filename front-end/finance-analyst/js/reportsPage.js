@@ -4,22 +4,20 @@
  */
 
 import FinanceDB     from "./data/mockData.js";
-import SessionModule from "./modules/session.js";
 import ReportModule  from "./modules/reports.js";
 import InvoiceModule from "./modules/invoices.js";
-import { formatCurrency, can } from "./utils/utils.js";
+import { formatCurrency, can, renderSessionUI } from "./utils/utils.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   window.FinanceDB = FinanceDB;
 
-  SessionModule.initSession();
+  renderSessionUI(FinanceDB.session.user);
   ReportModule.renderReportList();
   InvoiceModule.renderInvoiceList();
   InvoiceModule.updateInvoiceSummary();
   renderMetricCards();
   wireFilters();
   wireButtons();
-  wireRoleSwitcher();
   wireNavigation();
   renderViabilityResult();
 });
@@ -119,18 +117,6 @@ function wireButtons() {
     const status = roi >= 15 ? "viable" : roi >= 8 ? "marginal" : "not-viable";
     renderViabilityResult({ status, roi: Number(roi), npv: Number(npv) });
     import("./utils/utils.js").then(({ showToast }) => showToast("Metrics calculated.", "success"));
-  });
-}
-
-/* ── ROLE SWITCHER ────────────────────────────────── */
-
-function wireRoleSwitcher() {
-  const switcher = document.getElementById("role-switcher");
-  if (!switcher) return;
-  switcher.addEventListener("change", e => {
-    SessionModule.switchRole(e.target.value);
-    ReportModule.renderReportList();
-    InvoiceModule.renderInvoiceList();
   });
 }
 

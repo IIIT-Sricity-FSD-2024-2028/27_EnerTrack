@@ -42,7 +42,7 @@ export function renderInvoiceList(filter = {}) {
       <td>${badgeHTML(inv.status)}</td>
       <td class="action-cell">
         <button class="action-btn btn-view"   onclick="InvoiceModule.viewInvoice('${inv.id}')">View</button>
-        ${can("edit")   ? `<button class="action-btn btn-edit"    onclick="InvoiceModule.editInvoice('${inv.id}')">Edit</button>` : ""}
+        ${can("edit") ? `<button class="action-btn btn-edit"    onclick="InvoiceModule.editInvoice('${inv.id}')">Edit</button>` : ""}
         ${can("approve") && inv.status === "pending" ? `<button class="action-btn btn-approve" onclick="InvoiceModule.approveInvoice('${inv.id}')">Approve</button>` : ""}
         ${can("delete") ? `<button class="action-btn btn-delete"  onclick="InvoiceModule.deleteInvoice('${inv.id}')">Delete</button>` : ""}
       </td>
@@ -71,7 +71,7 @@ export function viewInvoice(id) {
       </div>`,
     confirmLabel: "Close",
     cancelLabel: "",
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 }
 
@@ -140,26 +140,26 @@ function _submitAddInvoice() {
   if (!form) return;
 
   const fields = {
-    number:  document.getElementById("fi-number"),
-    vendor:  document.getElementById("fi-vendor"),
-    amount:  document.getElementById("fi-amount"),
-    type:    document.getElementById("fi-type"),
-    dept:    document.getElementById("fi-dept"),
-    issued:  document.getElementById("fi-issued"),
-    due:     document.getElementById("fi-due")
+    number: document.getElementById("fi-number"),
+    vendor: document.getElementById("fi-vendor"),
+    amount: document.getElementById("fi-amount"),
+    type: document.getElementById("fi-type"),
+    dept: document.getElementById("fi-dept"),
+    issued: document.getElementById("fi-issued"),
+    due: document.getElementById("fi-due")
   };
 
   clearAllErrors(form);
   let valid = true;
 
   const rules = {
-    number: { required: true, minLength: 3, maxLength: 20 },
-    vendor: { required: true, minLength: 2 },
-    amount: { required: true, positiveNumber: true },
-    type:   { required: true },
-    dept:   { required: true },
-    issued: { required: true },
-    due:    { required: true }
+    number: { label: "Invoice number", required: true, pattern: /^INV-\d{4,5}$/, patternMsg: "Invalid invoice number format. Use INV-XXXX or INV-XXXXX." },
+    vendor: { label: "Vendor", required: true, minLength: 2 },
+    amount: { label: "Amount", required: true, positiveNumber: true },
+    type:   { label: "Type", required: true },
+    dept:   { label: "Department", required: true },
+    issued: { label: "Issued date", required: true },
+    due:    { label: "Due date", required: true }
   };
 
   const data = {};
@@ -186,9 +186,8 @@ function _submitAddInvoice() {
   }
 
   if (!valid) {
-    // Re-open modal with the filled form (keep open on error)
-    showToast("Please fix the errors before submitting.", "warning");
-    return;
+    showToast("Please correct the highlighted errors.", "warning");
+    return false;
   }
 
   const dept = FinanceDB.departments.find(d => d.id === data.dept);
@@ -246,9 +245,9 @@ export function editInvoice(id) {
           <div class="fm-group">
             <label>Type *</label>
             <select id="ei-type">
-              ${["electricity","gas","water","demand"].map(t =>
-                `<option value="${t}" ${t === inv.type ? "selected" : ""}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`
-              ).join("")}
+              ${["electricity", "gas", "water", "demand"].map(t =>
+      `<option value="${t}" ${t === inv.type ? "selected" : ""}>${t.charAt(0).toUpperCase() + t.slice(1)}</option>`
+    ).join("")}
             </select>
           </div>
         </div>
@@ -265,9 +264,9 @@ export function editInvoice(id) {
         <div class="fm-group">
           <label>Status</label>
           <select id="ei-status">
-            ${["pending","approved","overdue"].map(s =>
-              `<option value="${s}" ${s === inv.status ? "selected" : ""}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`
-            ).join("")}
+            ${["pending", "approved", "overdue"].map(s =>
+      `<option value="${s}" ${s === inv.status ? "selected" : ""}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`
+    ).join("")}
           </select>
         </div>
       </form>`,
@@ -284,9 +283,9 @@ function _submitEditInvoice(id) {
     number: document.getElementById("ei-number"),
     vendor: document.getElementById("ei-vendor"),
     amount: document.getElementById("ei-amount"),
-    type:   document.getElementById("ei-type"),
-    dept:   document.getElementById("ei-dept"),
-    due:    document.getElementById("ei-due"),
+    type: document.getElementById("ei-type"),
+    dept: document.getElementById("ei-dept"),
+    due: document.getElementById("ei-due"),
     status: document.getElementById("ei-status")
   };
 
@@ -294,12 +293,12 @@ function _submitEditInvoice(id) {
   let valid = true;
 
   const rules = {
-    number: { required: true, minLength: 3 },
-    vendor: { required: true, minLength: 2 },
-    amount: { required: true, positiveNumber: true },
-    type:   { required: true },
-    dept:   { required: true },
-    due:    { required: true }
+    number: { label: "Invoice number", required: true, pattern: /^INV-\d{4,5}$/, patternMsg: "Invalid invoice number format. Use INV-XXXX or INV-XXXXX." },
+    vendor: { label: "Vendor", required: true, minLength: 2 },
+    amount: { label: "Amount", required: true, positiveNumber: true },
+    type:   { label: "Type", required: true },
+    dept:   { label: "Department", required: true },
+    due:    { label: "Due date", required: true }
   };
 
   const data = {};
@@ -316,20 +315,20 @@ function _submitEditInvoice(id) {
     valid = false;
   }
 
-  if (!valid) { showToast("Please fix the errors.", "warning"); return; }
+  if (!valid) { showToast("Please correct the highlighted errors.", "warning"); return false; }
 
   const idx = FinanceDB.invoices.findIndex(i => i.id === id);
   const dept = FinanceDB.departments.find(d => d.id === data.dept);
   FinanceDB.invoices[idx] = {
     ...FinanceDB.invoices[idx],
-    invoiceNumber:   data.number.trim(),
-    vendor:          data.vendor.trim(),
-    amount:          Number(data.amount),
-    department:      data.dept,
+    invoiceNumber: data.number.trim(),
+    vendor: data.vendor.trim(),
+    amount: Number(data.amount),
+    department: data.dept,
     departmentLabel: dept?.name ?? data.dept,
-    dueDate:         data.due,
-    type:            data.type,
-    status:          data.status
+    dueDate: data.due,
+    type: data.type,
+    status: data.status
   };
 
   logActivity("invoice", `Invoice ${data.number} updated`, `Status: ${data.status}`);
@@ -386,11 +385,11 @@ export function deleteInvoice(id) {
 
 export function updateInvoiceSummary() {
   const all = FinanceDB.invoices;
-  const total   = all.reduce((s, i) => s + i.amount, 0);
+  const total = all.reduce((s, i) => s + i.amount, 0);
   const pending = all.filter(i => i.status === "pending").length;
   const overdue = all.filter(i => i.status === "overdue").length;
 
-  _setText("inv-total",   formatCurrency(total));
+  _setText("inv-total", formatCurrency(total));
   _setText("inv-pending", pending);
   _setText("inv-overdue", overdue);
 }

@@ -5,9 +5,8 @@
  */
 
 import FinanceDB      from "./data/mockData.js";
-import SessionModule  from "./modules/session.js";
 import { renderActivityList } from "./modules/activity.js";
-import { formatCurrency }     from "./utils/utils.js";
+import { formatCurrency, renderSessionUI } from "./utils/utils.js";
 
 /* ── BOOT ─────────────────────────────────────────── */
 
@@ -15,11 +14,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Expose DB globally (needed by can() helper and role-switcher)
   window.FinanceDB = FinanceDB;
 
-  SessionModule.initSession();
+  renderSessionUI(FinanceDB.session.user);
   renderActivityList();
   renderSummaryCards();
   renderDeptBars();
-  wireRoleSwitcher();
   wireNavigation();
 });
 
@@ -70,17 +68,6 @@ function renderDeptBars() {
         </div>
       </div>`;
   }).join("");
-}
-
-/* ── ROLE SWITCHER ────────────────────────────────── */
-
-function wireRoleSwitcher() {
-  const switcher = document.getElementById("role-switcher");
-  if (!switcher) return;
-  switcher.addEventListener("change", e => {
-    SessionModule.switchRole(e.target.value);
-    renderSummaryCards();
-  });
 }
 
 /* ── NAVIGATION ───────────────────────────────────── */

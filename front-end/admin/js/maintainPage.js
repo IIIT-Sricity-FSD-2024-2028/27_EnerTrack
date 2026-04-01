@@ -4,19 +4,18 @@
  * Wires CRUD for backup jobs, system updates, error scans, and tools.
  */
 
-import EnerTrackDB   from "./data/mockData.js";
-import SessionModule from "./modules/session.js";
-import AlertsModule  from "./modules/alerts.js";
+import EnerTrackDB from "./data/mockData.js";
+import AlertsModule from "./modules/alerts.js";
 import BackupsModule from "./modules/backups.js";
 import UpdatesModule from "./modules/updates.js";
-import { showToast, openModal, roleAllowed, badgeHTML } from "./utils/utils.js";
+import { showToast, openModal, roleAllowed, badgeHTML, renderSessionUI, confirmLogout } from "./utils/utils.js";
 
 /* ── BOOT ─────────────────────────────────────────── */
 
 document.addEventListener("DOMContentLoaded", () => {
   window.EnerTrackDB = EnerTrackDB;
 
-  SessionModule.initSession();
+  renderSessionUI(window.EnerTrackDB.session.user);
 
   // Render all dynamic sections
   BackupsModule.renderBackupJobs("backupJobsContainer");
@@ -32,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (profileCard) {
     profileCard.addEventListener("click", e => {
       e.preventDefault();
-      SessionModule.confirmLogout();
+      confirmLogout();
     });
   }
 });
@@ -76,7 +75,7 @@ function renderErrorScans(containerId = "errorScanContainer") {
 /* ── WIRE ADD BUTTONS ─────────────────────────────── */
 
 function wireAddButtons() {
-  if (!roleAllowed(["admin","superuser"])) return;
+  if (!roleAllowed(["admin", "superuser"])) return;
 
   // Inject "+ New backup" button target
   const backupPanel = document.getElementById("backupJobsContainer")?.closest(".panel");
@@ -107,7 +106,7 @@ function wireAddButtons() {
 /* ── GLOBAL ONCLICK HANDLERS (called from HTML onclicks) ─ */
 
 window.runMaintenance = () => {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("Access denied: insufficient privileges.", "error");
     return;
   }
@@ -135,7 +134,7 @@ window.newBackup = () => BackupsModule.openNewBackupModal();
 window.viewUpdates = () => UpdatesModule.openAddUpdateModal();
 
 window.runScan = () => {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("Access denied.", "error");
     return;
   }
@@ -153,7 +152,7 @@ window.runScan = () => {
 };
 
 window.viewSystemLogs = () => {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("Access denied: admin privileges required to view logs.", "error");
     return;
   }
@@ -173,14 +172,14 @@ window.viewSystemLogs = () => {
     `,
     confirmLabel: "Close",
     cancelLabel: "",
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 };
 
 window.runErrorScan = () => window.runScan();
 
 window.restartServices = () => {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("Access denied: admin privileges required.", "error");
     return;
   }
@@ -189,8 +188,8 @@ window.restartServices = () => {
     bodyHTML: `
       <p style="margin-bottom:12px">Select services to restart:</p>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:14px">
-        ${["API Gateway","Auth Service","Cache (Redis)","Background Workers","Payment-API Proxy"]
-          .map(s => `
+        ${["API Gateway", "Auth Service", "Cache (Redis)", "Background Workers", "Payment-API Proxy"]
+        .map(s => `
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
               <input type="checkbox" value="${s}" style="width:16px;height:16px;cursor:pointer">
               ${s}
@@ -213,14 +212,14 @@ window.restartServices = () => {
 };
 
 window.viewChecklist = () => {
-  const hasUnresolvedAlerts  = EnerTrackDB.alerts.some(a => !a.resolved && a.severity === "danger");
-  const hasPendingUpdates    = EnerTrackDB.systemUpdates.some(u => u.status === "not-applied");
-  const hasScanIssues        = EnerTrackDB.errorScans.some(s => s.status === "issues");
+  const hasUnresolvedAlerts = EnerTrackDB.alerts.some(a => !a.resolved && a.severity === "danger");
+  const hasPendingUpdates = EnerTrackDB.systemUpdates.some(u => u.status === "not-applied");
+  const hasScanIssues = EnerTrackDB.errorScans.some(s => s.status === "issues");
 
   const item = (label, ok) =>
     `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:14px">
       <span style="font-size:16px">${ok ? "✓" : "✕"}</span>
-      <span style="color:${ok?"#166534":"#dc2626"};font-weight:600">${label}</span>
+      <span style="color:${ok ? "#166534" : "#dc2626"};font-weight:600">${label}</span>
       <span style="color:#6b7280;font-size:13px;margin-left:auto">${ok ? "Resolved" : "Action needed"}</span>
     </div>`;
 
@@ -232,12 +231,12 @@ window.viewChecklist = () => {
       ${item("No scan issues", !hasScanIssues)}
       <p style="margin-top:16px;font-size:13px;color:#6b7280">
         ${(!hasUnresolvedAlerts && !hasPendingUpdates && !hasScanIssues)
-          ? "✓ All checks passed. Safe to log out."
-          : "Resolve flagged items before logging out."}
+        ? "✓ All checks passed. Safe to log out."
+        : "Resolve flagged items before logging out."}
       </p>
     `,
     confirmLabel: "Close",
     cancelLabel: "",
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 };

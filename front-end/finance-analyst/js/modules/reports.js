@@ -182,10 +182,13 @@ function _submitAddReport() {
 
   const rules = {
     title:    { required: true, minLength: 4, maxLength: 80 },
-    period:   { required: true, minLength: 4 },
+    period:   { required: true, pattern: /^\d{4}-(0[1-9]|1[0-2]|Q[1-4])$/, patternMsg: "Format must be: YYYY-MM or YYYY-QN" },
     category: { required: true },
     scope:    { required: true },
-    status:   { required: true }
+    status:   { required: true },
+    roi:      { nonNegativeNumber: true },
+    npv:      { nonNegativeNumber: true },
+    payback:  { nonNegativeNumber: true }
   };
 
   const data = {};
@@ -196,16 +199,6 @@ function _submitAddReport() {
     if (fields[k]) { showFieldError(fields[k], msg); valid = false; }
   }
 
-  // Optional numeric validations
-  if (data.roi !== "" && (isNaN(data.roi) || Number(data.roi) < 0)) {
-    showFieldError(fields.roi, "ROI must be a non-negative number."); valid = false;
-  }
-  if (data.npv !== "" && (isNaN(data.npv) || Number(data.npv) < 0)) {
-    showFieldError(fields.npv, "NPV must be a non-negative number."); valid = false;
-  }
-  if (data.payback !== "" && (isNaN(data.payback) || Number(data.payback) < 0)) {
-    showFieldError(fields.payback, "Payback must be a non-negative number."); valid = false;
-  }
 
   if (!valid) { showToast("Please fix the errors before submitting.", "warning"); return; }
 
@@ -296,17 +289,24 @@ function _submitEditReport(id) {
 
   clearAllErrors(form);
   let valid = true;
+
+  const rules = {
+    title:   { required: true, minLength: 4, maxLength: 80 },
+    status:  { required: true },
+    roi:     { nonNegativeNumber: true },
+    npv:     { nonNegativeNumber: true },
+    payback: { nonNegativeNumber: true }
+  };
+
   const data = {};
   for (const [k, el] of Object.entries(fields)) data[k] = el.value;
 
-  if (!data.title.trim()) { showFieldError(fields.title, "Title is required."); valid = false; }
-  if (data.roi !== "" && (isNaN(data.roi) || Number(data.roi) < 0)) {
-    showFieldError(fields.roi, "Must be a non-negative number."); valid = false;
+  const { errors } = validateForm(data, rules);
+  for (const [k, msg] of Object.entries(errors)) {
+    if (fields[k]) { showFieldError(fields[k], msg); valid = false; }
   }
-  if (data.npv !== "" && (isNaN(data.npv) || Number(data.npv) < 0)) {
-    showFieldError(fields.npv, "Must be a non-negative number."); valid = false;
-  }
-  if (!valid) { showToast("Please fix the errors.", "warning"); return; }
+
+  if (!valid) { showToast("Please fix the errors before submitting.", "warning"); return; }
 
   const idx = FinanceDB.financialReports.findIndex(r => r.id === id);
   FinanceDB.financialReports[idx] = {

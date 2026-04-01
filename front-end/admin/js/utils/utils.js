@@ -306,3 +306,46 @@ export function roleAllowed(allowed = []) {
 export function getCurrentUser() {
   return window.EnerTrackDB?.session?.user ?? null;
 }
+
+/* ── PROFILE & SESSION UI (Moved from session.js) ─── */
+
+export function renderSessionUI(user) {
+  if (!user) return;
+
+  document.querySelectorAll(".profile-info strong").forEach(el => el.textContent = user.name);
+  document.querySelectorAll(".profile-info span").forEach(el => {
+    if (!el.id) el.textContent = { superuser: "Super User", admin: "System Administrator", enduser: "End User" }[user.role] ?? user.role;
+  });
+  document.querySelectorAll(".profile-img").forEach(el => el.textContent = user.initials);
+
+  const welcomeH1 = document.querySelector(".page-header h1");
+  if (welcomeH1 && welcomeH1.textContent.includes("Welcome")) {
+    welcomeH1.textContent = `Welcome back, ${user.name.split(" ")[0]}`;
+  }
+
+  document.querySelectorAll("[data-roles]").forEach(el => {
+    const allowed = el.dataset.roles.split(",").map(r => r.trim());
+    el.style.display = allowed.includes(user.role) ? "" : "none";
+  });
+}
+
+export function confirmLogout() {
+  openModal({
+    title: "Confirm Logout",
+    bodyHTML: `
+      <p>Are you sure you want to log out?</p>
+      <p style="margin-top:8px;color:#6b7280;font-size:14px">
+        Ensure all critical maintenance tasks are resolved before logging out.
+      </p>
+    `,
+    confirmLabel: "Log Out",
+    cancelLabel: "Stay",
+    onConfirm: () => {
+      sessionStorage.removeItem("enertrack_session");
+      showToast("Logged out successfully.", "info", 1500);
+      setTimeout(() => {
+        showToast("Redirecting to login…", "info", 1500);
+      }, 1600);
+    }
+  });
+}

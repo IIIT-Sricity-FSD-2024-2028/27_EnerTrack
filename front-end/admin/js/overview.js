@@ -5,11 +5,10 @@
  */
 
 import EnerTrackDB    from "./data/mockData.js";
-import SessionModule  from "./modules/session.js";
 import AlertsModule   from "./modules/alerts.js";
 import BackupsModule  from "./modules/backups.js";
 import UpdatesModule  from "./modules/updates.js";
-import { showToast, roleAllowed } from "./utils/utils.js";
+import { showToast, roleAllowed, renderSessionUI, confirmLogout } from "./utils/utils.js";
 
 /* ── BOOT ─────────────────────────────────────────── */
 
@@ -18,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.EnerTrackDB = EnerTrackDB;
 
   // 2. Session
-  SessionModule.initSession();
+  renderSessionUI(window.EnerTrackDB.session.user);
 
   // 3. Render live data sections
   AlertsModule.renderAlerts("alertContainer");
@@ -67,13 +66,11 @@ function wireButtons() {
     };
   }
 
-  // "Install Now" and "Reschedule" buttons come from renderOverviewUpdates (dynamic)
-  // Profile card logout
   const profileCard = document.querySelector(".profile-card");
   if (profileCard) {
     profileCard.addEventListener("click", e => {
       e.preventDefault();
-      SessionModule.confirmLogout();
+      confirmLogout();
     });
   }
 

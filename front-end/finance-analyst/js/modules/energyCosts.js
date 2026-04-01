@@ -35,7 +35,7 @@ export function renderCostTable(filter = {}) {
       <td>${badgeHTML(rec.status)}</td>
       <td class="action-cell">
         <button class="action-btn btn-view"   onclick="CostModule.viewCostRecord('${rec.id}')">View</button>
-        ${can("edit")   ? `<button class="action-btn btn-edit"   onclick="CostModule.editCostRecord('${rec.id}')">Edit</button>` : ""}
+        ${can("edit") ? `<button class="action-btn btn-edit"   onclick="CostModule.editCostRecord('${rec.id}')">Edit</button>` : ""}
         ${can("delete") ? `<button class="action-btn btn-delete" onclick="CostModule.deleteCostRecord('${rec.id}')">Delete</button>` : ""}
       </td>
     </tr>
@@ -62,11 +62,11 @@ export function viewCostRecord(id) {
         <div><strong>Demand</strong><p>${formatCurrency(rec.demand)}</p></div>
         <div><strong>Total Cost</strong><p><strong>${formatCurrency(rec.total)}</strong></p></div>
         <div><strong>Budget</strong><p>${formatCurrency(rec.budget)}</p></div>
-        <div><strong>Variance</strong><p style="color:${rec.variance >= 0 ? '#166534':'#dc2626'}">${rec.variance >= 0 ? '+' : ''}${formatCurrency(rec.variance)}</p></div>
+        <div><strong>Variance</strong><p style="color:${rec.variance >= 0 ? '#166534' : '#dc2626'}">${rec.variance >= 0 ? '+' : ''}${formatCurrency(rec.variance)}</p></div>
       </div>`,
     confirmLabel: "Close",
     cancelLabel: "",
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 }
 
@@ -138,7 +138,7 @@ export function openAddCostModal() {
 export function _toggleScopeSelect() {
   const type = document.getElementById("ac-scope-type")?.value;
   document.getElementById("ac-scope-dept").style.display = type === "department" ? "" : "none";
-  document.getElementById("ac-scope-bldg").style.display = type === "building"   ? "" : "none";
+  document.getElementById("ac-scope-bldg").style.display = type === "building" ? "" : "none";
 }
 window._toggleScopeSelect = _toggleScopeSelect;
 
@@ -147,25 +147,35 @@ function _submitAddCost() {
   if (!form) return;
 
   const fields = {
-    period:    document.getElementById("ac-period"),
+    period: document.getElementById("ac-period"),
     scopeType: document.getElementById("ac-scope-type"),
-    elec:      document.getElementById("ac-elec"),
-    gas:       document.getElementById("ac-gas"),
-    water:     document.getElementById("ac-water"),
-    demand:    document.getElementById("ac-demand"),
-    budget:    document.getElementById("ac-budget")
+    elec: document.getElementById("ac-elec"),
+    gas: document.getElementById("ac-gas"),
+    water: document.getElementById("ac-water"),
+    demand: document.getElementById("ac-demand"),
+    budget: document.getElementById("ac-budget")
   };
 
   clearAllErrors(form);
   let valid = true;
 
-  // Period format validation
-  const periodVal = fields.period.value.trim();
-  const periodOk = /^\d{4}-(0[1-9]|1[0-2]|Q[1-4])$/.test(periodVal);
-  if (!periodVal) { showFieldError(fields.period, "Period is required."); valid = false; }
-  else if (!periodOk) { showFieldError(fields.period, "Format must be YYYY-MM or YYYY-Q1 to YYYY-Q4."); valid = false; }
+  const rules = {
+    period:    { label: "Period", required: true, pattern: /^\d{4}-(0[1-9]|1[0-2]|Q[1-4])$/, patternMsg: "Format must be YYYY-MM (e.g., 2025-03) or YYYY-QN (e.g., 2025-Q1)." },
+    scopeType: { label: "Scope Type", required: true },
+    elec:      { label: "Electricity cost", required: true, nonNegativeNumber: true },
+    gas:       { label: "Gas cost", required: true, nonNegativeNumber: true },
+    water:     { label: "Water cost", required: true, nonNegativeNumber: true },
+    demand:    { label: "Demand charge", required: true, nonNegativeNumber: true },
+    budget:    { label: "Budget", required: true, positiveNumber: true }
+  };
 
-  if (!fields.scopeType.value) { showFieldError(fields.scopeType, "Select a scope type."); valid = false; }
+  const data = {};
+  for (const [k, el] of Object.entries(fields)) data[k] = el.value;
+
+  const { errors } = validateForm(data, rules);
+  for (const [k, msg] of Object.entries(errors)) {
+    if (fields[k]) { showFieldError(fields[k], msg); valid = false; }
+  }
 
   // Scope ref
   const scopeType = fields.scopeType.value;
@@ -181,28 +191,20 @@ function _submitAddCost() {
     if (!scopeValue) { showFieldError(bldgRef, "Select a building."); valid = false; }
   }
 
-  // Numeric fields
-  for (const key of ["elec","gas","water","demand","budget"]) {
-    const val = Number(fields[key]?.value);
-    if (fields[key]?.value === "" || isNaN(val) || val < 0) {
-      showFieldError(fields[key], "Must be a valid non-negative number."); valid = false;
-    }
-  }
-
-  if (!valid) { showToast("Please fix the errors.", "warning"); return; }
+  if (!valid) { showToast("Please correct the highlighted errors.", "warning"); return false; }
 
   const [scopeId, , scopeLabel] = scopeValue.split("|");
-  const elec   = Number(fields.elec.value);
-  const gas    = Number(fields.gas.value);
-  const water  = Number(fields.water.value);
+  const elec = Number(fields.elec.value);
+  const gas = Number(fields.gas.value);
+  const water = Number(fields.water.value);
   const demand = Number(fields.demand.value);
-  const total  = elec + gas + water + demand;
+  const total = elec + gas + water + demand;
   const budget = Number(fields.budget.value);
   const variance = budget - total;
 
   const newRec = {
     id: generateId("ec"),
-    period: periodVal,
+    period: data.period,
     scope: scopeType,
     scopeRef: scopeId,
     scopeLabel,
@@ -211,7 +213,7 @@ function _submitAddCost() {
   };
 
   FinanceDB.energyCosts.push(newRec);
-  logActivity("energy", `Cost record added for ${scopeLabel}`, `Period: ${periodVal}, Total: ${formatCurrency(total)}`);
+  logActivity("energy", `Cost record added for ${scopeLabel}`, `Period: ${data.period}, Total: ${formatCurrency(total)}`);
   renderCostTable();
   updateCostSummary();
   showToast("Energy cost record added.", "success");
@@ -264,9 +266,9 @@ function _submitEditCost(id) {
   if (!form) return;
 
   const fields = {
-    elec:   document.getElementById("ecc-elec"),
-    gas:    document.getElementById("ecc-gas"),
-    water:  document.getElementById("ecc-water"),
+    elec: document.getElementById("ecc-elec"),
+    gas: document.getElementById("ecc-gas"),
+    water: document.getElementById("ecc-water"),
     demand: document.getElementById("ecc-demand"),
     budget: document.getElementById("ecc-budget")
   };
@@ -274,24 +276,30 @@ function _submitEditCost(id) {
   clearAllErrors(form);
   let valid = true;
 
-  for (const [key, el] of Object.entries(fields)) {
-    const val = Number(el.value);
-    if (el.value === "" || isNaN(val) || val < 0) {
-      showFieldError(el, "Must be a valid non-negative number."); valid = false;
-    }
-  }
-  if (Number(fields.budget.value) <= 0) {
-    showFieldError(fields.budget, "Budget must be greater than zero."); valid = false;
+  const rules = {
+    elec:   { label: "Electricity cost", required: true, nonNegativeNumber: true },
+    gas:    { label: "Gas cost", required: true, nonNegativeNumber: true },
+    water:  { label: "Water cost", required: true, nonNegativeNumber: true },
+    demand: { label: "Demand charge", required: true, nonNegativeNumber: true },
+    budget: { label: "Budget", required: true, positiveNumber: true }
+  };
+
+  const data = {};
+  for (const [k, el] of Object.entries(fields)) data[k] = el.value;
+
+  const { errors } = validateForm(data, rules);
+  for (const [k, msg] of Object.entries(errors)) {
+    if (fields[k]) { showFieldError(fields[k], msg); valid = false; }
   }
 
-  if (!valid) { showToast("Please fix the errors.", "warning"); return; }
+  if (!valid) { showToast("Please correct the highlighted errors.", "warning"); return false; }
 
   const idx = FinanceDB.energyCosts.findIndex(r => r.id === id);
-  const elec   = Number(fields.elec.value);
-  const gas    = Number(fields.gas.value);
-  const water  = Number(fields.water.value);
+  const elec = Number(fields.elec.value);
+  const gas = Number(fields.gas.value);
+  const water = Number(fields.water.value);
   const demand = Number(fields.demand.value);
-  const total  = elec + gas + water + demand;
+  const total = elec + gas + water + demand;
   const budget = Number(fields.budget.value);
   const variance = budget - total;
 
@@ -333,12 +341,12 @@ export function deleteCostRecord(id) {
 
 export function updateCostSummary() {
   const all = FinanceDB.energyCosts;
-  const totalCost   = all.reduce((s, r) => s + r.total, 0);
+  const totalCost = all.reduce((s, r) => s + r.total, 0);
   const totalBudget = all.reduce((s, r) => s + r.budget, 0);
-  const overBudget  = all.filter(r => r.status === "over-budget").length;
+  const overBudget = all.filter(r => r.status === "over-budget").length;
 
-  _setText("cost-total",      formatCurrency(totalCost));
-  _setText("cost-budget",     formatCurrency(totalBudget));
+  _setText("cost-total", formatCurrency(totalCost));
+  _setText("cost-budget", formatCurrency(totalBudget));
   _setText("cost-over-count", overBudget);
 }
 

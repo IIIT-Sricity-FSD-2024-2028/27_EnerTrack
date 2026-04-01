@@ -5,17 +5,16 @@
  */
 
 import EnerTrackDB   from "./data/mockData.js";
-import SessionModule from "./modules/session.js";
 import AlertsModule  from "./modules/alerts.js";
 import MonitorModule from "./modules/monitor.js";
-import { showToast, roleAllowed } from "./utils/utils.js";
+import { showToast, roleAllowed, renderSessionUI, confirmLogout } from "./utils/utils.js";
 
 /* ── BOOT ─────────────────────────────────────────── */
 
 document.addEventListener("DOMContentLoaded", () => {
   window.EnerTrackDB = EnerTrackDB;
 
-  SessionModule.initSession();
+  renderSessionUI(window.EnerTrackDB.session.user);
 
   // Render all monitor sections
   MonitorModule.renderSystemHealth("systemHealthContainer");
@@ -46,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (profileCard) {
     profileCard.addEventListener("click", e => {
       e.preventDefault();
-      SessionModule.confirmLogout();
+      confirmLogout();
     });
   }
 

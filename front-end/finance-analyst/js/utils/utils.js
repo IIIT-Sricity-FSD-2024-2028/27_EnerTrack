@@ -34,34 +34,40 @@ export function formatCurrency(value) {
  * Rules: { required, minLength, maxLength, pattern, patternMsg, min, max, positiveNumber }
  * Returns { valid: Boolean, message: String }
  */
-export function validateField(value, rules = {}) {
+export function validateField(value, rules = {}, label = "Field") {
   const v = (value ?? "").toString().trim();
 
   if (rules.required && v === "") {
-    return { valid: false, message: "This field is required." };
+    return { valid: false, message: `${label} is required.` };
   }
   if (v === "") return { valid: true, message: "" }; // empty optional field → skip rest
 
   if (rules.minLength && v.length < rules.minLength) {
-    return { valid: false, message: `Minimum ${rules.minLength} characters required.` };
+    return { valid: false, message: `${label} must be at least ${rules.minLength} characters.` };
   }
   if (rules.maxLength && v.length > rules.maxLength) {
-    return { valid: false, message: `Maximum ${rules.maxLength} characters allowed.` };
+    return { valid: false, message: `${label} cannot exceed ${rules.maxLength} characters.` };
   }
   if (rules.pattern && !rules.pattern.test(v)) {
-    return { valid: false, message: rules.patternMsg || "Invalid format." };
+    return { valid: false, message: rules.patternMsg || `Invalid ${label.toLowerCase()} format.` };
   }
   if (rules.positiveNumber) {
     const n = Number(v);
     if (isNaN(n) || n <= 0) {
-      return { valid: false, message: "Must be a positive number." };
+      return { valid: false, message: `${label} must be a positive number.` };
+    }
+  }
+  if (rules.nonNegativeNumber) {
+    const n = Number(v);
+    if (isNaN(n) || n < 0) {
+      return { valid: false, message: `${label} must be 0 or greater.` };
     }
   }
   if (rules.min !== undefined && Number(v) < rules.min) {
-    return { valid: false, message: `Minimum value is ${rules.min}.` };
+    return { valid: false, message: `${label} must be at least ${rules.min}.` };
   }
   if (rules.max !== undefined && Number(v) > rules.max) {
-    return { valid: false, message: `Maximum value is ${rules.max}.` };
+    return { valid: false, message: `${label} cannot exceed ${rules.max}.` };
   }
   return { valid: true, message: "" };
 }
@@ -75,7 +81,8 @@ export function validateForm(data, fieldRules) {
   const errors = {};
   let valid = true;
   for (const [field, rules] of Object.entries(fieldRules)) {
-    const result = validateField(data[field], rules);
+    const label = rules.label || field.charAt(0).toUpperCase() + field.slice(1);
+    const result = validateField(data[field], rules, label);
     if (!result.valid) {
       errors[field] = result.message;
       valid = false;
@@ -190,7 +197,13 @@ export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLab
   document.body.appendChild(overlay);
 
   document.getElementById("fm-cancel").onclick = () => { closeModal(); if (onCancel) onCancel(); };
-  document.getElementById("fm-confirm").onclick = () => { if (onConfirm) onConfirm(); closeModal(); };
+  document.getElementById("fm-confirm").onclick = () => {
+    if (onConfirm) {
+      const res = onConfirm();
+      if (res === false) return; // Stay open on validation error
+    }
+    closeModal();
+  };
   overlay.addEventListener("click", e => { if (e.target === overlay) { closeModal(); if (onCancel) onCancel(); } });
 
   return overlay;
@@ -250,7 +263,14 @@ export function badgeHTML(status) {
 /* ── ROLE GUARD ───────────────────────────────────── */
 
 export function can(action) {
-  const role = window.FinanceDB?.session?.user?.role ?? "enduser";
-  const perms = window.FinanceDB?.rolePermissions?.[role] ?? [];
-  return perms.includes(action);
+  return true;
+}
+
+/* ── PROFILE UI ────────────────────────────────────── */
+
+export function renderSessionUI(user) {
+  if (!user) return;
+  document.querySelectorAll(".profile-name").forEach(el => el.textContent = user.name);
+  const welcome = document.querySelector("h1.welcome");
+  if (welcome) welcome.textContent = `Welcome back, ${user.name.split(" ")[0]}`;
 }

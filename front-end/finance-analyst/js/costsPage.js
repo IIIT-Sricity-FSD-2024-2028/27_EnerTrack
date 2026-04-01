@@ -4,18 +4,17 @@
  */
 
 import FinanceDB     from "./data/mockData.js";
-import SessionModule from "./modules/session.js";
 import CostModule    from "./modules/energyCosts.js";
+import { renderSessionUI } from "./utils/utils.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   window.FinanceDB = FinanceDB;
 
-  SessionModule.initSession();
+  renderSessionUI(FinanceDB.session.user);
   CostModule.renderCostTable();
   CostModule.updateCostSummary();
   wireFilters();
   wireButtons();
-  wireRoleSwitcher();
   wireNavigation();
   populateScopeDropdown();
 });
@@ -62,17 +61,6 @@ function wireButtons() {
         showToast("Cost calculation complete.", "success");
       }, 1400);
     });
-  });
-}
-
-/* ── ROLE SWITCHER ────────────────────────────────── */
-
-function wireRoleSwitcher() {
-  const switcher = document.getElementById("role-switcher");
-  if (!switcher) return;
-  switcher.addEventListener("change", e => {
-    SessionModule.switchRole(e.target.value);
-    CostModule.renderCostTable();
   });
 }
 
