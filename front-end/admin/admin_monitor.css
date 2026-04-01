@@ -5,41 +5,33 @@
     box-sizing: border-box;
 }
 
-:root {
-    --admin-sidebar-width: 260px;
-    --admin-main-min-width: 760px;
-}
-
 body {
     font-family: 'PT Serif', serif;
     background-color: #f6f7f7;
     color: #1f2937;
-    min-height: 100vh;
-    overflow-x: auto;
-    overflow-y: hidden;
+    height: 100vh;
+    overflow: hidden;
 }
 
 /* ===== SIDEBAR (Reusable) ===== */
 .dashboard {
     display: flex;
-    min-height: 100vh;
     height: 100vh;
-    min-width: calc(var(--admin-sidebar-width) + var(--admin-main-min-width));
 }
 
 .sidebar {
-    width: var(--admin-sidebar-width);
-    flex: 0 0 var(--admin-sidebar-width);
+    width: 260px;
     background-color: #849d89;
     color: #1f2937;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid rgba(0, 0, 0, 0.1);
-    position: relative;
+    border-right: 1px solid rgba(0,0,0,0.1);
+    position: fixed;
     height: 100vh;
+    left: 0;
+    top: 0;
     padding: 24px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    z-index: 100;
 }
 
 .logo-icon {
@@ -145,6 +137,16 @@ body {
 
 .nav-subitem svg, .nav-subitem img { width: 16px; height: 16px; opacity: 0.6; object-fit: contain; }
 
+a.nav-subitem {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+a.nav-subitem:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #111827;
+}
+
 .alerts-badge {
     margin-left: auto;
     background-color: #ef4444;
@@ -186,12 +188,11 @@ body {
 
 /* ===== MAIN CONTENT ===== */
 .main-content {
-    flex: 1 1 auto;
-    min-width: var(--admin-main-min-width);
+    margin-left: 260px;
     padding: 40px;
+    width: calc(100% - 260px);
     height: 100vh;
     overflow-y: auto;
-    overflow-x: hidden;
 }
 
 .page-header p {
@@ -366,252 +367,33 @@ body {
     font-weight: 500;
 }
 
-@media (max-width: 1280px) {
-    :root {
-        --admin-sidebar-width: 236px;
-        --admin-main-min-width: 700px;
-    }
+/* ===== INLINE SUSTAINABILITY SECTIONS & NAV STATES =====
+   CHANGED: Removed old .sust-iframe rule. Sustainability content is now inline HTML divs,
+   no iframe positioning needed. The styles below handle the restructured sidebar nav. */
 
-    .main-content {
-        padding: 30px;
-    }
-
-    .content-grid-monitor {
-        grid-template-columns: 1fr;
-    }
+.nav-heading {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    color: #111827;
+    text-transform: uppercase;
+    padding-left: 16px;
+    cursor: default;
 }
 
-@media (max-width: 960px) {
-    :root {
-        --admin-sidebar-width: 216px;
-        --admin-main-min-width: 620px;
-    }
-
-    .sidebar {
-        padding: 20px 14px;
-    }
-
-    .sidebar-logo {
-        margin-bottom: 28px;
-    }
-
-    .sidebar-nav {
-        gap: 16px;
-    }
-
-    .nav-item,
-    .nav-subitem {
-        font-size: 15px;
-    }
-
-    .main-content {
-        padding: 24px;
-    }
-
-    .panel-header,
-    .metric-bottom,
-    .status-footer {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
+.active-subitem {
+    background-color: #111827 !important;
+    color: #ffffff !important;
+    border-radius: 6px;
+    cursor: pointer;
 }
 
-@media (max-width: 760px) {
-    :root {
-        --admin-sidebar-width: 200px;
-        --admin-main-min-width: 560px;
-    }
-
-    .main-content {
-        padding: 18px;
-    }
-
-    .panel {
-        padding: 18px;
-    }
-
-    .panel-title {
-        font-size: 18px;
-    }
+a.nav-subitem:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #111827;
 }
 
-/* ===== Admin-Sustainability Consistency Layer ===== */
-:root {
-    --admin-sidebar-width: 272px;
-    --admin-main-min-width: 760px;
-}
-
-.sidebar {
-    background: #b8cdb7;
-    border-right: 1px solid rgba(28, 46, 46, 0.16);
-    padding: 16px 18px 18px;
-}
-
-.sidebar-logo {
-    padding: 6px 4px 14px;
-    margin: 0 -4px 16px;
-    border-bottom: 1px solid rgba(28, 46, 46, 0.14);
-    font-size: 20px;
-}
-
-.logo-icon {
-    height: 24px;
-    transform: none;
-}
-
-.logo-text {
-    height: 20px;
-    transform: none;
-}
-
-.sidebar-nav {
-    gap: 6px;
-}
-
-.nav-item {
-    padding: 11px 12px;
-    font-size: 15px;
-    font-weight: 500;
-    color: #374151;
-    border-radius: 10px;
-}
-
-.nav-item img {
-    width: 18px;
-    height: 18px;
-    opacity: 0.72;
-    flex-shrink: 0;
-}
-
-.nav-item:hover {
-    background: rgba(255, 255, 255, 0.38);
-    color: #374151;
-}
-
-.nav-item.active,
-.nav-item.active:hover {
-    background: #0f172a;
-    color: #ffffff;
-}
-
-.nav-item.active img {
-    opacity: 1;
-    filter: brightness(0) invert(1);
-}
-
-.nav-section {
-    gap: 6px;
-}
-
-.nav-section-title {
-    display: flex;
-    align-items: center;
-    padding: 11px 12px;
-    border-radius: 10px;
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: 0;
-    color: #374151;
-    text-decoration: none;
-    transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.nav-section-title:hover {
-    background: rgba(255, 255, 255, 0.38);
-    color: #374151;
-}
-
-.nav-section-title.bold {
-    font-weight: 500;
-    color: #374151;
-}
-
-.nav-section-title.active-pill,
-.nav-section-title.active-pill:hover {
-    background-color: #0f172a;
-    color: #ffffff;
-}
-
-.nav-group {
-    gap: 2px;
-}
-
-.nav-subitem {
-    padding: 8px 12px;
-    font-size: 14px;
-    color: #4b5563;
-    border-radius: 8px;
-}
-
-.nav-subitem img {
-    opacity: 0.72;
-}
-
-.profile-card {
-    background: #f8faf9;
-    border: 1px solid rgba(28, 46, 46, 0.1);
-    border-radius: 10px;
-    padding: 11px 12px;
-    gap: 10px;
-    box-shadow: none;
-}
-
-.profile-img {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: #dfe5ea;
-    color: #334155;
-    display: grid;
-    place-items: center;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
-    flex-shrink: 0;
-}
-
-.profile-info {
-    min-width: 0;
-}
-
-.profile-info strong {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-}
-
-.profile-info span {
-    display: block;
-    font-size: 12px;
-    color: #7a8594;
-}
-
-@media (max-width: 1280px) {
-    :root {
-        --admin-sidebar-width: 258px;
-        --admin-main-min-width: 700px;
-    }
-}
-
-@media (max-width: 960px) {
-    :root {
-        --admin-sidebar-width: 236px;
-        --admin-main-min-width: 640px;
-    }
-
-    .sidebar {
-        padding: 14px;
-    }
-
-    .sidebar-logo {
-        margin-bottom: 14px;
-    }
-}
-
-@media (max-width: 760px) {
-    :root {
-        --admin-sidebar-width: 214px;
-        --admin-main-min-width: 560px;
-    }
+a.nav-subitem.active-subitem:hover {
+    background-color: #111827 !important;
+    color: #ffffff !important;
 }

@@ -44,13 +44,20 @@
                     </div>
                 </div>
                 
-                <a href="#" class="profile-card">
+                <div class="profile-card">
                     <img src="images/maya_patel.png" alt="Maya Patel" class="avatar">
                     <div class="profile-info">
                         <h4>Maya Patel</h4>
                         <p>Sustainability Officer</p>
                     </div>
-                </a>
+                    <button class="profile-menu" type="button" aria-label="Profile options">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <circle cx="12" cy="5" r="2"></circle>
+                            <circle cx="12" cy="12" r="2"></circle>
+                            <circle cx="12" cy="19" r="2"></circle>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </aside>
 
@@ -101,30 +108,9 @@
                         
                         <div class="form-group">
                             <label class="form-label">Timeline</label>
-                            <div class="custom-select" data-select>
-                                <button type="button" class="select-trigger" aria-expanded="false">
-                                    <span class="select-value">3 weeks - Assessment -> Procurement -> Install</span>
-                                    <span class="select-chevron" aria-hidden="true">&#9662;</span>
-                                </button>
-                                <div class="select-menu">
-                                    <button type="button" class="select-option selected" data-value="3 weeks - Assessment -> Procurement -> Install">
-                                        <span>3 weeks - Assessment -> Procurement -> Install</span>
-                                        <span class="checkmark">&#10003;</span>
-                                    </button>
-                                    <button type="button" class="select-option" data-value="6 weeks - Assessment -> Procurement -> Install -> QA">
-                                        <span>6 weeks - Assessment -> Procurement -> Install -> QA</span>
-                                        <span class="checkmark">&#10003;</span>
-                                    </button>
-                                    <button type="button" class="select-option" data-value="8 weeks - Assessment -> Procurement -> Install -> Validation">
-                                        <span>8 weeks - Assessment -> Procurement -> Install -> Validation</span>
-                                        <span class="checkmark">&#10003;</span>
-                                    </button>
-                                    <button type="button" class="select-option" data-value="12 weeks - Multi-phase rollout">
-                                        <span>12 weeks - Multi-phase rollout</span>
-                                        <span class="checkmark">&#10003;</span>
-                                    </button>
-                                </div>
-                            </div>
+                            <select class="form-select">
+                                <option>3 weeks - Assessment → Procurement → Install →</option>
+                            </select>
                         </div>
                     </section>
                 </div>
@@ -371,44 +357,10 @@
                 </div>
                 
             </div>
-
+            
         </main>
     </div>
-    <script>
-        document.querySelectorAll('[data-select]').forEach((selectWrap) => {
-            const trigger = selectWrap.querySelector('.select-trigger');
-            const valueEl = trigger.querySelector('.select-value');
-            const options = selectWrap.querySelectorAll('.select-option');
 
-            trigger.addEventListener('click', (event) => {
-                event.stopPropagation();
-                document.querySelectorAll('[data-select].open').forEach((openSelect) => {
-                    if (openSelect !== selectWrap) {
-                        openSelect.classList.remove('open');
-                        openSelect.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
-                    }
-                });
-                selectWrap.classList.toggle('open');
-                trigger.setAttribute('aria-expanded', selectWrap.classList.contains('open') ? 'true' : 'false');
-            });
-
-            options.forEach((option) => {
-                option.addEventListener('click', () => {
-                    options.forEach((btn) => btn.classList.remove('selected'));
-                    option.classList.add('selected');
-                    valueEl.textContent = option.dataset.value;
-                    selectWrap.classList.remove('open');
-                    trigger.setAttribute('aria-expanded', 'false');
-                });
-            });
-        });
-
-        document.addEventListener('click', () => {
-            document.querySelectorAll('[data-select].open').forEach((openSelect) => {
-                openSelect.classList.remove('open');
-                openSelect.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
-            });
-        });
-    </script>
 </body>
 </html>
+
