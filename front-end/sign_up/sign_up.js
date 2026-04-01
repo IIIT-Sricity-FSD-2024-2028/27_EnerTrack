@@ -444,9 +444,27 @@
             return;
         }
 
-        /* Check if email is already taken */
-        if (isEmailTaken(emailInput.value.trim())) {
-            showError(emailError, "This email is already registered. Please sign in.", emailInput);
+        /* Check if email or phone is already taken — show popup */
+        var emailTaken = isEmailTaken(emailInput.value.trim());
+        var phoneTaken = isPhoneTaken(phoneInput.value.trim());
+
+        if (emailTaken || phoneTaken) {
+            var popup = document.getElementById("duplicatePopup");
+            var popupMsg = document.getElementById("popupMsg");
+
+            if (emailTaken && phoneTaken) {
+                popupMsg.textContent = "Both this email and phone number are already registered.";
+            } else if (emailTaken) {
+                popupMsg.textContent = "An account with this email already exists.";
+            } else {
+                popupMsg.textContent = "An account with this phone number already exists.";
+            }
+
+            popup.style.display = "flex";
+
+            document.getElementById("popupClose").onclick = function () {
+                popup.style.display = "none";
+            };
             return;
         }
 

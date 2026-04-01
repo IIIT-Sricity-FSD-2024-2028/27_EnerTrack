@@ -16,7 +16,7 @@
     <div class="dashboard">
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <a href="admin_overview.html" class="sidebar-logo">
+            <a href="../landing/landing.html" class="sidebar-logo">
                 <img class="logo-icon" src="images/SVG.png" alt="logo">
                 <img class="logo-text" src="images/EnerTrack_text.png" alt="EnerTrack">
             </a>
@@ -68,8 +68,8 @@
             <a href="#" class="profile-card">
                 <img src="../sign_in/images/logo.png" alt="Profile" class="profile-img">
                 <div class="profile-info">
-                    <strong>Aadithya Mouli</strong>
-                    <span>System Administrator</span>
+                    <strong id="sidebarUserName">Aadithya Mouli</strong>
+                    <span id="sidebarUserRole">System Administrator</span>
                 </div>
             </a>
         </aside>
@@ -77,7 +77,7 @@
         <!-- ADMIN MAIN CONTENT -->
         <main class="main-content" id="adminContent">
             <header class="page-header">
-                <h1>Welcome back, Aadithya</h1>
+                <h1 id="welcomeHeading">Welcome back, Aadithya</h1>
                 <p>Here's what's happening with your systems today.</p>
             </header>
 
@@ -214,6 +214,7 @@
     </div>
 
     <script type="module" src="js/overview.js"></script>
+    <script src="../dashboardProfileMenu.js"></script>
 
 </body>
 

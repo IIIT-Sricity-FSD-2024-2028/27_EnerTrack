@@ -64,18 +64,8 @@
         /* Save current user to sessionStorage for persistence */
         sessionStorage.setItem("currentUser", JSON.stringify(user));
 
-        /* Redirect based on user's role (stored in mockData) */
-        var roleRoutes = {
-            "System Administrator":   "../admin/admin_overview.html",
-            "Financial Analyst":      "../finance/Finance_overview.html",
-            "Sustainability Officer": "../sustainability_officer/sust_overview.html",
-            "Technician":             "../technician/technician_overview.html"
-        };
-
-        var destination = roleRoutes[user.role];
-        if (destination) {
-            window.location.href = destination;
-        }
+        /* Redirect to landing page */
+        window.location.href = "../landing/landing.html";
     });
 
 })();

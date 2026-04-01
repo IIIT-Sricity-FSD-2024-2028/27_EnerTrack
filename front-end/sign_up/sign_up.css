@@ -458,3 +458,82 @@ h1 {
         font-size: 18px;
     }
 }
+
+/* ===== DUPLICATE ACCOUNT POPUP ===== */
+.popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-card {
+    background: rgba(30, 30, 40, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 36px 32px 28px;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.popup-card h3 {
+    color: #ef4444;
+    font-size: 22px;
+    font-family: 'Cormorant', serif;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.popup-card p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.popup-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.popup-btn {
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: 'Cormorant', serif;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.popup-btn:active {
+    transform: scale(0.97);
+}
+
+.popup-btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.popup-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.popup-btn-primary {
+    background: #8b5cf6;
+    color: white;
+}
+
+.popup-btn-primary:hover {
+    background: #7c3aed;
+}

@@ -13,7 +13,7 @@
 <!-- SIDEBAR -->
 <div class="sidebar">
   <div>
-    <div class="logo">EnerTrack</div>
+    <a href="../landing/landing.html" class="logo" style="text-decoration:none;color:inherit;">EnerTrack</a>
     <div class="menu">
       <div class="menu-item active" data-page="finance_overview.html">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
@@ -33,8 +33,8 @@
     <div class="profile-left">
       <img src="https://i.pravatar.cc/40?img=12">
       <div>
-        <div class="profile-name">Aadithya Mouli</div>
-        <div class="profile-role">Finance Analyst</div>
+      <div class="profile-name" id="sidebarUserName">Aadithya Mouli</div>
+        <div class="profile-role" id="sidebarUserRole">Finance Analyst</div>
       </div>
     </div>⋮
   </div>
@@ -43,7 +43,7 @@
 <!-- CONTENT -->
 <div class="content">
   <div class="container">
-    <h1 class="welcome">Welcome back, Aadithya</h1>
+    <h1 class="welcome" id="welcomeHeading">Welcome back, Aadithya</h1>
     <div class="sub">Track key financial metrics and access main tools.</div>
 
     <!-- CARDS -->
@@ -89,5 +89,6 @@
 </div>
 
 <script type="module" src="js/overviewPage.js"></script>
+<script src="../dashboardProfileMenu.js"></script>
 </body>
 </html>
