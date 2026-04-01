@@ -1,7 +1,7 @@
 /**
  * overviewPage.js
- * Entry-point for the Finance Overview page (finaniance.html).
- * Initialises session, renders activity log, and wires up role-switcher.
+ * Entry-point for the Finance Overview page (finance_overview.html).
+ * Initialises session, renders activity log, and summary metrics.
  */
 
 import FinanceDB      from "./data/mockData.js";
@@ -19,7 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
   renderActivityList();
   renderSummaryCards();
   renderDeptBars();
-  wireRoleSwitcher();
   wireNavigation();
 });
 
@@ -72,16 +71,7 @@ function renderDeptBars() {
   }).join("");
 }
 
-/* ── ROLE SWITCHER ────────────────────────────────── */
 
-function wireRoleSwitcher() {
-  const switcher = document.getElementById("role-switcher");
-  if (!switcher) return;
-  switcher.addEventListener("change", e => {
-    SessionModule.switchRole(e.target.value);
-    renderSummaryCards();
-  });
-}
 
 /* ── NAVIGATION ───────────────────────────────────── */
 

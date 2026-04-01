@@ -23,51 +23,50 @@
 
             <nav class="sidebar-nav">
 
-                <a href="admin_overview.html" class="nav-item active">
-                    <span data-icon="overview"></span>
-                    Overview
-                </a>
-
                 <div class="nav-section">
-                    <a href="admin_monitor.html" class="nav-section-title">MONITORING</a>
+                    <span class="nav-section-title nav-heading">SYSTEM TASKS</span>
                     <div class="nav-group">
-                        <div class="nav-subitem">
-                            <span data-icon="monitor"></span>
-                            System Health
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="metric"></span>
-                            Performance Metrics
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="alert"></span>
-                            Alerts
-                            <span class="alerts-badge" id="sidebarAlertBadge">3</span>
-                        </div>
+                        <a href="admin_overview.html" class="nav-subitem active-subitem" id="nav-overview">
+                            <span data-icon="overview" class="subitem-icon"></span>
+                            Overview
+                        </a>
+                        <a href="admin_monitor.html" class="nav-subitem" id="nav-monitoring">
+                            <span data-icon="monitor" class="subitem-icon"></span>
+                            Monitoring
+                        </a>
+                        <a href="admin_maintain.html" class="nav-subitem" id="nav-maintenance">
+                            <span data-icon="system" class="subitem-icon"></span>
+                            Maintenance
+                        </a>
                     </div>
                 </div>
 
                 <div class="nav-section">
-                    <a href="admin_maintain.html" class="nav-section-title">MAINTENANCE</a>
+                    <span class="nav-section-title nav-heading">SUSTAINABILITY TASKS</span>
                     <div class="nav-group">
-                        <div class="nav-subitem">
-                            <span data-icon="backup"></span>
-                            Backups
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="system"></span>
-                            System Updates
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="troubleshooting"></span>
-                            Troubleshooting
-                        </div>
+                        <a href="../sustainability_officer/sust_overview.html" class="nav-subitem">
+                            <span data-icon="overview" class="subitem-icon"></span>
+                            Overview
+                        </a>
+                        <a href="../sustainability_officer/sust_monitoring.html" class="nav-subitem">
+                            <span data-icon="monitor" class="subitem-icon"></span>
+                            Environmental Monitoring
+                        </a>
+                        <a href="../sustainability_officer/sust_report.html" class="nav-subitem">
+                            <span data-icon="summary" class="subitem-icon"></span>
+                            Sustainability Reporting
+                        </a>
+                        <a href="../sustainability_officer/sust_initiatives.html" class="nav-subitem">
+                            <span data-icon="troubleshooting" class="subitem-icon"></span>
+                            Sustainable Initiatives
+                        </a>
                     </div>
                 </div>
+
             </nav>
 
             <a href="#" class="profile-card">
-                <div class="profile-img" aria-hidden="true">AM</div>
+                <img src="../sign_in/images/logo.png" alt="Profile" class="profile-img">
                 <div class="profile-info">
                     <strong>Aadithya Mouli</strong>
                     <span>System Administrator</span>
@@ -75,8 +74,8 @@
             </a>
         </aside>
 
-        <!-- MAIN CONTENT -->
-        <main class="main-content">
+        <!-- ADMIN MAIN CONTENT -->
+        <main class="main-content" id="adminContent">
             <header class="page-header">
                 <h1>Welcome back, Aadithya</h1>
                 <p>Here's what's happening with your systems today.</p>
@@ -143,19 +142,16 @@
                                 <span data-icon="alert"></span>
                                 Recent Alerts
                             </div>
-                            <span class="badge badge-danger">
-                                <span id="alertActionsRequired">3</span> Action Required
-                            </span>
+                            <span class="badge badge-danger"><span id="alertActionsRequired">3</span> Action Required</span>
                         </div>
 
-                        <!-- Dynamic alerts rendered here by alerts.js -->
-                        <div class="alert-list" id="alertContainer"></div>
+                        <div class="alert-list" id="alertContainer">
+                            <!-- Populated by JS -->
+                        </div>
                     </div>
                 </div>
 
                 <div class="col-right">
-
-                    <!-- MAINTENANCE TASKS & PENDING UPDATES -->
                     <div class="panel no-padding">
                         <div class="panel-header padded">
                             <div class="panel-title">
@@ -166,26 +162,26 @@
 
                         <div class="section-divider">PENDING UPDATES</div>
 
-                        <!-- Dynamic updates rendered here by updates.js -->
-                        <div id="overviewUpdatesContainer" class="mx"></div>
+                        <div id="overviewUpdatesContainer">
+                            <!-- Populated by JS -->
+                        </div>
 
                         <div class="section-divider">RECENT BACKUPS</div>
 
                         <div class="backup-card mx">
-                                <span data-icon="backup"></span>
-                                <div>
-                                    <h4>Production Database (Full)</h4>
-                                    <span class="muted">Size: 245 GB</span>
-                                </div>
-                                <span class="badge badge-success">Success</span>
+                            <span data-icon="backup"></span>
+                            <div>
+                                <h4>Production Database (Full)</h4>
+                                <span class="muted">Size: 245 GB</span>
                             </div>
-                            <div class="progress-bar">
-                                <div class="progress" style="width: 100%;"></div>
-                            </div>
-                            <div class="backup-footer">
-                                <span>Verified with 0 errors</span>
-                                <span>Completed in 45m</span>
-                            </div>
+                            <span class="badge badge-success">Success</span>
+                        </div>
+                        <div class="progress-bar mx">
+                            <div class="progress" style="width: 100%;"></div>
+                        </div>
+                        <div class="backup-footer mx">
+                            <span>Verified with 0 errors</span>
+                            <span>Completed in 45m</span>
                         </div>
 
                         <div class="section-divider">TROUBLESHOOTING TOOLS</div>
@@ -208,15 +204,17 @@
                                 Restart Services
                             </button>
                         </div>
-                        <div style="margin-bottom:24px"></div>
+                        <div class="mb-4"></div>
                     </div>
                 </div>
 
             </div>
         </main>
+
     </div>
 
     <script type="module" src="js/overview.js"></script>
+
 </body>
 
 </html>

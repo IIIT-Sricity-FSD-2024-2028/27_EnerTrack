@@ -22,52 +22,49 @@
             </a>
 
             <nav class="sidebar-nav">
-
-                <a href="admin_overview.html" class="nav-item">
-                    <span data-icon="overview"></span>
-                    Overview
-                </a>
-
                 <div class="nav-section">
-                    <a href="admin_monitor.html" class="nav-section-title active-pill">MONITORING</a>
+                    <span class="nav-section-title nav-heading">SYSTEM TASKS</span>
                     <div class="nav-group">
-                        <div class="nav-subitem">
-                            <span data-icon="monitor"></span>
-                            System Health
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="metric"></span>
-                            Performance Metrics
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="alert"></span>
-                            Alerts
-                            <span class="alerts-badge">3</span>
-                        </div>
+                        <a href="admin_overview.html" class="nav-subitem" id="nav-overview">
+                            <span data-icon="overview" class="subitem-icon"></span>
+                            Overview
+                        </a>
+                        <a href="admin_monitor.html" class="nav-subitem active-subitem" id="nav-monitoring">
+                            <span data-icon="monitor" class="subitem-icon"></span>
+                            Monitoring
+                        </a>
+                        <a href="admin_maintain.html" class="nav-subitem" id="nav-maintenance">
+                            <span data-icon="system" class="subitem-icon"></span>
+                            Maintenance
+                        </a>
                     </div>
                 </div>
 
                 <div class="nav-section">
-                    <a href="admin_maintain.html" class="nav-section-title">MAINTENANCE</a>
+                    <span class="nav-section-title nav-heading">SUSTAINABILITY TASKS</span>
                     <div class="nav-group">
-                        <div class="nav-subitem">
-                            <span data-icon="backup"></span>
-                            Backups
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="system"></span>
-                            System Updates
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="troubleshooting"></span>
-                            Troubleshooting
-                        </div>
+                        <a href="../sustainability_officer/sust_overview.html" class="nav-subitem">
+                            <span data-icon="overview" class="subitem-icon"></span>
+                            Overview
+                        </a>
+                        <a href="../sustainability_officer/sust_monitoring.html" class="nav-subitem">
+                            <span data-icon="monitor" class="subitem-icon"></span>
+                            Environmental Monitoring
+                        </a>
+                        <a href="../sustainability_officer/sust_report.html" class="nav-subitem">
+                            <span data-icon="summary" class="subitem-icon"></span>
+                            Sustainability Reporting
+                        </a>
+                        <a href="../sustainability_officer/sust_initiatives.html" class="nav-subitem">
+                            <span data-icon="troubleshooting" class="subitem-icon"></span>
+                            Sustainable Initiatives
+                        </a>
                     </div>
                 </div>
             </nav>
 
             <a href="#" class="profile-card">
-                <div class="profile-img" aria-hidden="true">AM</div>
+                <img src="../sign_in/images/logo.png" alt="Profile" class="profile-img">
                 <div class="profile-info">
                     <strong>Aadithya Mouli</strong>
                     <span>System Administrator</span>
@@ -75,18 +72,14 @@
             </a>
         </aside>
 
-        <!-- MAIN CONTENT -->
-        <main class="main-content">
+        <!-- ADMIN MONITORING CONTENT -->
+        <main class="main-content" id="adminContent">
             <header class="page-header">
-                <p>
-                    Live monitoring: last refresh
-                    <span id="refreshStamp">Just now</span>
-                    • Auto-refresh every 30s
-                </p>
+                <h1>Live Monitoring</h1>
+                <p>Live monitoring: last refresh 5s ago • Auto-refresh every 30s</p>
             </header>
 
             <div class="content-grid-monitor">
-
                 <!-- System Health Snapshot -->
                 <div class="panel">
                     <div class="panel-header">
@@ -100,8 +93,41 @@
                         </button>
                     </div>
 
-                    <!-- Dynamic system health cards rendered by monitor.js -->
-                    <div id="systemHealthContainer"></div>
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>Core services</h4>
+                            <span class="badge badge-success">All green</span>
+                        </div>
+                        <p class="desc">API gateway, auth, database, cache</p>
+                        <div class="status-footer">
+                            <span>4 / 4 healthy • No degraded services</span>
+                            <span class="muted">Latency: 120 ms p95</span>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>Background workers</h4>
+                            <span class="badge badge-warning">Minor lag</span>
+                        </div>
+                        <p class="desc">Queues, schedulers, reporting jobs</p>
+                        <div class="status-footer">
+                            <span>Queue depth: 1.2k • Oldest job: 2m 10s</span>
+                            <span class="muted">Throughput: 480 jobs/min</span>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>External dependencies</h4>
+                            <span class="badge badge-danger">Degraded</span>
+                        </div>
+                        <p class="desc">Payment provider, email, SMS, SSO</p>
+                        <div class="status-footer">
+                            <span>Payment-API latency slightly elevated</span>
+                            <span class="muted">Error rate: 0.9%</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Active Alerts -->
@@ -113,14 +139,43 @@
                         </div>
                     </div>
 
-                    <!-- SLO card + dynamic alerts rendered by alerts.js / monitor.js -->
-                    <div id="sloContainer"></div>
-                    <div id="monitorAlertContainer"></div>
-                </div>
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>Payment-API latency</h4>
+                            <span class="badge badge-warning">Warning</span>
+                        </div>
+                        <p class="desc">p95 > 250 ms for 5 minutes</p>
+                        <div class="alert-meta-box">
+                            <span class="time">04:22</span>
+                            <span class="details">Triggered in region eu-west-1 • Investigate provider status page.</span>
+                        </div>
+                    </div>
 
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>Worker queue depth</h4>
+                            <span class="badge badge-warning">Warning</span>
+                        </div>
+                        <p class="desc">High-priority jobs pending > 1k</p>
+                        <div class="alert-meta-box">
+                            <span class="time">04:28</span>
+                            <span class="details">Throughput recovering after spike • Monitor for next 10 minutes.</span>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h4>Error budget</h4>
+                            <span class="badge badge-success-outline" style="background-color:darkgreen;color:white">Within SLO</span>
+                        </div>
+                        <div class="status-footer">
+                            <span>SLO: 99.9% • Current: 99.93%</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Performance Metrics (Bottom) -->
+            <!-- Performance Metrics -->
             <div class="panel mt-24">
                 <div class="panel-header">
                     <div class="panel-title">
@@ -129,13 +184,40 @@
                     </div>
                 </div>
 
-                <!-- Dynamic metrics rendered by monitor.js -->
-                <div id="perfMetricsContainer"></div>
+                <div class="metric-block">
+                    <div class="metric-top">
+                        <h4>CPU &amp; memory</h4>
+                        <span class="muted">Across all application nodes • Last 15 minutes</span>
+                    </div>
+                    <div class="progress-bar-thick">
+                        <div class="progress" style="width: 68%;"></div>
+                    </div>
+                    <div class="metric-bottom">
+                        <span>CPU: 62% avg • 78% peak</span>
+                        <span class="muted">Memory: 68% used</span>
+                    </div>
+                </div>
+
+                <div class="metric-block">
+                    <div class="metric-top">
+                        <h4>Requests &amp; errors</h4>
+                        <span class="muted">All HTTP endpoints • Last 5 minutes</span>
+                    </div>
+                    <div class="progress-bar-thick">
+                        <div class="progress" style="width: 90%;"></div>
+                    </div>
+                    <div class="metric-bottom">
+                        <span>Requests: 8.4k/min • 99.96% success</span>
+                        <span class="muted">Error rate: 0.04%</span>
+                    </div>
+                </div>
             </div>
         </main>
+
     </div>
 
     <script type="module" src="js/monitorPage.js"></script>
+
 </body>
 
 </html>

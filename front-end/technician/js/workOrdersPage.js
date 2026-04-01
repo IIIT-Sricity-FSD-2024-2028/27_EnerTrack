@@ -92,7 +92,9 @@ function selectWorkOrder(id) {
     setEl('selectedWOType', cap(wo.type));
     setEl('selectedWOPriority', cap(wo.priority));
     setEl('selectedWOTechnician', wo.technician);
-    setEl('selectedWOParts', wo.parts ? '✅ Available' : '❌ Parts Needed');
+    const checkSvg = `<svg width="14" height="14" style="vertical-align:middle; margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    const crossSvg = `<svg width="14" height="14" style="vertical-align:middle; margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    setEl('selectedWOParts', wo.parts ? `${checkSvg} Available` : `${crossSvg} Parts Needed`);
 
     // Update action buttons visibility
     const submitBtn      = document.getElementById('btnSubmitForReview');
@@ -226,4 +228,9 @@ function renderArchive() {
 
 /* ─── Helpers ─────────────────────────────────────── */
 function cap(str) { if (!str) return '—'; return str.charAt(0).toUpperCase() + str.slice(1); }
-function setEl(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function setEl(id, val) { 
+    const el = document.getElementById(id); 
+    if (!el) return;
+    if (String(val).includes('<svg')) el.innerHTML = val;
+    else el.textContent = val;
+}

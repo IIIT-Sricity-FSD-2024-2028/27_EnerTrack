@@ -50,11 +50,11 @@
   <main class="main">
 
     <div class="wo-header-row">
-      <div class="page-header" style="margin-bottom:0;">
+      <div class="page-header no-margin">
         <h1>Maintenance Work Orders</h1>
         <p>Create, assign, update, and close maintenance requests. Status changes are saved instantly.</p>
       </div>
-      <button class="btn btn-dark" id="btnInitiateMaintenance" style="margin-top:6px;">+ Initiate Maintenance Action</button>
+      <button class="btn btn-dark btn-header" id="btnInitiateMaintenance">+ Initiate Maintenance Action</button>
     </div>
 
     <!-- ─── NEW WORK ORDER SETUP ─────────────────────── -->
@@ -62,7 +62,7 @@
       <h2>New Work Order Setup</h2>
 
       <!-- Type Selector -->
-      <div class="type-selector" style="margin-top:14px; margin-bottom:16px;">
+      <div class="type-selector mt-14 mb-16">
         <div class="option wo-type-option" data-type="emergency">
           <h3>Emergency</h3>
           <p>Immediate response for critical equipment issues and urgent repairs.</p>
@@ -80,7 +80,7 @@
       <form id="newWOForm">
         <div class="grid2">
           <!-- Left -->
-          <div class="card" style="margin:0;">
+          <div class="card no-margin">
             <div class="field">
               <label>Selected Asset</label>
               <input id="inputAsset" type="text" placeholder="e.g. Compressor C-12">
@@ -91,7 +91,7 @@
             </div>
           </div>
           <!-- Right -->
-          <div class="card" style="margin:0;">
+          <div class="card no-margin">
             <div class="field">
               <label>Assign Priority</label>
               <select id="inputPriority">
@@ -119,7 +119,7 @@
             </div>
           </div>
         </div>
-        <div style="text-align:right; margin-top:14px;">
+        <div class="form-actions">
           <button type="submit" class="btn btn-dark">Create Work Order</button>
         </div>
       </form>
@@ -129,7 +129,7 @@
     <div class="card">
       <h2>Open Work Orders Board</h2>
       <small>Click any card to inspect and manage in the detail panel below.</small>
-      <div class="board" style="margin-top:16px;">
+      <div class="board mt-16">
         <div class="column">
           <div class="column-title">New <span class="count-chip" id="countNew">0</span></div>
           <div id="woColNew"></div>
@@ -149,23 +149,23 @@
     <div class="card">
       <h2 id="selectedWOTitle">Select a work order from the board</h2>
 
-      <div class="grid2" style="margin-top:16px;">
+      <div class="grid2 mt-16">
 
         <!-- Left: Parts + Task Flow -->
         <div>
           <!-- Parts Check -->
-          <div class="card" style="margin:0 0 16px 0;">
+          <div class="card mb-16">
             <h2 style="font-size:14px;">Parts Availability</h2>
-            <div class="option" style="margin-top:10px;">
+            <div class="option mt-10">
               <b>Status: <span id="selectedWOParts">—</span></b>
-              <p style="margin-top:4px;">If parts are not available, create a procurement request and keep the WO on hold.</p>
+              <p class="mt-4">If parts are not available, create a procurement request and keep the WO on hold.</p>
               <button class="btn btn-light btn-full" id="btnOrderParts">Order Required Parts</button>
             </div>
           </div>
 
           <!-- Task execution flow -->
-          <div class="card" style="margin:0;">
-            <h2 style="font-size:14px; margin-bottom:12px;">Task Execution Flow</h2>
+          <div class="card no-margin">
+            <h2 class="section-title-small mb-12">Task Execution Flow</h2>
             <div class="task-execution-flow">
               <div class="step-box" id="step-schedule">
                 <div class="step-num">1</div>
@@ -193,19 +193,19 @@
 
         <!-- Right: Summary + Actions -->
         <div>
-          <div class="card" style="margin:0 0 16px 0;">
-            <h2 style="font-size:14px; margin-bottom:12px;">Work Order Summary</h2>
-            <div style="display: grid; grid-template-columns: auto 1fr; gap: 6px 20px; font-size:13px;">
-              <span style="color:var(--muted); font-weight:600;">ID</span>          <span id="selectedWOStatus">—</span>
-              <span style="color:var(--muted); font-weight:600;">Type</span>        <span id="selectedWOType">—</span>
-              <span style="color:var(--muted); font-weight:600;">Priority</span>    <span id="selectedWOPriority">—</span>
-              <span style="color:var(--muted); font-weight:600;">Technician</span>  <span id="selectedWOTechnician">—</span>
+          <div class="card mb-16">
+            <h2 class="section-title-small mb-12">Work Order Summary</h2>
+            <div class="summary-grid">
+              <span class="summary-label">ID</span>          <span id="selectedWOStatus">—</span>
+              <span class="summary-label">Type</span>        <span id="selectedWOType">—</span>
+              <span class="summary-label">Priority</span>    <span id="selectedWOPriority">—</span>
+              <span class="summary-label">Technician</span>  <span id="selectedWOTechnician">—</span>
             </div>
           </div>
 
           <!-- System operational check -->
-          <div class="card" style="margin:0;">
-            <h2 style="font-size:14px; margin-bottom:10px;">System Operational Check</h2>
+          <div class="card no-margin">
+            <h2 class="section-title-small mb-10">System Operational Check</h2>
             <div class="grid2">
               <div class="option active">
                 <b>Operational</b>
@@ -218,7 +218,7 @@
                 <button class="btn btn-light btn-full">Mark On Hold</button>
               </div>
             </div>
-            <button class="btn btn-red btn-full" id="btnCloseWO" style="margin-top:12px;">Close & Archive Work Order</button>
+            <button class="btn btn-red btn-full mt-12" id="btnCloseWO">Close & Archive Work Order</button>
           </div>
         </div>
 
@@ -229,7 +229,7 @@
     <div class="card">
       <h2>Archived Work Orders</h2>
       <small>Closed and completed work orders from this shift.</small>
-      <table class="archive-table" style="margin-top:14px;">
+      <table class="archive-table mt-14">
         <thead>
           <tr>
             <th>WO ID</th>

@@ -145,6 +145,26 @@
   border-top: 1px solid #f1f1f1;
 }
 
+.btn-header { margin-top: 6px; }
+
+.form-actions { text-align: right; margin-top: 14px; }
+
+.section-title-small { font-size: 14px !important; font-weight: 700 !important; color: var(--dark) !important; }
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 20px;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.summary-label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+
 @media (max-width: 1000px) {
   .board { grid-template-columns: 1fr 1fr; }
   .task-execution-flow { grid-template-columns: 1fr 1fr; }

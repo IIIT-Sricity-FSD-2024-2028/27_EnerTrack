@@ -56,7 +56,7 @@
 
     <!-- ALERT SELECTOR -->
     <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="card-header">
         <div>
           <h2>Open Acknowledged Alerts</h2>
           <small>Selecting an alert loads the diagnostics workspace below.</small>
@@ -73,7 +73,7 @@
       <div class="diagnostics-header">
         <div>
           <h2 id="workspaceTitle">Select an alert to begin diagnostics</h2>
-          <small id="workspaceAsset" style="color:var(--muted);"></small>
+          <small id="workspaceAsset" class="sub"></small>
         </div>
         <button class="btn btn-dark" id="btnRunDiagnostic">▶ Run Diagnostic Test</button>
       </div>
@@ -84,11 +84,11 @@
         <div>
           <div class="card">
             <b>1. Preliminary inspection checklist</b>
-            <ul class="checklist" style="margin-top:12px;">
-              <li><span class="check">✔</span> Verified alert source and matched timestamp to telemetry burst.</li>
-              <li><span class="check">✔</span> Confirmed no planned maintenance was active during the anomaly window.</li>
-              <li><span class="check">✔</span> Inspected cooling intake and exhaust path for obstructions.</li>
-              <li><span class="check">✔</span> Compared operator notes with current warning pattern and runtime load.</li>
+            <ul class="checklist">
+              <li><span class="check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Verified alert source and matched timestamp to telemetry burst.</li>
+              <li><span class="check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Confirmed no planned maintenance was active during the anomaly window.</li>
+              <li><span class="check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Inspected cooling intake and exhaust path for obstructions.</li>
+              <li><span class="check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Compared operator notes with current warning pattern and runtime load.</li>
             </ul>
           </div>
 
@@ -98,16 +98,16 @@
               Executed cooling line purge and controller reset. System temperature dropped briefly, then returned above operating range after 3 minutes.
             </div>
 
-            <div class="card" style="margin-top:12px;">
+            <div class="card sub-card">
               <b>If issue resolves</b>
               <div class="note-small">Log the quick fix, close the alert, and return equipment to monitored status.</div>
-              <button class="btn btn-light btn-full" id="btnLogResolution" style="margin-top:8px;">Log Resolution & Close</button>
+              <button class="btn btn-light btn-full" id="btnLogResolution">Log Resolution & Close</button>
             </div>
 
-            <div class="card" style="margin-top:10px;">
+            <div class="card sub-card">
               <b>If issue remains</b>
               <div class="note-small">Continue into the full diagnostics workflow and run the formal test sequence.</div>
-              <button class="btn btn-dark btn-full" id="btnContinueDiagnostics" style="margin-top:8px;">Continue Diagnostics</button>
+              <button class="btn btn-dark btn-full" id="btnContinueDiagnostics">Continue Diagnostics</button>
             </div>
           </div>
         </div>
@@ -144,8 +144,8 @@
           <!-- Diagnostic Result -->
           <div class="card">
             <b>4. Diagnostic result</b>
-            <div class="result-box" style="margin-top:10px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div class="result-box">
+              <div class="result-header">
                 <b>Fault Confirmed</b>
                 <span class="badge critical">Selected path</span>
               </div>
@@ -162,16 +162,16 @@
                 </div>
               </div>
 
-              <div class="repair-selector" style="margin-top:12px;">
+              <div class="repair-selector">
                 <div class="card">
                   <b>Scheduled</b>
                   <div class="note-small">Flag for scheduled maintenance during the next approved service window.</div>
-                  <button class="btn btn-light btn-full" id="btnFlagScheduled" style="margin-top:8px;">Flag Scheduled Maintenance</button>
+                  <button class="btn btn-light btn-full" id="btnFlagScheduled">Flag Scheduled Maintenance</button>
                 </div>
-                <div class="card">
+                <div class="card sub-card">
                   <b>Immediate</b>
                   <div class="note-small">Flag for immediate repair and hand off to urgent field operations.</div>
-                  <button class="btn btn-dark btn-full" id="btnFlagImmediate" style="margin-top:8px;">Flag Immediate Repair</button>
+                  <button class="btn btn-dark btn-full" id="btnFlagImmediate">Flag Immediate Repair</button>
                 </div>
               </div>
             </div>

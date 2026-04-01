@@ -125,6 +125,31 @@
   font-weight: 600;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+}
+
+.dot.pulse {
+  animation: dot-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
+}
+
 @media (max-width: 900px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
+  .header-actions { flex-direction: column; align-items: stretch; }
 }

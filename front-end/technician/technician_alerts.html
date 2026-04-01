@@ -2,10 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EnerTrack – Real-Time Anomaly Alerts</title>
+<title>EnerTrack Dashboard</title>
   <link rel="stylesheet" href="tech_shared.css">
   <link rel="stylesheet" href="tech_alerts.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+
 </head>
 <body>
 <div class="layout">
@@ -60,7 +62,7 @@
         <div class="green-dot"></div>
         Monitoring Active
       </div>
-      <div style="font-size:13px; color:var(--muted);">Systems are connected and reporting continuous streams.</div>
+      <div class="subtitle">Systems are connected and reporting continuous streams.</div>
     </div>
 
     <!-- TOP GRID: Queue + Detail -->
@@ -92,10 +94,10 @@
           <span id="detailSeverityBadge"></span>
         </div>
         <small id="detailDescription">Click a row on the left to view details.</small>
-        <div id="detailZoneLabel" style="margin-top:4px; font-size:12px; color:var(--muted);">Zone: <span id="detailZone">—</span></div>
+        <div id="detailZoneLabel" class="section-label">Zone: <span id="detailZone">—</span></div>
 
         <div class="section-label">ANOMALY DESCRIPTION</div>
-        <div style="font-size:14px; line-height:1.55; color:var(--dark);">
+        <div class="description-text">
           Temperature spike exceeded threshold for 3 consecutive cycles. This anomaly profile indicates a potential cooling system failure or excessive bearing friction that could lead to immediate mechanical breakdown.
         </div>
 
@@ -103,9 +105,24 @@
         <div class="text-red" id="detailSeverityText">Select an alert to see severity classification.</div>
 
         <div class="section-label">ACTIONS TAKEN AUTOMATICALLY</div>
-        <div class="check-row"><span class="check-circle">✓</span> Event logged to system database</div>
-        <div class="check-row"><span class="check-circle">✓</span> Operations dashboard updated</div>
-        <div class="check-row"><span class="check-circle">✓</span> Technician notified (Marcus Reed)</div>
+        <div class="check-row">
+          <span class="check-circle">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span> 
+          Event logged to system database
+        </div>
+        <div class="check-row">
+          <span class="check-circle">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span> 
+          Operations dashboard updated
+        </div>
+        <div class="check-row">
+          <span class="check-circle">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span> 
+          Technician notified (Marcus Reed)
+        </div>
 
         <div class="section-label">ALERT RESOLUTION</div>
         <div class="action-boxes">

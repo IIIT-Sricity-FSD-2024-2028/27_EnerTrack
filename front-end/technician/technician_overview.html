@@ -55,7 +55,7 @@
         <h1>Welcome back, Marcus</h1>
         <p>Monitor active field conditions, review the latest anomalies and faults, and jump directly into technician workflows that need action.</p>
       </div>
-      <div style="display:flex; align-items:center; gap:12px; padding-top:6px;">
+      <div class="header-actions">
         <div class="header-badge">Shift updated 5 min ago</div>
         <button class="btn btn-dark" id="btnOpenQueue">Open queue →</button>
       </div>
@@ -104,7 +104,7 @@
           <h2>Live activity feed</h2>
           <small>Most recent anomalies, faults, and work order updates from the field.</small>
         </div>
-        <div class="live-badge"><span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;"></span> Live updates</div>
+        <div class="live-badge"><span class="dot pulse"></span> Live updates</div>
       </div>
       <div id="activityFeed">
         <!-- Populated by JS -->

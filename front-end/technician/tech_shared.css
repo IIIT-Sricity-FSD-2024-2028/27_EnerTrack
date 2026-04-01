@@ -167,11 +167,17 @@ body {
   margin-bottom: 6px;
 }
 
-.page-header p {
+.page-header p, .subtitle {
   font-size: 14px;
   color: var(--muted);
   max-width: 720px;
   line-height: 1.55;
+}
+
+.description-text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--dark);
 }
 
 .header-row {
@@ -360,6 +366,24 @@ textarea {
 .option p  { font-size: 12px; color: var(--muted); line-height: 1.45; }
 
 /* ─── RESPONSIVE ─────────────────────────── */
+/* ─── UTILITIES ──────────────────────────── */
+.no-margin { margin: 0 !important; }
+.mt-4  { margin-top: 4px  !important; }
+.mt-6  { margin-top: 6px  !important; }
+.mt-8  { margin-top: 8px  !important; }
+.mt-10 { margin-top: 10px !important; }
+.mt-12 { margin-top: 12px !important; }
+.mt-14 { margin-top: 14px !important; }
+.mt-16 { margin-top: 16px !important; }
+
+.mb-4  { margin-bottom: 4px  !important; }
+.mb-6  { margin-bottom: 6px  !important; }
+.mb-8  { margin-bottom: 8px  !important; }
+.mb-10 { margin-bottom: 10px !important; }
+.mb-12 { margin-bottom: 12px !important; }
+.mb-14 { margin-bottom: 14px !important; }
+.mb-16 { margin-bottom: 16px !important; }
+
 @media (max-width: 900px) {
   .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
   .main { padding: 24px 20px; }

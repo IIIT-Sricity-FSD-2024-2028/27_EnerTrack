@@ -15,7 +15,6 @@
                 <img src="images/logo.png" alt="EnerTrack Logo" class="logo-icon">
                 <img src="images/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
             </a>
-            
             <nav class="sidebar-nav">
                 <a href="sust_overview.html" class="nav-item">
                     <span class="nav-icon" data-icon="overview"></span>
@@ -44,13 +43,20 @@
                     </div>
                 </div>
                 
-                <a href="#" class="profile-card">
+                <div class="profile-card">
                     <img src="images/maya_patel.png" alt="Maya Patel" class="avatar">
                     <div class="profile-info">
                         <h4>Maya Patel</h4>
                         <p>Sustainability Officer</p>
                     </div>
-                </a>
+                    <button class="profile-menu" type="button" aria-label="Profile options">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <circle cx="12" cy="5" r="2"></circle>
+                            <circle cx="12" cy="12" r="2"></circle>
+                            <circle cx="12" cy="19" r="2"></circle>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </aside>
 
@@ -102,32 +108,35 @@
                             <label class="form-label">Timeline</label>
                             <div class="custom-select" id="new-init-timeline" data-select>
                                 <button type="button" class="select-trigger" aria-expanded="false">
-                                    <span class="select-value">3 weeks - Assessment -> Procurement -> Install</span>
-                                    <span class="select-chevron" aria-hidden="true">&#9662;</span>
+                                    <span class="select-value">3 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install</span>
+                                    <span class="select-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
                                 </button>
                                 <div class="select-menu">
                                     <button type="button" class="select-option selected" data-value="3 weeks - Assessment -> Procurement -> Install">
-                                        <span>3 weeks - Assessment -> Procurement -> Install</span>
-                                        <span class="checkmark">&#10003;</span>
+                                        <span>3 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install</span>
+                                        <span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                     </button>
-                                    <button type="button" class="select-option" data-value="6 weeks - Assessment -> Procurement -> Install -> QA">
-                                        <span>6 weeks - Assessment -> Procurement -> Install -> QA</span>
-                                        <span class="checkmark">&#10003;</span>
+                                    <button type="button" class="select-option" data-value="6 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install -> QA">
+                                        <span>6 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install -> QA</span>
+                                        <span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                     </button>
-                                    <button type="button" class="select-option" data-value="8 weeks - Assessment -> Procurement -> Install -> Validation">
-                                        <span>8 weeks - Assessment -> Procurement -> Install -> Validation</span>
-                                        <span class="checkmark">&#10003;</span>
+                                    <button type="button" class="select-option" data-value="8 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install -> Validation">
+                                        <span>8 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install -> Validation</span>
+                                        <span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                     </button>
                                     <button type="button" class="select-option" data-value="12 weeks - Multi-phase rollout">
                                         <span>12 weeks - Multi-phase rollout</span>
-                                        <span class="checkmark">&#10003;</span>
+                                        <span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                     </button>
                                 </div>
                             </div>
                         </div>
 
                         <div style="margin-top: 14px; display: flex; flex-direction: column;">
-                            <button class="btn-dark" style="width: 100%; padding: 12px; font-size: 15px;">+ Propose New Initiative</button>
+                            <button class="btn-dark" style="width: 100%; padding: 12px; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Propose New Initiative
+                            </button>
                         </div>
                     </section>
                 </div>
@@ -288,51 +297,32 @@
                         </div>
                         
                         <div class="selected-grid">
-                            <div class="box-item">
-                                <h5>Implementation tracking</h5>
-                                <p id="sel-targets">Select an initiative to see its specific targets and baseline metrics.</p>
-                            </div>
-                            <div class="box-item">
-                                <h5>Progress</h5>
-                                <p id="sel-progress">Current status and completion percentage across all facility phases.</p>
-                            </div>
-                            <div class="box-item">
-                                <h5>Initial evaluation</h5>
-                                <p id="sel-evaluation">Projected energy savings based on preliminary assessments.</p>
-                            </div>
+                            <div class="box-item" id="sel-targets"></div>
+                            <div class="box-item" id="sel-progress"></div>
+                            <div class="box-item" id="sel-evaluation"></div>
                             
-                            <div class="box-item">
-                                <h5>Resources</h5>
-                                <p id="sel-resources">Allocated personnel, vendor teams, and equipment deployments.</p>
-                            </div>
-                            <div class="box-item">
-                                <h5>Timeline</h5>
-                                <p id="sel-timeline">Current schedule status versus the baseline project plan.</p>
-                            </div>
-                            <div class="box-item">
-                                <h5>Environmental impact</h5>
-                                <p id="sel-impact">Estimated monthly carbon footprint reduction after deployment.</p>
-                            </div>
+                            <div class="box-item" id="sel-resources"></div>
+                            <div class="box-item" id="sel-timeline"></div>
+                            <div class="box-item" id="sel-impact"></div>
                             
-                            <div class="box-item" style="grid-column: span 2;">
-                                <h5>Risks</h5>
-                                <p id="sel-risks">Active blockers, lead time variances, and mitigation strategies.</p>
-                            </div>
-                            
-                            <div class="box-item">
-                                <h5>Cost benefit</h5>
-                                <p id="sel-cost">Annual cost savings forecast and estimated payback period.</p>
-                            </div>
+                            <div class="box-item" style="grid-column: span 2;" id="sel-risks"></div>
+                            <div class="box-item" id="sel-cost"></div>
                         </div>
                         
                         <div class="status-bars">
-                            <div class="status-bar-green" id="btn-set-ontrack" style="cursor: pointer;">
-                                <strong>On Track</strong>
-                                <span>Continue implementation.</span>
+                            <div class="status-toggle-card ontrack active" id="btn-set-ontrack">
+                                <div class="toggle-circle"></div>
+                                <div>
+                                    <strong>On Track</strong>
+                                    <span>Continue implementation according to current phase baseline.</span>
+                                </div>
                             </div>
-                            <div class="status-bar-orange" id="btn-set-offtrack" style="cursor: pointer;">
-                                <strong>Not On Track</strong>
-                                <span>Adjust strategy or discontinue.</span>
+                            <div class="status-toggle-card offtrack" id="btn-set-offtrack">
+                                <div class="toggle-circle"></div>
+                                <div>
+                                    <strong>Not On Track</strong>
+                                    <span>Adjust strategy or discontinue to prevent resource wastage.</span>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -382,10 +372,12 @@
                 </div>
                 
             </div>
-
+            
         </main>
     </div>
+
     <script>
+        // Custom dropdown selections
         document.querySelectorAll('[data-select]').forEach((selectWrap) => {
             const trigger = selectWrap.querySelector('.select-trigger');
             const valueEl = trigger.querySelector('.select-value');
@@ -424,3 +416,4 @@
     <script type="module" src="js/initiativesPage.js"></script>
 </body>
 </html>
+

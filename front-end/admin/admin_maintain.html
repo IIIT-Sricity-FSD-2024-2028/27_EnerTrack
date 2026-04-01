@@ -22,52 +22,49 @@
             </a>
 
             <nav class="sidebar-nav">
-
-                <a href="admin_overview.html" class="nav-item">
-                    <span data-icon="overview"></span>
-                    Overview
-                </a>
-
                 <div class="nav-section">
-                    <a href="admin_monitor.html" class="nav-section-title">MONITORING</a>
+                    <span class="nav-section-title nav-heading">SYSTEM TASKS</span>
                     <div class="nav-group">
-                        <div class="nav-subitem">
-                            <span data-icon="monitor"></span>
-                            System Health
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="metric"></span>
-                            Performance Metrics
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="alert"></span>
-                            Alerts
-                            <span class="alerts-badge">3</span>
-                        </div>
+                        <a href="admin_overview.html" class="nav-subitem" id="nav-overview">
+                            <span data-icon="overview" class="subitem-icon"></span>
+                            Overview
+                        </a>
+                        <a href="admin_monitor.html" class="nav-subitem" id="nav-monitoring">
+                            <span data-icon="monitor" class="subitem-icon"></span>
+                            Monitoring
+                        </a>
+                        <a href="admin_maintain.html" class="nav-subitem active-subitem" id="nav-maintenance">
+                            <span data-icon="system" class="subitem-icon"></span>
+                            Maintenance
+                        </a>
                     </div>
                 </div>
 
                 <div class="nav-section">
-                    <a href="admin_maintain.html" class="nav-section-title active-pill">MAINTENANCE</a>
+                    <span class="nav-section-title nav-heading">SUSTAINABILITY TASKS</span>
                     <div class="nav-group">
-                        <div class="nav-subitem">
-                            <span data-icon="backup"></span>
-                            Backups
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="system"></span>
-                            System Updates
-                        </div>
-                        <div class="nav-subitem">
-                            <span data-icon="troubleshooting"></span>
-                            Troubleshooting
-                        </div>
+                        <a href="../sustainability_officer/sust_overview.html" class="nav-subitem">
+                            <span data-icon="overview" class="subitem-icon"></span>
+                            Overview
+                        </a>
+                        <a href="../sustainability_officer/sust_monitoring.html" class="nav-subitem">
+                            <span data-icon="monitor" class="subitem-icon"></span>
+                            Environmental Monitoring
+                        </a>
+                        <a href="../sustainability_officer/sust_report.html" class="nav-subitem">
+                            <span data-icon="summary" class="subitem-icon"></span>
+                            Sustainability Reporting
+                        </a>
+                        <a href="../sustainability_officer/sust_initiatives.html" class="nav-subitem">
+                            <span data-icon="troubleshooting" class="subitem-icon"></span>
+                            Sustainable Initiatives
+                        </a>
                     </div>
                 </div>
             </nav>
 
             <a href="#" class="profile-card">
-                <div class="profile-img" aria-hidden="true">AM</div>
+                <img src="../sign_in/images/logo.png" alt="Profile" class="profile-img">
                 <div class="profile-info">
                     <strong>Aadithya Mouli</strong>
                     <span>System Administrator</span>
@@ -75,9 +72,10 @@
             </a>
         </aside>
 
-        <!-- MAIN CONTENT -->
-        <main class="main-content">
+        <!-- ADMIN MAINTENANCE CONTENT -->
+        <main class="main-content" id="adminContent">
             <header class="page-header d-flex justify-between align-center">
+                <h1>System Maintenance</h1>
                 <p class="mb-0">Next window: Tonight 02:00 AM - 03:00 AM</p>
                 <button class="btn-dark clickable" onclick="runMaintenance()">
                     <span data-icon="play"></span>
@@ -86,7 +84,6 @@
             </header>
 
             <div class="content-grid-maintain">
-
                 <div class="col-left">
                     <!-- BACKUP JOBS -->
                     <div class="panel">
@@ -95,13 +92,11 @@
                                 <span data-icon="backup"></span>
                                 Backup jobs
                             </div>
-                            <button class="btn-secondary clickable" onclick="newBackup()">
-                                + New backup
-                            </button>
+                            <button class="btn-secondary clickable" onclick="newBackup()">+ New backup</button>
                         </div>
-
-                        <!-- Dynamic backup cards rendered by backups.js -->
-                        <div id="backupJobsContainer"></div>
+                        <div id="backupJobsContainer">
+                            <!-- Populated by BackupsModule -->
+                        </div>
                     </div>
 
                     <!-- SYSTEM UPDATES -->
@@ -111,18 +106,15 @@
                                 <span data-icon="system"></span>
                                 <span style="color:#1f2937">System updates</span>
                             </div>
-                            <button class="btn-secondary clickable" onclick="viewUpdates()">
-                                View all updates
-                            </button>
+                            <button class="btn-secondary clickable" onclick="viewUpdates()">View all updates</button>
                         </div>
-
-                        <!-- Dynamic update cards rendered by updates.js -->
-                        <div id="systemUpdatesContainer"></div>
+                        <div id="systemUpdatesContainer">
+                            <!-- Populated by UpdatesModule -->
+                        </div>
                     </div>
                 </div>
 
                 <div class="col-right">
-
                     <!-- ERROR CHECKING BEFORE LOGOUT -->
                     <div class="panel">
                         <div class="panel-header">
@@ -135,9 +127,9 @@
                                 Run scan
                             </button>
                         </div>
-
-                        <!-- Dynamic scan results rendered by maintainPage.js -->
-                        <div id="errorScanContainer"></div>
+                        <div id="errorScanContainer">
+                            <!-- Populated by renderErrorScans -->
+                        </div>
                     </div>
 
                     <!-- TROUBLESHOOTING TOOLS -->
@@ -159,7 +151,6 @@
                                     <p>Tail recent logs or open a saved log bundle.</p>
                                 </div>
                             </div>
-
                             <div class="tool-box clickable" onclick="runErrorScan()">
                                 <div class="tool-icon">
                                     <span data-icon="monitor"></span>
@@ -191,22 +182,9 @@
                             </div>
                         </div>
 
-                        <div class="summary-item">
-                            <h4>Backups</h4>
-                            <p>All required backup jobs have completed successfully or are in progress within the
-                                maintenance window.</p>
-                        </div>
-
-                        <div class="summary-item">
-                            <h4>Updates</h4>
-                            <p>1 security patch pending. Recommended to apply before ending session.</p>
-                        </div>
-
-                        <div class="summary-item">
-                            <h4>Error checks</h4>
-                            <p>Minor performance issues detected on Payment-API. Consider running troubleshooting tools.
-                            </p>
-                        </div>
+                        <div class="summary-item"><h4>Backups</h4><p>All required backup jobs have completed successfully or are in progress within the maintenance window.</p></div>
+                        <div class="summary-item"><h4>Updates</h4><p>1 security patch pending. Recommended to apply before ending session.</p></div>
+                        <div class="summary-item"><h4>Error checks</h4><p>Minor performance issues detected on Payment-API. Consider running troubleshooting tools.</p></div>
 
                         <div class="summary-footer">
                             <p class="muted">You must resolve critical items before logging out.</p>
@@ -218,9 +196,11 @@
 
             </div>
         </main>
+
     </div>
 
     <script type="module" src="js/maintainPage.js"></script>
+
 </body>
 
 </html>

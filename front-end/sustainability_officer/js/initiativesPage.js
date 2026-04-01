@@ -129,28 +129,71 @@ function selectInitiative(id) {
 
     currentSelectedId = id;
 
-    // UI Feedback
+    // UI Feedback for Kanban Cards
     document.querySelectorAll(".kanban-card").forEach(c => c.classList.remove("selected"));
     const card = document.querySelector(`.kanban-card[data-id="${id}"]`);
     if (card) card.classList.add("selected");
 
-    // Populate panel
+    // Populate panel title
     const panelTitle = document.querySelector(".col-span-2.flex-col-gap .panel-title");
     if (panelTitle) panelTitle.textContent = `${init.title}`;
 
-    const setVal = (id, val) => {
+    const setItem = (id, title, icon, contentHtml) => {
         const el = document.getElementById(id);
-        if (el) el.innerHTML = val;
+        if (!el) return;
+        el.innerHTML = `
+            <div class="box-icon" data-icon="${icon}"></div>
+            <div class="box-content">
+                <h5>${title}</h5>
+                ${contentHtml}
+            </div>
+        `;
     };
 
-    setVal("sel-targets", `Targets<br>${init.target || "N/A"} reduction • Evaluated at all facility sub-meters • Project scope confirmed`);
-    setVal("sel-progress", init.status === "completed" ? "100% complete — All installation and tuning phases finalized" : "On track for implementation schedule • No delays reported");
-    setVal("sel-evaluation", `Initial evaluation<br>${init.target || "6%"} projected monthly kWh reduction across monitored buildings`);
-    setVal("sel-resources", `Allocated Resources<br>On-site facilities team • External HVAC vendor • Replacement materials delivered`);
-    setVal("sel-timeline", `Schedule state<br>Currently in ${init.status} phase • Progress matching baseline ${init.timeline || 'projections'}`);
-    setVal("sel-impact", `Sustainability Impact<br>Forecasted at ${parseFloat(init.target || 0) * 8.2} tCO₂e reduced per month post-implementation`);
-    setVal("sel-risks", "No critical risks identified. Supply chain for replacement units is cleared. Implementation team is fully staffed.");
-    setVal("sel-cost", `${init.cost || "$0"} baseline cost • ROI verified at ~2.1 years based on local utility rates`);
+    // 1. Implementation tracking
+    setItem("sel-targets", "Implementation tracking", "monitoring", `
+        <p>${init.target || "N/A"} reduction goal established. Monitoring sub-feeders for baseline verification.</p>
+    `);
+
+    // 2. Progress (with bar)
+    const progVal = init.status === "completed" ? 100 : (init.status === "in-progress" ? 65 : 15);
+    setItem("sel-progress", "Progress", "compile", `
+        <p>${progVal}% complete — ${init.status === "completed" ? "All phases finalized" : "On track for schedule"}</p>
+        <div class="progress-mini"><div class="progress-mini-fill" style="width: ${progVal}%"></div></div>
+    `);
+
+    // 3. Initial evaluation (with bar)
+    const evalTarget = parseFloat(init.target || 8);
+    setItem("sel-evaluation", "Initial evaluation", "performance", `
+        <p>${evalTarget}% projected monthly reduction across monitored sites.</p>
+        <div class="progress-mini"><div class="progress-mini-fill" style="width: ${evalTarget * 5}%"></div></div>
+    `);
+
+    // 4. Resources
+    setItem("sel-resources", "Resources", "technician", `
+        <p><span class="status-dot green"></span>On-site facilities team assigned • External HVAC vendor approved.</p>
+    `);
+
+    // 5. Timeline
+    setItem("sel-timeline", "Timeline", "calendar", `
+        <p>Current: ${init.status} phase<br>Baseline: ${init.timeline || '5 weeks'}</p>
+    `);
+
+    // 6. Environmental impact
+    const impact = parseFloat(init.target || 0) * 8.2;
+    setItem("sel-impact", "Environmental impact", "carbon", `
+        <p>Forecasted: <strong>${impact.toFixed(1)} tCO₂e</strong> monthly reduction post-implementation.</p>
+    `);
+
+    // 7. Risks
+    setItem("sel-risks", "Risks", "alerts", `
+        <p><span class="status-dot green"></span>No critical blockers. Supply chain for units is cleared.</p>
+    `);
+
+    // 8. Cost benefit
+    setItem("sel-cost", "Cost benefit", "finance", `
+        <p>${init.cost || "$0"} baseline cost. ROI forecast ~2.1 years.</p>
+    `);
 
     // Status track updates
     const badgeTrack = document.querySelector(".badge-track");
@@ -158,6 +201,16 @@ function selectInitiative(id) {
         badgeTrack.textContent = init.onTrack === false ? "Off Track" : "On Track";
         badgeTrack.style.background = init.onTrack === false ? "#dc2626" : "#0f9f6f";
     }
+
+    // Toggle button states
+    const btnOn = document.getElementById("btn-set-ontrack");
+    const btnOff = document.getElementById("btn-set-offtrack");
+    if (btnOn && btnOff) {
+        btnOn.classList.toggle("active", init.onTrack !== false);
+        btnOff.classList.toggle("active", init.onTrack === false);
+    }
+
+    injectIcons();
 }
 
 

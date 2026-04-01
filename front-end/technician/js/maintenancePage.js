@@ -75,11 +75,14 @@ function wireRunDiagnostics() {
             return;
         }
 
-        btn.textContent = '⏳ Running...';
+        const loadingSvg = `<svg class="spin" width="14" height="14" style="vertical-align:middle; margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>`;
+        const playSvg = `<svg width="14" height="14" style="vertical-align:middle; margin-right:6px;" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+
+        btn.innerHTML = `${loadingSvg} Running...`;
         btn.disabled = true;
 
         setTimeout(() => {
-            btn.textContent = '▶ Run Diagnostic Test';
+            btn.innerHTML = `${playSvg} Run Diagnostic Test`;
             btn.disabled = false;
             showToast('Diagnostic test completed. Review results below.', 'success');
         }, 2000);
@@ -129,7 +132,9 @@ document.addEventListener('click', e => {
 function cap(str) { return str.charAt(0).toUpperCase() + str.slice(1); }
 function setEl(id, val) {
     const el = document.getElementById(id);
-    if (el) el.textContent = val;
+    if (!el) return;
+    if (String(val).includes('<svg')) el.innerHTML = val;
+    else el.textContent = val;
 }
 function severityClass(s) {
     if (s === 'high') return 'critical';

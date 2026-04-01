@@ -44,13 +44,20 @@
                     </div>
                 </div>
                 
-                <a href="#" class="profile-card">
+                <div class="profile-card">
                     <img src="images/maya_patel.png" alt="Maya Patel" class="avatar">
                     <div class="profile-info">
                         <h4>Maya Patel</h4>
                         <p>Sustainability Officer</p>
                     </div>
-                </a>
+                    <button class="profile-menu" type="button" aria-label="Profile options">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <circle cx="12" cy="5" r="2"></circle>
+                            <circle cx="12" cy="12" r="2"></circle>
+                            <circle cx="12" cy="19" r="2"></circle>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </aside>
 
@@ -68,10 +75,10 @@
 
                 <label class="form-label">Report type</label>
                 <div class="type-pills" id="reportTypePills">
-                    <button type="button" class="type-pill active" data-report-type="yearly">Yearly</button>
-                    <button type="button" class="type-pill" data-report-type="quarterly">Quarterly</button>
-                    <button type="button" class="type-pill" data-report-type="monthly">Monthly</button>
-                    <button type="button" class="type-pill" data-report-type="custom">Custom</button>
+                    <div class="type-pill active" data-report-type="yearly">Yearly</div>
+                    <div class="type-pill" data-report-type="quarterly">Quarterly</div>
+                    <div class="type-pill" data-report-type="monthly">Monthly</div>
+                    <div class="type-pill" data-report-type="custom">Custom</div>
                 </div>
 
                 <div class="form-grid">
@@ -84,13 +91,13 @@
                             </button>
                             <div class="select-menu">
                                 <button type="button" class="select-option selected" data-value="2026">
-                                    <span>2026</span><span class="checkmark">✓</span>
+                                    <span>2026</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                                 <button type="button" class="select-option" data-value="2025">
-                                    <span>2025</span><span class="checkmark">✓</span>
+                                    <span>2025</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                                 <button type="button" class="select-option" data-value="2024">
-                                    <span>2024</span><span class="checkmark">✓</span>
+                                    <span>2024</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                             </div>
                         </div>
@@ -104,16 +111,16 @@
                             </button>
                             <div class="select-menu">
                                 <button type="button" class="select-option selected" data-value="Q3">
-                                    <span>Q3</span><span class="checkmark">✓</span>
+                                    <span>Q3</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                                 <button type="button" class="select-option" data-value="Q2">
-                                    <span>Q2</span><span class="checkmark">✓</span>
+                                    <span>Q2</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                                 <button type="button" class="select-option" data-value="Q1">
-                                    <span>Q1</span><span class="checkmark">✓</span>
+                                    <span>Q1</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                                 <button type="button" class="select-option" data-value="Q4">
-                                    <span>Q4</span><span class="checkmark">✓</span>
+                                    <span>Q4</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                             </div>
                         </div>
@@ -127,48 +134,36 @@
                             </button>
                             <div class="select-menu">
                                 <button type="button" class="select-option selected" data-value="September">
-                                    <span>September</span><span class="checkmark">✓</span>
+                                    <span>September</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                                 <button type="button" class="select-option" data-value="August">
-                                    <span>August</span><span class="checkmark">✓</span>
+                                    <span>August</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                                 <button type="button" class="select-option" data-value="July">
-                                    <span>July</span><span class="checkmark">✓</span>
+                                    <span>July</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                                 <button type="button" class="select-option" data-value="June">
-                                    <span>June</span><span class="checkmark">✓</span>
+                                    <span>June</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 </button>
                             </div>
                         </div>
                     </div>
                     <div class="input-group" id="groupCustom">
                         <label class="form-label">Custom range</label>
-                        <div class="date-picker" id="reportDatePicker">
-                            <button type="button" class="form-input calendar-trigger" id="rangeDisplay">
-                                <span>15 Sep 2026</span>
-                                <span class="calendar-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3.5" y="5.5" width="17" height="15" rx="3" stroke="currentColor" stroke-width="1.8"/>
-                                        <path d="M7 3.5V7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                        <path d="M17 3.5V7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                        <path d="M3.5 9H20.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                    </svg>
-                                </span>
-                            </button>
-                            <div class="calendar-popover" id="calendarPopover" hidden>
-                                <div class="calendar-header">
-                                    <h4 id="calendarMonthTitle">September 2026</h4>
-                                    <div class="calendar-nav">
-                                        <button type="button" id="calendarPrev" aria-label="Previous month">‹</button>
-                                        <button type="button" id="calendarNext" aria-label="Next month">›</button>
-                                    </div>
+                        <div id="reportDatePicker" style="position:relative;">
+                            <div id="rangeDisplay" class="form-input" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+                                <span>01 May 2025 - 31 May 2025</span>
+                                <svg fill="none" height="18" stroke="#9ca3af" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><rect height="18" rx="2" ry="2" width="18" x="3" y="4"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                            </div>
+                            <div id="calendarPopover" hidden style="position:absolute;top:calc(100% + 8px);left:0;z-index:100;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.12);min-width:280px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                                    <button type="button" id="calendarPrev" style="background:none;border:none;cursor:pointer;font-size:18px;color:#374151;">‹</button>
+                                    <span id="calendarMonthTitle" style="font-weight:600;font-size:14px;"></span>
+                                    <button type="button" id="calendarNext" style="background:none;border:none;cursor:pointer;font-size:18px;color:#374151;">›</button>
                                 </div>
-                                <div class="calendar-weekdays">
-                                    <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-                                </div>
-                                <div class="calendar-grid" id="calendarGrid"></div>
-                                <div class="calendar-footer">
-                                    <button type="button" id="calendarTodayBtn">Go to Today</button>
+                                <div id="calendarGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px;"></div>
+                                <div style="margin-top:10px;text-align:center;">
+                                    <button type="button" id="calendarTodayBtn" style="font-size:12px;color:#10b981;background:none;border:none;cursor:pointer;font-weight:600;">Today</button>
                                 </div>
                             </div>
                         </div>
@@ -404,3 +399,4 @@
     <script type="module" src="js/reportingPage.js"></script>
 </body>
 </html>
+

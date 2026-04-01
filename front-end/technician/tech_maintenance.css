@@ -8,6 +8,13 @@
   margin-top: 14px;
 }
 
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
 .alert-tile {
   border: 2px solid var(--border);
   border-radius: 9px;
@@ -90,6 +97,10 @@
 
 .data-row span:last-child { font-weight: 600; }
 
+.checklist {
+  margin-top: 12px;
+}
+
 .checklist li {
   display: flex;
   gap: 8px;
@@ -145,12 +156,27 @@
   margin-top: 12px;
 }
 
+.sub-card {
+  margin-top: 12px !important;
+}
+
+.sub-card .btn {
+  margin-top: 8px;
+}
+
 .result-box {
   background: var(--green-soft);
   border: 1px solid var(--green-border);
   border-radius: 8px;
   padding: 14px;
-  margin-top: 16px;
+  margin-top: 12px;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
 .note-small {

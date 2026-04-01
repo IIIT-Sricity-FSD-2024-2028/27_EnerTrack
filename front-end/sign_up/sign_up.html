@@ -37,64 +37,64 @@
             <p class="sub">Create a free account</p>
 
             <form id="signUpForm" novalidate>
-                <!-- Name -->
-                <input type="text" id="name" placeholder="Name" class="input" autocomplete="off">
-                <span class="field-error" id="nameError"></span>
+            <!-- Name -->
+            <input type="text" id="name" placeholder="Name" class="input" autocomplete="off">
+            <span class="field-error" id="nameError"></span>
 
-                <!-- Email -->
-                <input type="email" id="email" placeholder="Email" class="input" autocomplete="off">
-                <span class="field-error" id="emailError"></span>
+            <!-- Email -->
+            <input type="email" id="email" placeholder="Email" class="input" autocomplete="off">
+            <span class="field-error" id="emailError"></span>
 
-                <!-- Password -->
-                <div class="password-wrap">
-                    <input type="password" id="password" placeholder="Password" class="input" autocomplete="new-password">
-                    <span class="eye" id="togglePassword" onclick="togglePass()">
-                        <!-- Crossed-out eye (hidden) -->
-                        <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                            fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C6 20 1.73 14 1.73 12c0-.9.6-2.3 1.7-3.7" />
-                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10.27 6 10.27 8 0 .73-.22 1.6-.67 2.5" />
-                            <line x1="1" y1="1" x2="23" y2="23" />
-                        </svg>
-                        <!-- Open eye (visible) -->
-                        <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                            fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
-                            stroke-linejoin="round" style="display:none;">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
-                        </svg>
-                    </span>
-                </div>
-                <span class="field-error" id="passwordError"></span>
+            <!-- Password -->
+            <div class="password-wrap">
+                <input type="password" id="password" placeholder="Password" class="input" autocomplete="new-password">
+                <span class="eye" id="togglePassword" onclick="togglePass()">
+                    <!-- Crossed-out eye (hidden) -->
+                    <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C6 20 1.73 14 1.73 12c0-.9.6-2.3 1.7-3.7" />
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10.27 6 10.27 8 0 .73-.22 1.6-.67 2.5" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                    <!-- Open eye (visible) -->
+                    <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" style="display:none;">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                </span>
+            </div>
+            <span class="field-error" id="passwordError"></span>
 
-                <!-- Role dropdown -->
-                <div class="select-wrap">
-                    <select id="role" class="input select" autocomplete="off">
-                        <option value="" disabled selected hidden>Role</option>
-                        <option value="admin">System Administrator</option>
-                        <option value="analyst">Financial Analyst</option>
-                        <option value="technician">Technician</option>
-                        <option value="sustainability">Sustainability Officer</option>
-                    </select>
-                    <span class="chevron">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                    </span>
-                </div>
-                <span class="field-error" id="roleError"></span>
+            <!-- Role dropdown -->
+            <div class="select-wrap">
+                <select id="role" class="input select" autocomplete="off">
+                    <option value="" disabled selected hidden>Role</option>
+                    <option value="admin">System Administrator</option>
+                    <option value="analyst">Financial Analyst</option>
+                    <option value="technician">Technician</option>
+                    <option value="sustainability">Sustainability Officer</option>
+                </select>
+                <span class="chevron">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </span>
+            </div>
+            <span class="field-error" id="roleError"></span>
 
-                <!-- Terms checkbox -->
-                <label class="terms">
-                    <input type="checkbox" id="terms">
-                    <span>Agree to Terms &amp; Conditions</span>
-                </label>
-                <span class="field-error" id="termsError"></span>
+            <!-- Terms checkbox -->
+            <label class="terms">
+                <input type="checkbox" id="terms">
+                <span>Agree to Terms &amp; Conditions</span>
+            </label>
+            <span class="field-error" id="termsError"></span>
 
-                <!-- Submit -->
-                <button type="submit" class="btn" id="signUpBtn">Sign Up</button>
+            <!-- Submit -->
+            <button type="submit" class="btn" id="signUpBtn">Sign Up</button>
             </form>
 
             <!-- Footer -->
@@ -107,168 +107,8 @@
 
     </div>
 
-    <script>
-        // Toggle password visibility
-        function togglePass() {
-            const pwd = document.getElementById('password');
-            const eyeClosed = document.getElementById('eyeClosed');
-            const eyeOpen = document.getElementById('eyeOpen');
-            const isHidden = pwd.type === 'password';
-            pwd.type = isHidden ? 'text' : 'password';
-            eyeClosed.style.display = isHidden ? 'none' : 'block';
-            eyeOpen.style.display = isHidden ? 'block' : 'none';
-        }
-
-        // Flag to prevent focus listeners from clearing errors during validation
-        let isValidating = false;
-
-        function showError(inputEl, errorId, message) {
-            inputEl.classList.add('input-error');
-            document.getElementById(errorId).textContent = message;
-        }
-
-        function validateName(nameVal) {
-            if (nameVal.length < 8) {
-                return 'Name must be at least 8 characters long.';
-            }
-            for (const ch of nameVal) {
-                const isUpper = ch >= 'A' && ch <= 'Z';
-                const isLower = ch >= 'a' && ch <= 'z';
-                const isSpace = ch === ' ';
-                const isHyphen = ch === '-';
-                if (!isUpper && !isLower && !isSpace && !isHyphen) {
-                    return 'Name can only contain letters, spaces, and hyphens.';
-                }
-            }
-            return '';
-        }
-
-        function validateEmail(emailVal) {
-            const allowedDomains = ['@gmail.com', '@yahoo.com', '@outlook.com'];
-            if (!emailVal) return 'Enter a valid email address.';
-            const localPart = emailVal.split('@')[0];
-            if (!localPart) return 'Enter a valid email address.';
-            const hasAllowedDomain = allowedDomains.some(domain => emailVal.endsWith(domain));
-            return hasAllowedDomain ? '' : 'Please use a valid domain (e.g., @gmail.com).';
-        }
-
-        function validatePassword(passwordVal) {
-            if (passwordVal.length < 8) {
-                return 'Password must be at least 8 characters long.';
-            }
-            let hasUpper = false;
-            let hasNumber = false;
-            let hasSpecial = false;
-            let hasSpace = false;
-            const specialChars = "!@#$%^&*()_+-=[]{}|;:',./<>?/`~";
-
-            for (const ch of passwordVal) {
-                if (ch === ' ') hasSpace = true;
-                else if (ch >= 'A' && ch <= 'Z') hasUpper = true;
-                else if (ch >= '0' && ch <= '9') hasNumber = true;
-                else if (specialChars.includes(ch)) hasSpecial = true;
-            }
-
-            if (hasSpace) return 'Password must not contain spaces.';
-            if (!hasUpper) return 'Password must contain at least 1 uppercase letter.';
-            if (!hasNumber) return 'Password must contain at least 1 number.';
-            if (!hasSpecial) return 'Password must contain at least 1 special character.';
-            return '';
-        }
-
-        // Sign Up validation
-        function handleSignUp(event) {
-            event.preventDefault();
-            isValidating = true;
-
-            const nameEl = document.getElementById('name');
-            const emailEl = document.getElementById('email');
-            const pwdEl = document.getElementById('password');
-            const roleEl = document.getElementById('role');
-            const termsEl = document.getElementById('terms');
-            const nameVal = nameEl.value.trim();
-            const emailVal = emailEl.value.trim().toLowerCase();
-            const pwdVal = pwdEl.value;
-
-            let valid = true;
-
-            // Reset all
-            ['name', 'email', 'password'].forEach(id => {
-                document.getElementById(id).classList.remove('input-error');
-                document.getElementById(id + 'Error').textContent = '';
-            });
-            roleEl.classList.remove('input-error');
-            document.getElementById('roleError').textContent = '';
-            document.getElementById('termsError').textContent = '';
-
-            const nameMessage = validateName(nameVal);
-            if (nameMessage) {
-                showError(nameEl, 'nameError', nameMessage);
-                valid = false;
-            }
-
-            const emailMessage = validateEmail(emailVal);
-            if (emailMessage) {
-                showError(emailEl, 'emailError', emailMessage);
-                valid = false;
-            }
-
-            const passwordMessage = validatePassword(pwdVal);
-            if (passwordMessage) {
-                showError(pwdEl, 'passwordError', passwordMessage);
-                valid = false;
-            }
-
-            if (!roleEl.value) {
-                roleEl.classList.add('input-error');
-                document.getElementById('roleError').textContent = 'Please select a role.';
-                valid = false;
-            }
-
-            if (!termsEl.checked) {
-                document.getElementById('termsError').textContent = 'You must agree to the Terms & Conditions';
-                valid = false;
-            }
-
-            if (!valid) {
-                // Focus first invalid field after a tiny delay so errors stay visible
-                setTimeout(function () {
-                    if (nameMessage) nameEl.focus();
-                    else if (emailMessage) emailEl.focus();
-                    else if (passwordMessage) pwdEl.focus();
-                    
-                    // Reset the flag after the focus event has had time to fire
-                    setTimeout(function() {
-                        isValidating = false;
-                    }, 50);
-                }, 50);
-                return;
-            }
-
-            isValidating = false;
-            // All valid — redirect to sign in
-            window.location.href = '../sign_in/sign_in.html';
-        }
-
-        document.getElementById('signUpForm').addEventListener('submit', handleSignUp);
-
-        // Clear error on focus (only when user manually focuses, not during validation)
-        ['name', 'email', 'password'].forEach(id => {
-            document.getElementById(id).addEventListener('focus', function () {
-                if (isValidating) return;
-                this.classList.remove('input-error');
-                document.getElementById(id + 'Error').textContent = '';
-            });
-        });
-        document.getElementById('role').addEventListener('change', function () {
-            this.classList.remove('input-error');
-            document.getElementById('roleError').textContent = '';
-        });
-        document.getElementById('terms').addEventListener('change', function () {
-            document.getElementById('termsError').textContent = '';
-        });
-    </script>
-
+    <!-- Validation Logic -->
+    <script src="sign_up.js"></script>
 </body>
 
 </html>

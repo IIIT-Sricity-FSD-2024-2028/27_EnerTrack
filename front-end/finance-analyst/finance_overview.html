@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EnerTrack Dashboard</title>
+<link rel="stylesheet" href="finance_overview.css">
+</head>
+<body>
+
+<!-- MAIN LAYOUT -->
+<div style="display:flex;width:100%;">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div>
+    <div class="logo">EnerTrack</div>
+    <div class="menu">
+      <div class="menu-item active" data-page="finance_overview.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </div>
+      <div class="menu-item" data-page="finance_reports.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="17" x2="9" y2="13"/><line x1="12" y1="17" x2="12" y2="11"/><line x1="15" y1="17" x2="15" y2="15"/></svg>
+        Financial<br>Reports &amp; Impact
+      </div>
+      <div class="menu-item" data-page="finance_costs.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9v3a5 5 0 0 0 10 0V9"/><line x1="10" y1="4" x2="10" y2="8"/><line x1="14" y1="4" x2="14" y2="8"/><path d="M12 17v3"/></svg>
+        Utility Costs
+      </div>
+    </div>
+  </div>
+  <div class="profile">
+    <div class="profile-left">
+      <img src="https://i.pravatar.cc/40?img=12">
+      <div>
+        <div class="profile-name">Aadithya Mouli</div>
+        <div class="profile-role">Finance Analyst</div>
+      </div>
+    </div>⋮
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+  <div class="container">
+    <h1 class="welcome">Welcome back, Aadithya</h1>
+    <div class="sub">Track key financial metrics and access main tools.</div>
+
+    <!-- CARDS -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-title">Total Energy Cost <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div>
+        <div class="value green" id="card-energy-cost">$124,500</div>
+        <div class="change">Latest month (Mar 2025)</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Total Savings <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span></div>
+        <div class="value green" id="card-savings">$32,400</div>
+        <div class="change">↗ Under-budget depts</div>
+      </div>
+      <div class="card">
+        <div class="card-title">ROI % <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></div>
+        <div class="value green" id="card-roi">18.5%</div>
+        <div class="change">Latest report</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Budget Variance <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1L12 23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div>
+        <div class="value" id="card-variance">—</div>
+        <div class="gray">vs allocated budget</div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY -->
+    <div class="box">
+      <div class="section-title">Recent Activity</div>
+      <div id="activity-list"><!-- rendered by JS --></div>
+    </div>
+
+    <!-- DEPT BARS -->
+    <div class="box">
+      <div class="section-title">
+        Cost by Department (Mar 2025)
+        <a href="finance_costs.html" style="font-size:13px;color:#6b7280;cursor:pointer;font-weight:400">View Details →</a>
+      </div>
+      <div id="dept-bars"><!-- rendered by JS --></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script type="module" src="js/overviewPage.js"></script>
+</body>
+</html>
