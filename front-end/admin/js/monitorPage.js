@@ -9,6 +9,7 @@ import SessionModule from "./modules/session.js";
 import AlertsModule  from "./modules/alerts.js";
 import MonitorModule from "./modules/monitor.js";
 import { showToast, roleAllowed } from "./utils/utils.js";
+import { injectIcons } from "./utils/icons.js";
 
 /* ── BOOT ─────────────────────────────────────────── */
 
@@ -16,6 +17,9 @@ document.addEventListener("DOMContentLoaded", () => {
   window.EnerTrackDB = EnerTrackDB;
 
   SessionModule.initSession();
+
+  // Inject SVG Icons
+  injectIcons();
 
   // Render all monitor sections
   MonitorModule.renderSystemHealth("systemHealthContainer");

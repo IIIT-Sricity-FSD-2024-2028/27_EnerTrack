@@ -1,493 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EnerTrack Dashboard</title>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-<style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-}
-body{
-background:#f5f7f6;
-}
-/* layout */
-.layout{
-display:flex;
-min-height:100vh;
-}
-/* sidebar */
-.sidebar{
-width:260px;
-background:#D9E9CF;
-padding:24px 18px;
-display:flex;
-flex-direction:column;
-justify-content:space-between;
-}
-.logo{
-font-size:18px;
-font-weight:600;
-display:flex;
-align-items:center;
-gap:8px;
-margin-bottom:30px;
-cursor: pointer;
-}
-.logo img{
-width:22px;
-}
-.nav-title{
-font-size:13px;
-color:#4e5c4f;
-margin-bottom:10px;
-cursor: default;
-user-select: none;
-}
-.nav{
-list-style:none;
-display:flex;
-flex-direction:column;
-gap:8px;
-}
-.nav li{
-display:flex;
-align-items:center;
-gap:12px;
-padding:12px 14px;
-border-radius:8px;
-font-size:14px;
-cursor:pointer;
-transition:.2s;
-}
-.nav li:hover{
-background:rgba(0,0,0,0.05);
-}
-.nav li.active{
-background:#111;
-color:white;
-}
-/* profile */
-.profile{
-display:flex;
-align-items:center;
-gap:12px;
-background:white;
-padding:10px;
-border-radius:10px;
-cursor:pointer;
-transition:.2s;
-}
-.profile:hover{
-background:#f3f4f6;
-transform:translateY(-1px);
-box-shadow:0 4px 10px rgba(0,0,0,0.08);
-}
-.profile img{
-width:40px;
-height:40px;
-border-radius:50%;
-}
-.name{
-font-size:14px;
-font-weight:600;
-}
-.role{
-font-size:12px;
-color:#6b6b6b;
-}
-/* main */
-.main{
-flex:1;
-padding:40px;
-}
-/* variables */
-:root{
---card:#fff;
---muted:#6b7280;
---border:#e5e7eb;
---green-soft:#e8f7ee;
---yellow-soft:#fff6e5;
---red-soft:#fdeaea;
---shadow:0 1px 2px rgba(0,0,0,.04),0 4px 14px rgba(0,0,0,.04);
-}
-/* header */
-.header{
-display:flex;
-justify-content:space-between;
-margin-bottom:28px;
-cursor: default;
-user-select: none;
-}
-.title{
-font-size:28px;
-font-weight:600;
-}
-.subtitle{
-font-size:14px;
-color:var(--muted);
-margin-top:6px;
-}
-.header-actions{
-display:flex;
-gap:12px;
-align-items:center;
-}
-.badge{
-background:var(--green-soft);
-padding:6px 12px;
-border-radius:999px;
-font-size:13px;
-}
-/* button */
-.button{
-background:#111;
-color:white;
-padding:10px 18px;
-border-radius:8px;
-font-size:14px;
-cursor:pointer;
-transition:.2s;
-}
-.button:hover{
-background:#000;
-transform:translateY(-1px);
-box-shadow:0 4px 10px rgba(0,0,0,0.15);
-}
-/* cards */
-.cards{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:18px;
-margin-bottom:24px;
-cursor: default;
-user-select: none;
-}
-.card{
-background:var(--card);
-padding:20px;
-border-radius:12px;
-box-shadow:var(--shadow);
-border:1px solid var(--border);
-}
-.card-top{
-display:flex;
-justify-content:space-between;
-margin-bottom:12px;
-}
-.card-title{
-font-size:14px;
-color:var(--muted);
-cursor: default;
-user-select: none;
-}
-.icon{
-width:32px;
-height:32px;
-border-radius:8px;
-display:flex;
-align-items:center;
-justify-content:center;
-}
-.green{background:var(--green-soft);}
-.yellow{background:var(--yellow-soft);}
-.red{background:var(--red-soft);}
-.card-value{
-font-size:28px;
-font-weight:600;
-}
-.card-note{
-font-size:13px;
-color:var(--muted);
-}
-/* feed */
-.feed{
-background:var(--card);
-border-radius:12px;
-padding:20px;
-box-shadow:var(--shadow);
-border:1px solid var(--border);
-/* FIX cursor everywhere in right panel */
-cursor:default;
-}
-.feed-header,
-.feed-title,
-.feed-sub,
-.feed-item,
-.feed-content,
-.feed-title-text,
-.feed-desc,
-.feed-time{
-cursor:default;
-}
-.feed-header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:18px;
-}
-.feed-title{
-font-weight:600;
-}
-.feed-sub{
-font-size:13px;
-color:var(--muted);
-}
-/* live badge */
-.live-badge{
-background:var(--green-soft);
-padding:4px 10px;
-border-radius:999px;
-font-size:12px;
-display:inline-flex;
-align-items:center;
-height:26px;
-cursor:default;
-}
-/* feed items */
-.feed-item{
-display:flex;
-align-items:flex-start;
-gap:14px;
-padding:16px 0;
-border-top:1px solid var(--border);
-}
-.feed-item:first-child{
-border-top:none;
-}
-.feed-icon{
-width:34px;
-height:34px;
-border-radius:8px;
-display:flex;
-align-items:center;
-justify-content:center;
-cursor:default;
-}
-.feed-content{
-flex:1;
-}
-.feed-title-text{
-font-size:15px;
-font-weight:500;
-}
-.feed-desc{
-font-size:13px;
-color:var(--muted);
-margin-top:3px;
-}
-.feed-time{
-width:80px;
-text-align:right;
-font-size:12px;
-color:var(--muted);
-white-space:nowrap;
-}
-/* responsive */
-@media(max-width:900px){
-.cards{
-grid-template-columns:1fr 1fr;
-}
-}
-@media(max-width:600px){
-.cards{
-grid-template-columns:1fr;
-}
-.sidebar{
-display:none;
-}
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EnerTrack – Technician Overview</title>
+  <link rel="stylesheet" href="tech_shared.css">
+  <link rel="stylesheet" href="tech_overview.css">
+
 </head>
 <body>
 <div class="layout">
-<!-- sidebar -->
-<div class="sidebar">
-<div>
-<a href="../landing/landing_after.html" style="text-decoration: none; color: inherit;">
-<div class="logo">
-<img src="images/logo1.png">
-EnerTrack
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+      <a href="../landing/landing_after.html" class="logo">
+        <img src="images/logo1.png" alt="EnerTrack">
+        EnerTrack
+      </a>
+      <div class="nav-title">Navigation</div>
+      <ul class="nav">
+        <a href="technician_overview.html"><li class="active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Overview
+        </li></a>
+        <a href="technician_alerts.html"><li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M2 8c0-1.1.9-2 2-2" opacity="0.5"/><path d="M22 8a2 2 0 0 0-2-2" opacity="0.5"/></svg>
+          Real-Time Anomaly Alerts
+        </li></a>
+        <a href="technician_maintenance.html"><li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Fault Detection &amp; Diagnostics
+        </li></a>
+        <a href="technician_work_orders.html"><li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          Maintenance Work Orders
+        </li></a>
+      </ul>
+    </div>
+    <div class="profile">
+      <img src="https://i.pravatar.cc/40" alt="Marcus Reed">
+      <div>
+        <div class="profile-name">Marcus Reed</div>
+        <div class="profile-role">Lead Technician</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <div class="header-row">
+      <div class="page-header">
+        <h1>Welcome back, Marcus</h1>
+        <p>Monitor active field conditions, review the latest anomalies and faults, and jump directly into technician workflows that need action.</p>
+      </div>
+      <div class="header-actions">
+        <div class="header-badge">Shift updated 5 min ago</div>
+        <button class="btn btn-dark" id="btnOpenQueue">Open queue →</button>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon yellow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="stat-label">Active Alerts</div>
+        <div class="stat-value" id="statActiveAlerts">18</div>
+        <div class="stat-note">6 new in the last hour</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="stat-label">Open Faults</div>
+        <div class="stat-value" id="statOpenFaults">9</div>
+        <div class="stat-note">3 require immediate diagnosis</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+        </div>
+        <div class="stat-label">Pending Work Orders</div>
+        <div class="stat-value" id="statPendingWorkOrders">14</div>
+        <div class="stat-note">5 scheduled for this shift</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="stat-label">Resolved Today</div>
+        <div class="stat-value" id="statResolvedToday">27</div>
+        <div class="stat-note">Up 12% from yesterday</div>
+      </div>
+    </div>
+
+    <!-- LIVE ACTIVITY FEED -->
+    <div class="card">
+      <div class="feed-header">
+        <div>
+          <h2>Live activity feed</h2>
+          <small>Most recent anomalies, faults, and work order updates from the field.</small>
+        </div>
+        <div class="live-badge"><span class="dot pulse"></span> Live updates</div>
+      </div>
+      <div id="activityFeed">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+  </main>
 </div>
-</a>
-<div class="nav-title">Navigation</div>
-<ul class="nav">
-<a href="technician_overview.html" style="text-decoration: none; color: inherit;">
-<li class="active">
-<i class="fa-solid fa-table-cells-large"></i>
-Overview
-</li>
-</a>
-<a href="technician_alerts.html" style="text-decoration: none; color: inherit;">
-<li>
-<i class="fa-regular fa-bell"></i>
-Real-Time Anomaly Alerts
-</li>
-</a>
-<a href="technician_maintenance.html" style="text-decoration: none; color: inherit;">
-<li>
-<i class="fa-solid fa-wave-square"></i>
-Fault Detection & Diagnostics
-</li>
-</a>
-<a href="technician_work_orders.html" style="text-decoration: none; color: inherit;">
-<li>
-<i class="fa-regular fa-clipboard"></i>
-Maintenance Work Orders
-</li>
-</a>
-</ul>
-</div>
-<div class="profile">
-<img src="https://i.pravatar.cc/40">
-<div>
-<div class="name">Marcus Reed</div>
-<div class="role">Lead Technician</div>
-</div>
-</div>
-</div>
-<!-- main -->
-<div class="main">
-<div class="header">
-<div>
-<div class="title">Welcome back, Marcus</div>
-<div class="subtitle">
-Monitor active field conditions, review the latest anomalies and faults, and jump directly into technician workflows that need action.
-</div>
-</div>
-<div class="header-actions">
-<div class="badge">
-Shift updated 5 min ago
-</div>
-<div class="button">
-Open queue →
-</div>
-</div>
-</div>
-<!-- cards -->
-<div class="cards">
-<div class="card">
-<div class="card-top">
-<div class="card-title">Active Alerts</div>
-<div class="icon yellow">🔔</div>
-</div>
-<div class="card-value">18</div>
-<div class="card-note">6 new in the last hour</div>
-</div>
-<div class="card">
-<div class="card-top">
-<div class="card-title">Open Faults</div>
-<div class="icon red">⚠</div>
-</div>
-<div class="card-value">9</div>
-<div class="card-note">3 require immediate diagnosis</div>
-</div>
-<div class="card">
-<div class="card-top">
-<div class="card-title">Pending Work Orders</div>
-<div class="icon green">📋</div>
-</div>
-<div class="card-value">14</div>
-<div class="card-note">5 scheduled for this shift</div>
-</div>
-<div class="card">
-<div class="card-top">
-<div class="card-title">Resolved Today</div>
-<div class="icon green">✔</div>
-</div>
-<div class="card-value">27</div>
-<div class="card-note">Up 12% from yesterday</div>
-</div>
-</div>
-<!-- feed -->
-<div class="feed">
-<div class="feed-header">
-<div>
-<div class="feed-title">Live activity feed</div>
-<div class="feed-sub">
-Most recent anomalies, faults, and work order updates from the field.
-</div>
-</div>
-<div class="live-badge">
-Live updates
-</div>
-</div>
-<div class="feed-item">
-<div class="feed-icon yellow">💡</div>
-<div class="feed-content">
-<div class="feed-title-text">
-Anomaly detected on Compressor C-12
-</div>
-<div class="feed-desc">
-Temperature spike exceeded threshold for 3 consecutive cycles in Zone 4.
-</div>
-</div>
-<div class="feed-time">
-2 min ago
-</div>
-</div>
-<div class="feed-item">
-<div class="feed-icon red">📈</div>
-<div class="feed-content">
-<div class="feed-title-text">
-Fault #FD-204 escalated to diagnostics
-</div>
-<div class="feed-desc">
-Vibration pattern on Pump B-07 now matches bearing wear signature.
-</div>
-</div>
-<div class="feed-time">
-8 min ago
-</div>
-</div>
-<div class="feed-item">
-<div class="feed-icon green">📄</div>
-<div class="feed-content">
-<div class="feed-title-text">
-Work order WO-391 assigned
-</div>
-<div class="feed-desc">
-Inspection task created for cooling valve replacement.
-</div>
-</div>
-<div class="feed-time">
-16 min ago
-</div>
-</div>
-<div class="feed-item">
-<div class="feed-icon yellow">🌀</div>
-<div class="feed-content">
-<div class="feed-title-text">
-Pressure anomaly cleared
-</div>
-<div class="feed-desc">
-Sensor readings returned to normal range after reset.
-</div>
-</div>
-<div class="feed-time">
-24 min ago
-</div>
-</div>
-<div class="feed-item">
-<div class="feed-icon green">🔧</div>
-<div class="feed-content">
-<div class="feed-title-text">
-Work order WO-384 completed
-</div>
-<div class="feed-desc">
-Motor coupling alignment confirmed by technician.
-</div>
-</div>
-<div class="feed-time">
-37 min ago
-</div>
-</div>
-</div>
-</div>
-</div>
+
+<script type="module" src="js/overviewPage.js"></script>
 </body>
 </html>

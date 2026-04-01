@@ -172,12 +172,14 @@ body {
     font-weight: 600;
     color: #111827;
     margin-bottom: 4px;
+    text-align: center;
 }
 
 .section-desc {
     font-size: 14px;
     color: #8a95a2;
     margin-bottom: 24px;
+    text-align: center;
 }
 
 /* FORM CONTROLS */
@@ -250,10 +252,158 @@ body {
     margin: 40px 0;
 }
 
+/* CUSTOM SELECT */
+.custom-select {
+    position: relative;
+    width: 100%;
+}
+
+.select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 14px;
+    background: #f5f7f8;
+    border: 1px solid #d8dde2;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    font-size: 14px;
+    color: #374151;
+    transition: all 0.2s;
+}
+
+.select-trigger:hover {
+    border-color: #9ca3af;
+}
+
+.custom-select.open .select-trigger {
+    border-color: #0f9f6f;
+    box-shadow: 0 0 0 3px rgba(15, 159, 111, 0.1);
+}
+
+.select-value {
+    flex: 1;
+    font-weight: 500;
+}
+
+.select-chevron {
+    font-size: 12px;
+    color: #6b7280;
+    margin-left: 8px;
+    transition: transform 0.2s;
+}
+
+.custom-select.open .select-chevron {
+    transform: rotate(180deg);
+}
+
+.select-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #d8dde2;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+    z-index: 100;
+    overflow: hidden;
+    display: none;
+    padding: 6px;
+}
+
+.custom-select.open .select-menu {
+    display: block;
+    animation: slide-up 0.2s ease-out;
+}
+
+.select-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    color: #374151;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+}
+
+.select-option:hover {
+    background: #f3f4f6;
+}
+
+.select-option.selected {
+    background: #f0fdf4;
+    color: #065f46;
+    font-weight: 600;
+}
+
+.checkmark {
+    display: none;
+    font-size: 14px;
+    color: #0f9f6f;
+}
+
+.select-option.selected .checkmark {
+    display: block;
+}
+
+/* CALENDAR STYLES */
+.day-btn {
+    width: 100%;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #374151;
+    transition: all 0.15s;
+}
+
+.day-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+}
+
+.day-btn.selected {
+    background: #0f9f6f;
+    color: #fff;
+    font-weight: 600;
+}
+
+.day-btn.today {
+    color: #0f9f6f;
+    font-weight: 700;
+    border: 1px solid #0f9f6f;
+}
+
+.day-btn.muted {
+    color: #d1d5db;
+}
+
+@keyframes slide-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* PIPELINE VISUALIZATION */
 .pipeline-section {
     position: relative;
     padding: 20px 0;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 .pipeline-badge {
@@ -263,8 +413,8 @@ body {
     border-radius: 99px;
     font-size: 13px;
     font-weight: 600;
-    display: inline-block;
-    margin-bottom: 40px;
+    display: table;
+    margin: 0 auto 40px auto;
 }
 
 .pipeline-track {
@@ -275,11 +425,19 @@ body {
     padding: 0 10px;
 }
 
-.pipeline-line {
+.pipeline-progress {
     position: absolute;
     top: 24px;
     left: 60px;
     right: 60px;
+    height: 2px;
+}
+
+.pipeline-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 2px;
     background: #d8dde2;
     z-index: 1;
@@ -287,12 +445,13 @@ body {
 
 .pipeline-line-fill {
     position: absolute;
-    top: 24px;
-    left: 60px;
-    width: calc(48% - 60px);
+    top: 0;
+    left: 0;
+    width: 0; /* JS handled */
     height: 2px;
     background: #0f8f63;
     z-index: 2;
+    transition: width 0.3s ease; /* Animate the width smoothly */
 }
 
 .pipeline-step {
@@ -346,16 +505,29 @@ body {
 .btn-block-dark {
     display: block;
     width: 100%;
+    max-width: 420px;
+    margin: 40px auto 0;
     background: #111827;
     color: #ffffff;
     text-align: center;
     padding: 16px;
-    border-radius: 7px;
+    border-radius: 9px;
     font-size: 16px;
     font-weight: 600;
     text-decoration: none;
     border: none;
     cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-block-dark:hover {
+    background: #1f2937;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.btn-block-dark:active {
+    transform: translateY(0);
 }
 
 @media (max-width: 1080px) {

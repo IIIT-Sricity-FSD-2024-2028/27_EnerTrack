@@ -18,19 +18,19 @@
             
             <nav class="sidebar-nav">
                 <a href="sust_overview.html" class="nav-item active">
-                    <img src="images/overview_icon.png" alt="Overview">
+                    <span class="nav-icon" data-icon="overview"></span>
                     Overview
                 </a>
                 <a href="sust_monitoring.html" class="nav-item">
-                    <img src="images/environmental_impact_monitoring.png" alt="Monitoring">
+                    <span class="nav-icon" data-icon="monitoring"></span>
                     Environmental Impact Monitoring
                 </a>
                 <a href="sust_report.html" class="nav-item">
-                    <img src="images/Sustainability_reporting.png" alt="Reporting">
+                    <span class="nav-icon" data-icon="reporting"></span>
                     Sustainability Reporting
                 </a>
                 <a href="sust_initiatives.html" class="nav-item">
-                    <img src="images/sustainable_conservation_initiatives.png" alt="Initiatives">
+                    <span class="nav-icon" data-icon="initiatives"></span>
                     Sustainable Conservation Initiatives
                 </a>
             </nav>
@@ -73,33 +73,33 @@
                 <div class="metric-card">
                     <div class="metric-header">
                         <h3>Total Energy Consumed</h3>
-                        <img src="images/total_energy_consumed.png" alt="Energy" class="metric-icon">
+                        <span class="metric-icon" data-icon="energy"></span>
                     </div>
-                    <div class="metric-value">4.9 <small>GWh</small></div>
+                    <div class="metric-value" id="val-energy">4.9 <small>GWh</small></div>
                     <p class="metric-desc">3.2% lower than the previous month across all monitored facilities.</p>
                 </div>
                 <div class="metric-card">
                     <div class="metric-header">
                         <h3>Total Water Usage</h3>
-                        <img src="images/total_water_usage.png" alt="Water" class="metric-icon">
+                        <span class="metric-icon" data-icon="water"></span>
                     </div>
-                    <div class="metric-value">18.6 <small>ML</small></div>
+                    <div class="metric-value" id="val-water">18.6 <small>ML</small></div>
                     <p class="metric-desc">Consumption remains within quarterly conservation limits.</p>
                 </div>
                 <div class="metric-card">
                     <div class="metric-header">
                         <h3>Total Emissions</h3>
-                        <img src="images/total_emissions.png" alt="Emissions" class="metric-icon">
+                        <span class="metric-icon" data-icon="emissions"></span>
                     </div>
-                    <div class="metric-value">1,284 <small>tCO₂e</small></div>
+                    <div class="metric-value" id="val-emissions">1,284 <small>tCO₂e</small></div>
                     <p class="metric-desc">Down 6.8% versus the last reporting cycle after procurement changes.</p>
                 </div>
                 <div class="metric-card">
                     <div class="metric-header">
                         <h3>Active Conservation Initiatives</h3>
-                        <img src="images/active_conservation_initiatives.png" alt="Initiatives" class="metric-icon">
+                        <span class="metric-icon" data-icon="initiatives"></span>
                     </div>
-                    <div class="metric-value">18</div>
+                    <div class="metric-value" id="val-initiatives">18</div>
                     <p class="metric-desc">14 on track, 3 ahead of plan, and 1 awaiting stakeholder review.</p>
                 </div>
             </section>
@@ -172,22 +172,22 @@
                     <div class="quick-stats-grid">
                         <div class="stat-box">
                             <h4>Reporting sites</h4>
-                            <div class="stat-val">9 / 10</div>
+                            <div class="stat-val" id="stat-sites">9 / 10</div>
                             <div class="stat-desc">One campus data package is still pending validation.</div>
                         </div>
                         <div class="stat-box">
                             <h4>Alerts resolved</h4>
-                            <div class="stat-val">14</div>
+                            <div class="stat-val" id="stat-alerts">14</div>
                             <div class="stat-desc">Energy and water anomalies cleared by operations teams this week.</div>
                         </div>
                         <div class="stat-box">
                             <h4>Reduction progress</h4>
-                            <div class="stat-val">76%</div>
+                            <div class="stat-val" id="stat-progress">76%</div>
                             <div class="stat-desc">Annual emissions reduction target completion based on current pace.</div>
                         </div>
                         <div class="stat-box">
                             <h4>Next review</h4>
-                            <div class="stat-val">6 days</div>
+                            <div class="stat-val" id="stat-review">6 days</div>
                             <div class="stat-desc">Cross-functional sustainability checkpoint is due next week.</div>
                         </div>
                     </div>
@@ -217,6 +217,6 @@
 
         </main>
     </div>
-
+    <script type="module" src="js/overviewPage.js"></script>
 </body>
 </html>

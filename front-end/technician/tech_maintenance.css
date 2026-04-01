@@ -1,0 +1,191 @@
+/* tech_maintenance.css — Fault Detection & Diagnostics page styles */
+
+/* Alert selector grid */
+.alert-selector-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.alert-tile {
+  border: 2px solid var(--border);
+  border-radius: 9px;
+  padding: 14px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: all 0.18s;
+  position: relative;
+}
+
+.alert-tile:hover { border-color: #9ca3af; background: #f9fafb; }
+
+.alert-tile.active {
+  background: var(--green-soft);
+  border-color: var(--green-border);
+}
+
+.alert-tile-id {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--dark);
+  margin-bottom: 3px;
+}
+
+.alert-tile-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.alert-tile-meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.alert-tile .badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+/* Diagnostics workspace */
+.diagnostics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.small-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.small-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fafafa;
+  font-size: 13px;
+}
+
+.small-card b { display: block; margin-bottom: 8px; font-size: 13px; }
+
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--dark);
+}
+
+.data-row span:last-child { font-weight: 600; }
+
+.checklist {
+  margin-top: 12px;
+}
+
+.checklist li {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--dark);
+  list-style: none;
+}
+
+.check { color: #16a34a; font-weight: 700; }
+
+.greenbox {
+  background: var(--green-soft);
+  border: 1px solid var(--green-border);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 14px;
+  color: var(--dark);
+  margin-top: 12px;
+}
+
+.fault-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.fault-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  background: white;
+  font-size: 13px;
+}
+
+.fault-card b { display: block; margin-bottom: 6px; font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+
+.fault-tag {
+  display: inline-block;
+  background: var(--red-soft);
+  color: var(--badge-critical-text);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.repair-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.sub-card {
+  margin-top: 12px !important;
+}
+
+.sub-card .btn {
+  margin-top: 8px;
+}
+
+.result-box {
+  background: var(--green-soft);
+  border: 1px solid var(--green-border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.note-small {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .alert-selector-grid, .main-grid, .small-grid, .fault-grid, .repair-selector { grid-template-columns: 1fr; }
+}

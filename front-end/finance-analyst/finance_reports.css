@@ -557,28 +557,6 @@ tbody td {
   color: #374151;
 }
 
-/* ROLE BAR */
-.role-bar {
-  background: #0f172a;
-  color: white;
-  padding: 8px 18px;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-}
-
-.role-bar select {
-  background: #1f2937;
-  color: white;
-  border: 1px solid #374151;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-}
+/* UTILITIES */
+.mt-20 { margin-top: 20px; }
+.mb-20 { margin-bottom: 20px; }

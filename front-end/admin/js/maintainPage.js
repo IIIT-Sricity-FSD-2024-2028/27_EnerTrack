@@ -10,6 +10,7 @@ import AlertsModule  from "./modules/alerts.js";
 import BackupsModule from "./modules/backups.js";
 import UpdatesModule from "./modules/updates.js";
 import { showToast, openModal, roleAllowed, badgeHTML } from "./utils/utils.js";
+import { injectIcons } from "./utils/icons.js";
 
 /* ── BOOT ─────────────────────────────────────────── */
 
@@ -17,6 +18,9 @@ document.addEventListener("DOMContentLoaded", () => {
   window.EnerTrackDB = EnerTrackDB;
 
   SessionModule.initSession();
+
+  // Inject SVG Icons
+  injectIcons();
 
   // Render all dynamic sections
   BackupsModule.renderBackupJobs("backupJobsContainer");

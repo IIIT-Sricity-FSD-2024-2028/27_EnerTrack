@@ -10,6 +10,7 @@ import AlertsModule   from "./modules/alerts.js";
 import BackupsModule  from "./modules/backups.js";
 import UpdatesModule  from "./modules/updates.js";
 import { showToast, roleAllowed } from "./utils/utils.js";
+import { injectIcons } from "./utils/icons.js";
 
 /* ── BOOT ─────────────────────────────────────────── */
 
@@ -20,7 +21,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2. Session
   SessionModule.initSession();
 
-  // 3. Render live data sections
+  // 3. Inject SVG Icons
+  injectIcons();
+
+  // 4. Render live data sections
   AlertsModule.renderAlerts("alertContainer");
   UpdatesModule.renderOverviewUpdates("overviewUpdatesContainer");
 

@@ -18,19 +18,19 @@
             
             <nav class="sidebar-nav">
                 <a href="sust_overview.html" class="nav-item">
-                    <img src="images/overview_icon.png" alt="Overview">
+                    <span class="nav-icon" data-icon="overview"></span>
                     Overview
                 </a>
                 <a href="sust_monitoring.html" class="nav-item active">
-                    <img src="images/environmental_impact_monitoring.png" alt="Monitoring">
+                    <span class="nav-icon" data-icon="monitoring"></span>
                     Environmental Impact Monitoring
                 </a>
                 <a href="sust_report.html" class="nav-item">
-                    <img src="images/Sustainability_reporting.png" alt="Reporting">
+                    <span class="nav-icon" data-icon="reporting"></span>
                     Sustainability Reporting
                 </a>
                 <a href="sust_initiatives.html" class="nav-item">
-                    <img src="images/sustainable_conservation_initiatives.png" alt="Initiatives">
+                    <span class="nav-icon" data-icon="initiatives"></span>
                     Sustainable Conservation Initiatives
                 </a>
             </nav>
@@ -65,25 +65,15 @@
         <main class="main-content">
             <header class="page-header">
                 <h1>Environmental Impact Monitoring</h1>
-                <div class="header-actions">
-                    <button class="btn-white">
-                        <img src="images/last_30days.png" alt="Calendar" width="16">
-                        Last 30 Days
-                    </button>
-                    <button class="btn-dark">
-                        <img src="images/view_metricsandtrends.png" alt="Chart" width="16">
-                        View Metrics & Trends
-                    </button>
-                </div>
             </header>
 
             <!-- DATA CYCLE BAR -->
             <div class="data-cycle-bar">
                 <div class="cycle-badge">
                     <div class="sync-dot"></div>
-                    Data Collection Cycle: Active
+                    Data Collection Cycle: <span id="syncStatus">Active</span>
                 </div>
-                <div class="sync-time">Last sync: Today, 10:42 AM</div>
+                <div class="sync-time">Last sync: <span id="lastSyncLabel">Today, 10:42 AM</span></div>
             </div>
 
             <!-- METRICS ROW -->
@@ -92,35 +82,35 @@
                     <div class="metric-header">
                         <div>
                             <h3>Energy Consumption</h3>
-                            <p>Latest collected electricity and gas usage across monitored sites.</p>
+                            <p>Current electricity and gas usage across all monitors.</p>
                         </div>
-                        <button class="btn-refresh"><img src="images/updated.png" width="12"> Updated</button>
+                        <button class="btn-refresh" data-metric="energy"><span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="compile"></span> Updated</button>
                     </div>
-                    <div class="metric-val">812 <small>MWh</small></div>
-                    <div class="metric-footer">Upstream feeds completed for 24 of 24 monitored meters in the current cycle.</div>
+                    <div class="metric-val"><span id="metricEnergy">812</span> <small>MWh</small></div>
+                    <div class="metric-footer">Upstream feeds completed for 24 of 24 monitored meters in current cycle.</div>
                 </div>
                 
                 <div class="metric-card">
                     <div class="metric-header">
                         <div>
                             <h3>Water Usage</h3>
-                            <p>Aggregated water intake and consumption from facilities and process lines.</p>
+                            <p>Aggregated water intake from facilities and process lines.</p>
                         </div>
-                        <button class="btn-refresh"><img src="images/updated.png" width="12"> Updated</button>
+                        <button class="btn-refresh" data-metric="water"><span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="compile"></span> Updated</button>
                     </div>
-                    <div class="metric-val">3.6 <small>ML</small></div>
-                    <div class="metric-footer">Two building clusters posted below-average demand after weekend optimization changes.</div>
+                    <div class="metric-val"><span id="metricWater">3.6</span> <small>ML</small></div>
+                    <div class="metric-footer">Building clusters posted below-average demand after optimization changes.</div>
                 </div>
                 
                 <div class="metric-card">
                     <div class="metric-header">
                         <div>
                             <h3>Emissions Data</h3>
-                            <p>Calculated emissions feed using current usage values and validated factors.</p>
+                            <p>Calculated emissions feed using current validated factors.</p>
                         </div>
-                        <button class="btn-refresh"><img src="images/updated.png" width="12"> Updated</button>
+                        <button class="btn-refresh" data-metric="emissions"><span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="compile"></span> Updated</button>
                     </div>
-                    <div class="metric-val">214 <small>tCO₂e</small></div>
+                    <div class="metric-val"><span id="metricEmissions">214</span> <small>tCO₂e</small></div>
                     <div class="metric-footer">Emission factor tables were verified during the latest reporting rules sync.</div>
                 </div>
             </section>
@@ -132,37 +122,39 @@
                     <p>Live visibility into the environmental monitoring workflow from raw collection through dashboard refresh.</p>
                 </div>
                 
-                <div class="pipeline-steps">
-                    <div class="pipeline-line"></div>
-                    <div class="pipeline-line-fill"></div>
+                <div class="pipeline-steps" id="monitoringPipeline">
+                    <div class="pipeline-progress">
+                        <div class="pipeline-line"></div>
+                        <div class="pipeline-line-fill" id="pipelineFill"></div>
+                    </div>
                     
-                    <div class="step">
+                    <div class="step" data-step="1">
                         <div class="step-icon active">
-                            <img src="images/collect.png" alt="Collect">
+                            <span data-icon="collect"></span>
                         </div>
                         <h4>Collect</h4>
                     </div>
-                    <div class="step">
+                    <div class="step" data-step="2">
                         <div class="step-icon active">
-                            <img src="images/aggregate.png" alt="Aggregate">
+                            <span data-icon="modeling"></span>
                         </div>
                         <h4>Aggregate</h4>
                     </div>
-                    <div class="step">
+                    <div class="step" data-step="3">
                         <div class="step-icon active">
-                            <img src="images/calculate_metrics.png" alt="Calculate">
+                            <span data-icon="calculation"></span>
                         </div>
                         <h4>Calculate Metrics</h4>
                     </div>
-                    <div class="step">
+                    <div class="step" data-step="4">
                         <div class="step-icon">
-                            <img src="images/trend_analysis.png" alt="Trend Analysis">
+                            <span data-icon="search"></span>
                         </div>
                         <h4>Trend Analysis</h4>
                     </div>
-                    <div class="step">
+                    <div class="step" data-step="5">
                         <div class="step-icon">
-                            <img src="images/update_dashboard.png" alt="Dashboard">
+                            <span data-icon="sync"></span>
                         </div>
                         <h4>Update Dashboard</h4>
                     </div>
@@ -184,7 +176,7 @@
                             </div>
                             <div class="mini-val">
                                 12.4 kWh/m²
-                                <span class="trend-down">↓ 4.3%</span>
+                                <span class="trend-down"><svg width="10" height="10" style="vertical-align:middle;margin-right:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> 4.3%</span>
                             </div>
                             <div class="mini-desc">Lower intensity than last month, indicating improved operating efficiency.</div>
                         </div>
@@ -196,7 +188,7 @@
                             </div>
                             <div class="mini-val">
                                 0.84 m³/unit
-                                <span class="trend-down">↓ 2.1%</span>
+                                <span class="trend-down"><svg width="10" height="10" style="vertical-align:middle;margin-right:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> 2.1%</span>
                             </div>
                             <div class="mini-desc">Usage per unit output is improving after recent conservation controls were enabled.</div>
                         </div>
@@ -208,7 +200,7 @@
                             </div>
                             <div class="mini-val">
                                 0.26 tCO₂e/MWh
-                                <span class="trend-down">↓ 6.8%</span>
+                                <span class="trend-down"><svg width="10" height="10" style="vertical-align:middle;margin-right:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> 6.8%</span>
                             </div>
                             <div class="mini-desc">Cleaner energy sourcing continues to lower emissions per consumption unit.</div>
                         </div>
@@ -220,7 +212,7 @@
                             </div>
                             <div class="mini-val">
                                 3.9%
-                                <span class="trend-up">↑ 0.7%</span>
+                                <span class="trend-up"><svg width="10" height="10" style="vertical-align:middle;margin-right:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> 0.7%</span>
                             </div>
                             <div class="mini-desc">A slight rise in flagged anomalies requires manual review in two buildings.</div>
                         </div>
@@ -232,14 +224,14 @@
                     <h2>View Metrics & Trends</h2>
                     <p class="sub">Filter chart views by date range and inspect time-based changes across all core indicators.</p>
                     
-                    <div class="pill-nav">
-                        <div class="pill-item active">30 Days</div>
-                        <div class="pill-item">Quarter</div>
-                        <div class="pill-item">Year</div>
+                    <div class="pill-nav" id="trendPeriodSelector">
+                        <div class="pill-item active" data-period="30 Days">30 Days</div>
+                        <div class="pill-item" data-period="Quarter">Quarter</div>
+                        <div class="pill-item" data-period="Year">Year</div>
                     </div>
                     
                     <!-- Chart Placeholder -->
-                    <div class="view-chart-container">
+                    <div class="view-chart-container" id="trendsChart">
                         <div class="chart-group">
                             <div class="bar c1" style="height: 60px;"></div>
                             <div class="bar c2" style="height: 48px;"></div>
@@ -283,20 +275,21 @@
                     <p>The system will automatically trigger the next collection cycle when new meter or utility data is detected. Use manual override if you need to force the next run immediately.</p>
                 </div>
                 <div class="action-btns">
-                    <button class="btn-outline">
-                        <img src="images/manual_override.png" width="14" style="vertical-align: middle; margin-right: 4px;">
+                    <button class="btn-outline" id="btnManualOverride">
+                        <span style="display:inline-flex;width:14px;height:14px;margin-right:6px;" data-icon="compile"></span>
                         Manual Override
                     </button>
-                    <button class="btn-green">
-                        <img src="images/next_cycle_qued.png" width="14" style="vertical-align: middle; margin-right: 4px;">
-                        Next Cycle Queued
+                    <button class="btn-green" id="btnForceRun">
+                        <span style="display:inline-flex;width:14px;height:14px;margin-right:6px;" data-icon="sync"></span>
+                        Run Sync Cycle
                     </button>
                 </div>
             </section>
 
         </main>
     </div>
-
+    <script type="module" src="js/monitoringPage.js"></script>
 </body>
 </html>
+
 

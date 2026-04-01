@@ -6,13 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Monitor - EnerTrack</title>
     <link rel="stylesheet" href="admin_monitor.css">
-    <!-- CHANGED: Linked sustainability CSS files so inline sustainability content renders correctly.
-         These were previously loaded inside their own pages via iframe; now embedded inline. -->
-    <link rel="stylesheet" href="../sustainability_officer/sust_shared.css">
-    <link rel="stylesheet" href="../sustainability_officer/sust_overview.css">
-    <link rel="stylesheet" href="../sustainability_officer/sust_monitor.css">
-    <link rel="stylesheet" href="../sustainability_officer/sust_report.css">
-    <link rel="stylesheet" href="../sustainability_officer/sust_initiatives.css">
+    <link rel="stylesheet" href="admin_icons.css">
     <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
         rel="stylesheet">
 </head>
@@ -27,22 +21,20 @@
                 <img class="logo-text" src="images/EnerTrack_text.png" alt="EnerTrack">
             </a>
 
-            <!-- CHANGED: Sidebar nav split into SYSTEM TASKS and SUSTAINABILITY TASKS.
-                 Sustainability links use data-target to toggle inline content sections via JS.
-                 The active page (Monitoring) uses data-target="adminContent" to restore its own content. -->
             <nav class="sidebar-nav">
-
                 <div class="nav-section">
                     <span class="nav-section-title nav-heading">SYSTEM TASKS</span>
                     <div class="nav-group">
                         <a href="admin_overview.html" class="nav-subitem" id="nav-overview">
-                            <img src="images/maintenance_overview_unselected.png">
+                            <span data-icon="overview" class="subitem-icon"></span>
                             Overview
                         </a>
-                        <a href="#" class="nav-subitem active-subitem" id="nav-monitoring" data-target="adminContent">
+                        <a href="admin_monitor.html" class="nav-subitem active-subitem" id="nav-monitoring">
+                            <span data-icon="monitor" class="subitem-icon"></span>
                             Monitoring
                         </a>
                         <a href="admin_maintain.html" class="nav-subitem" id="nav-maintenance">
+                            <span data-icon="system" class="subitem-icon"></span>
                             Maintenance
                         </a>
                     </div>
@@ -51,21 +43,24 @@
                 <div class="nav-section">
                     <span class="nav-section-title nav-heading">SUSTAINABILITY TASKS</span>
                     <div class="nav-group">
-                        <a href="#" class="nav-subitem sust-link" data-target="sustOverview" id="nav-sust-overview">
+                        <a href="../sustainability_officer/sust_overview.html" class="nav-subitem">
+                            <span data-icon="overview" class="subitem-icon"></span>
                             Overview
                         </a>
-                        <a href="#" class="nav-subitem sust-link" data-target="sustMonitoring" id="nav-sust-monitoring">
+                        <a href="../sustainability_officer/sust_monitoring.html" class="nav-subitem">
+                            <span data-icon="monitor" class="subitem-icon"></span>
                             Environmental Monitoring
                         </a>
-                        <a href="#" class="nav-subitem sust-link" data-target="sustReporting" id="nav-sust-reporting">
+                        <a href="../sustainability_officer/sust_report.html" class="nav-subitem">
+                            <span data-icon="summary" class="subitem-icon"></span>
                             Sustainability Reporting
                         </a>
-                        <a href="#" class="nav-subitem sust-link" data-target="sustInitiatives" id="nav-sust-initiatives">
-                            Sustainable Conservation Initiatives
+                        <a href="../sustainability_officer/sust_initiatives.html" class="nav-subitem">
+                            <span data-icon="troubleshooting" class="subitem-icon"></span>
+                            Sustainable Initiatives
                         </a>
                     </div>
                 </div>
-
             </nav>
 
             <a href="#" class="profile-card">
@@ -77,24 +72,23 @@
             </a>
         </aside>
 
-        <!-- ADMIN MONITORING CONTENT (default visible section)
-             CHANGED: Added "sust-content-section" class and "adminContent" id for JS toggle. -->
-        <main class="main-content sust-content-section" id="adminContent">
+        <!-- ADMIN MONITORING CONTENT -->
+        <main class="main-content" id="adminContent">
             <header class="page-header">
+                <h1>Live Monitoring</h1>
                 <p>Live monitoring: last refresh 5s ago • Auto-refresh every 30s</p>
             </header>
 
             <div class="content-grid-monitor">
-
                 <!-- System Health Snapshot -->
                 <div class="panel">
                     <div class="panel-header">
                         <div class="panel-title">
-                            <img src="images/monitoring_green_system_health.png" alt="System Health Snapshot">
+                            <span data-icon="success" class="text-success"></span>
                             System health snapshot
                         </div>
                         <button class="btn-secondary clickable" onclick="refreshMonitor()">
-                            <img src="images/monitoring_refresh.png" alt="Manual Refresh">
+                            <span data-icon="system" style="width:14px;height:14px;margin-right:2px;"></span>
                             Manual refresh
                         </button>
                     </div>
@@ -140,7 +134,7 @@
                 <div class="panel">
                     <div class="panel-header">
                         <div class="panel-title">
-                            <img src="images/monitor_bell.png" alt="Active Alerts">
+                            <span data-icon="alert"></span>
                             Active alerts
                         </div>
                     </div>
@@ -153,8 +147,7 @@
                         <p class="desc">p95 > 250 ms for 5 minutes</p>
                         <div class="alert-meta-box">
                             <span class="time">04:22</span>
-                            <span class="details">Triggered in region eu-west-1 • Investigate provider status
-                                page.</span>
+                            <span class="details">Triggered in region eu-west-1 • Investigate provider status page.</span>
                         </div>
                     </div>
 
@@ -166,31 +159,27 @@
                         <p class="desc">High-priority jobs pending > 1k</p>
                         <div class="alert-meta-box">
                             <span class="time">04:28</span>
-                            <span class="details">Throughput recovering after spike • Monitor for next 10
-                                minutes.</span>
+                            <span class="details">Throughput recovering after spike • Monitor for next 10 minutes.</span>
                         </div>
                     </div>
 
                     <div class="status-card">
                         <div class="status-header">
                             <h4>Error budget</h4>
-                            <span class="badge badge-success-outline"
-                                style="background-color:darkgreen;color:white">Within
-                                SLO</span>
+                            <span class="badge badge-success-outline" style="background-color:darkgreen;color:white">Within SLO</span>
                         </div>
                         <div class="status-footer">
                             <span>SLO: 99.9% • Current: 99.93%</span>
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- Performance Metrics (Bottom) -->
+            <!-- Performance Metrics -->
             <div class="panel mt-24">
                 <div class="panel-header">
                     <div class="panel-title">
-                        <img src="images/monitoring_perf.png" alt="Performance Metrics">
+                        <span data-icon="metric"></span>
                         Performance metrics
                     </div>
                 </div>
@@ -222,313 +211,13 @@
                         <span class="muted">Error rate: 0.04%</span>
                     </div>
                 </div>
-
             </div>
         </main>
 
-        <!-- ============================================================ -->
-        <!-- SUSTAINABILITY OVERVIEW (hidden by default) -->
-        <!-- ============================================================ -->
-        <div class="main-content sust-content-section" id="sustOverview" style="display:none;">
-            <header class="page-header">
-                <h1>Welcome back, Maya</h1>
-                <p>Monitor resource usage, review environmental trends, and jump into reporting and initiative planning from one sustainability workspace.</p>
-            </header>
-
-            <section class="top-metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-header"><h3>Total Energy Consumed</h3><img src="../sustainability_officer/images/total_energy_consumed.png" alt="Energy" class="metric-icon"></div>
-                    <div class="metric-value">4.9 <small>GWh</small></div>
-                    <p class="metric-desc">3.2% lower than the previous month across all monitored facilities.</p>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-header"><h3>Total Water Usage</h3><img src="../sustainability_officer/images/total_water_usage.png" alt="Water" class="metric-icon"></div>
-                    <div class="metric-value">18.6 <small>ML</small></div>
-                    <p class="metric-desc">Consumption remains within quarterly conservation limits.</p>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-header"><h3>Total Emissions</h3><img src="../sustainability_officer/images/total_emissions.png" alt="Emissions" class="metric-icon"></div>
-                    <div class="metric-value">1,284 <small>tCO₂e</small></div>
-                    <p class="metric-desc">Down 6.8% versus the last reporting cycle after procurement changes.</p>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-header"><h3>Active Conservation Initiatives</h3><img src="../sustainability_officer/images/active_conservation_initiatives.png" alt="Initiatives" class="metric-icon"></div>
-                    <div class="metric-value">18</div>
-                    <p class="metric-desc">14 on track, 3 ahead of plan, and 1 awaiting stakeholder review.</p>
-                </div>
-            </section>
-
-            <section class="middle-grid">
-                <div class="panel">
-                    <div class="panel-header">
-                        <div><h2 class="panel-title">Environmental trends</h2><p class="panel-subtitle">A quick monthly view of the core environmental indicators used in ongoing monitoring.</p></div>
-                        <span class="badge-positive">Positive trend</span>
-                    </div>
-                    <div class="chart-container">
-                        <div class="chart-group"><div class="bar energy" style="height: 60%;"></div><div class="bar water" style="height: 40%;"></div><div class="bar emissions" style="height: 50%;"></div></div>
-                        <div class="chart-group"><div class="bar energy" style="height: 70%;"></div><div class="bar water" style="height: 45%;"></div><div class="bar emissions" style="height: 45%;"></div></div>
-                        <div class="chart-group"><div class="bar energy" style="height: 55%;"></div><div class="bar water" style="height: 38%;"></div><div class="bar emissions" style="height: 42%;"></div></div>
-                        <div class="chart-group"><div class="bar energy" style="height: 50%;"></div><div class="bar water" style="height: 35%;"></div><div class="bar emissions" style="height: 40%;"></div></div>
-                        <div class="chart-group"><div class="bar energy" style="height: 55%;"></div><div class="bar water" style="height: 42%;"></div><div class="bar emissions" style="height: 48%;"></div></div>
-                        <div class="chart-group"><div class="bar energy" style="height: 48%;"></div><div class="bar water" style="height: 38%;"></div><div class="bar emissions" style="height: 42%;"></div></div>
-                    </div>
-                    <div class="chart-labels"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span></div>
-                    <div class="chart-legend">
-                        <div class="legend-item"><div class="legend-dot" style="background: #2bd189;"></div>Energy</div>
-                        <div class="legend-item"><div class="legend-dot" style="background: #2e89ff;"></div>Water</div>
-                        <div class="legend-item"><div class="legend-dot" style="background: #d5d68d;"></div>Emissions</div>
-                    </div>
-                </div>
-                <div class="panel">
-                    <h2 class="panel-title" style="margin-bottom: 8px;">Quick stats</h2>
-                    <p class="panel-subtitle">Current operational signals from the latest sustainability review window.</p>
-                    <div class="quick-stats-grid">
-                        <div class="stat-box"><h4>Reporting sites</h4><div class="stat-val">9 / 10</div><div class="stat-desc">One campus data package is still pending validation.</div></div>
-                        <div class="stat-box"><h4>Alerts resolved</h4><div class="stat-val">14</div><div class="stat-desc">Energy and water anomalies cleared by operations teams this week.</div></div>
-                        <div class="stat-box"><h4>Reduction progress</h4><div class="stat-val">76%</div><div class="stat-desc">Annual emissions reduction target completion based on current pace.</div></div>
-                        <div class="stat-box"><h4>Next review</h4><div class="stat-val">6 days</div><div class="stat-desc">Cross-functional sustainability checkpoint is due next week.</div></div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="panel">
-                <h2 class="panel-title" style="margin-bottom: 4px;">Recent highlights</h2>
-                <p class="panel-subtitle">Important updates affecting current environmental performance and initiative planning.</p>
-                <div class="highlights-list">
-                    <div class="highlight-item"><h4>Campus East reduced peak energy demand</h4><p>HVAC scheduling updates lowered evening electricity usage by 5.4% over the last two weeks.</p></div>
-                    <div class="highlight-item"><h4>Water efficiency project moved to rollout</h4><p>The smart meter retrofit initiative is now approved for three high-consumption buildings.</p></div>
-                    <div class="highlight-item"><h4>Reporting readiness improved</h4><p>All emissions factors are verified, leaving only one campus dataset pending before submission.</p></div>
-                </div>
-            </section>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- SUSTAINABILITY MONITORING (hidden by default) -->
-        <!-- ============================================================ -->
-        <div class="main-content sust-content-section" id="sustMonitoring" style="display:none;">
-            <header class="page-header">
-                <h1>Environmental Impact Monitoring</h1>
-                <div class="header-actions">
-                    <button class="btn-white"><img src="../sustainability_officer/images/last_30days.png" alt="Calendar" width="16">Last 30 Days</button>
-                    <button class="btn-dark"><img src="../sustainability_officer/images/view_metricsandtrends.png" alt="Chart" width="16">View Metrics &amp; Trends</button>
-                </div>
-            </header>
-            <div class="data-cycle-bar"><div class="cycle-badge"><div class="sync-dot"></div>Data Collection Cycle: Active</div><div class="sync-time">Last sync: Today, 10:42 AM</div></div>
-            <section class="metrics-row">
-                <div class="metric-card"><div class="metric-header"><div><h3>Energy Consumption</h3><p>Latest collected electricity and gas usage across monitored sites.</p></div><button class="btn-refresh"><img src="../sustainability_officer/images/updated.png" width="12"> Updated</button></div><div class="metric-val">812 <small>MWh</small></div><div class="metric-footer">Upstream feeds completed for 24 of 24 monitored meters in the current cycle.</div></div>
-                <div class="metric-card"><div class="metric-header"><div><h3>Water Usage</h3><p>Aggregated water intake and consumption from facilities and process lines.</p></div><button class="btn-refresh"><img src="../sustainability_officer/images/updated.png" width="12"> Updated</button></div><div class="metric-val">3.6 <small>ML</small></div><div class="metric-footer">Two building clusters posted below-average demand after weekend optimization changes.</div></div>
-                <div class="metric-card"><div class="metric-header"><div><h3>Emissions Data</h3><p>Calculated emissions feed using current usage values and validated factors.</p></div><button class="btn-refresh"><img src="../sustainability_officer/images/updated.png" width="12"> Updated</button></div><div class="metric-val">214 <small>tCO₂e</small></div><div class="metric-footer">Emission factor tables were verified during the latest reporting rules sync.</div></div>
-            </section>
-            <section class="pipeline-panel">
-                <div class="pipeline-header"><h2>Data pipeline</h2><p>Live visibility into the environmental monitoring workflow from raw collection through dashboard refresh.</p></div>
-                <div class="pipeline-steps">
-                    <div class="pipeline-line"></div><div class="pipeline-line-fill"></div>
-                    <div class="step"><div class="step-icon active"><img src="../sustainability_officer/images/collect.png" alt="Collect"></div><h4>Collect</h4></div>
-                    <div class="step"><div class="step-icon active"><img src="../sustainability_officer/images/aggregate.png" alt="Aggregate"></div><h4>Aggregate</h4></div>
-                    <div class="step"><div class="step-icon active"><img src="../sustainability_officer/images/calculate_metrics.png" alt="Calculate"></div><h4>Calculate Metrics</h4></div>
-                    <div class="step"><div class="step-icon"><img src="../sustainability_officer/images/trend_analysis.png" alt="Trend Analysis"></div><h4>Trend Analysis</h4></div>
-                    <div class="step"><div class="step-icon"><img src="../sustainability_officer/images/update_dashboard.png" alt="Dashboard"></div><h4>Update Dashboard</h4></div>
-                </div>
-            </section>
-            <section class="split-grid">
-                <div class="dashboard-panel">
-                    <h2>Environmental metrics dashboard</h2>
-                    <p class="sub">Calculated impact indicators with directional signals to highlight improvement or deterioration.</p>
-                    <div class="mini-metrics">
-                        <div class="mini-box"><div class="mini-header"><h4>Energy Intensity</h4><img src="../sustainability_officer/images/total_energy_consumed.png" width="16" style="opacity:0.5;"></div><div class="mini-val">12.4 kWh/m²<span class="trend-down">↓ 4.3%</span></div><div class="mini-desc">Lower intensity than last month, indicating improved operating efficiency.</div></div>
-                        <div class="mini-box"><div class="mini-header"><h4>Water Intensity</h4><img src="../sustainability_officer/images/total_water_usage.png" width="16" style="opacity:0.5;"></div><div class="mini-val">0.84 m³/unit<span class="trend-down">↓ 2.1%</span></div><div class="mini-desc">Usage per unit output is improving after recent conservation controls were enabled.</div></div>
-                        <div class="mini-box"><div class="mini-header"><h4>Emissions Intensity</h4><img src="../sustainability_officer/images/total_emissions.png" width="16" style="opacity:0.5;"></div><div class="mini-val">0.26 tCO₂e/MWh<span class="trend-down">↓ 6.8%</span></div><div class="mini-desc">Cleaner energy sourcing continues to lower emissions per consumption unit.</div></div>
-                        <div class="mini-box"><div class="mini-header"><h4>Exception Rate</h4><img src="../sustainability_officer/images/exception_rate.png" width="16" style="opacity:0.5;"></div><div class="mini-val">3.9%<span class="trend-up">↑ 0.7%</span></div><div class="mini-desc">A slight rise in flagged anomalies requires manual review in two buildings.</div></div>
-                    </div>
-                </div>
-                <div class="dashboard-panel">
-                    <h2>View Metrics &amp; Trends</h2>
-                    <p class="sub">Filter chart views by date range and inspect time-based changes across all core indicators.</p>
-                    <div class="pill-nav"><div class="pill-item active">30 Days</div><div class="pill-item">Quarter</div><div class="pill-item">Year</div></div>
-                    <div class="view-chart-container">
-                        <div class="chart-group"><div class="bar c1" style="height: 60px;"></div><div class="bar c2" style="height: 48px;"></div><div class="bar c3" style="height: 55px;"></div></div>
-                        <div class="chart-group"><div class="bar c1" style="height: 75px;"></div><div class="bar c2" style="height: 52px;"></div><div class="bar c3" style="height: 60px;"></div></div>
-                        <div class="chart-group"><div class="bar c1" style="height: 68px;"></div><div class="bar c2" style="height: 45px;"></div><div class="bar c3" style="height: 50px;"></div></div>
-                        <div class="chart-group"><div class="bar c1" style="height: 65px;"></div><div class="bar c2" style="height: 48px;"></div><div class="bar c3" style="height: 52px;"></div></div>
-                    </div>
-                    <div class="chart-labels"><span>Week 1</span><span>Week 2</span><span>Week 3</span><span>Week 4</span></div>
-                    <div class="chart-legend">
-                        <div class="legend-item"><div class="legend-dot" style="background:#2bd189;"></div>Energy</div>
-                        <div class="legend-item"><div class="legend-dot" style="background:#2e89ff;"></div>Water</div>
-                        <div class="legend-item"><div class="legend-dot" style="background:#d5d68d;"></div>Emissions</div>
-                    </div>
-                </div>
-            </section>
-            <section class="action-bar">
-                <div class="action-bar-text"><h4>More data to be collected?</h4><p>The system will automatically trigger the next collection cycle when new meter or utility data is detected. Use manual override if you need to force the next run immediately.</p></div>
-                <div class="action-btns">
-                    <button class="btn-outline"><img src="../sustainability_officer/images/manual_override.png" width="14" style="vertical-align: middle; margin-right: 4px;">Manual Override</button>
-                    <button class="btn-green"><img src="../sustainability_officer/images/next_cycle_qued.png" width="14" style="vertical-align: middle; margin-right: 4px;">Next Cycle Queued</button>
-                </div>
-            </section>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- SUSTAINABILITY REPORTING (hidden by default) -->
-        <!-- ============================================================ -->
-        <div class="main-content sust-content-section" id="sustReporting" style="display:none;">
-            <header class="page-header"><h1>Sustainability Reporting</h1><p>Choose a reporting period, run the reporting pipeline, review the compiled output, handle exceptions, and export approved sustainability reports for stakeholders.</p></header>
-            <section class="report-panel">
-                <h3 class="section-title">Report configuration</h3>
-                <p class="section-desc">Define the report type and date window before generating the compiled sustainability report.</p>
-                <label class="form-label">Report type</label>
-                <div class="type-pills"><div class="type-pill active">Yearly</div><div class="type-pill">Quarterly</div><div class="type-pill">Monthly</div><div class="type-pill">Custom</div></div>
-                <div class="form-grid">
-                    <div class="input-group"><label class="form-label">Year</label><select class="form-select"><option>2025</option><option>2024</option></select></div>
-                    <div class="input-group"><label class="form-label">Quarter</label><select class="form-select"><option>Q2</option><option>Q1</option></select></div>
-                    <div class="input-group"><label class="form-label">Month</label><select class="form-select"><option>May</option><option>April</option></select></div>
-                    <div class="input-group"><label class="form-label">Custom range</label><input type="text" class="form-input" value="01 May 2025 - 31 May 2025"></div>
-                </div>
-                <div class="divider"></div>
-                <h3 class="section-title">Reporting pipeline</h3>
-                <p class="section-desc">Progress from source retrieval to final report compilation.</p>
-                <div class="pipeline-badge">3 steps</div>
-                <div class="pipeline-section">
-                    <div class="pipeline-line"></div><div class="pipeline-line-fill"></div>
-                    <div class="pipeline-track">
-                        <div class="pipeline-step active"><div class="pipeline-circle active"><img src="../sustainability_officer/images/collect.png" alt="Retrieve"></div><h4>Retrieve Data</h4></div>
-                        <div class="pipeline-step active"><div class="pipeline-circle active"><img src="images/maintenance_metric.png" alt="Charts"></div><h4>Generate Charts &amp; Graphs</h4></div>
-                        <div class="pipeline-step active"><div class="pipeline-circle active"><img src="../sustainability_officer/images/generate_summary_text.png" alt="Summary"></div><h4>Generate Summary Text</h4></div>
-                        <div class="pipeline-step"><div class="pipeline-circle"><img src="../sustainability_officer/images/generate_KPIandoutlines.png" alt="KPIs"></div><h4>Generate KPIs &amp; Outlines</h4></div>
-                        <div class="pipeline-step"><div class="pipeline-circle"><img src="../sustainability_officer/images/compile_report.png" alt="Compile"></div><h4>Compile Report</h4></div>
-                    </div>
-                </div>
-            </section>
-            <button class="btn-block-dark">Generate Report</button>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- SUSTAINABILITY INITIATIVES (hidden by default) -->
-        <!-- ============================================================ -->
-        <div class="main-content sust-content-section" id="sustInitiatives" style="display:none;">
-            <header class="page-header">
-                <div class="page-header-text"><h1>Sustainable Conservation Initiatives</h1><p>Shorter labels, fewer lines, and wider cards so everything stays inside the boxes.</p></div>
-                <div class="header-actions"><div class="badge-outline-green"><img src="images/systemops_greentick.png" width="14" alt="Active">12 Active Initiatives</div><button class="btn-dark">+ Propose New Initiative</button></div>
-            </header>
-            <div class="main-grid">
-                <div class="col-span-1 flex-col-gap">
-                    <section class="panel">
-                        <h2 class="panel-title">New initiative</h2><p class="panel-sub">Creation form with the required fields.</p>
-                        <div class="form-group"><label class="form-label">Title</label><input type="text" class="form-input" value="LED Lighting Retrofit — Building A & B"></div>
-                        <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea">Replace fluorescent lights with smart LED and occupancy controls in two high-usage buildings.</textarea></div>
-                        <div class="form-group"><label class="form-label">Target energy reduction %</label><input type="text" class="form-input" value="12%"></div>
-                        <div class="form-group"><label class="form-label">Estimated cost</label><input type="text" class="form-input" value="$64,000"></div>
-                        <div class="form-group"><label class="form-label">Timeline</label><select class="form-select"><option>3 weeks - Assessment → Procurement → Install →</option></select></div>
-                    </section>
-                </div>
-                <div class="col-span-2 flex-col-gap">
-                    <section class="panel" style="height: 100%;">
-                        <h2 class="panel-title">Initiative pipeline</h2><p class="panel-sub">Proposed → Approved → In Progress → Completed, with feasibility shown on each card.</p>
-                        <div class="pipeline-grid">
-                            <div class="pipeline-col">
-                                <h4>Proposed</h4>
-                                <div class="kanban-card"><div class="kanban-header"><h5>HVAC After-Hours Automation</h5><span class="badge-feasible">Feasible</span></div><div class="kanban-stats"><div class="kanban-stats-label">Target</div><div class="kanban-stats-val">7.5%</div><div class="kanban-stats-label">Cost</div><div class="kanban-stats-val">$56,500</div><div class="kanban-stats-label">Timeline</div><div class="kanban-stats-val">5 weeks</div></div></div>
-                                <div class="kanban-card"><div class="kanban-header"><h5>Solar Carport Phase 1</h5><span class="badge-not-feasible">Not Feasible</span></div><div class="kanban-stats"><div class="kanban-stats-label">Target</div><div class="kanban-stats-val">14%</div><div class="kanban-stats-label">Cost</div><div class="kanban-stats-val">$198,000</div><div class="kanban-stats-label">Timeline</div><div class="kanban-stats-val">16 weeks</div></div></div>
-                                <h4>In Progress</h4>
-                                <div class="kanban-card"><div class="kanban-header"><h5>LED Lighting Retrofit</h5><span class="badge-feasible">Feasible</span></div><div class="kanban-stats"><div class="kanban-stats-label">Target</div><div class="kanban-stats-val">12%</div><div class="kanban-stats-label">Cost</div><div class="kanban-stats-val">$64,000</div><div class="kanban-stats-label">Timeline</div><div class="kanban-stats-val">8 weeks</div></div></div>
-                                <div class="kanban-card"><div class="kanban-header"><h5>Chiller Optimization Tuning</h5><span class="badge-feasible">Feasible</span></div><div class="kanban-stats"><div class="kanban-stats-label">Target</div><div class="kanban-stats-val">6.1%</div><div class="kanban-stats-label">Cost</div><div class="kanban-stats-val">$19,400</div><div class="kanban-stats-label">Timeline</div><div class="kanban-stats-val">6 weeks</div></div></div>
-                            </div>
-                            <div class="pipeline-col">
-                                <h4>Approved</h4>
-                                <div class="kanban-card"><div class="kanban-header"><h5>Boiler Insulation Upgrade</h5><span class="badge-feasible">Feasible</span></div><div class="kanban-stats"><div class="kanban-stats-label">Target</div><div class="kanban-stats-val">5%</div><div class="kanban-stats-label">Cost</div><div class="kanban-stats-val">$31,200</div><div class="kanban-stats-label">Timeline</div><div class="kanban-stats-val">3 weeks</div></div></div>
-                                <div class="kanban-card"><div class="kanban-header"><h5>Compressed Air Leak Program</h5><span class="badge-feasible">Feasible</span></div><div class="kanban-stats"><div class="kanban-stats-label">Target</div><div class="kanban-stats-val">4.4%</div><div class="kanban-stats-label">Cost</div><div class="kanban-stats-val">$9,700</div><div class="kanban-stats-label">Timeline</div><div class="kanban-stats-val">4 weeks</div></div></div>
-                                <h4>Completed</h4>
-                                <div class="kanban-card"><div class="kanban-header"><h5>Server Room Cooling Reset</h5><span class="badge-feasible">Feasible</span></div><div class="kanban-outcomes"><div class="outcome-pill">16 MWh saved</div><div class="outcome-pill">41 tCO₂e reduced</div><div class="outcome-pill">$14,400 saved</div></div></div>
-                                <div class="kanban-card"><div class="kanban-header"><h5>Kitchen Equipment Shutdown Policy</h5><span class="badge-feasible">Feasible</span></div><div class="kanban-outcomes"><div class="outcome-pill">28 MWh saved</div><div class="outcome-pill">82 tCO₂e reduced</div><div class="outcome-pill">$6,700 saved</div></div></div>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-                <div class="col-span-2 flex-col-gap">
-                    <section class="panel">
-                        <div class="panel-header" style="margin-bottom: 24px;"><div><h2 class="panel-title">Selected initiative</h2><p class="panel-sub" style="margin-bottom: 0;">Implementation tracking, evaluation, and progress decision.</p></div><span class="badge-track">On Track</span></div>
-                        <div class="selected-grid">
-                            <div class="box-item"><h5>Implementation tracking</h5><p>Targets<br>12% reduction • 2 buildings • full fixture replacement + occupancy controls installed</p></div>
-                            <div class="box-item"><h5>Progress</h5><p>72% complete — Building A finished • Building B flooring in progress</p></div>
-                            <div class="box-item"><h5>Evaluation</h5><p>Energy savings<br>18.4 MWh projected monthly savings</p></div>
-                            <div class="box-item"><h5>Resources</h5><p>Facilities team • vendor crew • 42 LED units installed</p></div>
-                            <div class="box-item"><h5>Timeline</h5><p>Week 6 of 8 • procurement cleared • install on pace</p></div>
-                            <div class="box-item"><h5>Evaluation</h5><p>Environmental impact<br>9.7 tCO₂e reduced per month after full rollout</p></div>
-                            <div class="box-item" style="grid-column: span 2;"><h5>Risks</h5><p>No major blockers. Minor fixture lead time variance monitored for Building B.</p></div>
-                            <div class="box-item"><h5>Cost benefit</h5><p>$21,600 forecast annual savings • 2.2-year payback</p></div>
-                        </div>
-                        <div class="status-bars">
-                            <div class="status-bar-green"><strong>On Track</strong><span>Continue implementation.</span></div>
-                            <div class="status-bar-orange"><strong>Not On Track</strong><span>Adjust strategy or discontinue.</span></div>
-                        </div>
-                    </section>
-                </div>
-                <div class="col-span-1 flex-col-gap">
-                    <section class="panel">
-                        <h2 class="panel-title">Completed initiative totals</h2><p class="panel-sub">Energy saved, emissions reduced, and cost saved.</p>
-                        <div class="totals-grid">
-                            <div class="total-item"><h3>134 <span>MWh</span></h3><p>Energy saved</p></div>
-                            <div class="total-item"><h3>57 <span>tCO₂e</span></h3><p>Emissions reduced</p></div>
-                            <div class="total-item"><h3>$18,500</h3><p>Cost saved</p></div>
-                        </div>
-                    </section>
-                    <section class="panel" style="height: 100%;">
-                        <h2 class="panel-title">Final outcomes</h2><p class="panel-sub">Required actions after evaluation.</p>
-                        <div class="outcomes-grid">
-                            <div class="outcome-box"><h5>Scale Up Successful Initiatives</h5><p>Expand proven initiatives to more sites.</p></div>
-                            <div class="outcome-box"><h5>Document Lessons Learned</h5><p>Capture budgets, timing, and feasibility assumptions.</p></div>
-                            <div class="outcome-box"><h5>Report Outcomes</h5><p>Share verified savings and impacts to stakeholders.</p></div>
-                        </div>
-                    </section>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <script>
-        var allSections = document.querySelectorAll('.sust-content-section');
-        var allNavItems = document.querySelectorAll('.nav-subitem');
+    <script type="module" src="js/monitorPage.js"></script>
 
-        function showSection(targetId, clickedLink) {
-            for (var i = 0; i < allSections.length; i++) { allSections[i].style.display = 'none'; }
-            document.getElementById(targetId).style.display = 'block';
-            for (var j = 0; j < allNavItems.length; j++) { allNavItems[j].classList.remove('active-subitem'); }
-            clickedLink.classList.add('active-subitem');
-        }
-
-        var sustLinks = document.querySelectorAll('.sust-link');
-        for (var i = 0; i < sustLinks.length; i++) {
-            sustLinks[i].addEventListener('click', function(e) {
-                e.preventDefault();
-                showSection(this.getAttribute('data-target'), this);
-            });
-        }
-
-        var monitorLink = document.getElementById('nav-monitoring');
-        if (monitorLink) {
-            monitorLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                showSection(this.getAttribute('data-target'), this);
-            });
-        }
-
-        var typePills = document.querySelectorAll('.type-pill');
-        for (var i = 0; i < typePills.length; i++) {
-            typePills[i].addEventListener('click', function() {
-                for (var j = 0; j < typePills.length; j++) { typePills[j].classList.remove('active'); }
-                this.classList.add('active');
-            });
-        }
-
-        var pillItems = document.querySelectorAll('.pill-item');
-        for (var i = 0; i < pillItems.length; i++) {
-            pillItems[i].addEventListener('click', function() {
-                for (var j = 0; j < pillItems.length; j++) { pillItems[j].classList.remove('active'); }
-                this.classList.add('active');
-            });
-        }
-    </script>
 </body>
 
 </html>

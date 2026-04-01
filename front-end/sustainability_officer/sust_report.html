@@ -18,19 +18,19 @@
             
             <nav class="sidebar-nav">
                 <a href="sust_overview.html" class="nav-item">
-                    <img src="images/overview_icon.png" alt="Overview">
+                    <span class="nav-icon" data-icon="overview"></span>
                     Overview
                 </a>
                 <a href="sust_monitoring.html" class="nav-item">
-                    <img src="images/environmental_impact_monitoring.png" alt="Monitoring">
+                    <span class="nav-icon" data-icon="monitoring"></span>
                     Environmental Impact Monitoring
                 </a>
                 <a href="sust_report.html" class="nav-item active">
-                    <img src="images/Sustainability_reporting.png" alt="Reporting">
+                    <span class="nav-icon" data-icon="reporting"></span>
                     Sustainability Reporting
                 </a>
                 <a href="sust_initiatives.html" class="nav-item">
-                    <img src="images/sustainable_conservation_initiatives.png" alt="Initiatives">
+                    <span class="nav-icon" data-icon="initiatives"></span>
                     Sustainable Conservation Initiatives
                 </a>
             </nav>
@@ -74,38 +74,99 @@
                 <p class="section-desc">Define the report type and date window before generating the compiled sustainability report.</p>
 
                 <label class="form-label">Report type</label>
-                <div class="type-pills">
-                    <div class="type-pill active">Yearly</div>
-                    <div class="type-pill">Quarterly</div>
-                    <div class="type-pill">Monthly</div>
-                    <div class="type-pill">Custom</div>
+                <div class="type-pills" id="reportTypePills">
+                    <div class="type-pill active" data-report-type="yearly">Yearly</div>
+                    <div class="type-pill" data-report-type="quarterly">Quarterly</div>
+                    <div class="type-pill" data-report-type="monthly">Monthly</div>
+                    <div class="type-pill" data-report-type="custom">Custom</div>
                 </div>
 
                 <div class="form-grid">
-                    <div class="input-group">
-                        <label class="form-label">Year</label>
-                        <select class="form-select">
-                            <option>2025</option>
-                            <option>2024</option>
-                        </select>
+                    <div class="input-group" id="groupYear">
+                        <label class="form-label" for="yearSelect">Year</label>
+                        <div class="custom-select" data-select>
+                            <button type="button" class="select-trigger" id="yearSelect" aria-expanded="false">
+                                <span class="select-value">2026</span>
+                                <span class="select-chevron" aria-hidden="true">⌄</span>
+                            </button>
+                            <div class="select-menu">
+                                <button type="button" class="select-option selected" data-value="2026">
+                                    <span>2026</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                                <button type="button" class="select-option" data-value="2025">
+                                    <span>2025</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                                <button type="button" class="select-option" data-value="2024">
+                                    <span>2024</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label class="form-label">Quarter</label>
-                        <select class="form-select">
-                            <option>Q2</option>
-                            <option>Q1</option>
-                        </select>
+                    <div class="input-group" id="groupQuarter">
+                        <label class="form-label" for="quarterSelect">Quarter</label>
+                        <div class="custom-select" data-select>
+                            <button type="button" class="select-trigger" id="quarterSelect" aria-expanded="false">
+                                <span class="select-value">Q3</span>
+                                <span class="select-chevron" aria-hidden="true">⌄</span>
+                            </button>
+                            <div class="select-menu">
+                                <button type="button" class="select-option selected" data-value="Q3">
+                                    <span>Q3</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                                <button type="button" class="select-option" data-value="Q2">
+                                    <span>Q2</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                                <button type="button" class="select-option" data-value="Q1">
+                                    <span>Q1</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                                <button type="button" class="select-option" data-value="Q4">
+                                    <span>Q4</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label class="form-label">Month</label>
-                        <select class="form-select">
-                            <option>May</option>
-                            <option>April</option>
-                        </select>
+                    <div class="input-group" id="groupMonth">
+                        <label class="form-label" for="monthSelect">Month</label>
+                        <div class="custom-select" data-select>
+                            <button type="button" class="select-trigger" id="monthSelect" aria-expanded="false">
+                                <span class="select-value">September</span>
+                                <span class="select-chevron" aria-hidden="true">⌄</span>
+                            </button>
+                            <div class="select-menu">
+                                <button type="button" class="select-option selected" data-value="September">
+                                    <span>September</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                                <button type="button" class="select-option" data-value="August">
+                                    <span>August</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                                <button type="button" class="select-option" data-value="July">
+                                    <span>July</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                                <button type="button" class="select-option" data-value="June">
+                                    <span>June</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" id="groupCustom">
                         <label class="form-label">Custom range</label>
-                        <input type="text" class="form-input" value="01 May 2025 - 31 May 2025" style="background-image: url('data:image/svg+xml;utf8,<svg fill=%22none%22 height=%2220%22 stroke=%22%239ca3af%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 viewBox=%220 0 24 24%22 width=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22><rect height=%2218%22 rx=%222%22 ry=%222%22 width=%2218%22 x=%223%22 y=%224%22/><line x1=%2216%22 x2=%2216%22 y1=%222%22 y2=%226%22/><line x1=%228%22 x2=%228%22 y1=%222%22 y2=%226%22/><line x1=%223%22 x2=%2221%22 y1=%2210%22 y2=%2210%22/></svg>'); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; cursor: pointer;" onclick="this.showPicker ? this.showPicker() : null">
+                        <div id="reportDatePicker" style="position:relative;">
+                            <div id="rangeDisplay" class="form-input" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+                                <span>01 May 2025 - 31 May 2025</span>
+                                <svg fill="none" height="18" stroke="#9ca3af" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><rect height="18" rx="2" ry="2" width="18" x="3" y="4"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                            </div>
+                            <div id="calendarPopover" hidden style="position:absolute;top:calc(100% + 8px);left:0;z-index:100;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.12);min-width:280px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                                    <button type="button" id="calendarPrev" style="background:none;border:none;cursor:pointer;font-size:18px;color:#374151;">‹</button>
+                                    <span id="calendarMonthTitle" style="font-weight:600;font-size:14px;"></span>
+                                    <button type="button" id="calendarNext" style="background:none;border:none;cursor:pointer;font-size:18px;color:#374151;">›</button>
+                                </div>
+                                <div id="calendarGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px;"></div>
+                                <div style="margin-top:10px;text-align:center;">
+                                    <button type="button" id="calendarTodayBtn" style="font-size:12px;color:#10b981;background:none;border:none;cursor:pointer;font-weight:600;">Today</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -118,38 +179,30 @@
                 <div class="pipeline-badge">3 steps</div>
 
                 <div class="pipeline-section">
-                    <div class="pipeline-line"></div>
-                    <div class="pipeline-line-fill"></div>
+                    <div class="pipeline-progress">
+                        <div class="pipeline-line"></div>
+                        <div class="pipeline-line-fill"></div>
+                    </div>
 
                     <div class="pipeline-track">
                         <div class="pipeline-step active">
-                            <div class="pipeline-circle active">
-                                <img src="images/collect.png" alt="Retrieve">
-                            </div>
+                            <div class="pipeline-circle active" data-icon="collect"></div>
                             <h4>Retrieve Data</h4>
                         </div>
                         <div class="pipeline-step active">
-                            <div class="pipeline-circle active">
-                                <img src="../admin/images/maintenance_metric.png" alt="Charts">
-                            </div>
+                            <div class="pipeline-circle active" data-icon="charts"></div>
                             <h4>Generate Charts & Graphs</h4>
                         </div>
                         <div class="pipeline-step active">
-                            <div class="pipeline-circle active">
-                                <img src="images/generate_summary_text.png" alt="Summary">
-                            </div>
+                            <div class="pipeline-circle active" data-icon="summary"></div>
                             <h4>Generate Summary Text</h4>
                         </div>
                         <div class="pipeline-step">
-                            <div class="pipeline-circle">
-                                <img src="images/generate_KPIandoutlines.png" alt="KPIs">
-                            </div>
+                            <div class="pipeline-circle" data-icon="kpi"></div>
                             <h4>Generate KPIs & Outlines</h4>
                         </div>
                         <div class="pipeline-step">
-                            <div class="pipeline-circle">
-                                <img src="images/compile_report.png" alt="Compile">
-                            </div>
+                            <div class="pipeline-circle" data-icon="compile"></div>
                             <h4>Compile Report</h4>
                         </div>
                     </div>
@@ -160,7 +213,190 @@
             <button class="btn-block-dark">Generate Report</button>
         </main>
     </div>
+    <script>
+        // Report type pill selection
+        const reportTypePills = document.getElementById('reportTypePills');
+        const groups = {
+            year: document.getElementById('groupYear'),
+            quarter: document.getElementById('groupQuarter'),
+            month: document.getElementById('groupMonth'),
+            custom: document.getElementById('groupCustom')
+        };
 
+        function updateFormGroups(type) {
+            // Reset all
+            Object.values(groups).forEach(g => g.style.display = 'none');
+
+            if (type === 'yearly') {
+                groups.year.style.display = 'block';
+            } else if (type === 'quarterly') {
+                groups.year.style.display = 'block';
+                groups.quarter.style.display = 'block';
+            } else if (type === 'monthly') {
+                groups.year.style.display = 'block';
+                groups.month.style.display = 'block';
+            } else if (type === 'custom') {
+                groups.custom.style.display = 'block';
+            }
+        }
+
+        reportTypePills.querySelectorAll('.type-pill').forEach((pill) => {
+            pill.addEventListener('click', () => {
+                reportTypePills.querySelectorAll('.type-pill').forEach((btn) => btn.classList.remove('active'));
+                pill.classList.add('active');
+                updateFormGroups(pill.dataset.reportType);
+            });
+        });
+
+        // Initialize groups (Yearly is default active)
+        updateFormGroups('yearly');
+
+        // Custom dropdown selections
+        document.querySelectorAll('[data-select]').forEach((selectWrap) => {
+            const trigger = selectWrap.querySelector('.select-trigger');
+            const valueEl = trigger.querySelector('.select-value');
+            const options = selectWrap.querySelectorAll('.select-option');
+
+            trigger.addEventListener('click', (event) => {
+                event.stopPropagation();
+                document.querySelectorAll('[data-select].open').forEach((openSelect) => {
+                    if (openSelect !== selectWrap) {
+                        openSelect.classList.remove('open');
+                        openSelect.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
+                    }
+                });
+                selectWrap.classList.toggle('open');
+                trigger.setAttribute('aria-expanded', selectWrap.classList.contains('open') ? 'true' : 'false');
+            });
+
+            options.forEach((option) => {
+                option.addEventListener('click', () => {
+                    options.forEach((btn) => btn.classList.remove('selected'));
+                    option.classList.add('selected');
+                    valueEl.textContent = option.dataset.value;
+                    selectWrap.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                });
+            });
+        });
+
+        // Calendar picker interactions
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+            'September', 'October', 'November', 'December'];
+        const today = new Date();
+        const initialSelectedDate = new Date(2026, 8, 15);
+        let selectedDate = new Date(initialSelectedDate.getFullYear(), initialSelectedDate.getMonth(), initialSelectedDate.getDate());
+        let viewYear = selectedDate.getFullYear();
+        let viewMonth = selectedDate.getMonth();
+
+        const rangeDisplay = document.getElementById('rangeDisplay');
+        const calendarPopover = document.getElementById('calendarPopover');
+        const calendarGrid = document.getElementById('calendarGrid');
+        const calendarMonthTitle = document.getElementById('calendarMonthTitle');
+        const calendarPrev = document.getElementById('calendarPrev');
+        const calendarNext = document.getElementById('calendarNext');
+        const calendarTodayBtn = document.getElementById('calendarTodayBtn');
+
+        function formatDate(dateObj) {
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = monthNames[dateObj.getMonth()].slice(0, 3);
+            return `${day} ${month} ${dateObj.getFullYear()}`;
+        }
+
+        function updateRangeDisplay() {
+            rangeDisplay.querySelector('span').textContent = formatDate(selectedDate);
+        }
+
+        function renderCalendar() {
+            calendarMonthTitle.textContent = `${monthNames[viewMonth]} ${viewYear}`;
+            calendarGrid.innerHTML = '';
+
+            const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+            const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+            const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
+
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const dayBtn = document.createElement('button');
+                dayBtn.type = 'button';
+                dayBtn.className = 'day-btn muted';
+                dayBtn.textContent = String(prevMonthDays - i);
+                dayBtn.disabled = true;
+                calendarGrid.appendChild(dayBtn);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayBtn = document.createElement('button');
+                dayBtn.type = 'button';
+                dayBtn.className = 'day-btn';
+                dayBtn.textContent = String(day);
+
+                const sameDayAsToday = day === today.getDate() &&
+                    viewMonth === today.getMonth() &&
+                    viewYear === today.getFullYear();
+                if (sameDayAsToday) dayBtn.classList.add('today');
+
+                const sameDayAsSelected = day === selectedDate.getDate() &&
+                    viewMonth === selectedDate.getMonth() &&
+                    viewYear === selectedDate.getFullYear();
+                if (sameDayAsSelected) dayBtn.classList.add('selected');
+
+                dayBtn.addEventListener('click', () => {
+                    selectedDate = new Date(viewYear, viewMonth, day);
+                    updateRangeDisplay();
+                    renderCalendar();
+                    calendarPopover.hidden = true;
+                });
+                calendarGrid.appendChild(dayBtn);
+            }
+        }
+
+        rangeDisplay.addEventListener('click', (event) => {
+            event.stopPropagation();
+            calendarPopover.hidden = !calendarPopover.hidden;
+        });
+
+        calendarPrev.addEventListener('click', () => {
+            viewMonth -= 1;
+            if (viewMonth < 0) {
+                viewMonth = 11;
+                viewYear -= 1;
+            }
+            renderCalendar();
+        });
+
+        calendarNext.addEventListener('click', () => {
+            viewMonth += 1;
+            if (viewMonth > 11) {
+                viewMonth = 0;
+                viewYear += 1;
+            }
+            renderCalendar();
+        });
+
+        calendarTodayBtn.addEventListener('click', () => {
+            selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            viewYear = selectedDate.getFullYear();
+            viewMonth = selectedDate.getMonth();
+            updateRangeDisplay();
+            renderCalendar();
+            calendarPopover.hidden = true;
+        });
+
+        document.addEventListener('click', () => {
+            calendarPopover.hidden = true;
+            document.querySelectorAll('[data-select].open').forEach((openSelect) => {
+                openSelect.classList.remove('open');
+                openSelect.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
+            });
+        });
+
+        document.getElementById('reportDatePicker').addEventListener('click', (event) => event.stopPropagation());
+        calendarPopover.addEventListener('click', (event) => event.stopPropagation());
+
+        updateRangeDisplay();
+        renderCalendar();
+    </script>
+    <script type="module" src="js/reportingPage.js"></script>
 </body>
 </html>
 

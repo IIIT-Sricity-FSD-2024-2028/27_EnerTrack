@@ -15,22 +15,21 @@
                 <img src="images/logo.png" alt="EnerTrack Logo" class="logo-icon">
                 <img src="images/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
             </a>
-            
             <nav class="sidebar-nav">
                 <a href="sust_overview.html" class="nav-item">
-                    <img src="images/overview_icon.png" alt="Overview">
+                    <span class="nav-icon" data-icon="overview"></span>
                     Overview
                 </a>
                 <a href="sust_monitoring.html" class="nav-item">
-                    <img src="images/environmental_impact_monitoring.png" alt="Monitoring">
+                    <span class="nav-icon" data-icon="monitoring"></span>
                     Environmental Impact Monitoring
                 </a>
                 <a href="sust_report.html" class="nav-item">
-                    <img src="images/Sustainability_reporting.png" alt="Reporting">
+                    <span class="nav-icon" data-icon="reporting"></span>
                     Sustainability Reporting
                 </a>
                 <a href="sust_initiatives.html" class="nav-item active">
-                    <img src="images/sustainable_conservation_initiatives.png" alt="Initiatives">
+                    <span class="nav-icon" data-icon="initiatives"></span>
                     Sustainable Conservation Initiatives
                 </a>
             </nav>
@@ -66,14 +65,13 @@
             <header class="page-header">
                 <div class="page-header-text">
                     <h1>Sustainable Conservation Initiatives</h1>
-                    <p>Shorter labels, fewer lines, and wider cards so everything stays inside the boxes.</p>
+                    <p>Track, manage, and evaluate energy-saving initiatives across all monitored sites.</p>
                 </div>
                 <div class="header-actions">
                     <div class="badge-outline-green">
-                        <img src="../admin/images/systemops_greentick.png" width="14" alt="Active">
+                        <span style="display:inline-flex;width:14px;height:14px;margin-right:4px;" data-icon="compile"></span>
                         12 Active Initiatives
                     </div>
-                    <button class="btn-dark">+ Propose New Initiative</button>
                 </div>
             </header>
 
@@ -88,29 +86,57 @@
 
                         <div class="form-group">
                             <label class="form-label">Title</label>
-                            <input type="text" class="form-input" value="LED Lighting Retrofit — Building A & B">
+                            <input type="text" id="new-init-title" class="form-input" value="">
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">Description</label>
-                            <textarea class="form-textarea">Replace fluorescent lights with smart LED and occupancy controls in two high-usage buildings.</textarea>
+                            <textarea id="new-init-desc" class="form-textarea"></textarea>
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">Target energy reduction %</label>
-                            <input type="text" class="form-input" value="12%">
+                            <input type="text" id="new-init-target" class="form-input" value="">
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">Estimated cost</label>
-                            <input type="text" class="form-input" value="$64,000">
+                            <input type="text" id="new-init-cost" class="form-input" value="">
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">Timeline</label>
-                            <select class="form-select">
-                                <option>3 weeks - Assessment → Procurement → Install →</option>
-                            </select>
+                            <div class="custom-select" id="new-init-timeline" data-select>
+                                <button type="button" class="select-trigger" aria-expanded="false">
+                                    <span class="select-value">3 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install</span>
+                                    <span class="select-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+                                </button>
+                                <div class="select-menu">
+                                    <button type="button" class="select-option selected" data-value="3 weeks - Assessment -> Procurement -> Install">
+                                        <span>3 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install</span>
+                                        <span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                    </button>
+                                    <button type="button" class="select-option" data-value="6 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install -> QA">
+                                        <span>6 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install -> QA</span>
+                                        <span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                    </button>
+                                    <button type="button" class="select-option" data-value="8 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install -> Validation">
+                                        <span>8 weeks - Assessment <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Procurement <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Install -> Validation</span>
+                                        <span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                    </button>
+                                    <button type="button" class="select-option" data-value="12 weeks - Multi-phase rollout">
+                                        <span>12 weeks - Multi-phase rollout</span>
+                                        <span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 14px; display: flex; flex-direction: column;">
+                            <button class="btn-dark" style="width: 100%; padding: 12px; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Propose New Initiative
+                            </button>
                         </div>
                     </section>
                 </div>
@@ -125,6 +151,7 @@
                             <!-- Proposed -->
                             <div class="pipeline-col">
                                 <h4>Proposed</h4>
+                                <div id="col-proposed">
                                 
                                 <div class="kanban-card">
                                     <div class="kanban-header">
@@ -156,7 +183,9 @@
                                     </div>
                                 </div>
                                 
+                                </div> <!-- close col-proposed -->
                                 <h4>In Progress</h4>
+                                <div id="col-in-progress">
                                 <div class="kanban-card">
                                     <div class="kanban-header">
                                         <h5>LED Lighting Retrofit</h5>
@@ -186,11 +215,13 @@
                                         <div class="kanban-stats-val">6 weeks</div>
                                     </div>
                                 </div>
+                                </div> <!-- close col-in-progress -->
                             </div>
                             
                             <!-- Approved / Completed -->
                             <div class="pipeline-col">
                                 <h4>Approved</h4>
+                                <div id="col-approved">
                                 
                                 <div class="kanban-card">
                                     <div class="kanban-header">
@@ -222,7 +253,9 @@
                                     </div>
                                 </div>
                                 
+                                </div> <!-- close col-approved -->
                                 <h4>Completed</h4>
+                                <div id="col-completed">
                                 <div class="kanban-card">
                                     <div class="kanban-header">
                                         <h5>Server Room Cooling Reset</h5>
@@ -246,6 +279,7 @@
                                         <div class="outcome-pill">$6,700 saved</div>
                                     </div>
                                 </div>
+                                </div> <!-- close col-completed -->
                             </div>
                         </div>
                     </section>
@@ -263,51 +297,32 @@
                         </div>
                         
                         <div class="selected-grid">
-                            <div class="box-item">
-                                <h5>Implementation tracking</h5>
-                                <p>Targets<br>12% reduction • 2 buildings • full fixture replacement + occupancy controls installed</p>
-                            </div>
-                            <div class="box-item">
-                                <h5>Progress</h5>
-                                <p>72% complete — Building A finished • Building B flooring in progress</p>
-                            </div>
-                            <div class="box-item">
-                                <h5>Evaluation</h5>
-                                <p>Energy savings<br>18.4 MWh projected monthly savings</p>
-                            </div>
+                            <div class="box-item" id="sel-targets"></div>
+                            <div class="box-item" id="sel-progress"></div>
+                            <div class="box-item" id="sel-evaluation"></div>
                             
-                            <div class="box-item">
-                                <h5>Resources</h5>
-                                <p>Facilities team • vendor crew • 42 LED units installed</p>
-                            </div>
-                            <div class="box-item">
-                                <h5>Timeline</h5>
-                                <p>Week 6 of 8 • procurement cleared • install on pace</p>
-                            </div>
-                            <div class="box-item">
-                                <h5>Evaluation</h5>
-                                <p>Environmental impact<br>9.7 tCO₂e reduced per month after full rollout</p>
-                            </div>
+                            <div class="box-item" id="sel-resources"></div>
+                            <div class="box-item" id="sel-timeline"></div>
+                            <div class="box-item" id="sel-impact"></div>
                             
-                            <div class="box-item" style="grid-column: span 2;">
-                                <h5>Risks</h5>
-                                <p>No major blockers. Minor fixture lead time variance monitored for Building B.</p>
-                            </div>
-                            
-                            <div class="box-item">
-                                <h5>Cost benefit</h5>
-                                <p>$21,600 forecast annual savings • 2.2-year payback</p>
-                            </div>
+                            <div class="box-item" style="grid-column: span 2;" id="sel-risks"></div>
+                            <div class="box-item" id="sel-cost"></div>
                         </div>
                         
                         <div class="status-bars">
-                            <div class="status-bar-green">
-                                <strong>On Track</strong>
-                                <span>Continue implementation.</span>
+                            <div class="status-toggle-card ontrack active" id="btn-set-ontrack">
+                                <div class="toggle-circle"></div>
+                                <div>
+                                    <strong>On Track</strong>
+                                    <span>Continue implementation according to current phase baseline.</span>
+                                </div>
                             </div>
-                            <div class="status-bar-orange">
-                                <strong>Not On Track</strong>
-                                <span>Adjust strategy or discontinue.</span>
+                            <div class="status-toggle-card offtrack" id="btn-set-offtrack">
+                                <div class="toggle-circle"></div>
+                                <div>
+                                    <strong>Not On Track</strong>
+                                    <span>Adjust strategy or discontinue to prevent resource wastage.</span>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -361,6 +376,44 @@
         </main>
     </div>
 
+    <script>
+        // Custom dropdown selections
+        document.querySelectorAll('[data-select]').forEach((selectWrap) => {
+            const trigger = selectWrap.querySelector('.select-trigger');
+            const valueEl = trigger.querySelector('.select-value');
+            const options = selectWrap.querySelectorAll('.select-option');
+
+            trigger.addEventListener('click', (event) => {
+                event.stopPropagation();
+                document.querySelectorAll('[data-select].open').forEach((openSelect) => {
+                    if (openSelect !== selectWrap) {
+                        openSelect.classList.remove('open');
+                        openSelect.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
+                    }
+                });
+                selectWrap.classList.toggle('open');
+                trigger.setAttribute('aria-expanded', selectWrap.classList.contains('open') ? 'true' : 'false');
+            });
+
+            options.forEach((option) => {
+                option.addEventListener('click', () => {
+                    options.forEach((btn) => btn.classList.remove('selected'));
+                    option.classList.add('selected');
+                    valueEl.textContent = option.dataset.value;
+                    selectWrap.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                });
+            });
+        });
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('[data-select].open').forEach((openSelect) => {
+                openSelect.classList.remove('open');
+                openSelect.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
+            });
+        });
+    </script>
+    <script type="module" src="js/initiativesPage.js"></script>
 </body>
 </html>
 

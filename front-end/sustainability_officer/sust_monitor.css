@@ -313,11 +313,19 @@ body {
     padding: 0 40px;
 }
 
-.pipeline-line {
+.pipeline-progress {
     position: absolute;
     top: 24px;
     left: 80px;
     right: 80px;
+    height: 2px;
+}
+
+.pipeline-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 2px;
     background: #d8dde2;
     z-index: 1;
@@ -325,12 +333,13 @@ body {
 
 .pipeline-line-fill {
     position: absolute;
-    top: 24px;
-    left: 80px;
-    width: 46%;
+    top: 0;
+    left: 0;
+    width: 46%; /* Static completion level, can be updated via JS */
     height: 2px;
     background: #0f8f63;
     z-index: 2;
+    transition: width 0.3s ease;
 }
 
 .step {
@@ -360,12 +369,18 @@ body {
     border-color: #0f8f63;
 }
 
+.step-icon.active svg {
+    stroke: #ffffff;
+    color: #ffffff;
+}
+
 .step-icon.active img {
     filter: brightness(0) invert(1);
 }
 
-.step-icon img {
+.step-icon img, .step-icon svg {
     width: 20px;
+    height: 20px;
 }
 
 .step h4 {
