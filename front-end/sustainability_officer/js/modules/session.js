@@ -10,14 +10,7 @@ const SessionModule = {
     const currentUser = sessionStorage.getItem("et_current_user") || "Maya Patel";
     sessionStorage.setItem("et_current_user", currentUser);
     
-    // Wire logout profile card if exists
-    const profileCard = document.querySelector(".profile-card");
-    if (profileCard) {
-      profileCard.addEventListener("click", (e) => {
-        e.preventDefault();
-        this.confirmLogout();
-      });
-    }
+    // Profile card click is now handled by ../dashboardProfileMenu.js
   },
 
   confirmLogout() {
@@ -30,7 +23,7 @@ const SessionModule = {
         showToast("Signing out...", "info", 1000);
         setTimeout(() => {
           sessionStorage.removeItem("et_current_user");
-          window.location.href = "../sign_in/sign_in.html"; 
+          window.location.href = "../landing/landing.html"; 
         }, 1000);
       }
     });
