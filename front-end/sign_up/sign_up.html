@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
     <title>EnerTrack Sign Up</title>
     <link rel="stylesheet" href="sign_up.css">
     <link
@@ -38,16 +39,22 @@
 
             <form id="signUpForm" novalidate>
             <!-- Name -->
-            <input type="text" id="name" placeholder="Name" class="input" autocomplete="off">
+            <input type="text" id="name" placeholder="e.g. John Doe" class="input" autocomplete="off">
+
             <span class="field-error" id="nameError"></span>
 
             <!-- Email -->
-            <input type="email" id="email" placeholder="Email" class="input" autocomplete="off">
+            <input type="email" id="email" placeholder="e.g. john.doe@example.com" class="input" autocomplete="off">
+
             <span class="field-error" id="emailError"></span>
+
+            <!-- Phone -->
+            <input type="tel" id="phone" placeholder="e.g. 9876543210" class="input" autocomplete="off" maxlength="10">
+            <span class="field-error" id="phoneError"></span>
 
             <!-- Password -->
             <div class="password-wrap">
-                <input type="password" id="password" placeholder="Password" class="input" autocomplete="new-password">
+                <input type="password" id="password" placeholder="e.g. Str0ng@Pass!" class="input" autocomplete="new-password">
                 <span class="eye" id="togglePassword" onclick="togglePass()">
                     <!-- Crossed-out eye (hidden) -->
                     <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -66,16 +73,41 @@
                     </svg>
                 </span>
             </div>
+
             <span class="field-error" id="passwordError"></span>
+
+            <!-- Confirm Password -->
+            <div class="password-wrap">
+                <input type="password" id="confirmPassword" placeholder="Re-enter your password" class="input" autocomplete="new-password">
+                <span class="eye" id="toggleConfirmPassword" onclick="toggleConfirmPass()">
+                    <!-- Crossed-out eye (hidden) -->
+                    <svg id="eyeClosedConfirm" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C6 20 1.73 14 1.73 12c0-.9.6-2.3 1.7-3.7" />
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10.27 6 10.27 8 0 .73-.22 1.6-.67 2.5" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                    <!-- Open eye (visible) -->
+                    <svg id="eyeOpenConfirm" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" style="display:none;">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                </span>
+            </div>
+
+            <span class="field-error" id="confirmPasswordError"></span>
 
             <!-- Role dropdown -->
             <div class="select-wrap">
                 <select id="role" class="input select" autocomplete="off">
                     <option value="" disabled selected hidden>Role</option>
-                    <option value="admin">System Administrator</option>
-                    <option value="analyst">Financial Analyst</option>
-                    <option value="technician">Technician</option>
-                    <option value="sustainability">Sustainability Officer</option>
+                    <option value="System Administrator">System Administrator</option>
+                    <option value="Financial Analyst">Financial Analyst</option>
+                    <option value="Technician">Technician</option>
+                    <option value="Sustainability Officer">Sustainability Officer</option>
                 </select>
                 <span class="chevron">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -84,14 +116,9 @@
                     </svg>
                 </span>
             </div>
+
             <span class="field-error" id="roleError"></span>
 
-            <!-- Terms checkbox -->
-            <label class="terms">
-                <input type="checkbox" id="terms">
-                <span>Agree to Terms &amp; Conditions</span>
-            </label>
-            <span class="field-error" id="termsError"></span>
 
             <!-- Submit -->
             <button type="submit" class="btn" id="signUpBtn">Sign Up</button>
@@ -107,6 +134,8 @@
 
     </div>
 
+    <!-- Mock Data -->
+    <script src="../mockData.js"></script>
     <!-- Validation Logic -->
     <script src="sign_up.js"></script>
 </body>
