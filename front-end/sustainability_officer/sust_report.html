@@ -18,19 +18,19 @@
             
             <nav class="sidebar-nav">
                 <a href="sust_overview.html" class="nav-item">
-                    <img src="images/overview_icon.png" alt="Overview">
+                    <span class="nav-icon" data-icon="overview"></span>
                     Overview
                 </a>
                 <a href="sust_monitoring.html" class="nav-item">
-                    <img src="images/environmental_impact_monitoring.png" alt="Monitoring">
+                    <span class="nav-icon" data-icon="monitoring"></span>
                     Environmental Impact Monitoring
                 </a>
                 <a href="sust_report.html" class="nav-item active">
-                    <img src="images/Sustainability_reporting.png" alt="Reporting">
+                    <span class="nav-icon" data-icon="reporting"></span>
                     Sustainability Reporting
                 </a>
                 <a href="sust_initiatives.html" class="nav-item">
-                    <img src="images/sustainable_conservation_initiatives.png" alt="Initiatives">
+                    <span class="nav-icon" data-icon="initiatives"></span>
                     Sustainable Conservation Initiatives
                 </a>
             </nav>
@@ -75,7 +75,7 @@
                 </div>
 
                 <div class="form-grid">
-                    <div class="input-group">
+                    <div class="input-group" id="groupYear">
                         <label class="form-label" for="yearSelect">Year</label>
                         <div class="custom-select" data-select>
                             <button type="button" class="select-trigger" id="yearSelect" aria-expanded="false">
@@ -95,7 +95,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" id="groupQuarter">
                         <label class="form-label" for="quarterSelect">Quarter</label>
                         <div class="custom-select" data-select>
                             <button type="button" class="select-trigger" id="quarterSelect" aria-expanded="false">
@@ -118,7 +118,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" id="groupMonth">
                         <label class="form-label" for="monthSelect">Month</label>
                         <div class="custom-select" data-select>
                             <button type="button" class="select-trigger" id="monthSelect" aria-expanded="false">
@@ -141,7 +141,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" id="groupCustom">
                         <label class="form-label">Custom range</label>
                         <div class="date-picker" id="reportDatePicker">
                             <button type="button" class="form-input calendar-trigger" id="rangeDisplay">
@@ -184,38 +184,30 @@
                 <div class="pipeline-badge">3 steps</div>
 
                 <div class="pipeline-section">
-                    <div class="pipeline-line"></div>
-                    <div class="pipeline-line-fill"></div>
+                    <div class="pipeline-progress">
+                        <div class="pipeline-line"></div>
+                        <div class="pipeline-line-fill"></div>
+                    </div>
 
                     <div class="pipeline-track">
                         <div class="pipeline-step active">
-                            <div class="pipeline-circle active">
-                                <img src="images/collect.png" alt="Retrieve">
-                            </div>
+                            <div class="pipeline-circle active" data-icon="collect"></div>
                             <h4>Retrieve Data</h4>
                         </div>
                         <div class="pipeline-step active">
-                            <div class="pipeline-circle active">
-                                <img src="../admin/images/maintenance_metric.png" alt="Charts">
-                            </div>
+                            <div class="pipeline-circle active" data-icon="charts"></div>
                             <h4>Generate Charts & Graphs</h4>
                         </div>
                         <div class="pipeline-step active">
-                            <div class="pipeline-circle active">
-                                <img src="images/generate_summary_text.png" alt="Summary">
-                            </div>
+                            <div class="pipeline-circle active" data-icon="summary"></div>
                             <h4>Generate Summary Text</h4>
                         </div>
                         <div class="pipeline-step">
-                            <div class="pipeline-circle">
-                                <img src="images/generate_KPIandoutlines.png" alt="KPIs">
-                            </div>
+                            <div class="pipeline-circle" data-icon="kpi"></div>
                             <h4>Generate KPIs & Outlines</h4>
                         </div>
                         <div class="pipeline-step">
-                            <div class="pipeline-circle">
-                                <img src="images/compile_report.png" alt="Compile">
-                            </div>
+                            <div class="pipeline-circle" data-icon="compile"></div>
                             <h4>Compile Report</h4>
                         </div>
                     </div>
@@ -229,12 +221,40 @@
     <script>
         // Report type pill selection
         const reportTypePills = document.getElementById('reportTypePills');
+        const groups = {
+            year: document.getElementById('groupYear'),
+            quarter: document.getElementById('groupQuarter'),
+            month: document.getElementById('groupMonth'),
+            custom: document.getElementById('groupCustom')
+        };
+
+        function updateFormGroups(type) {
+            // Reset all
+            Object.values(groups).forEach(g => g.style.display = 'none');
+
+            if (type === 'yearly') {
+                groups.year.style.display = 'block';
+            } else if (type === 'quarterly') {
+                groups.year.style.display = 'block';
+                groups.quarter.style.display = 'block';
+            } else if (type === 'monthly') {
+                groups.year.style.display = 'block';
+                groups.month.style.display = 'block';
+            } else if (type === 'custom') {
+                groups.custom.style.display = 'block';
+            }
+        }
+
         reportTypePills.querySelectorAll('.type-pill').forEach((pill) => {
             pill.addEventListener('click', () => {
                 reportTypePills.querySelectorAll('.type-pill').forEach((btn) => btn.classList.remove('active'));
                 pill.classList.add('active');
+                updateFormGroups(pill.dataset.reportType);
             });
         });
+
+        // Initialize groups (Yearly is default active)
+        updateFormGroups('yearly');
 
         // Custom dropdown selections
         document.querySelectorAll('[data-select]').forEach((selectWrap) => {
@@ -381,5 +401,6 @@
         updateRangeDisplay();
         renderCalendar();
     </script>
+    <script type="module" src="js/reportingPage.js"></script>
 </body>
 </html>

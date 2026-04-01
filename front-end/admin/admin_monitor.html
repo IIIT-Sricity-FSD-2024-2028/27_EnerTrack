@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Monitor - EnerTrack</title>
     <link rel="stylesheet" href="admin_monitor.css">
+    <link rel="stylesheet" href="admin_icons.css">
     <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
         rel="stylesheet">
 </head>
@@ -23,7 +24,7 @@
             <nav class="sidebar-nav">
 
                 <a href="admin_overview.html" class="nav-item">
-                    <img src="images/maintenance_overview_unselected.png">
+                    <span data-icon="overview"></span>
                     Overview
                 </a>
 
@@ -31,15 +32,15 @@
                     <a href="admin_monitor.html" class="nav-section-title active-pill">MONITORING</a>
                     <div class="nav-group">
                         <div class="nav-subitem">
-                            <img src="images/maintenance_monitor.png">
+                            <span data-icon="monitor"></span>
                             System Health
                         </div>
                         <div class="nav-subitem">
-                            <img src="images/maintenance_metric.png">
+                            <span data-icon="metric"></span>
                             Performance Metrics
                         </div>
                         <div class="nav-subitem">
-                            <img src="images/maintenance_alert.png">
+                            <span data-icon="alert"></span>
                             Alerts
                             <span class="alerts-badge">3</span>
                         </div>
@@ -50,15 +51,15 @@
                     <a href="admin_maintain.html" class="nav-section-title">MAINTENANCE</a>
                     <div class="nav-group">
                         <div class="nav-subitem">
-                            <img src="images/maintenance_backup.png">
+                            <span data-icon="backup"></span>
                             Backups
                         </div>
                         <div class="nav-subitem">
-                            <img src="images/maintenance_system.png">
+                            <span data-icon="system"></span>
                             System Updates
                         </div>
                         <div class="nav-subitem">
-                            <img src="images/maintenance_troubleshooting.png">
+                            <span data-icon="troubleshooting"></span>
                             Troubleshooting
                         </div>
                     </div>
@@ -90,11 +91,11 @@
                 <div class="panel">
                     <div class="panel-header">
                         <div class="panel-title">
-                            <img src="images/monitoring_green_system_health.png" alt="System Health Snapshot">
+                            <span data-icon="success" class="text-success"></span>
                             System health snapshot
                         </div>
                         <button class="btn-secondary clickable" onclick="refreshMonitor()">
-                            <img src="images/monitoring_refresh.png" alt="Manual Refresh">
+                            <span data-icon="system" style="width:14px;height:14px;margin-right:2px;"></span>
                             Manual refresh
                         </button>
                     </div>
@@ -107,7 +108,7 @@
                 <div class="panel">
                     <div class="panel-header">
                         <div class="panel-title">
-                            <img src="images/monitor_bell.png" alt="Active Alerts">
+                            <span data-icon="alert"></span>
                             Active alerts
                         </div>
                     </div>
@@ -123,7 +124,7 @@
             <div class="panel mt-24">
                 <div class="panel-header">
                     <div class="panel-title">
-                        <img src="images/monitoring_perf.png" alt="Performance Metrics">
+                        <span data-icon="metric"></span>
                         Performance metrics
                     </div>
                 </div>

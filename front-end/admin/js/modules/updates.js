@@ -92,7 +92,7 @@ export function renderOverviewUpdates(containerId = "overviewUpdatesContainer") 
         <div style="display:flex;gap:8px">
           ${roleAllowed(["admin","superuser"]) ? `
             <button class="btn-dark" onclick="UpdatesModule.applyUpdate('${upd.id}')">
-              <img src="images/overview_install.png" alt="Install"> Install Now
+              <span data-icon="download"></span> Install Now
             </button>
             <button class="btn-outline" onclick="UpdatesModule.editUpdate('${upd.id}')">Reschedule</button>
           ` : ""}

@@ -172,12 +172,14 @@ body {
     font-weight: 600;
     color: #111827;
     margin-bottom: 4px;
+    text-align: center;
 }
 
 .section-desc {
     font-size: 14px;
     color: #8a95a2;
     margin-bottom: 24px;
+    text-align: center;
 }
 
 /* FORM CONTROLS */
@@ -502,6 +504,8 @@ body {
 .pipeline-section {
     position: relative;
     padding: 20px 0;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 .pipeline-badge {
@@ -511,8 +515,8 @@ body {
     border-radius: 99px;
     font-size: 13px;
     font-weight: 600;
-    display: inline-block;
-    margin-bottom: 40px;
+    display: table;
+    margin: 0 auto 40px auto;
 }
 
 .pipeline-track {
@@ -523,11 +527,19 @@ body {
     padding: 0 10px;
 }
 
-.pipeline-line {
+.pipeline-progress {
     position: absolute;
     top: 24px;
     left: 60px;
     right: 60px;
+    height: 2px;
+}
+
+.pipeline-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 2px;
     background: #d8dde2;
     z-index: 1;
@@ -535,12 +547,13 @@ body {
 
 .pipeline-line-fill {
     position: absolute;
-    top: 24px;
-    left: 60px;
-    width: calc(48% - 60px);
+    top: 0;
+    left: 0;
+    width: 0; /* JS handled */
     height: 2px;
     background: #0f8f63;
     z-index: 2;
+    transition: width 0.3s ease; /* Animate the width smoothly */
 }
 
 .pipeline-step {
@@ -594,16 +607,29 @@ body {
 .btn-block-dark {
     display: block;
     width: 100%;
+    max-width: 420px;
+    margin: 40px auto 0;
     background: #111827;
     color: #ffffff;
     text-align: center;
     padding: 16px;
-    border-radius: 7px;
+    border-radius: 9px;
     font-size: 16px;
     font-weight: 600;
     text-decoration: none;
     border: none;
     cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-block-dark:hover {
+    background: #1f2937;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.btn-block-dark:active {
+    transform: translateY(0);
 }
 
 @media (max-width: 1080px) {

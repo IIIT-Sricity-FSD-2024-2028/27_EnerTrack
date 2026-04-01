@@ -384,6 +384,21 @@ body {
     padding: 10px;
     margin-bottom: 8px;
     box-shadow: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.kanban-card:hover {
+    background: #ffffff;
+    border-color: #0f8f63;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    transform: translateY(-2px);
+}
+
+.kanban-card.selected {
+    background: #eef6f1;
+    border: 2px solid #0f8f63;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
 }
 
 .kanban-header {
@@ -422,27 +437,53 @@ body {
 .kanban-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    row-gap: 4px;
-    font-size: 11px;
+    row-gap: 6px;
+    font-size: 12px;
 }
 
 .kanban-stats-label { color: #6b7280; }
-.kanban-stats-val { color: #111827; font-weight: 500; text-align: right; }
+.kanban-stats-val { color: #111827; font-weight: 600; text-align: right; }
+
+.kanban-actions {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 10px;
+}
+
+.btn-edit, .btn-delete {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-edit { background: #eef3ef; color: #0a734e; }
+.btn-edit:hover { background: #d7e8dd; }
+
+.btn-delete { background: #fee2e2; color: #dc2626; }
+.btn-delete:hover { background: #fecaca; }
 
 .kanban-outcomes {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     margin-top: 8px;
 }
 
 .outcome-pill {
-    font-size: 10px;
-    color: #6f7a89;
-    background: #eef1f3;
-    border: 1px solid #d8dde2;
+    font-size: 11px;
+    font-weight: 500;
+    color: #4b5563;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
     border-radius: 6px;
-    padding: 3px 6px;
+    padding: 4px 8px;
 }
 
 /* SELECTED INITIATIVE */

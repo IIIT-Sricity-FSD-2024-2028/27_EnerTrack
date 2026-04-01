@@ -1,1043 +1,253 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>EnerTrack Dashboard</title>
-
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
-<style>
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-}
-
-body{
-background:#efefef;
-}
-
-/* PAGE LAYOUT */
-.layout{
-display:flex;
-}
-
-/* SIDEBAR */
-.sidebar{
-width:260px;
-min-height:100vh;
-background:#D9E9CF;
-padding:24px 18px;
-display:flex;
-flex-direction:column;
-justify-content:space-between;
-}
-
-/* LOGO */
-.logo{
-font-size:18px;
-font-weight:600;
-display:flex;
-align-items:center;
-gap:8px;
-color:#1d2b1f;
-margin-bottom:30px;
-}
-
-.logo img{
-width:22px;
-}
-
-/* NAV */
-.nav-title{
-font-size:13px;
-color:#4e5c4f;
-margin-bottom:10px;
-}
-
-.nav{
-list-style:none;
-display:flex;
-flex-direction:column;
-gap:8px;
-}
-
-.nav li{
-display:flex;
-align-items:center;
-gap:12px;
-padding:12px 14px;
-border-radius:8px;
-font-size:14px;
-color:#1d2b1f;
-cursor:pointer;
-}
-
-.nav li:hover{
-background:rgba(0,0,0,0.05);
-}
-
-.nav li.active{
-background:#111;
-color:white;
-}
-
-/* PROFILE */
-.profile{
-display:flex;
-align-items:center;
-gap:12px;
-background:white;
-padding:10px;
-border-radius:10px;
-}
-
-.profile img{
-width:40px;
-border-radius:50%;
-}
-
-.name{
-font-size:14px;
-font-weight:600;
-}
-
-.role{
-font-size:12px;
-color:#6b6b6b;
-}
-
-
-/* RIGHT CONTENT */
-.main{
-flex:1;
-padding:28px;
-}
-
-
-/* ===== EXISTING WORK ORDER CSS ===== */
-
-.container{
-max-width:2000px;
-}
-
-h1{
-font-size:26px;
-margin-bottom:6px;
-}
-
-.subtitle{
-color:#6b7280;
-font-size:14px;
-margin-bottom:20px;
-max-width:820px;
-line-height:1.5;
-}
-
-.top-btn{
-float:right;
-margin-top:-40px;
-background:#111;
-color:white;
-border:none;
-padding:8px 14px;
-border-radius:6px;
-font-size:13px;
-}
-
-.card{
-background:white;
-border-radius:10px;
-padding:10px;
-margin-bottom:18px;
-border:1px solid #e5e7eb;
-}
-
-.section-title{
-font-size:15px;
-font-weight:600;
-margin-bottom:12px;
-}
-
-.small-title{
-font-size:13px;
-font-weight:600;
-margin-bottom:8px;
-}
-
-.grid3{
-display:grid;
-grid-template-columns:1fr 1fr 1fr;
-gap:14px;
-}
-
-.grid2{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:14px;
-}
-
-.option{
-border:1px solid #e5e7eb;
-border-radius:8px;
-padding:14px;
-background:#fafafa;
-}
-
-.option.active{
-background:#e6f1ea;
-border:1px solid #c7e6d3;
-}
-
-.option h3{
-font-size:14px;
-margin-bottom:4px;
-}
-
-.option p{
-font-size:12px;
-color:#6b7280;
-line-height:1.4;
-}
-
-.field{
-margin-bottom:10px;
-}
-
-label{
-font-size:12px;
-color:#6b7280;
-display:block;
-margin-bottom:3px;
-}
-
-input,select{
-width:100%;
-padding:8px;
-border-radius:6px;
-border:1px solid #e5e7eb;
-font-size:13px;
-background:#fafafa;
-}
-
-.board{
-display:grid;
-grid-template-columns:1fr 1fr 1fr;
-gap:14px;
-}
-
-.column{
-background:#f9fafb;
-border:1px solid #e5e7eb;
-border-radius:8px;
-padding:12px;
-}
-
-.column-title{
-font-size:13px;
-font-weight:600;
-display:flex;
-justify-content:space-between;
-margin-bottom:8px;
-}
-
-.count{
-background:#e5e7eb;
-padding:2px 6px;
-border-radius:5px;
-font-size:11px;
-}
-
-.count.green{background:#d1fae5;}
-.count.gray{background:#e5e7eb;}
-
-.task{
-background:white;
-border:1px solid #e5e7eb;
-border-radius:8px;
-padding:10px;
-margin-bottom:10px;
-font-size:12px;
-line-height:1.4;
-}
-
-.task-title{
-font-weight:600;
-margin-bottom:4px;
-}
-
-.tag{
-float:right;
-font-size:10px;
-padding:2px 6px;
-border-radius:4px;
-}
-
-.high{background:#fde68a;}
-.medium{background:#e5e7eb;}
-.review{background:#e5e7eb;}
-.selected{background:#d1fae5;}
-.hold{background:#fde68a;}
-
-.two-col{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:20px;
-}
-
-textarea{
-width:100%;
-height:70px;
-border:1px solid #d1d5db;
-border-radius:6px;
-padding:8px;
-font-size:13px;
-margin:8px 0 12px 0;
-}
-
-.btn{
-border:none;
-padding:8px 14px;
-border-radius:6px;
-cursor:pointer;
-font-size:13px;
-}
-
-.btn-row{
-display:flex;
-gap:10px;
-}
-
-.full{
-width:100%;
-margin-top:8px;
-}
-
-.btn-light{background:#f3f4f6;}
-.btn-black{background:black;color:white;}
-.btn-green{background:#15803d;color:white;}
-.btn-warning{background:#fde68a;}
-
-.table{
-width:100%;
-border-collapse:collapse;
-font-size:12px;
-}
-.tick-circle{
-width:18px;
-height:18px;
-background:#16a34a;
-color:white;
-border-radius:50%;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:12px;
-margin-top:2px;
-flex-shrink:0;
-}
-.summary-desc{
-font-size:13px;
-color:#6b7280;
-margin-bottom:14px;
-}
-.count-green{
-width:20px;
-height:20px;
-border-radius:50%;
-background:#16a34a;
-color:white;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:11px;
-margin-bottom:4px;
-}
-.summary-list{
-display:flex;
-flex-direction:column;
-gap:10px;
-}
-
-.summary-item{
-display:flex;
-align-items:flex-start;
-gap:10px;
-font-size:13px;
-color:#374151;
-}
-
-.table th,.table td{
-border-bottom:1px solid #e5e7eb;
-padding:10px;
-text-align:left;
-}
-
-.status{
-padding:3px 6px;
-border-radius:4px;
-font-size:11px;
-}
-
-.status-yellow{
-padding:10px 3px;
-padding-left:155px ;
-border-radius:4px;
-font-size:13px;
-background-color:#fde68a;
-}
-
-.green{background:#d1fae5;}
-.gray{background:#e5e7eb;}
-.yellow{background:#fde68a;}
-
-.search{
-width:100%;
-padding:8px;
-border-radius:6px;
-border:1px solid #e5e7eb;
-margin-bottom:10px;
-}
-.grid4{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:14px;
-}
-
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EnerTrack – Maintenance Work Orders</title>
+  <link rel="stylesheet" href="tech_shared.css">
+  <link rel="stylesheet" href="tech_work_orders.css">
 </head>
-
 <body>
-
 <div class="layout">
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-
-<div>
-
-<a href="../landing/landing_after.html" style="text-decoration: none; color: inherit;">
-<div class="logo">
-<img src="images/logo1.png">
-EnerTrack
-</div>
-</a>
-
-<div class="nav-title">Navigation</div>
-
-<ul class="nav">
-
-<a href="technician_overview.html" style="text-decoration: none; color: inherit;">
-<li>
-<i class="fa-solid fa-table-cells-large"></i>
-Overview
-</li>
-</a>
-
-<a href="technician_alerts.html" style="text-decoration: none; color: inherit;">
-<li>
-<i class="fa-regular fa-bell"></i>
-Real-Time Anomaly Alerts
-</li>
-</a>
-
-<a href="technician_maintenance.html" style="text-decoration: none; color: inherit;">
-<li>
-<i class="fa-solid fa-wave-square"></i>
-Fault Detection & Diagnostics
-</li>
-</a>
-
-<a href="technician_work_orders.html" style="text-decoration: none; color: inherit;">
-<li class="active">
-<i class="fa-regular fa-clipboard"></i>
-Maintenance Work Orders
-</li>
-</a>
-
-</ul>
-
-</div>
-
-<div class="profile">
-<img src="https://i.pravatar.cc/40">
-<div>
-<div class="name">Marcus Reed</div>
-<div class="role">Lead Technician</div>
-</div>
-</div>
-
-</div>
-
-
-<!-- RIGHT SIDE CONTENT -->
-<div class="main">
-
-<div class="container">
-
-<h1>Maintenance Work Orders</h1>
-
-<button class="top-btn">+ Initiate Maintenance Action</button>
-
-<p class="subtitle">
-Create, assign, update, and close maintenance requests from the dashboard. Open requests are synced from the backend API, status changes are saved with notes, and completed work orders are archived below.
-</p>
-
-
-<div class="card">
-<h2>New Work Order Setup</h2>
-<div class="small-title">Work order type selector</div>
-<div class="card inner-box">
-
-<div class="small-title">Work order type selector</div>
-
-<div class="grid3">
-
-<div class="option">
-<h3>Emergency</h3>
-<p>
-Immediate response<br>
-for critical<br>
-equipment issues<br>
-and urgent repairs.
-</p>
-</div>
-
-<div class="option active">
-<h3>Scheduled</h3>
-<p>
-Planned<br>
-maintenance<br>
-window with<br>
-assigned technician<br>
-and review notes.
-</p>
-</div>
-
-<div class="option">
-<h3>Preventive</h3>
-<p>
-Routine follow-up work to prevent repeat alerts and reduce downtime.
-</p>
-</div>
-
-</div>
-
-</div>
-
-
-<div class="grid2">
-
-<!-- LEFT FORM -->
-
-<div class="card">
-
-<div class="small-title">Scheduled form</div>
-
-<div class="field">
-<label>Selected asset</label>
-<input value="Compressor C-12">
-</div>
-
-<div class="field">
-<label>Planned service window</label>
-<input value="Today · 2:00 PM to 4:00 PM">
-</div>
-
-<div class="field">
-<label>Assigned technician</label>
-<input value="Marcus Reed">
-</div>
-
-</div>
-
-
-
-<!-- RIGHT FORM -->
-
-<div class="card">
-
-<div class="small-title">Assignment Details</div>
-
-<div class="field">
-<label>Assign Priority</label>
-<select>
-<option>High</option>
-<option>Medium</option>
-<option>Low</option>
-</select>
-</div>
-
-<div class="field">
-<label>Assign Technician</label>
-<select>
-<option>Name</option>
-<option>Marcus Reed</option>
-<option>Elena Park</option>
-<option>Noah Smith</option>
-<option>Rina Das</option>
-</select>
-</div>
-
-<div class="field">
-<label>Parts Availability</label>
-<select>
-<option>Yes</option>
-<option>No</option>
-</select>
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<div class="card">
-
-<div class="section-title">Open work orders board</div>
-
-<div class="board">
-
-<div class="column">
-
-<div class="column-title">New <span class="count">2</span></div>
-
-<div class="task">
-<div class="task-title">WO-3021 <span class="tag high">High</span></div>
-Compressor C-12 cooling line repair
-<br>
-Assign Priority <b>High</b>
-<br>
-Assigned Technician <b>Marcus Reed</b>
-<br>
-Parts Availability <b>Not available</b>
-</div>
-
-<div class="task">
-<div class="task-title">WO-3018 <span class="tag medium">Medium</span></div>
-Pump B-07 inspection and vibration check
-<br>
-Assign Priority <b>Medium</b>
-<br>
-Assigned Technician <b>Elena Park</b>
-<br>
-Parts Availability <b>Available</b>
-</div>
-
-</div>
-
-
-<div class="column">
-
-<div class="column-title">In Progress <span class="count green">2</span></div>
-
-<div class="task">
-<div class="task-title">WO-2997 <span class="tag selected">Selected</span></div>
-Boiler A-03 pressure stability corrective task
-<br>
-Assign Priority <b>Immediate</b>
-<br>
-Assigned Technician <b>Marcus Reed</b>
-<br>
-Parts Availability <b>Available</b>
-</div>
-
-<div class="task">
-<div class="task-title">WO-2992 <span class="tag hold">On Hold</span></div>
-Valve V-19 replacement planning
-<br>
-Assign Priority <b>Scheduled</b>
-<br>
-Assigned Technician <b>Rina Das</b>
-<br>
-Parts Availability <b>Order required</b>
-</div>
-
-</div>
-
-
-<div class="column">
-
-<div class="column-title">Review / Ready to Close <span class="count gray">1</span></div>
-
-<div class="task">
-<div class="task-title">WO-2988 <span class="tag review">Review</span></div>
-Sensor calibration follow-up for Line B
-<br>
-Assign Priority <b>Preventive</b>
-<br>
-Assigned Technician <b>Noah Smith</b>
-<br>
-Parts Availability <b>Available</b>
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<div class="card">
-
-<h2>Selected work order - WO-2997</h2>
-
-<div class="two-col">
-
-<!-- LEFT COLUMN -->
-<div>
-
-<!-- Parts availability -->
-<div class="card">
-
-<div class="section-title">Parts availability check</div>
-
-<div class="option">
-<b>Parts not available</b>
-
-<p>
-Create the order request, track procurement status, and keep the work order visible on hold.
-</p>
-
-<button class="btn btn-light full">
-Order Required Parts
-</button>
-
-<div class="status-yellow" style="margin-top:8px;">
-Tracker: Awaiting supplier confirmation
-</div>
-
-</div>
-
-</div>
-
-
-<!-- Task execution flow -->
-<div class="card">
-
-<div class="section-title">Task execution flow</div>
-
-<div class="grid4">
-
-<div class="option">
-<div class="count-green">1</div>
-<h3>Schedule</h3>
-
-<p>
-Window booked for 1:00 PM and team assigned.
-</p>
-
-</div>
-
-
-<div class="option active">
-
-<div class="count-green">2</div>
-
-<h3>Inspect</h3>
-
-<p>
-Pressure fluctuation verified during technician review.
-</p>
-
-</div>
-
-
-<div class="option">
-
-<div class="count-green">3</div>
-
-<h3>Perform Task</h3>
-
-<p>
-Replace faulty regulator and tighten fittings.
-</p>
-
-</div>
-
-
-<div class="option">
-
-<div class="count-green">4</div>
-
-<h3>Test System</h3>
-
-<p>
-Final operational test runs after repair completion.
-</p>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<!-- System operational check -->
-<div class="card">
-
-<div class="section-title">System operational check</div>
-
-<div class="grid2">
-
-<div class="option active">
-
-<b>Operational</b>
-
-<p>
-Update work order status, document completion, and submit the request for review.
-</p>
-
-<button class="btn btn-black full">
-Submit for Review
-</button>
-
-</div>
-
-
-<div class="option">
-
-<b>Not operational</b>
-
-<p>
-Perform additional repairs and loop the request back into the active task stage.
-</p>
-
-<button class="btn btn-warning full">
-Loop Back to Perform Additional Repairs
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- RIGHT COLUMN -->
-<div>
-
-<!-- Status update -->
-<div class="card">
-
-<div class="section-title">Status update and notes</div>
-
-<p>
-Current dashboard status <b>In Progress</b>
-</p>
-
-<p>
-Updated by <b>Marcus Reed</b>
-</p>
-
-<div class="small-title">
-Technician notes
-</div>
-
-<textarea>
-Inspection complete. Pressure regulator replaced.
-System moved to test stage pending final verification.
-</textarea>
-
-<div class="btn-row">
-
-<button class="btn btn-light">
-Set On Hold
-</button>
-
-<button class="btn btn-green">
-Mark Completed
-</button>
-
-</div>
-
-</div>
-
-
-
-<!-- Closure -->
-<div class="card">
-
-<div class="section-title">
-Closure section
-</div>
-
-<div class="grid2">
-
-<div class="option">
-
-<b>Follow-up needed: Yes</b>
-
-<p>
-Schedule a follow-up inspection and add preventive maintenance to reduce repeat failures.
-</p>
-
-<button class="btn btn-light full">
-Schedule Follow-up Inspection
-</button>
-
-<button class="btn btn-light full">
-Schedule Preventive Maintenance
-</button>
-
-</div>
-
-
-<div class="option">
-
-<b>Follow-up needed: No</b>
-
-<p>
-Log completion in the system, close the work order, and move it to the archive log.
-</p>
-
-<button class="btn btn-black full">
-Close Work Order
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<!-- Selected tracker -->
-<div class="card" style="background:#e6f1ea">
-
-<div class="section-title">
-Selected status tracker
-</div>
-<div class="para" style="font-size:13px" >
- <p>
-
-Request WO-2997 is currently In Progress on the dashboard.
-The last saved technician note has been written to the database,
-and the refreshed status is already reflected back to the client.
-
-</p>
-</div>
-<button class="btn btn-green full">
-Reflected on dashboard
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<div class="card">
-
-
-<div class="section-title">Completion summary</div>
-
-<p class="summary-desc">
-A compact summary of the full flow so technicians and reviewers can understand the next action quickly.
-</p>
-
-<div class="summary-list">
-
-<div class="summary-item">
-<div class="tick-circle">✓</div>
-<p>Work order WO-2997 was loaded from the backend API into the dashboard with current status and assigned technician details.</p>
-</div>
-
-<div class="summary-item">
-<div class="tick-circle">✓</div>
-<p>Parts availability was confirmed, allowing the technician to continue to scheduling and task execution without procurement delay.</p>
-</div>
-
-<div class="summary-item">
-<div class="tick-circle">✓</div>
-<p>The task execution flow remains visible as Schedule → Inspect → Perform Task → Test System.</p>
-</div>
-
-<div class="summary-item">
-<div class="tick-circle">✓</div>
-<p>The technician updated the request with notes, and the saved status is reflected back to the dashboard for review and closure.</p>
-</div>
-
-</div>
-
-</div>
-
-
-
-<div class="card">
-
-<div class="section-title">Archived completed work orders</div>
-<p class="subtitle" style="margin-bottom:12px;">
-Searchable log of completed maintenance actions, saved notes, and final status history.
-</p>
-
-<input class="search" placeholder="Search by work order, asset, or technician">
-
-<table class="table">
-
-<tr>
-<th>Work Order</th>
-<th>Asset</th>
-<th>Assigned Technician</th>
-<th>Final Status</th>
-<th>Notes</th>
-<th>Completed</th>
-</tr>
-
-<tr>
-<td>WO-2964</td>
-<td>Compressor C-08</td>
-<td>Marcus Reed</td>
-<td><span class="status green">Completed</span></td>
-<td>Seal replaced, test passed, no follow-up needed.</td>
-<td>Today · 9:12 AM</td>
-</tr>
-
-<tr>
-<td>WO-2958</td>
-<td>Pump B-03</td>
-<td>Elena Park</td>
-<td><span class="status gray">Closed</span></td>
-<td>Routine preventive inspection logged and archived.</td>
-<td>Yesterday</td>
-</tr>
-
-<tr>
-<td>WO-2942</td>
-<td>Boiler A-01</td>
-<td>Noah Smith</td>
-<td><span class="status yellow">Follow-up scheduled</span></td>
-<td>Pressure stabilized after repair; revisit in 7 days.</td>
-<td>Apr 18</td>
-</tr>
-
-<tr>
-<td>WO-2933</td>
-<td>Valve V-12</td>
-<td>Rina Das</td>
-<td><span class="status green">Completed</span></td>
-<td>Preventive replacement completed and documented.</td>
-<td>Apr 17</td>
-</tr>
-
-</table>
-
-</div>
-
-
-</div>
-
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+      <a href="../landing/landing_after.html" class="logo">
+        <img src="images/logo1.png" alt="EnerTrack">
+        EnerTrack
+      </a>
+      <div class="nav-title">Navigation</div>
+      <ul class="nav">
+        <a href="technician_overview.html"><li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Overview
+        </li></a>
+        <a href="technician_alerts.html"><li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M2 8c0-1.1.9-2 2-2" opacity="0.5"/><path d="M22 8a2 2 0 0 0-2-2" opacity="0.5"/></svg>
+          Real-Time Anomaly Alerts
+        </li></a>
+        <a href="technician_maintenance.html"><li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Fault Detection &amp; Diagnostics
+        </li></a>
+        <a href="technician_work_orders.html"><li class="active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          Maintenance Work Orders
+        </li></a>
+      </ul>
+    </div>
+    <div class="profile">
+      <img src="https://i.pravatar.cc/40" alt="Marcus Reed">
+      <div>
+        <div class="profile-name">Marcus Reed</div>
+        <div class="profile-role">Lead Technician</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <div class="wo-header-row">
+      <div class="page-header" style="margin-bottom:0;">
+        <h1>Maintenance Work Orders</h1>
+        <p>Create, assign, update, and close maintenance requests. Status changes are saved instantly.</p>
+      </div>
+      <button class="btn btn-dark" id="btnInitiateMaintenance" style="margin-top:6px;">+ Initiate Maintenance Action</button>
+    </div>
+
+    <!-- ─── NEW WORK ORDER SETUP ─────────────────────── -->
+    <div class="card" id="newWOSetup">
+      <h2>New Work Order Setup</h2>
+
+      <!-- Type Selector -->
+      <div class="type-selector" style="margin-top:14px; margin-bottom:16px;">
+        <div class="option wo-type-option" data-type="emergency">
+          <h3>Emergency</h3>
+          <p>Immediate response for critical equipment issues and urgent repairs.</p>
+        </div>
+        <div class="option active wo-type-option" data-type="scheduled">
+          <h3>Scheduled</h3>
+          <p>Planned maintenance window with assigned technician and review notes.</p>
+        </div>
+        <div class="option wo-type-option" data-type="preventive">
+          <h3>Preventive</h3>
+          <p>Routine follow-up work to prevent repeat alerts and reduce downtime.</p>
+        </div>
+      </div>
+
+      <form id="newWOForm">
+        <div class="grid2">
+          <!-- Left -->
+          <div class="card" style="margin:0;">
+            <div class="field">
+              <label>Selected Asset</label>
+              <input id="inputAsset" type="text" placeholder="e.g. Compressor C-12">
+            </div>
+            <div class="field">
+              <label>Planned Service Window</label>
+              <input id="inputWindow" type="text" placeholder="e.g. Today · 2:00 PM to 4:00 PM">
+            </div>
+          </div>
+          <!-- Right -->
+          <div class="card" style="margin:0;">
+            <div class="field">
+              <label>Assign Priority</label>
+              <select id="inputPriority">
+                <option value="high">High</option>
+                <option value="medium" selected>Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Assign Technician</label>
+              <select id="inputTechnician">
+                <option value="">— Select —</option>
+                <option value="Marcus Reed">Marcus Reed</option>
+                <option value="Elena Park">Elena Park</option>
+                <option value="Noah Smith">Noah Smith</option>
+                <option value="Rina Das">Rina Das</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Parts Availability</label>
+              <select id="inputParts">
+                <option value="yes">Available</option>
+                <option value="no">Not Available</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:right; margin-top:14px;">
+          <button type="submit" class="btn btn-dark">Create Work Order</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ─── KANBAN BOARD ─────────────────────────────── -->
+    <div class="card">
+      <h2>Open Work Orders Board</h2>
+      <small>Click any card to inspect and manage in the detail panel below.</small>
+      <div class="board" style="margin-top:16px;">
+        <div class="column">
+          <div class="column-title">New <span class="count-chip" id="countNew">0</span></div>
+          <div id="woColNew"></div>
+        </div>
+        <div class="column">
+          <div class="column-title">In Progress <span class="count-chip green" id="countInProgress">0</span></div>
+          <div id="woColInProgress"></div>
+        </div>
+        <div class="column">
+          <div class="column-title">Review / Ready to Close <span class="count-chip" id="countReview">0</span></div>
+          <div id="woColReview"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SELECTED WORK ORDER DETAIL ──────────────── -->
+    <div class="card">
+      <h2 id="selectedWOTitle">Select a work order from the board</h2>
+
+      <div class="grid2" style="margin-top:16px;">
+
+        <!-- Left: Parts + Task Flow -->
+        <div>
+          <!-- Parts Check -->
+          <div class="card" style="margin:0 0 16px 0;">
+            <h2 style="font-size:14px;">Parts Availability</h2>
+            <div class="option" style="margin-top:10px;">
+              <b>Status: <span id="selectedWOParts">—</span></b>
+              <p style="margin-top:4px;">If parts are not available, create a procurement request and keep the WO on hold.</p>
+              <button class="btn btn-light btn-full" id="btnOrderParts">Order Required Parts</button>
+            </div>
+          </div>
+
+          <!-- Task execution flow -->
+          <div class="card" style="margin:0;">
+            <h2 style="font-size:14px; margin-bottom:12px;">Task Execution Flow</h2>
+            <div class="task-execution-flow">
+              <div class="step-box" id="step-schedule">
+                <div class="step-num">1</div>
+                <h3>Schedule</h3>
+                <p>Window booked and team assigned.</p>
+              </div>
+              <div class="step-box" id="step-inspect">
+                <div class="step-num">2</div>
+                <h3>Inspect</h3>
+                <p>Technician verifies the fault on-site.</p>
+              </div>
+              <div class="step-box" id="step-perform">
+                <div class="step-num">3</div>
+                <h3>Perform Task</h3>
+                <p>Execute the repair or replacement.</p>
+              </div>
+              <div class="step-box" id="step-test">
+                <div class="step-num">4</div>
+                <h3>Test System</h3>
+                <p>Final operational test after repair.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Summary + Actions -->
+        <div>
+          <div class="card" style="margin:0 0 16px 0;">
+            <h2 style="font-size:14px; margin-bottom:12px;">Work Order Summary</h2>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 6px 20px; font-size:13px;">
+              <span style="color:var(--muted); font-weight:600;">ID</span>          <span id="selectedWOStatus">—</span>
+              <span style="color:var(--muted); font-weight:600;">Type</span>        <span id="selectedWOType">—</span>
+              <span style="color:var(--muted); font-weight:600;">Priority</span>    <span id="selectedWOPriority">—</span>
+              <span style="color:var(--muted); font-weight:600;">Technician</span>  <span id="selectedWOTechnician">—</span>
+            </div>
+          </div>
+
+          <!-- System operational check -->
+          <div class="card" style="margin:0;">
+            <h2 style="font-size:14px; margin-bottom:10px;">System Operational Check</h2>
+            <div class="grid2">
+              <div class="option active">
+                <b>Operational</b>
+                <p>Document completion and submit for review.</p>
+                <button class="btn btn-dark btn-full" id="btnSubmitForReview">Submit for Review</button>
+              </div>
+              <div class="option">
+                <b>Not Operational</b>
+                <p>Keep WO in-progress pending further work.</p>
+                <button class="btn btn-light btn-full">Mark On Hold</button>
+              </div>
+            </div>
+            <button class="btn btn-red btn-full" id="btnCloseWO" style="margin-top:12px;">Close & Archive Work Order</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── ARCHIVED WORK ORDERS ─────────────────────── -->
+    <div class="card">
+      <h2>Archived Work Orders</h2>
+      <small>Closed and completed work orders from this shift.</small>
+      <table class="archive-table" style="margin-top:14px;">
+        <thead>
+          <tr>
+            <th>WO ID</th>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Technician</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="archiveBody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<script type="module" src="js/workOrdersPage.js"></script>
 </body>
 </html>

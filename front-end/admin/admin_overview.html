@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Overview - EnerTrack</title>
     <link rel="stylesheet" href="admin_overview.css">
+    <link rel="stylesheet" href="admin_icons.css">
     <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
         rel="stylesheet">
 </head>
@@ -23,7 +24,7 @@
             <nav class="sidebar-nav">
 
                 <a href="admin_overview.html" class="nav-item active">
-                    <img src="images/maintenance_overview.png">
+                    <span data-icon="overview"></span>
                     Overview
                 </a>
 
@@ -31,15 +32,15 @@
                     <a href="admin_monitor.html" class="nav-section-title">MONITORING</a>
                     <div class="nav-group">
                         <div class="nav-subitem">
-                            <img src="images/maintenance_monitor.png">
+                            <span data-icon="monitor"></span>
                             System Health
                         </div>
                         <div class="nav-subitem">
-                            <img src="images/maintenance_metric.png">
+                            <span data-icon="metric"></span>
                             Performance Metrics
                         </div>
                         <div class="nav-subitem">
-                            <img src="images/maintenance_alert.png">
+                            <span data-icon="alert"></span>
                             Alerts
                             <span class="alerts-badge" id="sidebarAlertBadge">3</span>
                         </div>
@@ -50,15 +51,15 @@
                     <a href="admin_maintain.html" class="nav-section-title">MAINTENANCE</a>
                     <div class="nav-group">
                         <div class="nav-subitem">
-                            <img src="images/maintenance_backup.png">
+                            <span data-icon="backup"></span>
                             Backups
                         </div>
                         <div class="nav-subitem">
-                            <img src="images/maintenance_system.png">
+                            <span data-icon="system"></span>
                             System Updates
                         </div>
                         <div class="nav-subitem">
-                            <img src="images/maintenance_troubleshooting.png">
+                            <span data-icon="troubleshooting"></span>
                             Troubleshooting
                         </div>
                     </div>
@@ -86,7 +87,7 @@
                 <div class="stat-card">
                     <div class="stat-header">
                         <span>System Health</span>
-                        <img src="images/systemops_greentick.png">
+                        <span data-icon="success" class="text-success"></span>
                     </div>
                     <h2>99.9%</h2>
                     <p class="text-success" style="color: #166534">All systems operational</p>
@@ -95,7 +96,7 @@
                 <div class="stat-card">
                     <div class="stat-header">
                         <span>Active Alerts</span>
-                        <img src="images/overview_alert.png" alt="Active Alerts" class="icon-danger">
+                        <span data-icon="alert" class="icon-danger"></span>
                     </div>
                     <h2><span id="activeAlertsCount">3</span></h2>
                     <p><span class="text-danger">+2 since yesterday</span> requires attention</p>
@@ -104,7 +105,7 @@
                 <div class="stat-card">
                     <div class="stat-header">
                         <span>Avg CPU Load</span>
-                        <img src="images/overview_cpu.png" alt="Avg CPU Load">
+                        <span data-icon="cpu"></span>
                     </div>
                     <h2>42%</h2>
                     <p>Normal operating range</p>
@@ -113,7 +114,7 @@
                 <div class="stat-card">
                     <div class="stat-header">
                         <span>Last Backup</span>
-                        <img src="images/overview_backup.png" alt="Last Backup">
+                        <span data-icon="backup"></span>
                     </div>
                     <h2>2h ago</h2>
                     <p>Completed successfully at 04:00 AM</p>
@@ -128,7 +129,7 @@
                     <div class="panel">
                         <div class="panel-header">
                             <div class="panel-title">
-                                <img src="images/overview_perf.png" alt="Server Performance">
+                                <span data-icon="metric"></span>
                                 Server Performance (24h)
                             </div>
                             <button class="btn-secondary clickable" onclick="viewMetrics()">View Metrics</button>
@@ -139,7 +140,7 @@
                     <div class="panel">
                         <div class="panel-header">
                             <div class="panel-title text-danger">
-                                <img src="images/overview_recent.png" alt="Recent Alerts">
+                                <span data-icon="alert"></span>
                                 Recent Alerts
                             </div>
                             <span class="badge badge-danger">
@@ -158,7 +159,7 @@
                     <div class="panel no-padding">
                         <div class="panel-header padded">
                             <div class="panel-title">
-                                <img src="images/overview_maintenance.png" alt="Maintenance Tasks">
+                                <span data-icon="system"></span>
                                 Maintenance Tasks
                             </div>
                         </div>
@@ -171,8 +172,7 @@
                         <div class="section-divider">RECENT BACKUPS</div>
 
                         <div class="backup-card mx">
-                            <div class="backup-header">
-                                <img src="images/overview_backup.png" alt="Database">
+                                <span data-icon="backup"></span>
                                 <div>
                                     <h4>Production Database (Full)</h4>
                                     <span class="muted">Size: 245 GB</span>
@@ -192,19 +192,19 @@
 
                         <div class="tools-grid mx">
                             <button class="tool-btn clickable">
-                                <img src="images/overview_view_systemLogs.png" alt="System Logs">
+                                <span data-icon="logs"></span>
                                 View System Logs
                             </button>
                             <button class="tool-btn clickable">
-                                <img src="images/overview_perf.png" alt="Error Check">
+                                <span data-icon="metric"></span>
                                 Error Check Scan
                             </button>
                             <button class="tool-btn clickable">
-                                <img src="images/overview_ssh.png" alt="Terminal">
+                                <span data-icon="terminal"></span>
                                 SSH Terminal
                             </button>
                             <button class="tool-btn clickable">
-                                <img src="images/overview_restart_service.png" alt="Restart">
+                                <span data-icon="restart"></span>
                                 Restart Services
                             </button>
                         </div>

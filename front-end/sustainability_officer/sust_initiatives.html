@@ -18,19 +18,19 @@
             
             <nav class="sidebar-nav">
                 <a href="sust_overview.html" class="nav-item">
-                    <img src="images/overview_icon.png" alt="Overview">
+                    <span class="nav-icon" data-icon="overview"></span>
                     Overview
                 </a>
                 <a href="sust_monitoring.html" class="nav-item">
-                    <img src="images/environmental_impact_monitoring.png" alt="Monitoring">
+                    <span class="nav-icon" data-icon="monitoring"></span>
                     Environmental Impact Monitoring
                 </a>
                 <a href="sust_report.html" class="nav-item">
-                    <img src="images/Sustainability_reporting.png" alt="Reporting">
+                    <span class="nav-icon" data-icon="reporting"></span>
                     Sustainability Reporting
                 </a>
                 <a href="sust_initiatives.html" class="nav-item active">
-                    <img src="images/sustainable_conservation_initiatives.png" alt="Initiatives">
+                    <span class="nav-icon" data-icon="initiatives"></span>
                     Sustainable Conservation Initiatives
                 </a>
             </nav>
@@ -59,14 +59,13 @@
             <header class="page-header">
                 <div class="page-header-text">
                     <h1>Sustainable Conservation Initiatives</h1>
-                    <p>Shorter labels, fewer lines, and wider cards so everything stays inside the boxes.</p>
+                    <p>Track, manage, and evaluate energy-saving initiatives across all monitored sites.</p>
                 </div>
                 <div class="header-actions">
                     <div class="badge-outline-green">
-                        <img src="../admin/images/systemops_greentick.png" width="14" alt="Active">
+                        <span style="display:inline-flex;width:14px;height:14px;margin-right:4px;" data-icon="compile"></span>
                         12 Active Initiatives
                     </div>
-                    <button class="btn-dark">+ Propose New Initiative</button>
                 </div>
             </header>
 
@@ -81,27 +80,27 @@
 
                         <div class="form-group">
                             <label class="form-label">Title</label>
-                            <input type="text" class="form-input" value="LED Lighting Retrofit — Building A & B">
+                            <input type="text" id="new-init-title" class="form-input" value="">
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">Description</label>
-                            <textarea class="form-textarea">Replace fluorescent lights with smart LED and occupancy controls in two high-usage buildings.</textarea>
+                            <textarea id="new-init-desc" class="form-textarea"></textarea>
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">Target energy reduction %</label>
-                            <input type="text" class="form-input" value="12%">
+                            <input type="text" id="new-init-target" class="form-input" value="">
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">Estimated cost</label>
-                            <input type="text" class="form-input" value="$64,000">
+                            <input type="text" id="new-init-cost" class="form-input" value="">
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">Timeline</label>
-                            <div class="custom-select" data-select>
+                            <div class="custom-select" id="new-init-timeline" data-select>
                                 <button type="button" class="select-trigger" aria-expanded="false">
                                     <span class="select-value">3 weeks - Assessment -> Procurement -> Install</span>
                                     <span class="select-chevron" aria-hidden="true">&#9662;</span>
@@ -126,6 +125,10 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div style="margin-top: 14px; display: flex; flex-direction: column;">
+                            <button class="btn-dark" style="width: 100%; padding: 12px; font-size: 15px;">+ Propose New Initiative</button>
+                        </div>
                     </section>
                 </div>
                 
@@ -139,6 +142,7 @@
                             <!-- Proposed -->
                             <div class="pipeline-col">
                                 <h4>Proposed</h4>
+                                <div id="col-proposed">
                                 
                                 <div class="kanban-card">
                                     <div class="kanban-header">
@@ -170,7 +174,9 @@
                                     </div>
                                 </div>
                                 
+                                </div> <!-- close col-proposed -->
                                 <h4>In Progress</h4>
+                                <div id="col-in-progress">
                                 <div class="kanban-card">
                                     <div class="kanban-header">
                                         <h5>LED Lighting Retrofit</h5>
@@ -200,11 +206,13 @@
                                         <div class="kanban-stats-val">6 weeks</div>
                                     </div>
                                 </div>
+                                </div> <!-- close col-in-progress -->
                             </div>
                             
                             <!-- Approved / Completed -->
                             <div class="pipeline-col">
                                 <h4>Approved</h4>
+                                <div id="col-approved">
                                 
                                 <div class="kanban-card">
                                     <div class="kanban-header">
@@ -236,7 +244,9 @@
                                     </div>
                                 </div>
                                 
+                                </div> <!-- close col-approved -->
                                 <h4>Completed</h4>
+                                <div id="col-completed">
                                 <div class="kanban-card">
                                     <div class="kanban-header">
                                         <h5>Server Room Cooling Reset</h5>
@@ -260,6 +270,7 @@
                                         <div class="outcome-pill">$6,700 saved</div>
                                     </div>
                                 </div>
+                                </div> <!-- close col-completed -->
                             </div>
                         </div>
                     </section>
@@ -279,47 +290,47 @@
                         <div class="selected-grid">
                             <div class="box-item">
                                 <h5>Implementation tracking</h5>
-                                <p>Targets<br>12% reduction • 2 buildings • full fixture replacement + occupancy controls installed</p>
+                                <p id="sel-targets">Select an initiative to see its specific targets and baseline metrics.</p>
                             </div>
                             <div class="box-item">
                                 <h5>Progress</h5>
-                                <p>72% complete — Building A finished • Building B flooring in progress</p>
+                                <p id="sel-progress">Current status and completion percentage across all facility phases.</p>
                             </div>
                             <div class="box-item">
-                                <h5>Evaluation</h5>
-                                <p>Energy savings<br>18.4 MWh projected monthly savings</p>
+                                <h5>Initial evaluation</h5>
+                                <p id="sel-evaluation">Projected energy savings based on preliminary assessments.</p>
                             </div>
                             
                             <div class="box-item">
                                 <h5>Resources</h5>
-                                <p>Facilities team • vendor crew • 42 LED units installed</p>
+                                <p id="sel-resources">Allocated personnel, vendor teams, and equipment deployments.</p>
                             </div>
                             <div class="box-item">
                                 <h5>Timeline</h5>
-                                <p>Week 6 of 8 • procurement cleared • install on pace</p>
+                                <p id="sel-timeline">Current schedule status versus the baseline project plan.</p>
                             </div>
                             <div class="box-item">
-                                <h5>Evaluation</h5>
-                                <p>Environmental impact<br>9.7 tCO₂e reduced per month after full rollout</p>
+                                <h5>Environmental impact</h5>
+                                <p id="sel-impact">Estimated monthly carbon footprint reduction after deployment.</p>
                             </div>
                             
                             <div class="box-item" style="grid-column: span 2;">
                                 <h5>Risks</h5>
-                                <p>No major blockers. Minor fixture lead time variance monitored for Building B.</p>
+                                <p id="sel-risks">Active blockers, lead time variances, and mitigation strategies.</p>
                             </div>
                             
                             <div class="box-item">
                                 <h5>Cost benefit</h5>
-                                <p>$21,600 forecast annual savings • 2.2-year payback</p>
+                                <p id="sel-cost">Annual cost savings forecast and estimated payback period.</p>
                             </div>
                         </div>
                         
                         <div class="status-bars">
-                            <div class="status-bar-green">
+                            <div class="status-bar-green" id="btn-set-ontrack" style="cursor: pointer;">
                                 <strong>On Track</strong>
                                 <span>Continue implementation.</span>
                             </div>
-                            <div class="status-bar-orange">
+                            <div class="status-bar-orange" id="btn-set-offtrack" style="cursor: pointer;">
                                 <strong>Not On Track</strong>
                                 <span>Adjust strategy or discontinue.</span>
                             </div>
@@ -410,5 +421,6 @@
             });
         });
     </script>
+    <script type="module" src="js/initiativesPage.js"></script>
 </body>
 </html>
