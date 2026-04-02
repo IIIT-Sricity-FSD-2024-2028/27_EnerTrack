@@ -9,31 +9,31 @@
 
 var MOCK_USERS = [
     {
-        name: "Admin User",
-        email: "admin@enertrack.com",
+        name: "Aadithya",
+        email: "aadi150906@gmail.com",
         phone: "9876543210",
-        password: "Admin@123",
+        password: "Aadi@123",
         role: "System Administrator"
     },
     {
-        name: "Jane Smith",
-        email: "jane.smith@enertrack.com",
+        name: "Husaam",
+        email: "Husaam@gmail.com",
         phone: "9876543211",
-        password: "Jane@1234",
+        password: "Husaam@123",
         role: "Financial Analyst"
     },
     {
-        name: "Mike Johnson",
-        email: "mike.j@enertrack.com",
+        name: "Chirag",
+        email: "chirag@gmail.com",
         phone: "9876543212",
-        password: "Mike@1234",
+        password: "Chirag@123",
         role: "Technician"
     },
     {
-        name: "Sarah Green",
-        email: "sarah.g@enertrack.com",
+        name: "Viksa",
+        email: "Viksa@gmail.com",
         phone: "9876543213",
-        password: "Sarah@123",
+        password: "Viksa@123",
         role: "Sustainability Officer"
     }
 ];
@@ -83,6 +83,19 @@ function isEmailTaken(email) {
     var allUsers = MOCK_USERS.concat(getRegisteredUsers());
     for (var i = 0; i < allUsers.length; i++) {
         if (allUsers[i].email.toLowerCase() === email.toLowerCase()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/*
+ * isPhoneTaken — Checks if a phone number is already registered.
+ */
+function isPhoneTaken(phone) {
+    var allUsers = MOCK_USERS.concat(getRegisteredUsers());
+    for (var i = 0; i < allUsers.length; i++) {
+        if (allUsers[i].phone === phone) {
             return true;
         }
     }

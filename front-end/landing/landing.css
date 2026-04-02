@@ -151,6 +151,105 @@ h1, h2, h3, h4 {
     object-fit: cover;
 }
 
+/* PROFILE DROPDOWN */
+.profile-wrapper {
+    position: relative;
+}
+
+.profile-circle {
+    background: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.profile-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: -10px;
+    width: 280px;
+    background: var(--white);
+    border: 2px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lift);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.25s ease;
+    z-index: 200;
+    overflow: hidden;
+}
+
+.profile-dropdown.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-header {
+    padding: 16px 20px 2px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.dropdown-role {
+    padding: 0 20px 12px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 0;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: var(--transition-fast);
+    border: none;
+    background: none;
+    width: 100%;
+    cursor: pointer;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+.dropdown-item:hover {
+    background: rgba(47, 125, 79, 0.08);
+    color: var(--primary-green);
+}
+
+.dropdown-item svg {
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+.dropdown-item:hover svg {
+    opacity: 1;
+    stroke: var(--primary-green);
+}
+
+.dropdown-logout {
+    color: #dc2626;
+}
+
+.dropdown-logout:hover {
+    background: rgba(220, 38, 38, 0.08);
+    color: #dc2626;
+}
+
+.dropdown-logout:hover svg {
+    stroke: #dc2626;
+}
 /* HERO */
 .hero {
     display: flex;
@@ -295,6 +394,12 @@ h1, h2, h3, h4 {
 .role-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lift);
+}
+
+.role-card-locked,
+.role-card-locked:hover {
+    transform: none !important;
+    box-shadow: none !important;
 }
 
 .role-card h3 {

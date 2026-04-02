@@ -11,7 +11,7 @@
     <div class="dashboard">
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <a href="sust_overview.html" class="sidebar-logo">
+            <a href="../landing/landing.html" class="sidebar-logo">
                 <img src="images/logo.png" alt="EnerTrack Logo" class="logo-icon">
                 <img src="images/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
             </a>
@@ -47,16 +47,9 @@
                 <div class="profile-card">
                     <img src="images/maya_patel.png" alt="Maya Patel" class="avatar">
                     <div class="profile-info">
-                        <h4>Maya Patel</h4>
-                        <p>Sustainability Officer</p>
+                        <h4 id="sidebarUserName">Maya Patel</h4>
+                        <p id="sidebarUserRole">Sustainability Officer</p>
                     </div>
-                    <button class="profile-menu" type="button" aria-label="Profile options">
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <circle cx="12" cy="5" r="2"></circle>
-                            <circle cx="12" cy="12" r="2"></circle>
-                            <circle cx="12" cy="19" r="2"></circle>
-                        </svg>
-                    </button>
                 </div>
             </div>
         </aside>
@@ -289,6 +282,7 @@
         </main>
     </div>
     <script type="module" src="js/monitoringPage.js"></script>
+    <script src="../dashboardProfileMenu.js"></script>
 </body>
 </html>
 

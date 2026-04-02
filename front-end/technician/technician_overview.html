@@ -14,7 +14,7 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div>
-      <a href="../landing/landing_after.html" class="logo">
+      <a href="../landing/landing.html" class="logo">
         <img src="images/logo1.png" alt="EnerTrack">
         EnerTrack
       </a>
@@ -39,10 +39,10 @@
       </ul>
     </div>
     <div class="profile">
-      <img src="https://i.pravatar.cc/40" alt="Marcus Reed">
+      <img src="https://i.pravatar.cc/40" alt="User Profile">
       <div>
-        <div class="profile-name">Marcus Reed</div>
-        <div class="profile-role">Lead Technician</div>
+        <div class="profile-name" id="sidebarUserName">Marcus Reed</div>
+        <div class="profile-role" id="sidebarUserRole">Lead Technician</div>
       </div>
     </div>
   </aside>
@@ -52,7 +52,7 @@
 
     <div class="header-row">
       <div class="page-header">
-        <h1>Welcome back, Marcus</h1>
+        <h1 id="welcomeHeading">Welcome back, Marcus</h1>
         <p>Monitor active field conditions, review the latest anomalies and faults, and jump directly into technician workflows that need action.</p>
       </div>
       <div class="header-actions">
@@ -115,5 +115,6 @@
 </div>
 
 <script type="module" src="js/overviewPage.js"></script>
+<script src="../dashboardProfileMenu.js"></script>
 </body>
 </html>

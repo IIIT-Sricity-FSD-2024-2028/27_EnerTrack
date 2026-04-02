@@ -21,9 +21,9 @@
 
     <!-- TOP BAR -->
     <div class="top-bar">
-        <div class="logo">
+        <a href="../landing/landing.html" class="logo">
             <img src="../sign_in/images/logo.png" alt="EnerTrack Logo">
-        </div>
+        </a>
     </div>
 
     <!-- MAIN WRAPPER -->
@@ -132,6 +132,18 @@
 
         </div>
 
+    </div>
+
+    <!-- Duplicate Account Popup -->
+    <div class="popup-overlay" id="duplicatePopup" style="display:none;">
+        <div class="popup-card">
+            <h3 id="popupTitle">Account Already Exists</h3>
+            <p id="popupMsg">An account with this information already exists.</p>
+            <div class="popup-actions">
+                <button class="popup-btn popup-btn-secondary" id="popupClose">Go Back</button>
+                <a href="../sign_in/sign_in.html" class="popup-btn popup-btn-primary">Sign In Instead</a>
+            </div>
+        </div>
     </div>
 
     <!-- Mock Data -->

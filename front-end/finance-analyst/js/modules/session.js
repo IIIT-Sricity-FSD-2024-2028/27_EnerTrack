@@ -37,11 +37,23 @@ export function renderSessionUI() {
   const user = getCurrentUser();
   if (!user) return;
 
-  document.querySelectorAll(".profile-name").forEach(el => el.textContent = user.name);
-  document.querySelectorAll(".profile-role").forEach(el => el.textContent = roleLabel(user.role));
+  /* Use the shared currentUser from sign-in/sign-up if available */
+  var displayName = user.name;
+  var displayRole = roleLabel(user.role);
+  var currentUserData = sessionStorage.getItem("currentUser");
+  if (currentUserData) {
+    try {
+      var cu = JSON.parse(currentUserData);
+      displayName = cu.name || displayName;
+      displayRole = cu.role || displayRole;
+    } catch (_) {}
+  }
+
+  document.querySelectorAll(".profile-name").forEach(el => el.textContent = displayName);
+  document.querySelectorAll(".profile-role").forEach(el => el.textContent = displayRole);
 
   const welcome = document.querySelector("h1.welcome");
-  if (welcome) welcome.textContent = `Welcome back, ${user.name.split(" ")[0]}`;
+  if (welcome) welcome.textContent = `Welcome back, ${displayName.split(" ")[0]}`;
 
   // Role-gated elements: data-roles="superuser,finance_analyst"
   document.querySelectorAll("[data-roles]").forEach(el => {

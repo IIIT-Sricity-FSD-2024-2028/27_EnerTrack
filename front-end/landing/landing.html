@@ -24,10 +24,25 @@
             </div>
         </div>
         <div class="right-nav">
-            <a href="../sign_in/sign_in.html" class="btn-primary">Sign In</a>
-            <a href="../finance-analyst/finance_overview.html" class="profile-circle">
-                <img src="https://i.pravatar.cc/100" alt="User Profile">
-            </a>
+            <a href="../sign_up/sign_up.html" class="btn-primary" id="navSignUp">Sign Up</a>
+
+            <!-- Profile with dropdown for System Administrator -->
+            <div class="profile-wrapper" id="profileWrapper" style="display:none;">
+                <button class="profile-circle" id="navProfile" type="button">
+                    <img src="https://i.pravatar.cc/100" alt="User Profile">
+                </button>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="dropdown-header" id="dropdownUserName">User</div>
+                    <div class="dropdown-role" id="dropdownUserRole">Role</div>
+                    <div class="dropdown-divider"></div>
+                    <div id="dropdownLinks"><!-- dynamically populated --></div>
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item dropdown-logout" id="logoutBtn" type="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        Sign Out
+                    </button>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -68,7 +83,7 @@
         <span class="section-label">Stakeholders</span>
         <h2 class="section-title">Tailored for every project lead.</h2>
         <div class="roles-grid">
-            <a href="../admin/admin_overview.html" class="role-card">
+            <div class="role-card" data-role="System Administrator" data-href="../admin/admin_overview.html">
                 <h3>System Administrator</h3>
                 <ul>
                     <li>Monitors and maintains energy management infrastructure.</li>
@@ -76,9 +91,9 @@
                     <li>Tracks real-time system performance and analytics.</li>
                     <li>Ensures 24/7 mission-critical operations.</li>
                 </ul>
-            </a>
+            </div>
 
-            <a href="../finance-analyst/finance_overview.html" class="role-card">
+            <div class="role-card" data-role="Financial Analyst" data-href="../finance-analyst/finance_overview.html">
                 <h3>Financial Analyst</h3>
                 <ul>
                     <li>Calculates utility costs and financial ROI metrics.</li>
@@ -86,9 +101,9 @@
                     <li>Evaluates financial impact of energy projects.</li>
                     <li>Predictive trend analysis for investment decisions.</li>
                 </ul>
-            </a>
+            </div>
 
-            <a href="../technician/technician_overview.html" class="role-card">
+            <div class="role-card" data-role="Technician" data-href="../technician/technician_overview.html">
                 <h3>Technician</h3>
                 <ul>
                     <li>Executes technical maintenance and sensor calibration.</li>
@@ -96,9 +111,9 @@
                     <li>Diagnoses equipment issues with FDD tools.</li>
                     <li>Maintains hardware integrity across campus.</li>
                 </ul>
-            </a>
+            </div>
 
-            <a href="../sustainability_officer/sust_overview.html" class="role-card">
+            <div class="role-card" data-role="Sustainability Officer" data-href="../sustainability_officer/sust_overview.html">
                 <h3>Sustainability Officer</h3>
                 <ul>
                     <li>Strategy lead for campus-wide green initiatives.</li>
@@ -106,7 +121,7 @@
                     <li>Prepares global sustainability impact reports.</li>
                     <li>Drives behavioral change through data visibility.</li>
                 </ul>
-            </a>
+            </div>
         </div>
     </section>
 
@@ -270,12 +285,9 @@
     <!-- FOOTER -->
     <footer class="footer">
         <div class="copyright">© 2026 EnerTrack Energy Solutions.</div>
-        <div style="display: flex; gap: 24px;">
-            <a href="#" style="text-decoration: none; color: inherit;">Privacy</a>
-            <a href="#" style="text-decoration: none; color: inherit;">Terms</a>
-        </div>
     </footer>
 
+    <script src="../mockData.js"></script>
     <script>
         // Navbar scroll effect
         window.addEventListener('scroll', () => {
@@ -292,7 +304,7 @@
         const dots = document.querySelectorAll('.dot');
 
         track.addEventListener('scroll', () => {
-            const index = Math.round(track.scrollLeft / 336); // card width + gap
+            const index = Math.round(track.scrollLeft / 336);
             dots.forEach((dot, i) => {
                 dot.classList.toggle('active', i === index);
             });
@@ -304,48 +316,117 @@
             });
         });
 
-        // Dynamic Role-Based Redirection for Profile Icon
-        function updateProfileLink() {
-            const profileLink = document.querySelector('.profile-circle');
-            if (!profileLink) return;
+        // Auth-aware navbar: show Sign Up or Profile
+        (function () {
+            var userData = sessionStorage.getItem('currentUser');
+            var signUpBtn = document.getElementById('navSignUp');
+            var profileWrapper = document.getElementById('profileWrapper');
+            var profileBtn = document.getElementById('navProfile');
+            var dropdown = document.getElementById('profileDropdown');
 
-            // Check for active sessions across modules
-            // 1. Finance Analyst
-            const financeSess = sessionStorage.getItem('enertrack_finance_session');
-            const financeDB = localStorage.getItem('EnerTrack_FinanceDB');
-            if (financeSess || financeDB) {
-                profileLink.href = '../finance-analyst/finance_overview.html';
-                return;
+            if (userData) {
+                var user = JSON.parse(userData);
+                signUpBtn.style.display = 'none';
+                profileWrapper.style.display = '';
+
+                // Populate dropdown header
+                document.getElementById('dropdownUserName').textContent = user.name;
+                document.getElementById('dropdownUserRole').textContent = user.role;
+
+                // Dynamically build dropdown links based on role
+                var allLinks = [
+                    { role: 'System Administrator', label: 'System Administration', href: '../admin/admin_overview.html',
+                      icon: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>' },
+                    { role: 'Sustainability Officer', label: 'Sustainability Dashboard', href: '../sustainability_officer/sust_overview.html',
+                      icon: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 2 8a7 7 0 0 1-7 7c0 1 0 3-2 3z"/>' },
+                    { role: 'Technician', label: 'Technician Dashboard', href: '../technician/technician_overview.html',
+                      icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>' },
+                    { role: 'Financial Analyst', label: 'Finance Analyst Dashboard', href: '../finance-analyst/finance_overview.html',
+                      icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' }
+                ];
+
+                var linksContainer = document.getElementById('dropdownLinks');
+                var linksHTML = '';
+                for (var l = 0; l < allLinks.length; l++) {
+                    var link = allLinks[l];
+                    // Admin sees all links; others see only their own role's link
+                    if (user.role === 'System Administrator' || user.role === link.role) {
+                        linksHTML += '<a href="' + link.href + '" class="dropdown-item">' +
+                            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + link.icon + '</svg>' +
+                            link.label + '</a>';
+                    }
+                }
+                linksContainer.innerHTML = linksHTML;
+
+                // All users — toggle dropdown on profile click
+                profileBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('open');
+                });
+
+                // Close dropdown on outside click
+                document.addEventListener('click', function (e) {
+                    if (!profileWrapper.contains(e.target)) {
+                        dropdown.classList.remove('open');
+                    }
+                });
+
+                // Sign Out button → go to landing page
+                document.getElementById('logoutBtn').addEventListener('click', function () {
+                    sessionStorage.removeItem('currentUser');
+                    window.location.reload();
+                });
+
+                // Role cards: enable based on user role
+                var roleCards = document.querySelectorAll('.role-card');
+                for (var i = 0; i < roleCards.length; i++) {
+                    var card = roleCards[i];
+                    var cardRole = card.getAttribute('data-role');
+                    var cardHref = card.getAttribute('data-href');
+
+                    var isAllowed = (user.role === 'System Administrator') || (user.role === cardRole);
+
+                    if (isAllowed) {
+                        // Accessible card — green border + pointer
+                        card.style.cursor = 'pointer';
+                        card.style.border = '2px solid var(--primary-green)';
+                        card.style.position = 'relative';
+                        // Add a small "Go to Dashboard →" badge
+                        var badge = document.createElement('div');
+                        badge.textContent = 'Go to Dashboard →';
+                        badge.style.cssText = 'margin-top:auto;padding-top:12px;font-size:13px;font-weight:600;color:#2f7d4f;';
+                        card.appendChild(badge);
+                        (function(href) {
+                            card.addEventListener('click', function() {
+                                window.location.href = href;
+                            });
+                        })(cardHref);
+                    } else {
+                        // Locked card — greyed out with lock icon
+                        card.style.opacity = '0.5';
+                        card.style.cursor = 'not-allowed';
+                        card.style.filter = 'grayscale(0.6)';
+                        card.style.position = 'relative';
+                        card.style.pointerEvents = 'none';
+                        card.classList.add('role-card-locked');
+                        // Add lock overlay
+                        var lock = document.createElement('div');
+                        lock.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="margin-left:6px;">Locked</span>';
+                        lock.style.cssText = 'display:flex;align-items:center;margin-top:auto;padding-top:12px;font-size:13px;font-weight:600;color:#999;';
+                        card.appendChild(lock);
+                    }
+                }
+
+            } else {
+                signUpBtn.style.display = '';
+                profileWrapper.style.display = 'none';
+                // Not logged in: disable all role cards
+                var roleCards = document.querySelectorAll('.role-card');
+                for (var i = 0; i < roleCards.length; i++) {
+                    roleCards[i].style.cursor = 'default';
+                }
             }
-
-            // 2. Admin
-            const adminSess = sessionStorage.getItem('enertrack_session');
-            if (adminSess) {
-                profileLink.href = '../admin/admin_overview.html';
-                return;
-            }
-
-            // 3. Technician
-            const techDB = sessionStorage.getItem('et_tech_db_v1');
-            if (techDB) {
-                profileLink.href = '../technician/technician_overview.html';
-                return;
-            }
-
-            // 4. Sustainability Officer
-            const sustUser = sessionStorage.getItem('et_current_user');
-            const sustDB = sessionStorage.getItem('et_sust_db_v1');
-            if (sustUser || sustDB) {
-                profileLink.href = '../sustainability_officer/sust_overview.html';
-                return;
-            }
-
-            // Default fallback if no session is active
-            profileLink.href = '../sign_in/sign_in.html';
-        }
-
-        // Initialize redirection logic
-        updateProfileLink();
+        })();
     </script>
 </body>
 </html>

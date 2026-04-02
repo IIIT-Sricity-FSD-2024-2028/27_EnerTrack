@@ -105,11 +105,8 @@ export function confirmLogout() {
     cancelLabel: "Stay",
     onConfirm: () => {
       sessionStorage.removeItem(SESSION_KEY);
-      showToast("Logged out successfully.", "info", 1500);
-      setTimeout(() => {
-        // In a real app this would navigate to login.html
-        showToast("Redirecting to login…", "info", 1500);
-      }, 1600);
+      sessionStorage.removeItem("currentUser");
+      window.location.href = "../landing/landing.html";
     }
   });
 }
