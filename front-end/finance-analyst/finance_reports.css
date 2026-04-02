@@ -222,8 +222,14 @@ tbody td {
 
 .action-cell {
   display: flex;
+  flex-direction: column;
   gap: 6px;
-  flex-wrap: wrap;
+  width: min-content;
+}
+
+.action-row {
+  display: flex;
+  gap: 6px;
 }
 
 /* BUTTONS */
@@ -239,19 +245,21 @@ tbody td {
 }
 
 .btn-view {
-  border-color: #d8dde2;
+  color: #64748b;
+  border-color: #e2e8f0;
+  background: #ffffff;
 }
 
 .btn-edit {
-  color: #0f8f63;
-  border-color: #dff6ee;
-  background: #dff6ee;
+  color: #10b981;
+  border-color: #d1fae5;
+  background: #f0fdf4;
 }
 
 .btn-delete {
-  color: #dc2626;
+  color: #ef4444;
   border-color: #fee2e2;
-  background: #fee2e2;
+  background: #fef2f2;
 }
 
 .btn-approve {
@@ -263,6 +271,10 @@ tbody td {
 .btn-export {
   background: #edf0f2;
   border-color: #d8dde2;
+}
+
+.action-btn:hover {
+  opacity: 0.8;
 }
 
 .main-btn {

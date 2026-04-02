@@ -141,7 +141,7 @@ const FinanceDB = {
   /* ── PERMISSIONS ──────────────────────────────────── */
   rolePermissions: {
     superuser:       ["view", "create", "edit", "delete", "approve", "export", "manage_users"],
-    finance_analyst: ["view", "create", "edit", "export", "approve"],
+    finance_analyst: ["view", "create", "edit", "delete", "approve", "export"],
     enduser:         ["view", "export"]
   }
 };
@@ -170,6 +170,13 @@ export function initDB() {
       parsed.session = parsed.session || FinanceDB.session;
       
       Object.assign(FinanceDB, parsed);
+
+      // Force up-to-date permissions, ignoring stale localStorage versions
+      FinanceDB.rolePermissions = {
+        superuser:       ["view", "create", "edit", "delete", "approve", "export", "manage_users"],
+        finance_analyst: ["view", "create", "edit", "delete", "approve", "export"],
+        enduser:         ["view", "export"]
+      };
     } catch (e) {
       console.error("Failed to load FinanceDB from storage", e);
     }

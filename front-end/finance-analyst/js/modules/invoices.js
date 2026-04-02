@@ -41,9 +41,11 @@ export function renderInvoiceList(filter = {}) {
       <td>${formatDate(inv.dueDate)}</td>
       <td>${badgeHTML(inv.status)}</td>
       <td class="action-cell">
-        <button class="action-btn btn-view"   onclick="InvoiceModule.viewInvoice('${inv.id}')">View</button>
-        ${can("edit")   ? `<button class="action-btn btn-edit"    onclick="InvoiceModule.editInvoice('${inv.id}')">Edit</button>` : ""}
-        ${can("approve") && inv.status === "pending" ? `<button class="action-btn btn-approve" onclick="InvoiceModule.approveInvoice('${inv.id}')">Approve</button>` : ""}
+        <div class="action-row">
+          <button class="action-btn btn-view"   onclick="InvoiceModule.viewInvoice('${inv.id}')">View</button>
+          ${can("edit")   ? `<button class="action-btn btn-edit"    onclick="InvoiceModule.editInvoice('${inv.id}')">Edit</button>` : ""}
+          ${can("approve") && inv.status === "pending" ? `<button class="action-btn btn-approve" onclick="InvoiceModule.approveInvoice('${inv.id}')">Approve</button>` : ""}
+        </div>
         ${can("delete") ? `<button class="action-btn btn-delete"  onclick="InvoiceModule.deleteInvoice('${inv.id}')">Delete</button>` : ""}
       </td>
     </tr>
@@ -153,7 +155,7 @@ function _submitAddInvoice() {
   let valid = true;
 
   const rules = {
-    number: { required: true, minLength: 3, maxLength: 20 },
+    number: { required: true, pattern: /^INV-\d{4,5}$/, patternMsg: "Invalid invoice number format. Use INV-XXXX or INV-XXXXX." },
     vendor: { required: true, minLength: 2 },
     amount: { required: true, positiveNumber: true },
     type:   { required: true },
@@ -176,19 +178,19 @@ function _submitAddInvoice() {
   // Cross-field: due date must be after issued date
   if (data.issued && data.due && data.due < data.issued) {
     showFieldError(fields.due, "Due date must be after issued date.");
+    errors.due = "Due date must be after issued date.";
     valid = false;
   }
 
   // Duplicate invoice number check
   if (FinanceDB.invoices.some(i => i.invoiceNumber === data.number)) {
     showFieldError(fields.number, "Invoice number already exists.");
+    errors.number = "Invoice number already exists.";
     valid = false;
   }
 
   if (!valid) {
-    // Re-open modal with the filled form (keep open on error)
-    showToast("Please fix the errors before submitting.", "warning");
-    return;
+    return false;
   }
 
   const dept = FinanceDB.departments.find(d => d.id === data.dept);
@@ -295,7 +297,7 @@ function _submitEditInvoice(id) {
   let valid = true;
 
   const rules = {
-    number: { required: true, minLength: 3 },
+    number: { required: true, pattern: /^INV-\d{4,5}$/, patternMsg: "Invalid invoice number format. Use INV-XXXX or INV-XXXXX." },
     vendor: { required: true, minLength: 2 },
     amount: { required: true, positiveNumber: true },
     type:   { required: true },
@@ -314,10 +316,13 @@ function _submitEditInvoice(id) {
   // Duplicate check (excluding self)
   if (FinanceDB.invoices.some(i => i.invoiceNumber === data.number && i.id !== id)) {
     showFieldError(fields.number, "Invoice number already exists.");
+    errors.number = "Invoice number already exists.";
     valid = false;
   }
 
-  if (!valid) { showToast("Please fix the errors.", "warning"); return; }
+  if (!valid) {
+    return false;
+  }
 
   const idx = FinanceDB.invoices.findIndex(i => i.id === id);
   const dept = FinanceDB.departments.find(d => d.id === data.dept);
