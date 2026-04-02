@@ -38,10 +38,12 @@ export function renderReportList(filter = {}) {
       <td>${rep.npv != null ? formatCurrency(rep.npv) : "—"}</td>
       <td>${badgeHTML(rep.status)}</td>
       <td class="action-cell">
-        <button class="action-btn btn-view"   onclick="ReportModule.viewReport('${rep.id}')">View</button>
-        ${can("edit")   ? `<button class="action-btn btn-edit"   onclick="ReportModule.editReport('${rep.id}')">Edit</button>` : ""}
+        <div class="action-row">
+          <button class="action-btn btn-view"   onclick="ReportModule.viewReport('${rep.id}')">View</button>
+          ${can("edit")   ? `<button class="action-btn btn-edit"   onclick="ReportModule.editReport('${rep.id}')">Edit</button>` : ""}
+          ${can("export") ? `<button class="action-btn btn-export" onclick="ReportModule.exportReport('${rep.id}')">Export</button>` : ""}
+        </div>
         ${can("delete") ? `<button class="action-btn btn-delete" onclick="ReportModule.deleteReport('${rep.id}')">Delete</button>` : ""}
-        ${can("export") ? `<button class="action-btn btn-export" onclick="ReportModule.exportReport('${rep.id}')">Export</button>` : ""}
       </td>
     </tr>
   `).join("");
@@ -182,10 +184,13 @@ function _submitAddReport() {
 
   const rules = {
     title:    { required: true, minLength: 4, maxLength: 80 },
-    period:   { required: true, minLength: 4 },
+    period:   { required: true, pattern: /^\d{4}-(0[1-9]|1[0-2]|Q[1-4])$/, patternMsg: "Format must be YYYY-MM or YYYY-Q1 to YYYY-Q4." },
     category: { required: true },
     scope:    { required: true },
-    status:   { required: true }
+    status:   { required: true },
+    roi:      { positiveNumber: true },
+    npv:      { positiveNumber: true },
+    payback:  { positiveNumber: true }
   };
 
   const data = {};
@@ -196,18 +201,9 @@ function _submitAddReport() {
     if (fields[k]) { showFieldError(fields[k], msg); valid = false; }
   }
 
-  // Optional numeric validations
-  if (data.roi !== "" && (isNaN(data.roi) || Number(data.roi) < 0)) {
-    showFieldError(fields.roi, "ROI must be a non-negative number."); valid = false;
+  if (!valid) {
+    return false;
   }
-  if (data.npv !== "" && (isNaN(data.npv) || Number(data.npv) < 0)) {
-    showFieldError(fields.npv, "NPV must be a non-negative number."); valid = false;
-  }
-  if (data.payback !== "" && (isNaN(data.payback) || Number(data.payback) < 0)) {
-    showFieldError(fields.payback, "Payback must be a non-negative number."); valid = false;
-  }
-
-  if (!valid) { showToast("Please fix the errors before submitting.", "warning"); return; }
 
   const newRep = {
     id: generateId("rep"),
@@ -300,14 +296,22 @@ function _submitEditReport(id) {
   const data = {};
   for (const [k, el] of Object.entries(fields)) data[k] = el.value;
 
-  if (!data.title.trim()) { showFieldError(fields.title, "Title is required."); valid = false; }
-  if (data.roi !== "" && (isNaN(data.roi) || Number(data.roi) < 0)) {
-    showFieldError(fields.roi, "Must be a non-negative number."); valid = false;
+  const rules = {
+    title:   { required: true, minLength: 4, maxLength: 80 },
+    status:  { required: true },
+    roi:     { positiveNumber: true },
+    npv:     { positiveNumber: true },
+    payback: { positiveNumber: true }
+  };
+
+  const { errors } = validateForm(data, rules);
+  for (const [k, msg] of Object.entries(errors)) {
+    if (fields[k]) { showFieldError(fields[k], msg); valid = false; }
   }
-  if (data.npv !== "" && (isNaN(data.npv) || Number(data.npv) < 0)) {
-    showFieldError(fields.npv, "Must be a non-negative number."); valid = false;
+
+  if (!valid) {
+    return false;
   }
-  if (!valid) { showToast("Please fix the errors.", "warning"); return; }
 
   const idx = FinanceDB.financialReports.findIndex(r => r.id === id);
   FinanceDB.financialReports[idx] = {

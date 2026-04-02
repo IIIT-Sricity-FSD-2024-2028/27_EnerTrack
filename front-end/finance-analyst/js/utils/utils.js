@@ -195,7 +195,12 @@ export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLab
   if (cnl) cnl.onclick = () => { closeModal(); if (onCancel) onCancel(); };
 
   const cfm = document.getElementById("fm-confirm");
-  if (cfm) cfm.onclick = () => { if (onConfirm) onConfirm(); closeModal(); };
+  if (cfm) cfm.onclick = () => { 
+    if (onConfirm) {
+      if (onConfirm() === false) return;
+    }
+    closeModal(); 
+  };
   overlay.addEventListener("click", e => { if (e.target === overlay) { closeModal(); if (onCancel) onCancel(); } });
 
   return overlay;

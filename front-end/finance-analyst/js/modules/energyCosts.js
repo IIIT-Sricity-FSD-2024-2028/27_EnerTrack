@@ -42,8 +42,10 @@ export function renderCostTable(filter = {}) {
       <td><strong>${formatCurrency(rec.total)}</strong></td>
       <td>${badgeHTML(rec.status)}</td>
       <td class="action-cell">
-        <button class="action-btn btn-view"   onclick="CostModule.viewCostRecord('${rec.id}')">View</button>
-        ${can("edit")   ? `<button class="action-btn btn-edit"   onclick="CostModule.editCostRecord('${rec.id}')">Edit</button>` : ""}
+        <div class="action-row">
+          <button class="action-btn btn-view"   onclick="CostModule.viewCostRecord('${rec.id}')">View</button>
+          ${can("edit")   ? `<button class="action-btn btn-edit"   onclick="CostModule.editCostRecord('${rec.id}')">Edit</button>` : ""}
+        </div>
         ${can("delete") ? `<button class="action-btn btn-delete" onclick="CostModule.deleteCostRecord('${rec.id}')">Delete</button>` : ""}
       </td>
     </tr>
@@ -175,13 +177,24 @@ function _submitAddCost() {
   clearAllErrors(form);
   let valid = true;
 
-  // Period format validation
-  const periodVal = fields.period.value.trim();
-  const periodOk = /^\d{4}-(0[1-9]|1[0-2]|Q[1-4])$/.test(periodVal);
-  if (!periodVal) { showFieldError(fields.period, "Period is required."); valid = false; }
-  else if (!periodOk) { showFieldError(fields.period, "Format must be YYYY-MM or YYYY-Q1 to YYYY-Q4."); valid = false; }
+  const rules = {
+    period: { required: true, pattern: /^\d{4}-(0[1-9]|1[0-2]|Q[1-4])$/, patternMsg: "Format must be YYYY-MM or YYYY-Q1 to YYYY-Q4." },
+    scopeType: { required: true },
+    elec: { required: true, min: 0 },
+    gas: { required: true, min: 0 },
+    water: { required: true, min: 0 },
+    wastewater: { required: true, min: 0 },
+    demand: { required: true, min: 0 },
+    budget: { required: true, positiveNumber: true }
+  };
 
-  if (!fields.scopeType.value) { showFieldError(fields.scopeType, "Select a scope type."); valid = false; }
+  const data = {};
+  for (const [k, el] of Object.entries(fields)) data[k] = el?.value || "";
+
+  const { errors } = validateForm(data, rules);
+  for (const [k, msg] of Object.entries(errors)) {
+    if (fields[k]) { showFieldError(fields[k], msg); valid = false; }
+  }
 
   // Scope ref
   const scopeType = fields.scopeType.value;
@@ -197,15 +210,9 @@ function _submitAddCost() {
     if (!scopeValue) { showFieldError(bldgRef, "Select a building."); valid = false; }
   }
 
-  // Numeric fields
-  for (const key of ["elec","gas","water","wastewater","demand","budget"]) {
-    const val = Number(fields[key]?.value);
-    if (fields[key]?.value === "" || isNaN(val) || val < 0) {
-      showFieldError(fields[key], "Must be a valid non-negative number."); valid = false;
-    }
+  if (!valid) {
+    return false;
   }
-
-  if (!valid) { showToast("Please fix the errors.", "warning"); return; }
 
   const [scopeId, , scopeLabel] = scopeValue.split("|");
   const elec       = Number(fields.elec.value);
@@ -299,17 +306,26 @@ function _submitEditCost(id) {
   clearAllErrors(form);
   let valid = true;
 
-  for (const [key, el] of Object.entries(fields)) {
-    const val = Number(el.value);
-    if (el.value === "" || isNaN(val) || val < 0) {
-      showFieldError(el, "Must be a valid non-negative number."); valid = false;
-    }
-  }
-  if (Number(fields.budget.value) <= 0) {
-    showFieldError(fields.budget, "Budget must be greater than zero."); valid = false;
+  const rules = {
+    elec: { required: true, min: 0 },
+    gas: { required: true, min: 0 },
+    water: { required: true, min: 0 },
+    wastewater: { required: true, min: 0 },
+    demand: { required: true, min: 0 },
+    budget: { required: true, positiveNumber: true }
+  };
+
+  const data = {};
+  for (const [k, el] of Object.entries(fields)) data[k] = el?.value || "";
+
+  const { errors } = validateForm(data, rules);
+  for (const [k, msg] of Object.entries(errors)) {
+    if (fields[k]) { showFieldError(fields[k], msg); valid = false; }
   }
 
-  if (!valid) { showToast("Please fix the errors.", "warning"); return; }
+  if (!valid) {
+    return false;
+  }
 
   const idx = FinanceDB.energyCosts.findIndex(r => r.id === id);
   const elec       = Number(fields.elec.value);

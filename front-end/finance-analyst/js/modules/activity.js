@@ -4,7 +4,7 @@
  */
 
 import FinanceDB, { persistData } from "../data/mockData.js";
-import { timeAgo, generateId } from "../utils/utils.js";
+import { timeAgo, generateId, openModal, showToast } from "../utils/utils.js";
 
 const ICON_MAP = {
   report:   { icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`, cls: "i-gray"   },
@@ -44,7 +44,7 @@ export function renderActivityList(limit = 8) {
   container.innerHTML = items.map(item => {
     const m = ICON_MAP[item.type] || ICON_MAP.report;
     return `
-      <div class="activity">
+      <div class="activity" data-act-id="${item.id}">
         <div class="left">
           <div class="icon ${m.cls}">${m.icon}</div>
           <div>
@@ -52,11 +52,38 @@ export function renderActivityList(limit = 8) {
             <div class="activity-sub">${item.detail}</div>
           </div>
         </div>
-        <div class="time">${timeAgo(item.timestamp)}</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="time">${timeAgo(item.timestamp)}</div>
+          <button
+            class="action-btn btn-delete"
+            style="padding:4px 10px;font-size:11px;white-space:nowrap"
+            onclick="ActivityModule.deleteActivity('${item.id}')"
+          >Delete</button>
+        </div>
       </div>`;
   }).join("");
 }
 
-const ActivityModule = { logActivity, renderActivityList };
+/* ── DELETE ACTIVITY ──────────────────────────────── */
+
+export function deleteActivity(id) {
+  const entry = FinanceDB.activityLog.find(e => e.id === id);
+  if (!entry) return;
+
+  openModal({
+    title: "Delete Activity",
+    bodyHTML: `<p>Remove <strong>"${entry.title}"</strong> from the activity log? This cannot be undone.</p>`,
+    confirmLabel: "Delete",
+    danger: true,
+    onConfirm: () => {
+      FinanceDB.activityLog = FinanceDB.activityLog.filter(e => e.id !== id);
+      persistData();
+      renderActivityList();
+      showToast("Activity entry removed.", "success");
+    }
+  });
+}
+
+const ActivityModule = { logActivity, renderActivityList, deleteActivity };
 window.ActivityModule = ActivityModule;
 export default ActivityModule;
