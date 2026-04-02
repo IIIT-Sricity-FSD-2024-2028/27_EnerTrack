@@ -40,7 +40,7 @@
         clearError(emailError);
         clearError(passwordError);
 
-        var email    = emailInput.value.trim();
+        var email    = emailInput.value.trim().toLowerCase();
         var password = passwordInput.value;
 
         /* Basic empty checks */

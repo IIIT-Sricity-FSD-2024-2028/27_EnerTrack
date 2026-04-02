@@ -388,6 +388,10 @@
             showError(phoneError, "Phone number must be exactly 10 digits.", phoneInput);
             return false;
         }
+        if (val === "0000000000") {
+            showError(phoneError, "Phone number cannot be all zeros.", phoneInput);
+            return false;
+        }
 
         markValid(phoneInput, phoneError);
         return true;
@@ -471,7 +475,7 @@
         /* Save new user to sessionStorage */
         var newUser = {
             name:     nameInput.value.trim(),
-            email:    emailInput.value.trim(),
+            email:    emailInput.value.trim().toLowerCase(),
             phone:    phoneInput.value.trim(),
             password: passwordInput.value,
             role:     roleSelect.value

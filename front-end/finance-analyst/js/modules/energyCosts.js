@@ -215,6 +215,7 @@ function _submitAddCost() {
   }
 
   const [scopeId, , scopeLabel] = scopeValue.split("|");
+  const periodVal  = fields.period.value;
   const elec       = Number(fields.elec.value);
   const gas        = Number(fields.gas.value);
   const water      = Number(fields.water.value);

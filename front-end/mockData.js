@@ -17,7 +17,7 @@ var MOCK_USERS = [
     },
     {
         name: "Husaam",
-        email: "Husaam@gmail.com",
+        email: "husaam@gmail.com",
         phone: "9876543211",
         password: "Husaam@123",
         role: "Financial Analyst"
@@ -31,7 +31,7 @@ var MOCK_USERS = [
     },
     {
         name: "Viksa",
-        email: "Viksa@gmail.com",
+        email: "viksa@gmail.com",
         phone: "9876543213",
         password: "Viksa@123",
         role: "Sustainability Officer"
