@@ -478,8 +478,8 @@
         };
         saveRegisteredUser(newUser);
 
-        /* Store current user for session persistence */
-        sessionStorage.setItem("currentUser", JSON.stringify(newUser));
+        /* Save current user to localStorage for persistence */
+        localStorage.setItem("currentUser", JSON.stringify(newUser));
 
         /* Redirect to landing page */
         window.location.href = "../landing/landing.html";

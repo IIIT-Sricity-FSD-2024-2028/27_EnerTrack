@@ -77,7 +77,7 @@ class TechDB {
 
   _loadData() {
     try {
-      const stored = sessionStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         return { ...JSON.parse(JSON.stringify(defaultData)), ...parsed };
@@ -89,7 +89,7 @@ class TechDB {
   }
 
   save() {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
   }
 
   reset() {

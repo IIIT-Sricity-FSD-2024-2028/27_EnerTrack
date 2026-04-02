@@ -72,14 +72,8 @@ function wireButtons() {
   }
 
   // "Install Now" and "Reschedule" buttons come from renderOverviewUpdates (dynamic)
-  // Profile card logout
-  const profileCard = document.querySelector(".profile-card");
-  if (profileCard) {
-    profileCard.addEventListener("click", e => {
-      e.preventDefault();
-      SessionModule.confirmLogout();
-    });
-  }
+  // Profile card click is handled by dashboardProfileMenu.js to show the profile popup
+  // (removed redundant logout confirmation here)
 
   // Add alert button (overview header area — inject if admin/superuser)
   if (roleAllowed(["admin","superuser"])) {

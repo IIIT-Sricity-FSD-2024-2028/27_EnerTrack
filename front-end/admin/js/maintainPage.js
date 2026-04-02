@@ -31,14 +31,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Wire "Add" buttons for role-gated sections
   wireAddButtons();
 
-  // Profile card
-  const profileCard = document.querySelector(".profile-card");
-  if (profileCard) {
-    profileCard.addEventListener("click", e => {
-      e.preventDefault();
-      SessionModule.confirmLogout();
-    });
-  }
+  // Profile card click is handled by dashboardProfileMenu.js to show the profile popup
+  // (removed redundant logout confirmation here)
 });
 
 /* ── MAINTENANCE WINDOW ───────────────────────────── */

@@ -7,8 +7,8 @@ import { showToast, openModal } from '../utils/utils.js';
 const SessionModule = {
   initSession() {
     // Just a basic check.
-    const currentUser = sessionStorage.getItem("et_current_user") || "Maya Patel";
-    sessionStorage.setItem("et_current_user", currentUser);
+    const currentUser = localStorage.getItem("et_current_user") || "Maya Patel";
+    localStorage.setItem("et_current_user", currentUser);
     
     // Profile card click is now handled by ../dashboardProfileMenu.js
   },
@@ -22,7 +22,7 @@ const SessionModule = {
       onConfirm: () => {
         showToast("Signing out...", "info", 1000);
         setTimeout(() => {
-          sessionStorage.removeItem("et_current_user");
+          localStorage.removeItem("et_current_user");
           window.location.href = "../landing/landing.html"; 
         }, 1000);
       }

@@ -3,14 +3,14 @@
  * Used by both sign_in.js and sign_up.js for authentication.
  *
  * Structure: array of user objects with email, password, name, phone, and role.
- * On sign-up, new users are saved to sessionStorage under "registeredUsers".
- * On sign-in, the system checks both this mock data AND sessionStorage.
+ * On sign-up, new users are saved to localStorage under "registeredUsers".
+ * On sign-in, the system checks both this mock data AND localStorage.
  */
 
 var MOCK_USERS = [
     {
         name: "Aadithya",
-        email: "aadi150906@gmail.com",
+        email: "aadi@gmail.com",
         phone: "9876543210",
         password: "Aadi@123",
         role: "System Administrator"
@@ -42,7 +42,7 @@ var MOCK_USERS = [
  * getRegisteredUsers — Retrieves users saved via sign-up from sessionStorage.
  */
 function getRegisteredUsers() {
-    var stored = sessionStorage.getItem("registeredUsers");
+    var stored = localStorage.getItem("registeredUsers");
     if (stored) {
         try { return JSON.parse(stored); }
         catch (e) { return []; }
@@ -56,7 +56,7 @@ function getRegisteredUsers() {
 function saveRegisteredUser(user) {
     var users = getRegisteredUsers();
     users.push(user);
-    sessionStorage.setItem("registeredUsers", JSON.stringify(users));
+    localStorage.setItem("registeredUsers", JSON.stringify(users));
 }
 
 /*

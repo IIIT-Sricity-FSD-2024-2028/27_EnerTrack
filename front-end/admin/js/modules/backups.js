@@ -165,6 +165,7 @@ export function addBackupJob(data) {
   };
 
   EnerTrackDB.backupJobs.push(newJob);
+  EnerTrackDB.save(); // Sync to localStorage
   showToast(`Backup job "${newJob.name}" created.`, "success");
   renderBackupJobs();
   return true;
@@ -252,6 +253,7 @@ export function updateBackupJob(id, fields) {
   }
 
   Object.assign(EnerTrackDB.backupJobs[idx], fields);
+  EnerTrackDB.save(); // Sync to localStorage
   showToast("Backup job updated.", "success");
   renderBackupJobs();
   return true;
@@ -275,6 +277,7 @@ export function deleteBackupJob(id) {
     danger: true,
     onConfirm: () => {
       EnerTrackDB.backupJobs = EnerTrackDB.backupJobs.filter(b => b.id !== id);
+      EnerTrackDB.save(); // Sync to localStorage
       showToast(`Backup job "${job.name}" deleted.`, "info");
       renderBackupJobs();
     }

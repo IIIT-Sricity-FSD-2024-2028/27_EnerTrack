@@ -8,7 +8,7 @@
 (function () {
     "use strict";
 
-    var userData = sessionStorage.getItem("currentUser");
+    var userData = localStorage.getItem("currentUser");
     if (!userData) return;
 
     var user = JSON.parse(userData);
@@ -106,7 +106,7 @@
 
     /* Sign Out */
     document.getElementById("dashLogoutBtn").addEventListener("click", function () {
-        sessionStorage.removeItem("currentUser");
+        localStorage.removeItem("currentUser");
         window.location.href = "../landing/landing.html";
     });
 })();

@@ -16,16 +16,16 @@ const SESSION_KEY = "enertrack_session";
  * or seeds sessionStorage from the default mock user.
  */
 export function initSession() {
-  const stored = sessionStorage.getItem(SESSION_KEY);
+  const stored = localStorage.getItem(SESSION_KEY);
   if (stored) {
     try {
       EnerTrackDB.session.user = JSON.parse(stored);
     } catch (_) {
-      sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_KEY);
     }
   } else {
     // Persist the default mock admin user
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(EnerTrackDB.session.user));
+    localStorage.setItem(SESSION_KEY, JSON.stringify(EnerTrackDB.session.user));
   }
   renderSessionUI();
 }
@@ -85,7 +85,7 @@ export function switchRole(role) {
     return;
   }
   EnerTrackDB.session.user.role = role;
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(EnerTrackDB.session.user));
+  localStorage.setItem(SESSION_KEY, JSON.stringify(EnerTrackDB.session.user));
   renderSessionUI();
   showToast(`Role switched to: ${roleLabel(role)}`, "info");
 }
@@ -104,8 +104,8 @@ export function confirmLogout() {
     confirmLabel: "Log Out",
     cancelLabel: "Stay",
     onConfirm: () => {
-      sessionStorage.removeItem(SESSION_KEY);
-      sessionStorage.removeItem("currentUser");
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem("currentUser");
       window.location.href = "../landing/landing.html";
     }
   });
