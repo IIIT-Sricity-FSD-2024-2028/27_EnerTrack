@@ -4,7 +4,11 @@
  * Add, Edit, Delete, Approve, View — all reflected in the UI without page reloads.
  */
 
+<<<<<<< HEAD
+import FinanceDB from "../data/mockData.js";
+=======
 import FinanceDB, { persistData } from "../data/mockData.js";
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, formatDate } from "../utils/utils.js";
 import { can } from "../utils/utils.js";
 import { logActivity } from "./activity.js";
@@ -207,7 +211,10 @@ function _submitAddInvoice() {
   };
 
   FinanceDB.invoices.push(newInv);
+<<<<<<< HEAD
+=======
   persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   logActivity("invoice", `Invoice ${newInv.invoiceNumber} added`, `Vendor: ${newInv.vendor}`);
   renderInvoiceList();
   updateInvoiceSummary();
@@ -333,7 +340,10 @@ function _submitEditInvoice(id) {
     status:          data.status
   };
 
+<<<<<<< HEAD
+=======
   persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   logActivity("invoice", `Invoice ${data.number} updated`, `Status: ${data.status}`);
   renderInvoiceList();
   updateInvoiceSummary();
@@ -354,7 +364,10 @@ export function approveInvoice(id) {
     onConfirm: () => {
       inv.status = "approved";
       inv.approvedBy = window.FinanceDB?.session?.user?.name ?? "Analyst";
+<<<<<<< HEAD
+=======
       persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       logActivity("invoice", `Invoice ${inv.invoiceNumber} approved`, `Amount: ${formatCurrency(inv.amount)}`);
       renderInvoiceList();
       updateInvoiceSummary();
@@ -377,7 +390,10 @@ export function deleteInvoice(id) {
     danger: true,
     onConfirm: () => {
       FinanceDB.invoices = FinanceDB.invoices.filter(i => i.id !== id);
+<<<<<<< HEAD
+=======
       persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       logActivity("invoice", `Invoice ${inv.invoiceNumber} deleted`, `Vendor: ${inv.vendor}`);
       renderInvoiceList();
       updateInvoiceSummary();

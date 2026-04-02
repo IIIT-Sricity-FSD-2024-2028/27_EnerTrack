@@ -18,12 +18,37 @@ body {
 /* SIDEBAR */
 .sidebar {
   width: 280px;
+<<<<<<< HEAD
+  background-color: #c9dbc9;
+  padding: 24px;
+=======
   background-color: #b8cdb7;
   padding: 16px 18px 18px;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   flex-shrink: 0;
+<<<<<<< HEAD
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 40px;
+  cursor: pointer;
+}
+
+.logo img {
+  width: auto;
+  height: 24px;
+  object-fit: contain;
+=======
   border-right: 1px solid rgba(28, 46, 46, 0.16);
 }
 
@@ -46,6 +71,7 @@ body {
 .sidebar-logo .logo-text {
   width: auto;
   height: 20px;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 .menu {
@@ -80,7 +106,11 @@ body {
 }
 
 .menu-item.active {
+<<<<<<< HEAD
+  background-color: #111827;
+=======
   background-color: #0f172a;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   color: #ffffff;
 }
 
@@ -318,6 +348,12 @@ h1 {
 
 /* BADGE */
 .badge {
+<<<<<<< HEAD
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+=======
   display: inline-block;
   padding: 4px 12px;
   border-radius: 999px;
@@ -326,6 +362,7 @@ h1 {
   white-space: nowrap;
   line-height: 1.4;
   vertical-align: middle;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 .badge-success {

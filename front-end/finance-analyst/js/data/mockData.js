@@ -1,5 +1,14 @@
 /**
  * mockData.js
+<<<<<<< HEAD
+ * Central in-memory data store for EnerTrack Finance.
+ * Simulates backend behaviour. All CRUD operations mutate these arrays.
+ * Mirrors the same pattern used in the Admin module.
+ */
+
+const FinanceDB = {
+
+=======
  * Central data store for the Finance Analyst module.
  * Includes departments, buildings, energy costs, reports, invoices, and activity logs.
  * Synchronizes with localStorage for persistence.
@@ -8,18 +17,34 @@
 const STORAGE_KEY = "EnerTrack_FinanceDB";
 
 const FinanceDB = {
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   /* ── SESSION ─────────────────────────────────────── */
   session: {
     user: {
       id: "u-101",
       name: "Aadithya Mouli",
+<<<<<<< HEAD
+      role: "finance_analyst",   // "superuser" | "finance_analyst" | "enduser"
+=======
       role: "finance_analyst",
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       email: "a.mouli@enertrack.io",
       lastLogin: "2025-03-30T08:00:00Z"
     }
   },
 
+<<<<<<< HEAD
+  /* ── ROLE PERMISSIONS ────────────────────────────── */
+  rolePermissions: {
+    superuser:       ["view","create","edit","delete","approve","export","manage_users"],
+    finance_analyst: ["view","create","edit","export","approve"],
+    enduser:         ["view","export"]
+  },
+
+  /* ── REFERENCE DATA ──────────────────────────────── */
+=======
   /* ── DEPARTMENTS ─────────────────────────────────── */
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   departments: [
     { id: "dept-001", name: "Computer Science",  budget: 80000 },
     { id: "dept-002", name: "Electronics",        budget: 45000 },
@@ -28,6 +53,87 @@ const FinanceDB = {
     { id: "dept-005", name: "Civil Engineering",  budget: 20000 }
   ],
 
+<<<<<<< HEAD
+  buildings: [
+    { id: "bldg-001", name: "Block A – Main Building", budget: 55000 },
+    { id: "bldg-002", name: "Block B – Research Wing", budget: 40000 },
+    { id: "bldg-003", name: "Block C – Admin Tower",   budget: 30000 }
+  ],
+
+  /* ── ENERGY COST RECORDS ─────────────────────────── */
+  energyCosts: [
+    {
+      id: "ec-001", period: "2025-03",
+      scope: "department", scopeRef: "dept-001", scopeLabel: "Computer Science",
+      electricity: 42000, gas: 14500, water: 6200, demand: 5500,
+      total: 68200, budget: 80000, variance: 11800, status: "under-budget"
+    },
+    {
+      id: "ec-002", period: "2025-03",
+      scope: "department", scopeRef: "dept-002", scopeLabel: "Electronics",
+      electricity: 22000, gas: 7500, water: 3100, demand: 2500,
+      total: 35100, budget: 45000, variance: 9900, status: "under-budget"
+    },
+    {
+      id: "ec-003", period: "2025-03",
+      scope: "department", scopeRef: "dept-003", scopeLabel: "Data Science",
+      electricity: 13000, gas: 4500, water: 2200, demand: 1500,
+      total: 21200, budget: 30000, variance: 8800, status: "under-budget"
+    },
+    {
+      id: "ec-004", period: "2025-02",
+      scope: "department", scopeRef: "dept-001", scopeLabel: "Computer Science",
+      electricity: 44000, gas: 15000, water: 6500, demand: 5800,
+      total: 71300, budget: 80000, variance: 8700, status: "under-budget"
+    },
+    {
+      id: "ec-005", period: "2025-01",
+      scope: "department", scopeRef: "dept-004", scopeLabel: "Mechanical",
+      electricity: 16000, gas: 5200, water: 2800, demand: 2000,
+      total: 26000, budget: 25000, variance: -1000, status: "over-budget"
+    },
+    {
+      id: "ec-006", period: "2025-03",
+      scope: "building", scopeRef: "bldg-001", scopeLabel: "Block A – Main Building",
+      electricity: 34000, gas: 11000, water: 5000, demand: 5000,
+      total: 55000, budget: 55000, variance: 0, status: "on-budget"
+    }
+  ],
+
+  /* ── FINANCIAL REPORTS ───────────────────────────── */
+  financialReports: [
+    {
+      id: "rep-001",
+      title: "Q3 2024 Financial Impact Report",
+      period: "2024-Q3", category: "energy",
+      scope: "campus", scopeLabel: "Full Campus",
+      generatedAt: "2024-09-21T04:10:00Z",
+      generatedBy: "Aadithya Mouli", format: "PDF",
+      roi: 18.5, npv: 148320, paybackYears: 2.8,
+      status: "viable",
+      notes: "Strong ROI driven by solar panel installation in Block A."
+    },
+    {
+      id: "rep-002",
+      title: "February 2025 Electronics Dept Report",
+      period: "2025-02", category: "energy",
+      scope: "department", scopeLabel: "Electronics",
+      generatedAt: "2025-03-01T09:00:00Z",
+      generatedBy: "Aadithya Mouli", format: "CSV",
+      roi: 12.4, npv: 89500, paybackYears: 3.5,
+      status: "viable",
+      notes: "Moderate returns; recommend LED lighting upgrade next quarter."
+    },
+    {
+      id: "rep-003",
+      title: "Q1 2025 Mechanical Dept Operations Review",
+      period: "2025-Q1", category: "operations",
+      scope: "department", scopeLabel: "Mechanical",
+      generatedAt: "2025-03-15T10:30:00Z",
+      generatedBy: "Aadithya Mouli", format: "PDF",
+      roi: 6.2, npv: 32000, paybackYears: 5.1,
+      status: "marginal",
+=======
   /* ── BUILDINGS ───────────────────────────────────── */
   buildings: [
     { id: "bldg-001", name: "Block A – Main Building",  budget: 55000 },
@@ -81,6 +187,7 @@ const FinanceDB = {
       id: "rep-003", title: "Q1 2025 Mechanical Dept Operations Review", period: "2025-Q1", category: "operations",
       scope: "department", scopeLabel: "Mechanical", generatedAt: "2025-03-15T10:30:00Z",
       generatedBy: "Aadithya Mouli", format: "PDF", roi: 6.2, npv: 32000, paybackYears: 5.1, status: "marginal",
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       notes: "Exceeded budget by $1,000 in January. HVAC inefficiency identified."
     }
   ],
@@ -88,6 +195,49 @@ const FinanceDB = {
   /* ── INVOICES ─────────────────────────────────────── */
   invoices: [
     {
+<<<<<<< HEAD
+      id: "inv-001", invoiceNumber: "INV-88921",
+      vendor: "CityPower Utilities", amount: 42000,
+      department: "dept-001", departmentLabel: "Computer Science",
+      dueDate: "2025-04-15", issuedDate: "2025-03-01",
+      status: "approved", approvedBy: "Aadithya Mouli", type: "electricity"
+    },
+    {
+      id: "inv-002", invoiceNumber: "INV-88922",
+      vendor: "GasNet Corp", amount: 14500,
+      department: "dept-001", departmentLabel: "Computer Science",
+      dueDate: "2025-04-20", issuedDate: "2025-03-01",
+      status: "pending", approvedBy: null, type: "gas"
+    },
+    {
+      id: "inv-003", invoiceNumber: "INV-88923",
+      vendor: "AquaFlow Services", amount: 6200,
+      department: "dept-002", departmentLabel: "Electronics",
+      dueDate: "2025-04-10", issuedDate: "2025-03-01",
+      status: "pending", approvedBy: null, type: "water"
+    },
+    {
+      id: "inv-004", invoiceNumber: "INV-88924",
+      vendor: "CityPower Utilities", amount: 22000,
+      department: "dept-002", departmentLabel: "Electronics",
+      dueDate: "2025-04-15", issuedDate: "2025-03-01",
+      status: "approved", approvedBy: "Aadithya Mouli", type: "electricity"
+    },
+    {
+      id: "inv-005", invoiceNumber: "INV-88925",
+      vendor: "GasNet Corp", amount: 5200,
+      department: "dept-004", departmentLabel: "Mechanical",
+      dueDate: "2025-04-18", issuedDate: "2025-03-01",
+      status: "overdue", approvedBy: null, type: "gas"
+    }
+  ],
+
+  /* ── ACTIVITY LOG ────────────────────────────────── */
+  activityLog: [
+    {
+      id: "act-001", type: "report",
+      title: "Q3 Financial Report Generated",
+=======
       id: "inv-001", invoiceNumber: "INV-88921", vendor: "CityPower Utilities", amount: 42000,
       department: "dept-001", departmentLabel: "Computer Science", dueDate: "2025-04-15",
       issuedDate: "2025-03-01", status: "approved", approvedBy: "Aadithya Mouli", type: "electricity"
@@ -118,20 +268,41 @@ const FinanceDB = {
   activityLog: [
     {
       id: "act-001", type: "report", title: "Q3 Financial Report Generated",
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       detail: "System automated report creation for Q3 2024.",
       timestamp: "2025-03-30T10:00:00Z", user: "Aadithya Mouli"
     },
     {
+<<<<<<< HEAD
+      id: "act-002", type: "invoice",
+      title: "Utility Invoice Approved",
+=======
       id: "act-002", type: "invoice", title: "Utility Invoice Approved",
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       detail: "Invoice #INV-88921 approved.",
       timestamp: "2025-03-30T07:00:00Z", user: "Aadithya Mouli"
     },
     {
+<<<<<<< HEAD
+      id: "act-003", type: "alert",
+      title: "Budget Threshold Alert",
+=======
       id: "act-003", type: "alert", title: "Budget Threshold Alert",
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       detail: "Mechanical dept exceeded 100% budget in January.",
       timestamp: "2025-03-29T14:00:00Z", user: "System"
     },
     {
+<<<<<<< HEAD
+      id: "act-004", type: "forecast",
+      title: "ROI Forecast Updated",
+      detail: "Updated forecast model for Q1 2025.",
+      timestamp: "2025-03-29T09:00:00Z", user: "Aadithya Mouli"
+    }
+  ]
+};
+
+=======
       id: "act-004", type: "forecast", title: "ROI Forecast Updated",
       detail: "Updated forecast model for Q1 2025.",
       timestamp: "2025-03-29T09:00:00Z", user: "Aadithya Mouli"
@@ -179,4 +350,5 @@ export function initDB() {
 // Auto-initialize
 initDB();
 
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 export default FinanceDB;

@@ -73,13 +73,70 @@ export function renderOverviewUpdates(containerId = "overviewUpdatesContainer") 
   const container = document.getElementById(containerId);
   if (!container) return;
 
+<<<<<<< HEAD
+  const updates = getUpdates()
+    .filter(u => u.status !== "applied")
+    .sort((a, b) => overviewPriority(a.status) - overviewPriority(b.status))
+    .slice(0, 2);
+=======
   const updates = getUpdates().filter(u => u.status !== "applied");
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 
   if (updates.length === 0) {
     container.innerHTML = `<p style="color:#6b7280;text-align:center;padding:16px">All updates applied.</p>`;
     return;
   }
 
+<<<<<<< HEAD
+  container.innerHTML = updates.map(upd => {
+    const statusMeta = overviewStatusMeta(upd.status);
+    const canManage = roleAllowed(["admin","superuser"]);
+    const bodyText = statusMeta.key === "pending"
+      ? (upd.details || upd.description || "")
+      : (upd.description || upd.details || "");
+    const summaryText = statusMeta.key === "pending"
+      ? `Est. downtime: ${upd.downtimeEst || "TBD"}`
+      : `Scheduled: ${upd.scheduledWindow || "Pending assignment"}`;
+    const actionHTML = !canManage
+      ? ""
+      : statusMeta.key === "pending"
+        ? `<button class="btn-dark overview-action-btn" onclick="UpdatesModule.applyUpdate('${upd.id}')">
+             <span class="overview-action-glyph" aria-hidden="true">↓</span>
+             <span>Install Now</span>
+           </button>`
+        : `<button class="btn-outline overview-action-btn" onclick="UpdatesModule.editUpdate('${upd.id}')">Reschedule</button>`;
+
+    return `
+      <div class="update-card" data-update-id="${upd.id}">
+        <div class="update-header">
+          <h4>${upd.title}</h4>
+          <span class="overview-status-pill ${statusMeta.cls}">${statusMeta.label}</span>
+        </div>
+        <p>${bodyText}</p>
+        <div class="update-footer">
+          <span class="update-meta">${summaryText}</span>
+          <div class="overview-actions">${actionHTML}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function overviewPriority(status) {
+  const key = (status || "").toLowerCase();
+  if (key === "pending" || key === "not-applied") return 1;
+  if (key === "scheduled") return 2;
+  if (key === "planned") return 3;
+  return 4;
+}
+
+function overviewStatusMeta(status) {
+  const key = (status || "").toLowerCase();
+  if (key === "pending" || key === "not-applied") {
+    return { key: "pending", label: "Pending", cls: "is-pending" };
+  }
+  return { key: "scheduled", label: "Scheduled", cls: "is-scheduled" };
+=======
   container.innerHTML = updates.map(upd => `
     <div class="update-card" data-update-id="${upd.id}">
       <div class="update-header">
@@ -100,6 +157,7 @@ export function renderOverviewUpdates(containerId = "overviewUpdatesContainer") 
       </div>
     </div>
   `).join("");
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 /* ── CREATE ───────────────────────────────────────── */

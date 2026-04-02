@@ -3,7 +3,11 @@
  * Activity log rendering and append helper.
  */
 
+<<<<<<< HEAD
+import FinanceDB from "../data/mockData.js";
+=======
 import FinanceDB, { persistData } from "../data/mockData.js";
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 import { timeAgo, generateId } from "../utils/utils.js";
 
 const ICON_MAP = {
@@ -24,7 +28,10 @@ export function logActivity(type, title, detail) {
     user: window.FinanceDB?.session?.user?.name ?? "Analyst"
   };
   FinanceDB.activityLog.unshift(entry);
+<<<<<<< HEAD
+=======
   persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   renderActivityList();
 }
 

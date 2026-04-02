@@ -29,6 +29,14 @@ function renderSummaryCards() {
   const reports = FinanceDB.financialReports;
   const invoices = FinanceDB.invoices;
 
+<<<<<<< HEAD
+  // Latest month (2025-03) totals
+  const march = costs.filter(c => c.period === "2025-03");
+  const totalCost  = march.reduce((s, c) => s + c.total, 0);
+  const totalBudget = march.reduce((s, c) => s + c.budget, 0);
+  const variance = totalBudget - totalCost;
+  const totalSavings = march.filter(c => c.variance > 0).reduce((s, c) => s + c.variance, 0);
+=======
   // Latest month totals
   const allPeriods = [...new Set(costs.map(c => c.period))].sort().reverse();
   const latestPeriod = allPeriods[0] || "—";
@@ -38,6 +46,7 @@ function renderSummaryCards() {
   const totalBudget = records.reduce((s, c) => s + c.budget, 0);
   const variance = totalBudget - totalCost;
   const totalSavings = records.filter(c => c.variance > 0).reduce((s, c) => s + c.variance, 0);
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   const latestROI = reports[0]?.roi ?? 0;
 
   _setText("card-energy-cost", formatCurrency(totalCost));
@@ -45,9 +54,12 @@ function renderSummaryCards() {
   _setText("card-roi",         latestROI + "%");
   _setText("card-variance",    (variance >= 0 ? "+" : "") + formatCurrency(variance));
 
+<<<<<<< HEAD
+=======
   const changeLabels = document.querySelectorAll(".change");
   if (changeLabels[0]) changeLabels[0].textContent = `Latest period (${latestPeriod})`;
 
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   const varEl = document.getElementById("card-variance");
   if (varEl) varEl.style.color = variance >= 0 ? "#22c55e" : "#dc2626";
 }
@@ -55,6 +67,12 @@ function renderSummaryCards() {
 /* ── DEPT BARS ────────────────────────────────────── */
 
 function renderDeptBars() {
+<<<<<<< HEAD
+  const costs = FinanceDB.energyCosts.filter(c => c.scope === "department" && c.period === "2025-03");
+  const container = document.getElementById("dept-bars");
+  if (!container || costs.length === 0) return;
+
+=======
   const allPeriods = [...new Set(FinanceDB.energyCosts.map(c => c.period))].sort().reverse();
   const latestPeriod = allPeriods[0];
   const costs = FinanceDB.energyCosts.filter(c => c.scope === "department" && c.period === latestPeriod);
@@ -67,6 +85,7 @@ function renderDeptBars() {
     titleEl.childNodes[0].textContent = `Cost by Department (${latestPeriod})`;
   }
 
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   const max = Math.max(...costs.map(c => c.total));
   const colors = ["#111827","#f59e0b","#10b981","#6366f1","#ef4444"];
 

@@ -72,6 +72,8 @@ function wireButtons() {
   }
 
   // "Install Now" and "Reschedule" buttons come from renderOverviewUpdates (dynamic)
+<<<<<<< HEAD
+=======
   // Profile card logout
   const profileCard = document.querySelector(".profile-card");
   if (profileCard) {
@@ -80,6 +82,7 @@ function wireButtons() {
       SessionModule.confirmLogout();
     });
   }
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 
   // Add alert button (overview header area — inject if admin/superuser)
   if (roleAllowed(["admin","superuser"])) {

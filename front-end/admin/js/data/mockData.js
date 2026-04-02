@@ -97,9 +97,15 @@ const EnerTrackDB = {
   systemUpdates: [
     {
       id: "upd-001",
+<<<<<<< HEAD
+      title: "Ubuntu OS Security Patch",
+      description: "Reboot required • Affects 4 nodes",
+      details: "Critical vulnerabilities fix (CVE-2024-XXXX).\nReboot required.",
+=======
       title: "Ubuntu security patches",
       description: "Reboot required • Affects 4 nodes",
       details: "Critical vulnerabilities fix (CVE-2024-XXXX). Reboot required.",
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       status: "not-applied",     // "not-applied" | "planned" | "applied" | "scheduled"
       downtimeEst: "5 min",
       changeRequestId: null,

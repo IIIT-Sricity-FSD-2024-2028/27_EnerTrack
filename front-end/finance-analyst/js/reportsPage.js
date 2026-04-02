@@ -9,10 +9,44 @@ import ReportModule  from "./modules/reports.js";
 import InvoiceModule from "./modules/invoices.js";
 import { formatCurrency, can } from "./utils/utils.js";
 
+<<<<<<< HEAD
+const SS_KEY = 'enertrack.finance.reports';
+
+function _restoreState() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(SS_KEY) || '{}');
+    if (saved.reportCategory) { const el = document.getElementById('report-filter-category'); if (el) el.value = saved.reportCategory; }
+    if (saved.reportStatus)   { const el = document.getElementById('report-filter-status');   if (el) el.value = saved.reportStatus; }
+    if (saved.invoiceStatus)  { const el = document.getElementById('invoice-filter-status');  if (el) el.value = saved.invoiceStatus; }
+    if (saved.invoiceDept)    { const el = document.getElementById('invoice-filter-dept');    if (el) el.value = saved.invoiceDept; }
+    if (saved.calcSaving)     { const el = document.getElementById('calc-saving');             if (el) el.value = saved.calcSaving; }
+    if (saved.calcBudget)     { const el = document.getElementById('calc-budget');             if (el) el.value = saved.calcBudget; }
+  } catch (_) {}
+}
+
+function _saveState() {
+  try {
+    sessionStorage.setItem(SS_KEY, JSON.stringify({
+      reportCategory: document.getElementById('report-filter-category')?.value,
+      reportStatus:   document.getElementById('report-filter-status')?.value,
+      invoiceStatus:  document.getElementById('invoice-filter-status')?.value,
+      invoiceDept:    document.getElementById('invoice-filter-dept')?.value,
+      calcSaving:     document.getElementById('calc-saving')?.value,
+      calcBudget:     document.getElementById('calc-budget')?.value,
+    }));
+  } catch (_) {}
+}
+
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 document.addEventListener("DOMContentLoaded", () => {
   window.FinanceDB = FinanceDB;
 
   SessionModule.initSession();
+<<<<<<< HEAD
+  _restoreState();
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   ReportModule.renderReportList();
   InvoiceModule.renderInvoiceList();
   InvoiceModule.updateInvoiceSummary();
@@ -63,10 +97,17 @@ function wireFilters() {
   const invoiceFilter  = document.getElementById("invoice-filter-status");
   const deptFilter     = document.getElementById("invoice-filter-dept");
 
+<<<<<<< HEAD
+  categoryFilter?.addEventListener("change", () => { _saveState(); applyReportFilters(); });
+  statusFilter?.addEventListener("change",   () => { _saveState(); applyReportFilters(); });
+  invoiceFilter?.addEventListener("change",  () => { _saveState(); applyInvoiceFilters(); });
+  deptFilter?.addEventListener("change",     () => { _saveState(); applyInvoiceFilters(); });
+=======
   categoryFilter?.addEventListener("change", applyReportFilters);
   statusFilter?.addEventListener("change",   applyReportFilters);
   invoiceFilter?.addEventListener("change",  applyInvoiceFilters);
   deptFilter?.addEventListener("change",     applyInvoiceFilters);
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 function applyReportFilters() {

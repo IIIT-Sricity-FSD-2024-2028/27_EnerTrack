@@ -31,6 +31,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Wire "Add" buttons for role-gated sections
   wireAddButtons();
 
+<<<<<<< HEAD
+=======
   // Profile card
   const profileCard = document.querySelector(".profile-card");
   if (profileCard) {
@@ -39,6 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
       SessionModule.confirmLogout();
     });
   }
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 });
 
 /* ── MAINTENANCE WINDOW ───────────────────────────── */

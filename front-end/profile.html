@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile — EnerTrack</title>
+    <link rel="stylesheet" href="profile.css">
+    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="layout">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar">
+        <a href="landing/landing.html" class="sidebar-logo">
+            <span style="font-family:'PT Serif',serif;font-size:22px;font-weight:700;color:#111827;">EnerTrack</span>
+        </a>
+        <nav class="sidebar-nav">
+            <a href="javascript:history.back()" id="sidebarBackLink">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Back to Dashboard
+            </a>
+            <a href="#profile-info" class="active">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                Profile
+            </a>
+        </nav>
+
+        <!-- Sidebar profile preview -->
+        <div class="sidebar-profile">
+            <img id="sidebarAvatar" src="sign_in/images/logo.png" alt="Avatar">
+            <div class="sidebar-profile-info">
+                <strong id="sidebarUserName">—</strong>
+                <span id="sidebarUserRole">—</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <main class="main">
+        <a href="javascript:history.back()" class="back-link">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to Dashboard
+        </a>
+
+        <!-- ── HERO ── -->
+        <section class="profile-hero" id="profile-info">
+            <div class="avatar-wrap">
+                <img class="avatar-img" id="profileAvatar" src="sign_in/images/logo.png" alt="Profile Photo">
+                <label class="avatar-upload-overlay" for="avatarInput" title="Change photo">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                    </svg>
+                </label>
+                <input type="file" id="avatarInput" accept="image/*">
+            </div>
+
+            <div class="hero-info">
+                <!-- View mode -->
+                <div id="heroView">
+                    <div class="hero-name" id="dispName">—</div>
+                    <div class="hero-role" id="dispRole">—</div>
+                    <div class="hero-meta">
+                        <span>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <span id="dispEmail">—</span>
+                        </span>
+                        <span>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            <span id="dispPhone">—</span>
+                        </span>
+                        <span>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span id="dispAddress">—</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Edit mode (hidden by default) -->
+                <div id="heroEdit" class="hidden">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                        <div>
+                            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);display:block;margin-bottom:4px;">Full Name</label>
+                            <input class="field-input" id="editName" type="text" placeholder="Full Name">
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);display:block;margin-bottom:4px;">Email</label>
+                            <input class="field-input" id="editEmail" type="email" placeholder="email@example.com">
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);display:block;margin-bottom:4px;">Phone</label>
+                            <input class="field-input" id="editPhone" type="tel" placeholder="+1 234 567 8900">
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);display:block;margin-bottom:4px;">Address</label>
+                            <input class="field-input" id="editAddress" type="text" placeholder="City, State">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="hero-actions">
+                <button class="btn btn-dark" id="btnEdit">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit Profile
+                </button>
+                <button class="btn btn-green hidden" id="btnSave">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Save
+                </button>
+                <button class="btn btn-outline hidden" id="btnCancel">Cancel</button>
+            </div>
+        </section>
+
+        <!-- ── CHANGE PASSWORD ── -->
+        <section class="section-card" id="change-password">
+            <div class="card-title">Change Password</div>
+            <div class="pwd-grid">
+                <div class="pwd-field">
+                    <label>Current Password</label>
+                    <input class="field-input" id="pwdCurrent" type="password" placeholder="Current password" autocomplete="current-password">
+                </div>
+                <div class="pwd-field">
+                    <label>New Password</label>
+                    <input class="field-input" id="pwdNew" type="password" placeholder="Min. 8 characters" autocomplete="new-password">
+                </div>
+                <div class="pwd-field">
+                    <label>Confirm New Password</label>
+                    <input class="field-input" id="pwdConfirm" type="password" placeholder="Repeat new password" autocomplete="new-password">
+                </div>
+            </div>
+            <div class="pwd-msg" id="pwdMsg"></div>
+            <button class="btn btn-dark" id="btnChangePwd" style="margin-top:12px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Update Password
+            </button>
+        </section>
+
+        <!-- ── ACTIVITY LOG ── -->
+        <section class="section-card" id="activity-log">
+            <div class="card-title">Activity Log</div>
+            <table class="activity-table">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th style="text-align:right;">Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="activityLogBody">
+                    <tr><td colspan="2" style="color:var(--muted);text-align:center;padding:20px;">No activity recorded yet.</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ── LOGOUT ── -->
+        <div style="margin-top:8px;margin-bottom:40px;">
+            <button class="btn btn-red" id="btnLogout">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Log Out
+            </button>
+        </div>
+    </main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="profileToast"></div>
+
+<script>
+(function () {
+    'use strict';
+
+    var SS_USER = 'currentUser';
+    var SS_ADMIN = 'enertrack_session';
+    var DEFAULT_AVATAR = 'sign_in/images/logo.png';
+
+    function safeParse(raw, fallback) {
+        if (!raw) return fallback;
+        try { return JSON.parse(raw); } catch (_) { return fallback; }
+    }
+
+    function normalizeRole(role) {
+        var roleMap = {
+            admin: 'System Administrator',
+            superuser: 'System Administrator',
+            enduser: 'End User'
+        };
+        return roleMap[role] || role || 'User';
+    }
+
+    function getCurrentUser() {
+        var user = safeParse(sessionStorage.getItem(SS_USER), null);
+        if (user) {
+            user.role = normalizeRole(user.role);
+            return user;
+        }
+        var adminSession = safeParse(sessionStorage.getItem(SS_ADMIN), null);
+        if (adminSession) {
+            return {
+                name: adminSession.name || 'User',
+                role: normalizeRole(adminSession.role),
+                email: adminSession.email || '',
+                phone: adminSession.phone || '',
+                avatar: adminSession.avatar || '',
+                profileKey: adminSession.profileKey || ''
+            };
+        }
+        return { name: 'User', role: 'User', email: '', phone: '' };
+    }
+
+    var currentUser = getCurrentUser();
+
+    function deriveUserScope(user) {
+        if (user && user.email) return String(user.email).toLowerCase();
+        if (user && user.name) return String(user.name).trim().toLowerCase().replace(/\s+/g, '_');
+        return 'guest';
+    }
+
+    function ensureStableProfileKey(user) {
+        var stable = user && user.profileKey ? user.profileKey : deriveUserScope(user);
+        user.profileKey = stable;
+
+        var existingUser = safeParse(sessionStorage.getItem(SS_USER), null);
+        if (existingUser) {
+            existingUser.profileKey = stable;
+            sessionStorage.setItem(SS_USER, JSON.stringify(existingUser));
+        } else {
+            sessionStorage.setItem(SS_USER, JSON.stringify(user));
+        }
+
+        var adminSession = safeParse(sessionStorage.getItem(SS_ADMIN), null);
+        if (adminSession) {
+            adminSession.profileKey = stable;
+            sessionStorage.setItem(SS_ADMIN, JSON.stringify(adminSession));
+        }
+
+        return stable;
+    }
+
+    var scope = ensureStableProfileKey(currentUser);
+    var SS_PROFILE = 'enertrack.profile::' + scope;
+    var SS_AVATAR = 'enertrack.avatar::' + scope;
+    var SS_LOG = 'enertrack.activityLog::' + scope;
+
+    function defaultAddressForRole(role) {
+        var map = {
+            'System Administrator': 'Operations Center',
+            'Technician': 'Field Services Hub',
+            'Financial Analyst': 'Finance Department',
+            'Sustainability Officer': 'Sustainability Office'
+        };
+        return map[role] || 'Main Campus';
+    }
+
+    function buildDefaultProfile(user) {
+        return {
+            name: user.name || 'User',
+            role: user.role || 'User',
+            email: user.email || '',
+            phone: user.phone || '',
+            address: user.address || defaultAddressForRole(user.role)
+        };
+    }
+
+    function loadProfile() {
+        var base = buildDefaultProfile(currentUser);
+        var saved = safeParse(sessionStorage.getItem(SS_PROFILE), {});
+
+        if (saved && typeof saved === 'object') {
+            if (saved.name) base.name = saved.name;
+            if (saved.email) base.email = saved.email;
+            if (saved.phone) base.phone = saved.phone;
+            if (saved.address) base.address = saved.address;
+        }
+
+        return base;
+    }
+
+    function saveCurrentUserState() {
+        var baseUser = safeParse(sessionStorage.getItem(SS_USER), currentUser);
+        baseUser.name = profile.name;
+        baseUser.role = profile.role;
+        baseUser.email = profile.email;
+        baseUser.phone = profile.phone;
+        baseUser.address = profile.address;
+        baseUser.profileKey = scope;
+        baseUser.avatar = sessionStorage.getItem(SS_AVATAR) || baseUser.avatar || '';
+        sessionStorage.setItem(SS_USER, JSON.stringify(baseUser));
+
+        var adminSession = safeParse(sessionStorage.getItem(SS_ADMIN), null);
+        if (adminSession) {
+            adminSession.name = profile.name;
+            adminSession.email = profile.email;
+            adminSession.phone = profile.phone;
+            adminSession.profileKey = scope;
+            adminSession.avatar = baseUser.avatar;
+            sessionStorage.setItem(SS_ADMIN, JSON.stringify(adminSession));
+        }
+    }
+
+    var profile = loadProfile();
+    var editMode = false;
+
+    /* ── DOM helpers ── */
+    function $(id) { return document.getElementById(id); }
+    function setText(id, val) { var el = $(id); if (el) el.textContent = val || '—'; }
+    function show(id) { var el = $(id); if (el) el.classList.remove('hidden'); }
+    function hide(id) { var el = $(id); if (el) el.classList.add('hidden'); }
+    function val(id)  { var el = $(id); return el ? el.value.trim() : ''; }
+    function setVal(id, v) { var el = $(id); if (el) el.value = v || ''; }
+
+    /* ── Render display mode ── */
+    function renderDisplay() {
+        setText('dispName', profile.name);
+        setText('dispRole', profile.role);
+        setText('dispEmail', profile.email);
+        setText('dispPhone', profile.phone);
+        setText('dispAddress', profile.address);
+
+        // Sidebar
+        setText('sidebarUserName', profile.name);
+        setText('sidebarUserRole', profile.role);
+    }
+
+    /* ── Seed edit fields ── */
+    function seedEditFields() {
+        setVal('editName',    profile.name);
+        setVal('editEmail',   profile.email);
+        setVal('editPhone',   profile.phone);
+        setVal('editAddress', profile.address);
+    }
+
+    /* ── Switch between view / edit mode ── */
+    function enterEditMode() {
+        editMode = true;
+        seedEditFields();
+
+        hide('heroView');  show('heroEdit');
+        hide('btnEdit');   show('btnSave'); show('btnCancel');
+    }
+
+    function exitEditMode() {
+        editMode = false;
+        show('heroView');  hide('heroEdit');
+        show('btnEdit');   hide('btnSave'); hide('btnCancel');
+    }
+
+    function saveProfile() {
+        profile.name        = val('editName')    || profile.name;
+        profile.email       = val('editEmail')   || profile.email;
+        profile.phone       = val('editPhone')   || profile.phone;
+        profile.address     = val('editAddress') || profile.address;
+
+        // Persist
+        try { sessionStorage.setItem(SS_PROFILE, JSON.stringify(profile)); } catch (_) {}
+
+        // Keep user object in sync so all dashboards reflect updates
+        saveCurrentUserState();
+
+        logAction('Updated profile information');
+        exitEditMode();
+        renderDisplay();
+        showToast('Profile saved successfully.');
+    }
+
+    // Wire edit buttons
+    $('btnEdit')  .addEventListener('click', enterEditMode);
+    $('btnCancel').addEventListener('click', exitEditMode);
+    $('btnSave')  .addEventListener('click', saveProfile);
+
+    /* ── Avatar upload ── */
+    function applyAvatar(src) {
+        var chosen = (src && String(src).trim()) ? src : DEFAULT_AVATAR;
+        $('profileAvatar').src = chosen;
+        $('sidebarAvatar').src = chosen;
+    }
+
+    $('profileAvatar').addEventListener('error', function () {
+        this.onerror = null;
+        this.src = DEFAULT_AVATAR;
+    });
+    $('sidebarAvatar').addEventListener('error', function () {
+        this.onerror = null;
+        this.src = DEFAULT_AVATAR;
+    });
+
+    $('avatarInput').addEventListener('change', function () {
+        var file = this.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var dataURL = e.target.result;
+            applyAvatar(dataURL);
+            try { sessionStorage.setItem(SS_AVATAR, dataURL); } catch (_) {}
+            saveCurrentUserState();
+            logAction('Updated profile photo');
+            showToast('Avatar updated.');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Restore avatar
+    var savedAvatar = sessionStorage.getItem(SS_AVATAR) || currentUser.avatar || DEFAULT_AVATAR;
+    applyAvatar(savedAvatar);
+
+    /* ── Change Password ── */
+    $('btnChangePwd').addEventListener('click', function () {
+        var current  = $('pwdCurrent').value;
+        var newPwd   = $('pwdNew').value;
+        var confirm  = $('pwdConfirm').value;
+        var msg      = $('pwdMsg');
+
+        if (!current) {
+            msg.className = 'pwd-msg error';
+            msg.textContent = 'Please enter your current password.';
+            return;
+        }
+        if (newPwd.length < 8) {
+            msg.className = 'pwd-msg error';
+            msg.textContent = 'New password must be at least 8 characters.';
+            return;
+        }
+        if (newPwd !== confirm) {
+            msg.className = 'pwd-msg error';
+            msg.textContent = 'New passwords do not match.';
+            return;
+        }
+
+        // Client-side only — just clear and confirm
+        msg.className = 'pwd-msg success';
+        msg.textContent = 'Password updated successfully.';
+        $('pwdCurrent').value = '';
+        $('pwdNew').value     = '';
+        $('pwdConfirm').value = '';
+        logAction('Changed password');
+        showToast('Password updated.');
+    });
+
+    /* ── Activity Log ── */
+    function renderActivityLog() {
+        var tbody = $('activityLogBody');
+        if (!tbody) return;
+        try {
+            var log = JSON.parse(sessionStorage.getItem(SS_LOG) || '[]');
+            if (!log.length) {
+                tbody.innerHTML = '<tr><td colspan="2" style="color:var(--muted);text-align:center;padding:20px;">No activity recorded yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = log.map(function (entry) {
+                return '<tr>' +
+                    '<td>' + entry.action + '</td>' +
+                    '<td style="text-align:right;color:var(--muted);white-space:nowrap;">' + entry.timestamp + '</td>' +
+                    '</tr>';
+            }).join('');
+        } catch (_) {}
+    }
+
+    function logAction(action) {
+        try {
+            var log = JSON.parse(sessionStorage.getItem(SS_LOG) || '[]');
+            log.unshift({ action: action, timestamp: new Date().toLocaleString() });
+            if (log.length > 20) log = log.slice(0, 20);
+            sessionStorage.setItem(SS_LOG, JSON.stringify(log));
+            renderActivityLog();
+        } catch (_) {}
+    }
+
+    /* ── Logout ── */
+    $('btnLogout').addEventListener('click', function () {
+        sessionStorage.clear();
+        window.location.href = 'landing/landing.html';
+    });
+
+    /* ── Toast ── */
+    var toastTimer = null;
+    function showToast(msg) {
+        var t = $('profileToast');
+        t.textContent = msg;
+        t.classList.add('show');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { t.classList.remove('show'); }, 3000);
+    }
+
+    /* ── Smooth scroll for sidebar links ── */
+    document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            var target = document.querySelector(a.getAttribute('href'));
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
+    /* ── Back link smart navigation ── */
+    $('sidebarBackLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (document.referrer) window.history.back();
+        else window.location.href = 'landing/landing.html';
+    });
+
+    /* ── Init ── */
+    renderDisplay();
+    renderActivityLog();
+    logAction('Opened profile page');
+
+})();
+</script>
+</body>
+</html>

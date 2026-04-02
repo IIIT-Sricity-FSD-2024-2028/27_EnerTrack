@@ -6,6 +6,10 @@
 import TechDB from './data/mockData.js';
 import { showToast, openModal, generateId } from './utils/utils.js';
 
+<<<<<<< HEAD
+const SS_KEY = 'enertrack.tech.workorders';
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 let selectedWOId = null;
 let selectedType = 'scheduled';
 
@@ -19,15 +23,35 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initWorkOrders() {
+<<<<<<< HEAD
+    // Restore persisted state
+    const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SS_KEY) || '{}'); } catch { return {}; } })();
+    if (saved.selectedType) selectedType = saved.selectedType;
+
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
     renderBoard();
     renderArchive();
     wireTypeSelector();
     wireNewWOForm();
     wireInitiateBtn();
 
+<<<<<<< HEAD
+    // Restore active type button
+    document.querySelectorAll('.wo-type-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.type === selectedType);
+    });
+
+    // Restore selected WO or default to first
+    const restoredWO = saved.selectedWOId && TechDB.getWorkOrder(saved.selectedWOId);
+    const first = TechDB.workOrders.find(w => w.status !== 'closed');
+    if (restoredWO) selectWorkOrder(restoredWO.id);
+    else if (first) selectWorkOrder(first.id);
+=======
     // Select first WO by default
     const first = TechDB.workOrders.find(w => w.status !== 'closed');
     if (first) selectWorkOrder(first.id);
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 /* ─── Kanban Board Render ────────────────────────── */
@@ -79,6 +103,11 @@ function updateColumnCounts() {
 /* ─── Select a Work Order ────────────────────────── */
 function selectWorkOrder(id) {
     selectedWOId = id;
+<<<<<<< HEAD
+    // Persist selection
+    try { sessionStorage.setItem(SS_KEY, JSON.stringify({ selectedWOId: id, selectedType })); } catch (_) {}
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
     const wo = TechDB.getWorkOrder(id);
     if (!wo) return;
 
@@ -158,6 +187,11 @@ function wireTypeSelector() {
             document.querySelectorAll('.wo-type-option').forEach(o => o.classList.remove('active'));
             opt.classList.add('active');
             selectedType = opt.dataset.type;
+<<<<<<< HEAD
+            // Persist type selection
+            try { sessionStorage.setItem(SS_KEY, JSON.stringify({ selectedWOId, selectedType })); } catch (_) {}
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
         });
     });
 }

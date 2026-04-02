@@ -45,6 +45,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+<<<<<<< HEAD
+=======
   // Profile card logout
   const profileCard = document.querySelector(".profile-card");
   if (profileCard) {
@@ -54,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   // Auto-refresh every 30 seconds
   setInterval(() => {
     MonitorModule.refreshMonitorData();

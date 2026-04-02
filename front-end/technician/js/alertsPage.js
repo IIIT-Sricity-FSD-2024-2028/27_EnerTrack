@@ -6,6 +6,10 @@
 import TechDB from './data/mockData.js';
 import { showToast, openModal } from './utils/utils.js';
 
+<<<<<<< HEAD
+const SS_KEY = 'enertrack.tech.alerts';
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 let selectedAlertId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -21,9 +25,18 @@ function initAlerts() {
     renderQueue();
     renderHistoryLog();
 
+<<<<<<< HEAD
+    // Restore persisted alert selection, else select first open alert
+    const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SS_KEY) || '{}'); } catch { return {}; } })();
+    const target = saved.selectedAlertId && TechDB.alerts.find(a => a.id === saved.selectedAlertId && a.status === 'open');
+    const firstOpen = TechDB.alerts.find(a => a.status === 'open');
+    if (target) selectAlert(target.id);
+    else if (firstOpen) selectAlert(firstOpen.id);
+=======
     // Select first open alert by default
     const firstOpen = TechDB.alerts.find(a => a.status === 'open');
     if (firstOpen) selectAlert(firstOpen.id);
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 /* ─── Render alert queue table ────────────────────── */
@@ -73,6 +86,11 @@ function renderHistoryLog() {
 /* ─── Select an alert and populate detail panel ───── */
 function selectAlert(id) {
     selectedAlertId = id;
+<<<<<<< HEAD
+    // Persist selection
+    try { sessionStorage.setItem(SS_KEY, JSON.stringify({ selectedAlertId: id })); } catch (_) {}
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
     const alert = TechDB.getAlert(id);
     if (!alert) return;
 

@@ -39,6 +39,13 @@ const icons = {
     <path d="M1 20v-6h6"></path>
     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
   </svg>`,
+<<<<<<< HEAD
+
+  maintenance: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.7 6.3a1 1 0 0 0 1.4 1.4l4.48-4.48a5 5 0 0 1-6.32 6.32l-8.8 8.8a2 2 0 1 1-2.83-2.83l8.8-8.8a5 5 0 0 1 6.32-6.32z"></path>
+  </svg>`,
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   
   troubleshooting: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="11" cy="11" r="8"></circle>

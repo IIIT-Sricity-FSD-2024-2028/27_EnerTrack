@@ -3,6 +3,12 @@
  * CRUD operations for energy cost records (Utility Costs page).
  */
 
+<<<<<<< HEAD
+import FinanceDB from "../data/mockData.js";
+import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, can } from "../utils/utils.js";
+import { logActivity } from "./activity.js";
+
+=======
 import FinanceDB, { persistData } from "../data/mockData.js";
 import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, can } from "../utils/utils.js";
 import { logActivity } from "./activity.js";
@@ -14,6 +20,7 @@ export const DashboardState = {
 };
 window.DashboardState = DashboardState;
 
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 /* ── RENDER TABLE ─────────────────────────────────── */
 
 export function renderCostTable(filter = {}) {
@@ -26,7 +33,11 @@ export function renderCostTable(filter = {}) {
   if (filter.period && filter.period !== "") records = records.filter(r => r.period === filter.period);
 
   if (records.length === 0) {
+<<<<<<< HEAD
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:32px">No records found.</td></tr>`;
+=======
     tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:32px">No records found.</td></tr>`;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
     return;
   }
 
@@ -38,7 +49,10 @@ export function renderCostTable(filter = {}) {
       <td>${formatCurrency(rec.electricity)}</td>
       <td>${formatCurrency(rec.gas)}</td>
       <td>${formatCurrency(rec.water)}</td>
+<<<<<<< HEAD
+=======
       <td>${formatCurrency(rec.wastewater || 0)}</td>
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       <td><strong>${formatCurrency(rec.total)}</strong></td>
       <td>${badgeHTML(rec.status)}</td>
       <td class="action-cell">
@@ -67,7 +81,10 @@ export function viewCostRecord(id) {
         <div><strong>Electricity</strong><p>${formatCurrency(rec.electricity)}</p></div>
         <div><strong>Gas</strong><p>${formatCurrency(rec.gas)}</p></div>
         <div><strong>Water</strong><p>${formatCurrency(rec.water)}</p></div>
+<<<<<<< HEAD
+=======
         <div><strong>Wastewater</strong><p>${formatCurrency(rec.wastewater || 0)}</p></div>
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
         <div><strong>Demand</strong><p>${formatCurrency(rec.demand)}</p></div>
         <div><strong>Total Cost</strong><p><strong>${formatCurrency(rec.total)}</strong></p></div>
         <div><strong>Budget</strong><p>${formatCurrency(rec.budget)}</p></div>
@@ -129,6 +146,15 @@ export function openAddCostModal() {
             <input id="ac-water" type="number" placeholder="0" min="0">
           </div>
           <div class="fm-group">
+<<<<<<< HEAD
+            <label>Demand Charge ($) *</label>
+            <input id="ac-demand" type="number" placeholder="0" min="0">
+          </div>
+        </div>
+        <div class="fm-group">
+          <label>Budget ($) *</label>
+          <input id="ac-budget" type="number" placeholder="0" min="1">
+=======
             <label>Wastewater ($) *</label>
             <input id="ac-wastewater" type="number" placeholder="0" min="0">
           </div>
@@ -142,6 +168,7 @@ export function openAddCostModal() {
             <label>Budget ($) *</label>
             <input id="ac-budget" type="number" placeholder="0" min="1">
           </div>
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
         </div>
       </form>`,
     confirmLabel: "Add Record",
@@ -164,12 +191,20 @@ function _submitAddCost() {
   const fields = {
     period:    document.getElementById("ac-period"),
     scopeType: document.getElementById("ac-scope-type"),
+<<<<<<< HEAD
+    elec:      document.getElementById("ac-elec"),
+    gas:       document.getElementById("ac-gas"),
+    water:     document.getElementById("ac-water"),
+    demand:    document.getElementById("ac-demand"),
+    budget:    document.getElementById("ac-budget")
+=======
     elec:       document.getElementById("ac-elec"),
     gas:        document.getElementById("ac-gas"),
     water:      document.getElementById("ac-water"),
     wastewater: document.getElementById("ac-wastewater"),
     demand:     document.getElementById("ac-demand"),
     budget:     document.getElementById("ac-budget")
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   };
 
   clearAllErrors(form);
@@ -198,7 +233,11 @@ function _submitAddCost() {
   }
 
   // Numeric fields
+<<<<<<< HEAD
+  for (const key of ["elec","gas","water","demand","budget"]) {
+=======
   for (const key of ["elec","gas","water","wastewater","demand","budget"]) {
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
     const val = Number(fields[key]?.value);
     if (fields[key]?.value === "" || isNaN(val) || val < 0) {
       showFieldError(fields[key], "Must be a valid non-negative number."); valid = false;
@@ -208,6 +247,14 @@ function _submitAddCost() {
   if (!valid) { showToast("Please fix the errors.", "warning"); return; }
 
   const [scopeId, , scopeLabel] = scopeValue.split("|");
+<<<<<<< HEAD
+  const elec   = Number(fields.elec.value);
+  const gas    = Number(fields.gas.value);
+  const water  = Number(fields.water.value);
+  const demand = Number(fields.demand.value);
+  const total  = elec + gas + water + demand;
+  const budget = Number(fields.budget.value);
+=======
   const elec       = Number(fields.elec.value);
   const gas        = Number(fields.gas.value);
   const water      = Number(fields.water.value);
@@ -215,6 +262,7 @@ function _submitAddCost() {
   const demand     = Number(fields.demand.value);
   const total      = elec + gas + water + wastewater + demand;
   const budget     = Number(fields.budget.value);
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   const variance = budget - total;
 
   const newRec = {
@@ -223,12 +271,19 @@ function _submitAddCost() {
     scope: scopeType,
     scopeRef: scopeId,
     scopeLabel,
+<<<<<<< HEAD
+    electricity: elec, gas, water, demand, total, budget, variance,
+=======
     electricity: elec, gas, water, wastewater, demand, total, budget, variance,
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
     status: variance > 0 ? "under-budget" : variance === 0 ? "on-budget" : "over-budget"
   };
 
   FinanceDB.energyCosts.push(newRec);
+<<<<<<< HEAD
+=======
   persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   logActivity("energy", `Cost record added for ${scopeLabel}`, `Period: ${periodVal}, Total: ${formatCurrency(total)}`);
   renderCostTable();
   updateCostSummary();
@@ -263,6 +318,15 @@ export function editCostRecord(id) {
             <input id="ecc-water" type="number" value="${rec.water}" min="0">
           </div>
           <div class="fm-group">
+<<<<<<< HEAD
+            <label>Demand ($) *</label>
+            <input id="ecc-demand" type="number" value="${rec.demand}" min="0">
+          </div>
+        </div>
+        <div class="fm-group">
+          <label>Budget ($) *</label>
+          <input id="ecc-budget" type="number" value="${rec.budget}" min="1">
+=======
             <label>Wastewater ($) *</label>
             <input id="ecc-wastewater" type="number" value="${rec.wastewater || 0}" min="0">
           </div>
@@ -276,6 +340,7 @@ export function editCostRecord(id) {
             <label>Budget ($) *</label>
             <input id="ecc-budget" type="number" value="${rec.budget}" min="1">
           </div>
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
         </div>
       </form>`,
     confirmLabel: "Save Changes",
@@ -288,12 +353,20 @@ function _submitEditCost(id) {
   if (!form) return;
 
   const fields = {
+<<<<<<< HEAD
+    elec:   document.getElementById("ecc-elec"),
+    gas:    document.getElementById("ecc-gas"),
+    water:  document.getElementById("ecc-water"),
+    demand: document.getElementById("ecc-demand"),
+    budget: document.getElementById("ecc-budget")
+=======
     elec:       document.getElementById("ecc-elec"),
     gas:        document.getElementById("ecc-gas"),
     water:      document.getElementById("ecc-water"),
     wastewater: document.getElementById("ecc-wastewater"),
     demand:     document.getElementById("ecc-demand"),
     budget:     document.getElementById("ecc-budget")
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   };
 
   clearAllErrors(form);
@@ -312,6 +385,14 @@ function _submitEditCost(id) {
   if (!valid) { showToast("Please fix the errors.", "warning"); return; }
 
   const idx = FinanceDB.energyCosts.findIndex(r => r.id === id);
+<<<<<<< HEAD
+  const elec   = Number(fields.elec.value);
+  const gas    = Number(fields.gas.value);
+  const water  = Number(fields.water.value);
+  const demand = Number(fields.demand.value);
+  const total  = elec + gas + water + demand;
+  const budget = Number(fields.budget.value);
+=======
   const elec       = Number(fields.elec.value);
   const gas        = Number(fields.gas.value);
   const water      = Number(fields.water.value);
@@ -319,15 +400,23 @@ function _submitEditCost(id) {
   const demand     = Number(fields.demand.value);
   const total      = elec + gas + water + wastewater + demand;
   const budget     = Number(fields.budget.value);
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   const variance = budget - total;
 
   FinanceDB.energyCosts[idx] = {
     ...FinanceDB.energyCosts[idx],
+<<<<<<< HEAD
+    electricity: elec, gas, water, demand, total, budget, variance,
+    status: variance > 0 ? "under-budget" : variance === 0 ? "on-budget" : "over-budget"
+  };
+
+=======
     electricity: elec, gas, water, wastewater, demand, total, budget, variance,
     status: variance > 0 ? "under-budget" : variance === 0 ? "on-budget" : "over-budget"
   };
 
   persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   logActivity("energy", `Cost record updated for ${FinanceDB.energyCosts[idx].scopeLabel}`, `Total: ${formatCurrency(total)}`);
   renderCostTable();
   updateCostSummary();
@@ -348,7 +437,10 @@ export function deleteCostRecord(id) {
     danger: true,
     onConfirm: () => {
       FinanceDB.energyCosts = FinanceDB.energyCosts.filter(r => r.id !== id);
+<<<<<<< HEAD
+=======
       persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       logActivity("energy", `Cost record deleted for ${rec.scopeLabel}`, `Period: ${rec.period}`);
       renderCostTable();
       updateCostSummary();
@@ -368,6 +460,8 @@ export function updateCostSummary() {
   _setText("cost-total",      formatCurrency(totalCost));
   _setText("cost-budget",     formatCurrency(totalBudget));
   _setText("cost-over-count", overBudget);
+<<<<<<< HEAD
+=======
 
   // If dashboard is pending, clear graphs/metrics
   if (DashboardState.isPending) {
@@ -495,6 +589,7 @@ export function renderCostBreakdown(viewMode) {
       </div>
     `;
   }).join("");
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 function _setText(id, val) {
@@ -503,6 +598,10 @@ function _setText(id, val) {
 }
 
 /* ── EXPORT NAMESPACE ─────────────────────────────── */
+<<<<<<< HEAD
+const CostModule = { renderCostTable, viewCostRecord, openAddCostModal, _toggleScopeSelect, editCostRecord, deleteCostRecord, updateCostSummary };
+=======
 const CostModule = { renderCostTable, viewCostRecord, openAddCostModal, _toggleScopeSelect, editCostRecord, deleteCostRecord, updateCostSummary, renderCostBreakdown, DashboardState };
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 window.CostModule = CostModule;
 export default CostModule;

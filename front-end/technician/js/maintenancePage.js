@@ -6,6 +6,10 @@
 import TechDB from './data/mockData.js';
 import { showToast, openModal } from './utils/utils.js';
 
+<<<<<<< HEAD
+const SS_KEY = 'enertrack.tech.maintenance';
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 let selectedFaultId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -21,10 +25,18 @@ function initMaintenance() {
     renderAlertSelector();
     wireRunDiagnostics();
 
+<<<<<<< HEAD
+    // Restore persisted fault selection, else select first active fault
+    const saved = (() => { try { return JSON.parse(sessionStorage.getItem(SS_KEY) || '{}'); } catch { return {}; } })();
+    const restoredFault = saved.selectedFaultId && TechDB.faults.find(f => f.id === saved.selectedFaultId);
+    if (restoredFault) selectFault(restoredFault.id);
+    else if (TechDB.faults.length) selectFault(TechDB.faults[0].id);
+=======
     // Select first active fault by default
     if (TechDB.faults.length) {
         selectFault(TechDB.faults[0].id);
     }
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 /* ─── Render acknowledged alert selector tiles ─────── */
@@ -50,6 +62,11 @@ function renderAlertSelector() {
 /* ─── Select a fault and load the workspace ─────────── */
 function selectFault(faultId) {
     selectedFaultId = faultId;
+<<<<<<< HEAD
+    // Persist selection
+    try { sessionStorage.setItem(SS_KEY, JSON.stringify({ selectedFaultId: faultId })); } catch (_) {}
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
     const fault = TechDB.getFault(faultId);
     if (!fault) return;
 

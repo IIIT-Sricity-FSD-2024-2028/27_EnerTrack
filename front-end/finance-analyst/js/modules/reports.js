@@ -4,7 +4,11 @@
  * Add, Edit, Delete, View — reflected in the UI without page reloads.
  */
 
+<<<<<<< HEAD
+import FinanceDB from "../data/mockData.js";
+=======
 import FinanceDB, { persistData } from "../data/mockData.js";
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, formatDate, can } from "../utils/utils.js";
 import { logActivity } from "./activity.js";
 
@@ -227,7 +231,10 @@ function _submitAddReport() {
   };
 
   FinanceDB.financialReports.unshift(newRep);
+<<<<<<< HEAD
+=======
   persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   logActivity("report", `Report "${newRep.title}" generated`, `Period: ${newRep.period}`);
   renderReportList();
   showToast(`Report "${newRep.title}" created.`, "success");
@@ -320,7 +327,10 @@ function _submitEditReport(id) {
     notes:        data.notes.trim()
   };
 
+<<<<<<< HEAD
+=======
   persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   logActivity("report", `Report "${data.title}" updated`, `Status: ${data.status}`);
   renderReportList();
   showToast("Report updated.", "success");
@@ -340,7 +350,10 @@ export function deleteReport(id) {
     danger: true,
     onConfirm: () => {
       FinanceDB.financialReports = FinanceDB.financialReports.filter(r => r.id !== id);
+<<<<<<< HEAD
+=======
       persistData();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
       logActivity("report", `Report "${rep.title}" deleted`, "");
       renderReportList();
       showToast("Report deleted.", "success");

@@ -181,14 +181,23 @@ export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLab
     <h3 style="font-size:17px;font-weight:700;margin-bottom:16px;color:#111827">${title}</h3>
     <div style="margin-bottom:24px;color:#374151;font-size:14px;line-height:1.6">${bodyHTML}</div>
     <div style="display:flex;justify-content:flex-end;gap:10px">
+<<<<<<< HEAD
+      <button id="fm-cancel" style="padding:8px 18px;border-radius:6px;font-size:14px;font-weight:600;border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer">${cancelLabel}</button>
+      <button id="fm-confirm" style="padding:8px 18px;border-radius:6px;font-size:14px;font-weight:600;${confirmStyle}cursor:pointer">${confirmLabel}</button>
+=======
       ${cancelLabel ? `<button id="fm-cancel" style="padding:8px 18px;border-radius:6px;font-size:14px;font-weight:600;border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer">${cancelLabel}</button>` : ""}
       ${confirmLabel ? `<button id="fm-confirm" style="padding:8px 18px;border-radius:6px;font-size:14px;font-weight:600;${confirmStyle}cursor:pointer">${confirmLabel}</button>` : ""}
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
     </div>
   `;
 
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 
+<<<<<<< HEAD
+  document.getElementById("fm-cancel").onclick = () => { closeModal(); if (onCancel) onCancel(); };
+  document.getElementById("fm-confirm").onclick = () => { if (onConfirm) onConfirm(); closeModal(); };
+=======
   document.body.appendChild(overlay);
  
   const cnl = document.getElementById("fm-cancel");
@@ -196,6 +205,7 @@ export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLab
 
   const cfm = document.getElementById("fm-confirm");
   if (cfm) cfm.onclick = () => { if (onConfirm) onConfirm(); closeModal(); };
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   overlay.addEventListener("click", e => { if (e.target === overlay) { closeModal(); if (onCancel) onCancel(); } });
 
   return overlay;

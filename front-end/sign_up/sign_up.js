@@ -102,6 +102,18 @@
         return true;
     }
 
+<<<<<<< HEAD
+    /* Returns true if the entire string is made of digit 0 */
+    function isAllZeros(str) {
+        if (str.length === 0) return false;
+        for (var i = 0; i < str.length; i++) {
+            if (str[i] !== "0") return false;
+        }
+        return true;
+    }
+
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
     /* ───────── Color-coded field state helpers ───────── */
 
     /*
@@ -388,6 +400,13 @@
             showError(phoneError, "Phone number must be exactly 10 digits.", phoneInput);
             return false;
         }
+<<<<<<< HEAD
+        if (isAllZeros(val)) {
+            showError(phoneError, "Phone number cannot be all zeros.", phoneInput);
+            return false;
+        }
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 
         markValid(phoneInput, phoneError);
         return true;

@@ -7,15 +7,48 @@ import FinanceDB     from "./data/mockData.js";
 import SessionModule from "./modules/session.js";
 import CostModule    from "./modules/energyCosts.js";
 
+<<<<<<< HEAD
+const SS_KEY = 'enertrack.finance.costs';
+
+function _restoreState() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(SS_KEY) || '{}');
+    if (saved.scope)  { const el = document.getElementById('filter-scope');  if (el) el.value = saved.scope; }
+    // period dropdown is populated dynamically, restore after populate
+    if (saved.period) {
+      const el = document.getElementById('filter-period');
+      if (el) el.dataset.pendingRestore = saved.period;
+    }
+  } catch (_) {}
+}
+
+function _saveState() {
+  try {
+    sessionStorage.setItem(SS_KEY, JSON.stringify({
+      scope:  document.getElementById('filter-scope')?.value,
+      period: document.getElementById('filter-period')?.value,
+    }));
+  } catch (_) {}
+}
+
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 document.addEventListener("DOMContentLoaded", () => {
   window.FinanceDB = FinanceDB;
 
   SessionModule.initSession();
+<<<<<<< HEAD
+  _restoreState();
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   CostModule.renderCostTable();
   CostModule.updateCostSummary();
   wireFilters();
   wireButtons();
+<<<<<<< HEAD
+=======
   wireTabs();
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   wireRoleSwitcher();
   wireNavigation();
   populateScopeDropdown();
@@ -32,13 +65,28 @@ function populateScopeDropdown() {
   const periods = [...new Set(FinanceDB.energyCosts.map(c => c.period))].sort().reverse();
   periodSel.innerHTML = `<option value="">All Periods</option>` +
     periods.map(p => `<option value="${p}">${p}</option>`).join("");
+<<<<<<< HEAD
+
+  // Restore pending period after options are populated
+  if (periodSel.dataset.pendingRestore) {
+    periodSel.value = periodSel.dataset.pendingRestore;
+    delete periodSel.dataset.pendingRestore;
+    applyFilters();
+  }
+=======
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 /* ── FILTERS ──────────────────────────────────────── */
 
 function wireFilters() {
+<<<<<<< HEAD
+  document.getElementById("filter-scope")?.addEventListener("change",  () => { _saveState(); applyFilters(); });
+  document.getElementById("filter-period")?.addEventListener("change", () => { _saveState(); applyFilters(); });
+=======
   document.getElementById("filter-scope")?.addEventListener("change",  applyFilters);
   document.getElementById("filter-period")?.addEventListener("change", applyFilters);
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 function applyFilters() {
@@ -54,6 +102,16 @@ function wireButtons() {
     CostModule.openAddCostModal();
   });
 
+<<<<<<< HEAD
+  // Retrieve & Calculate (simulated)
+  document.getElementById("btn-retrieve")?.addEventListener("click", () => {
+    import("./utils/utils.js").then(({ showToast }) => {
+      showToast("Fetching consumption data…", "info", 1200);
+      setTimeout(() => {
+        CostModule.updateCostSummary();
+        showToast("Cost calculation complete.", "success");
+      }, 1400);
+=======
   // Retrieve & Calculate (Simulation)
   const btn = document.getElementById("btn-retrieve");
   if (!btn) return;
@@ -124,6 +182,7 @@ function wireTabs() {
       } else {
         DashboardState.currentView = viewModes[idx]; // Just update state, it will render on "Calculate"
       }
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
     });
   });
 }

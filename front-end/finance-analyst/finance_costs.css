@@ -18,12 +18,37 @@ body {
 /* SIDEBAR */
 .sidebar {
   width: 280px;
+<<<<<<< HEAD
+  background-color: #c9dbc9;
+  padding: 24px;
+=======
   background-color: #b8cdb7;
   padding: 16px 18px 18px;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   flex-shrink: 0;
+<<<<<<< HEAD
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 40px;
+  cursor: pointer;
+}
+
+.logo img {
+  width: auto;
+  height: 24px;
+  object-fit: contain;
+=======
   border-right: 1px solid rgba(28, 46, 46, 0.16);
 }
 
@@ -46,6 +71,7 @@ body {
 .sidebar-logo .logo-text {
   width: auto;
   height: 20px;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 .menu {
@@ -59,7 +85,11 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+<<<<<<< HEAD
+  font-size: 15px;
+=======
   font-size: 14px; /* Reduced slightly for better fit */
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   font-weight: 500;
   color: #374151;
   padding: 12px 16px;
@@ -80,7 +110,11 @@ body {
 }
 
 .menu-item.active {
+<<<<<<< HEAD
+  background-color: #111827;
+=======
   background-color: #0f172a;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   color: #ffffff;
 }
 
@@ -185,8 +219,11 @@ body {
 /* TABLE */
 .tbl-wrap {
   overflow-x: auto;
+<<<<<<< HEAD
+=======
   border-radius: 8px;
   border: 1px solid #d8dde2;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 table {
@@ -322,16 +359,30 @@ tbody td {
 .bars {
   display: flex;
   align-items: flex-end;
+<<<<<<< HEAD
+  gap: 24px;
+  height: 120px;
+  margin-top: 20px;
+=======
   justify-content: space-around; /* Better distribution */
   height: 200px; /* Taller for detail */
   margin-top: 30px;
   padding: 0 10px;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 .bar-group {
   display: flex;
   flex-direction: column;
   align-items: center;
+<<<<<<< HEAD
+  gap: 6px;
+}
+
+.bar {
+  width: 40px;
+  border-radius: 999px;
+=======
   gap: 10px;
   transition: transform 0.2s ease;
 }
@@ -353,6 +404,7 @@ tbody td {
 
 .bar:first-child {
   border-radius: 0 0 4px 4px; /* Bottom rounding for the base */
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 .bg-green {
@@ -376,6 +428,12 @@ tbody td {
 
 /* BADGES */
 .badge {
+<<<<<<< HEAD
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+=======
   display: inline-block;
   padding: 4px 12px;
   border-radius: 999px;
@@ -384,6 +442,7 @@ tbody td {
   white-space: nowrap;
   line-height: 1.4;
   vertical-align: middle;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 
 .badge-success {
@@ -503,14 +562,21 @@ tbody td {
 .budget-card {
   flex: 1;
   border-radius: 10px;
+<<<<<<< HEAD
+  padding: 20px;
+=======
   padding: 24px;
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
   border: 1px solid #d8dde2;
   font-size: 14px;
   color: #8a95a2;
   background: #ffffff;
+<<<<<<< HEAD
+=======
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+>>>>>>> 4c9ad4e385c59c452a6fa12788086dac413ce076
 }
 .budget-card.red {
   background: #fee2e2;
