@@ -335,7 +335,7 @@ body {
     position: absolute;
     top: 0;
     left: 0;
-    width: 46%; /* Static completion level, can be updated via JS */
+    width: 0%; /* Starts empty; JS sets width based on pipeline state */
     height: 2px;
     background: #0f8f63;
     z-index: 2;

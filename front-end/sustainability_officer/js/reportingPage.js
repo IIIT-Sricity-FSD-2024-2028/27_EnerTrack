@@ -1,16 +1,130 @@
 /**
  * reportingPage.js
- * Handles session logic and mock report generation for Reporting Page.
+ * Handles session logic, report generation pipeline, and custom date range.
  */
+import SustDB from './data/mockData.js';
 import SessionModule from './modules/session.js';
 import { showToast } from './utils/utils.js';
 import { injectIcons } from './utils/icons.js';
 
+function REPORT_PIPELINE_KEY() {
+    try {
+        const u = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        return 'et_sust_report_pipeline_' + (u.email || 'default');
+    } catch(_) { return 'et_sust_report_pipeline_default'; }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     SessionModule.initSession();
     injectIcons();
+    initFormInteractions();
     wireGeneration();
+    restoreReportPipelineState();
 });
+
+/* ── Form Interactions ─────────────────────────────── */
+
+function initFormInteractions() {
+    const reportTypePills = document.getElementById('reportTypePills');
+    const groups = {
+        year: document.getElementById('groupYear'),
+        quarter: document.getElementById('groupQuarter'),
+        month: document.getElementById('groupMonth'),
+        customFrom: document.getElementById('groupCustomFrom'),
+        customTo: document.getElementById('groupCustomTo')
+    };
+
+    function updateFormGroups(type) {
+        Object.values(groups).forEach(g => {
+            if (g) g.style.display = 'none';
+        });
+
+        if (type === 'yearly') {
+            if (groups.year) groups.year.style.display = 'block';
+        } else if (type === 'quarterly') {
+            if (groups.year) groups.year.style.display = 'block';
+            if (groups.quarter) groups.quarter.style.display = 'block';
+        } else if (type === 'monthly') {
+            if (groups.year) groups.year.style.display = 'block';
+            if (groups.month) groups.month.style.display = 'block';
+        } else if (type === 'custom') {
+            if (groups.customFrom) groups.customFrom.style.display = 'block';
+            if (groups.customTo) groups.customTo.style.display = 'block';
+        }
+    }
+
+    if (reportTypePills) {
+        reportTypePills.querySelectorAll('.type-pill').forEach((pill) => {
+            pill.addEventListener('click', () => {
+                reportTypePills.querySelectorAll('.type-pill').forEach((btn) => btn.classList.remove('active'));
+                pill.classList.add('active');
+                updateFormGroups(pill.dataset.reportType);
+            });
+        });
+    }
+
+    // Initialize groups (Yearly is default active)
+    updateFormGroups('yearly');
+
+    // Custom dropdown selections (Year/Quarter/Month selects)
+    document.querySelectorAll('[data-select]').forEach((selectWrap) => {
+        const trigger = selectWrap.querySelector('.select-trigger');
+        const valueEl = trigger.querySelector('.select-value');
+        const options = selectWrap.querySelectorAll('.select-option');
+
+        if (!trigger) return;
+
+        trigger.addEventListener('click', (event) => {
+            event.stopPropagation();
+            document.querySelectorAll('[data-select].open').forEach((openSelect) => {
+                if (openSelect !== selectWrap) {
+                    openSelect.classList.remove('open');
+                    openSelect.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
+                }
+            });
+            selectWrap.classList.toggle('open');
+            trigger.setAttribute('aria-expanded', selectWrap.classList.contains('open') ? 'true' : 'false');
+        });
+
+        options.forEach((option) => {
+            option.addEventListener('click', () => {
+                options.forEach((btn) => btn.classList.remove('selected'));
+                option.classList.add('selected');
+                valueEl.textContent = option.dataset.value;
+                selectWrap.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
+            });
+        });
+    });
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('[data-select].open').forEach((openSelect) => {
+            openSelect.classList.remove('open');
+            openSelect.querySelector('.select-trigger').setAttribute('aria-expanded', 'false');
+        });
+    });
+}
+
+/* ── Pipeline Persistence ──────────────────────────── */
+
+function saveReportPipelineState(state) {
+    localStorage.setItem(REPORT_PIPELINE_KEY(), state);
+}
+
+function restoreReportPipelineState() {
+    const state = localStorage.getItem(REPORT_PIPELINE_KEY());
+    if (state === 'completed') {
+        const steps = document.querySelectorAll(".pipeline-step");
+        const circles = document.querySelectorAll(".pipeline-circle");
+        const fillLine = document.querySelector(".pipeline-line-fill");
+
+        steps.forEach(s => s.classList.add("active"));
+        circles.forEach(c => c.classList.add("active"));
+        if (fillLine) fillLine.style.width = "100%";
+    }
+}
+
+/* ── Report Generation ─────────────────────────────── */
 
 function wireGeneration() {
     const btn = document.querySelector(".btn-block-dark");
@@ -22,7 +136,6 @@ function wireGeneration() {
         const year = document.getElementById("yearSelect")?.querySelector(".select-value").textContent || "2026";
         const quarter = document.getElementById("quarterSelect")?.querySelector(".select-value").textContent || "Q3";
         const month = document.getElementById("monthSelect")?.querySelector(".select-value").textContent || "September";
-        const range = document.getElementById("rangeDisplay")?.querySelector("span").textContent || "";
 
         let reportTitle = `${type.charAt(0).toUpperCase() + type.slice(1)} Sustainability Report`;
         let reportPeriod = "";
@@ -30,7 +143,17 @@ function wireGeneration() {
         if (type === "yearly") reportPeriod = year;
         else if (type === "quarterly") reportPeriod = `${quarter} ${year}`;
         else if (type === "monthly") reportPeriod = `${month} ${year}`;
-        else reportPeriod = range;
+        else {
+            // Custom range from the two date inputs
+            const fromVal = document.getElementById("customDateFrom")?.value || "";
+            const toVal = document.getElementById("customDateTo")?.value || "";
+            if (fromVal && toVal) {
+                const fmt = (d) => new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+                reportPeriod = `${fmt(fromVal)} – ${fmt(toVal)}`;
+            } else {
+                reportPeriod = "Custom";
+            }
+        }
 
         // Change button state
         btn.textContent = "Generating pipeline...";
@@ -41,24 +164,35 @@ function wireGeneration() {
         const circles = document.querySelectorAll(".pipeline-circle");
         const fillLine = document.querySelector(".pipeline-line-fill");
         
-        let currentStep = 0;
-        
-        steps.forEach((step, idx) => {
-            step.classList.toggle("active", idx === 0);
-            circles[idx].classList.toggle("active", idx === 0);
-        });
+        // Reset pipeline completely
+        steps.forEach(s => s.classList.remove("active"));
+        circles.forEach(c => c.classList.remove("active"));
         if (fillLine) fillLine.style.width = "0%";
 
+        // Sequential animation: step 0 first, then 1, 2, 3, 4...
+        let currentStep = 0;
+
         const interval = setInterval(() => {
-            currentStep++;
             if (currentStep < steps.length) {
                 steps[currentStep].classList.add("active");
                 circles[currentStep].classList.add("active");
-                if (fillLine) fillLine.style.width = ((currentStep / (steps.length - 1)) * 100) + "%";
+                if (fillLine) {
+                    fillLine.style.width = ((currentStep / (steps.length - 1)) * 100) + "%";
+                }
+                currentStep++;
             } else {
                 clearInterval(interval);
+
+                if (fillLine) fillLine.style.width = "100%";
+
                 btn.textContent = "Report Generated!";
                 btn.style.background = "#10b981";
+                
+                // Persist completed state
+                saveReportPipelineState('completed');
+                
+                // Add to Global Highlights
+                SustDB.addHighlight("Report Generated", `Period: ${reportPeriod}. ${reportTitle}`, "green");
                 
                 showToast("Report compiled successfully.", "success", 2000);
                 
@@ -77,7 +211,7 @@ function wireGeneration() {
 }
 
 function showReportModal(title, period) {
-    const { openModal } = import('./utils/utils.js').then(utils => {
+    import('./utils/utils.js').then(utils => {
         utils.openModal({
             title: "Report Preview",
             bodyHTML: `
@@ -130,7 +264,31 @@ function showReportModal(title, period) {
                 </div>
             `,
             confirmLabel: "Close Preview",
-            cancelLabel: ""
+            cancelLabel: "",
+            onConfirm: () => {
+                resetReportingPipeline();
+            }
         });
     });
+}
+
+function resetReportingPipeline() {
+    saveReportPipelineState('initial');
+    
+    // Reset visual pipeline explicitly
+    const steps = document.querySelectorAll(".pipeline-step");
+    const circles = document.querySelectorAll(".pipeline-circle");
+    const fillLine = document.querySelector(".pipeline-line-fill");
+    const btn = document.querySelector(".btn-block-dark");
+    
+    steps.forEach(s => s.classList.remove("active"));
+    circles.forEach(c => c.classList.remove("active"));
+    if (fillLine) fillLine.style.width = "0%";
+    
+    if (btn) {
+        btn.textContent = "Generate Report";
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        btn.style.background = ""; 
+    }
 }
