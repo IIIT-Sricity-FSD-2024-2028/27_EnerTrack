@@ -118,39 +118,8 @@
                             Active alerts
                         </div>
                     </div>
-
-                    <div class="status-card">
-                        <div class="status-header">
-                            <h4>Payment-API latency</h4>
-                            <span class="badge badge-warning">Warning</span>
-                        </div>
-                        <p class="desc">p95 > 250 ms for 5 minutes</p>
-                        <div class="alert-meta-box">
-                            <span class="time">04:22</span>
-                            <span class="details">Triggered in region eu-west-1 • Investigate provider status page.</span>
-                        </div>
-                    </div>
-
-                    <div class="status-card">
-                        <div class="status-header">
-                            <h4>Worker queue depth</h4>
-                            <span class="badge badge-warning">Warning</span>
-                        </div>
-                        <p class="desc">High-priority jobs pending > 1k</p>
-                        <div class="alert-meta-box">
-                            <span class="time">04:28</span>
-                            <span class="details">Throughput recovering after spike • Monitor for next 10 minutes.</span>
-                        </div>
-                    </div>
-
-                    <div class="status-card">
-                        <div class="status-header">
-                            <h4>Error budget</h4>
-                            <span class="badge badge-success-outline" style="background-color:darkgreen;color:white">Within SLO</span>
-                        </div>
-                        <div class="status-footer">
-                            <span>SLO: 99.9% • Current: 99.93%</span>
-                        </div>
+                    <div id="monitorAlertContainer">
+                        <!-- Rendered by AlertsModule -->
                     </div>
                 </div>
             </div>

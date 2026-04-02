@@ -24,7 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Render all monitor sections
   MonitorModule.renderSystemHealth("systemHealthContainer");
   MonitorModule.renderPerformanceMetrics("perfMetricsContainer");
-  MonitorModule.renderSloCard("sloContainer");
   AlertsModule.renderMonitorAlerts("monitorAlertContainer");
 
   // Update the refresh timestamp

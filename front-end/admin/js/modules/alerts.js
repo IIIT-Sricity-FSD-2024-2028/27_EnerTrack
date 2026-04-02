@@ -15,7 +15,12 @@ export function getAlerts() {
 }
 
 export function getActiveAlerts() {
-  return EnerTrackDB.alerts.filter(a => !a.resolved);
+  const active = EnerTrackDB.alerts.filter(a => !a.resolved);
+  // Sort critical (danger) first, then warning
+  return active.sort((a, b) => {
+    if (a.severity === b.severity) return new Date(b.timestamp) - new Date(a.timestamp);
+    return a.severity === 'danger' ? -1 : 1;
+  });
 }
 
 export function getAlertById(id) {
