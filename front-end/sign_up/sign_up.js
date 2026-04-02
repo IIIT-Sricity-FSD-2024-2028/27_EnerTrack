@@ -97,7 +97,7 @@
     /* Returns true if every character is a letter or a space */
     function isAllLettersOrSpaces(str) {
         for (var i = 0; i < str.length; i++) {
-            if (!isLetter(str[i]) && str[i] !== " ") return false;
+            if (!isLetter(str[i]) && !isDigit(str[i]) && str[i] !== " ") return false;
         }
         return true;
     }
@@ -180,19 +180,12 @@
             return false;
         }
         if (!isAllLettersOrSpaces(val)) {
-            showError(nameError, "Name can only contain letters and spaces.", nameInput);
+            showError(nameError, "Name can only contain letters, numbers, and spaces.", nameInput);
             return false;
         }
         if (containsConsecutiveSpaces(val)) {
             showError(nameError, "Name must not contain consecutive spaces.", nameInput);
             return false;
-        }
-        var words = val.split(" ");
-        for (var i = 0; i < words.length; i++) {
-            if (words[i].length > 0 && !isUpperCase(words[i][0])) {
-                showError(nameError, "Each word must start with a capital letter.", nameInput);
-                return false;
-            }
         }
 
         markValid(nameInput, nameError);
@@ -388,6 +381,10 @@
             showError(phoneError, "Phone number must be exactly 10 digits.", phoneInput);
             return false;
         }
+        if (val === "0000000000") {
+            showError(phoneError, "Phone number cannot be all zeros.", phoneInput);
+            return false;
+        }
 
         markValid(phoneInput, phoneError);
         return true;
@@ -471,7 +468,7 @@
         /* Save new user to sessionStorage */
         var newUser = {
             name:     nameInput.value.trim(),
-            email:    emailInput.value.trim(),
+            email:    emailInput.value.trim().toLowerCase(),
             phone:    phoneInput.value.trim(),
             password: passwordInput.value,
             role:     roleSelect.value
