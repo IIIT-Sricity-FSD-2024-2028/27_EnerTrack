@@ -318,7 +318,7 @@
 
         // Auth-aware navbar: show Sign Up or Profile
         (function () {
-            var userData = sessionStorage.getItem('currentUser');
+            var userData = localStorage.getItem('currentUser');
             var signUpBtn = document.getElementById('navSignUp');
             var profileWrapper = document.getElementById('profileWrapper');
             var profileBtn = document.getElementById('navProfile');
@@ -373,7 +373,7 @@
 
                 // Sign Out button → go to landing page
                 document.getElementById('logoutBtn').addEventListener('click', function () {
-                    sessionStorage.removeItem('currentUser');
+                    localStorage.removeItem('currentUser');
                     window.location.reload();
                 });
 

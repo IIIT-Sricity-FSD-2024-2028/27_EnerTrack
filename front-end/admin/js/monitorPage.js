@@ -45,14 +45,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Profile card logout
-  const profileCard = document.querySelector(".profile-card");
-  if (profileCard) {
-    profileCard.addEventListener("click", e => {
-      e.preventDefault();
-      SessionModule.confirmLogout();
-    });
-  }
+  // Profile card click is handled by dashboardProfileMenu.js to show the profile popup
+  // (removed redundant logout confirmation here)
 
   // Auto-refresh every 30 seconds
   setInterval(() => {

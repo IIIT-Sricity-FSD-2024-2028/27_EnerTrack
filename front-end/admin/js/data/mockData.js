@@ -207,4 +207,18 @@ const EnerTrackDB = {
   }
 };
 
+const DB_KEY = 'enertrack_unified_db';
+const storedStr = localStorage.getItem(DB_KEY);
+if (storedStr) {
+  try {
+    Object.assign(EnerTrackDB, JSON.parse(storedStr));
+  } catch(e) {}
+}
+
+EnerTrackDB.save = function() {
+  localStorage.setItem(DB_KEY, JSON.stringify(this));
+};
+
+
+
 export default EnerTrackDB;

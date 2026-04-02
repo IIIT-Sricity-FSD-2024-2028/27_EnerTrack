@@ -194,6 +194,7 @@ export function addUpdate(data) {
     scheduledWindow: "Pending assignment"
   });
 
+  EnerTrackDB.save(); // Sync to localStorage
   showToast(`Update "${data.title}" added.`, "success");
   renderUpdates();
   renderOverviewUpdates();
@@ -225,6 +226,7 @@ export function applyUpdate(id) {
     onConfirm: () => {
       const idx = EnerTrackDB.systemUpdates.findIndex(u => u.id === id);
       if (idx !== -1) EnerTrackDB.systemUpdates[idx].status = "applied";
+      EnerTrackDB.save(); // Sync to localStorage
       showToast(`"${upd.title}" marked as applied.`, "success");
       renderUpdates();
       renderOverviewUpdates();
@@ -314,6 +316,7 @@ export function updateUpdate(id, fields) {
   }
 
   Object.assign(EnerTrackDB.systemUpdates[idx], fields);
+  EnerTrackDB.save(); // Sync to localStorage
   showToast("System update saved.", "success");
   renderUpdates();
   renderOverviewUpdates();
@@ -338,6 +341,7 @@ export function deleteUpdate(id) {
     danger: true,
     onConfirm: () => {
       EnerTrackDB.systemUpdates = EnerTrackDB.systemUpdates.filter(u => u.id !== id);
+      EnerTrackDB.save(); // Sync to localStorage
       showToast(`"${upd.title}" deleted.`, "info");
       renderUpdates();
       renderOverviewUpdates();

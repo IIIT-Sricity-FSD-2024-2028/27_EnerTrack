@@ -123,7 +123,7 @@ class SustDB {
 
   _loadData() {
     try {
-      const stored = sessionStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         // Deep merge or at least ensure new top-level keys like 'monitoring' exist
@@ -136,7 +136,7 @@ class SustDB {
   }
 
   save() {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
   }
 
   // Helpers

@@ -12,12 +12,12 @@ const SESSION_KEY = "enertrack_finance_session";
 /* ── INIT ─────────────────────────────────────────── */
 
 export function initSession() {
-  const stored = sessionStorage.getItem(SESSION_KEY);
+  const stored = localStorage.getItem(SESSION_KEY);
   if (stored) {
     try { FinanceDB.session.user = JSON.parse(stored); }
-    catch (_) { sessionStorage.removeItem(SESSION_KEY); }
+    catch (_) { localStorage.removeItem(SESSION_KEY); }
   } else {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(FinanceDB.session.user));
+    localStorage.setItem(SESSION_KEY, JSON.stringify(FinanceDB.session.user));
   }
   window.FinanceDB = FinanceDB; // expose globally for can() helper
   renderSessionUI();
@@ -40,7 +40,7 @@ export function renderSessionUI() {
   /* Use the shared currentUser from sign-in/sign-up if available */
   var displayName = user.name;
   var displayRole = roleLabel(user.role);
-  var currentUserData = sessionStorage.getItem("currentUser");
+  var currentUserData = localStorage.getItem("currentUser");
   if (currentUserData) {
     try {
       var cu = JSON.parse(currentUserData);
@@ -83,7 +83,7 @@ export function switchRole(role) {
   const allowed = ["superuser", "finance_analyst", "enduser"];
   if (!allowed.includes(role)) { showToast(`Unknown role: ${role}`, "error"); return; }
   FinanceDB.session.user.role = role;
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(FinanceDB.session.user));
+  localStorage.setItem(SESSION_KEY, JSON.stringify(FinanceDB.session.user));
   renderSessionUI();
   showToast(`Role switched to: ${roleLabel(role)}`, "info");
 }

@@ -118,11 +118,13 @@
                     <!-- RECENT ALERTS -->
                     <div class="panel">
                         <div class="panel-header">
-                            <div class="panel-title text-danger">
-                                <span data-icon="alert"></span>
-                                Recent Alerts
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div class="panel-title text-danger">
+                                    <span data-icon="alert"></span>
+                                    Recent Alerts
+                                </div>
+                                <span class="badge badge-danger" style="font-family: 'PT Serif', serif;"><span id="alertActionsRequired">3</span> Action Required</span>
                             </div>
-                            <span class="badge badge-danger"><span id="alertActionsRequired">3</span> Action Required</span>
                         </div>
 
                         <div class="alert-list" id="alertContainer">
@@ -149,19 +151,21 @@
                         <div class="section-divider">RECENT BACKUPS</div>
 
                         <div class="backup-card mx">
-                            <span data-icon="backup"></span>
-                            <div>
-                                <h4>Production Database (Full)</h4>
-                                <span class="muted">Size: 245 GB</span>
+                            <div class="backup-header" style="margin-bottom: 12px;">
+                                <span data-icon="backup"></span>
+                                <div>
+                                    <h4>Production Database (Full)</h4>
+                                    <span class="muted">Size: 245 GB</span>
+                                </div>
+                                <span class="badge badge-success">Success</span>
                             </div>
-                            <span class="badge badge-success">Success</span>
-                        </div>
-                        <div class="progress-bar mx">
-                            <div class="progress" style="width: 100%;"></div>
-                        </div>
-                        <div class="backup-footer mx">
-                            <span>Verified with 0 errors</span>
-                            <span>Completed in 45m</span>
+                            <div class="progress-bar">
+                                <div class="progress" style="width: 100%;"></div>
+                            </div>
+                            <div class="backup-footer" style="margin-top: 12px;">
+                                <span>Verified with 0 errors</span>
+                                <span>Completed in 45m</span>
+                            </div>
                         </div>
 
                         <div class="section-divider">TROUBLESHOOTING TOOLS</div>

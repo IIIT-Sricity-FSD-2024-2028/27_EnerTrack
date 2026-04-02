@@ -367,65 +367,87 @@ a.nav-subitem:hover {
 
 .btn-secondary:hover {
     background: #e5e7eb;
+    transform: translateY(-1px);
 }
 
 .btn-dark {
     background: #111827;
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 15px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
     font-family: inherit;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-dark:hover {
-    background: #374151;
+    background: #1f2937;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(17, 24, 39, 0.15);
 }
 
 .btn-outline {
     background: transparent;
     border: 1px solid #d1d5db;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 15px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
     font-weight: 600;
     color: #374151;
     cursor: pointer;
     font-family: inherit;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-outline:hover {
-    background: #f3f4f6;
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 /* ALERTS LIST */
 .alert-list {
     display: flex;
     flex-direction: column;
+    gap: 12px;
 }
 
 .alert-item {
     display: flex;
     gap: 16px;
-    padding: 16px 0;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
 }
 
-.alert-item:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
+.alert-item:hover {
+    transform: translateX(4px);
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.alert-item.danger {
+    border-left-color: #ef4444;
+}
+
+.alert-item.warning {
+    border-left-color: #f59e0b;
 }
 
 .alert-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -484,11 +506,17 @@ a.nav-subitem:hover {
 
 /* MAINTENANCE CARDS */
 .update-card {
-    background: #f9fafb;
+    background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 12px;
+    padding: 20px;
     margin-bottom: 16px;
+    transition: all 0.2s ease;
+}
+
+.update-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
 }
 
 .update-header {
@@ -499,14 +527,15 @@ a.nav-subitem:hover {
 }
 
 .update-header h4 {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
 }
 
 .update-card p {
     font-size: 15px;
     color: #4b5563;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+    line-height: 1.5;
 }
 
 .update-footer {
@@ -514,14 +543,22 @@ a.nav-subitem:hover {
     justify-content: space-between;
     align-items: center;
     font-size: 14px;
+    padding-top: 16px;
+    border-top: 1px solid #f1f5f9;
 }
 
 /* BACKUP CARD */
 .backup-card {
     background: #f9fafb;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.backup-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
 }
 
 .backup-header {
@@ -545,17 +582,16 @@ a.nav-subitem:hover {
 }
 
 .progress-bar {
-    width: 100%;
     height: 8px;
     background: #e5e7eb;
     border-radius: 99px;
-    margin-bottom: 12px;
     overflow: hidden;
 }
 
 .progress {
     height: 100%;
-    background: #10b981;
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    border-radius: 99px;
 }
 
 .backup-footer {
@@ -588,11 +624,14 @@ a.nav-subitem:hover {
     cursor: pointer;
     font-family: inherit;
     text-align: left;
-    transition: background 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tool-btn:hover {
-    background: #f9fafb;
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .clickable {

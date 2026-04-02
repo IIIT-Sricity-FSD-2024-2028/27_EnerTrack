@@ -6,6 +6,7 @@
 
 import EnerTrackDB from "../data/mockData.js";
 import { showToast, openModal, badgeHTML, timeAgo, generateId, validateForm, showFieldError, clearAllErrors, roleAllowed } from "../utils/utils.js";
+import { injectIcons } from "../utils/icons.js";
 
 /* ── READ ─────────────────────────────────────────── */
 
@@ -42,32 +43,28 @@ export function renderAlerts(containerId = "alertContainer") {
     return;
   }
 
-  const iconMap = {
-    danger:  "images/overview_storage.png",
-    warning: "images/overview_highcpu.png"
-  };
-
   container.innerHTML = active.map(alert => `
-    <div class="alert-item" data-alert-id="${alert.id}">
+    <div class="alert-item ${alert.severity}" data-alert-id="${alert.id}">
       <div class="alert-icon bg-${alert.severity}-light text-${alert.severity}">
-        <img src="${iconMap[alert.severity] || iconMap.warning}" alt="${alert.title}">
+        <span data-icon="${alert.severity === 'danger' ? 'error' : 'alert'}" style="width:24px;height:24px"></span>
       </div>
       <div class="alert-content" style="flex:1">
         <h4>${alert.title}</h4>
         <p>${alert.description}</p>
         <div class="alert-meta">${timeAgo(alert.timestamp)} • Server: ${alert.server}</div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+      <div class="alert-actions" style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
         ${roleAllowed(["admin","superuser"]) ? `
-          <button class="btn-outline" style="font-size:12px;padding:4px 10px"
+          <button class="btn-outline" style="font-size:12px;padding:4px 10px; border-radius: 6px;"
             onclick="AlertsModule.editAlert('${alert.id}')">Edit</button>
-          <button class="btn-outline" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5"
+          <button class="btn-outline" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#fca5a5; border-radius: 6px;"
             onclick="AlertsModule.resolveAlert('${alert.id}')">Resolve</button>
         ` : ""}
       </div>
     </div>
   `).join("");
 
+  injectIcons();
   updateAlertCounts(active.length);
 }
 
@@ -114,6 +111,7 @@ export function renderMonitorAlerts(containerId = "monitorAlertContainer") {
     </div>
   `).join("");
 
+  injectIcons();
   document.querySelectorAll(".alerts-badge").forEach(el => el.textContent = active.length);
 }
 
@@ -193,6 +191,7 @@ export function addAlert({ title, description, severity, server }) {
   };
 
   EnerTrackDB.alerts.unshift(newAlert);
+  EnerTrackDB.save(); // Sync to localStorage
   showToast(`Alert "${newAlert.title}" added.`, "success");
   refreshAlertUI();
   return true;
@@ -270,6 +269,7 @@ export function updateAlert(id, fields) {
     server:      fields.server.trim()
   });
 
+  EnerTrackDB.save(); // Sync to localStorage
   showToast("Alert updated successfully.", "success");
   refreshAlertUI();
   return true;
@@ -293,6 +293,7 @@ export function resolveAlert(id) {
     danger: false,
     onConfirm: () => {
       alert.resolved = true;
+      EnerTrackDB.save(); // Sync to localStorage
       showToast(`Alert "${alert.title}" resolved.`, "success");
       refreshAlertUI();
     }
@@ -315,6 +316,7 @@ export function deleteAlert(id) {
     danger: true,
     onConfirm: () => {
       EnerTrackDB.alerts = EnerTrackDB.alerts.filter(a => a.id !== id);
+      EnerTrackDB.save(); // Sync to localStorage
       showToast("Alert deleted.", "info");
       refreshAlertUI();
     }
