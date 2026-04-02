@@ -7,12 +7,23 @@ import SessionModule from './modules/session.js';
 import { injectIcons } from './utils/icons.js';
 import { showToast, openModal } from './utils/utils.js';
 
+function getUserKey(base) {
+    try {
+        const u = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        return base + '_' + (u.email || 'default');
+    } catch(_) { return base + '_default'; }
+}
+function PIPELINE_KEY() { return getUserKey('et_sust_pipeline_state'); }
+function SYNC_BTN_KEY() { return getUserKey('et_sust_sync_btns'); }
+
 document.addEventListener("DOMContentLoaded", () => {
     console.log("EnerTrack Monitoring System: Initializing logic...");
     try {
         SessionModule.initSession();
         injectIcons();
         initMonitoring();
+        restorePipelineState();
+        restoreSyncButtons();
         console.log("EnerTrack Monitoring System: Logic loaded successfully.");
     } catch (err) {
         console.error("EnerTrack Monitoring System: Critical initialization error:", err);
@@ -31,16 +42,17 @@ function initMonitoring() {
         lastSyncLabel.textContent = monitoringData.lastSync;
     }
 
-    // Wire Metrics Refresh Buttons
+    // Wire Metrics Refresh Buttons (Sync → Updated)
     document.querySelectorAll('.btn-refresh').forEach(btn => {
         btn.addEventListener('click', () => {
+            if (btn.disabled) return;
             const metric = btn.dataset.metric || "data";
             btn.innerHTML = `<span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="sync"></span> Syncing...`;
             injectIcons();
             
             setTimeout(() => {
-                btn.innerHTML = `<span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="compile"></span> Updated`;
-                injectIcons();
+                setButtonUpdated(btn);
+                saveSyncButtonState();
                 showToast(`${metric.charAt(0).toUpperCase() + metric.slice(1)} metric refreshed.`, "success");
             }, 1000);
         });
@@ -76,6 +88,69 @@ function initMonitoring() {
         });
     }
 
+}
+
+/* ── Sync Button Helpers ───────────────────────────── */
+
+function setButtonUpdated(btn) {
+    btn.innerHTML = `<span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="compile"></span> Updated`;
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.style.cursor = 'default';
+    injectIcons();
+}
+
+function setButtonSync(btn) {
+    btn.innerHTML = `<span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="sync"></span> Sync`;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    injectIcons();
+}
+
+function saveSyncButtonState() {
+    const states = {};
+    document.querySelectorAll('.btn-refresh').forEach(btn => {
+        states[btn.dataset.metric] = btn.disabled ? 'updated' : 'sync';
+    });
+    localStorage.setItem(SYNC_BTN_KEY(), JSON.stringify(states));
+}
+
+function restoreSyncButtons() {
+    const stored = localStorage.getItem(SYNC_BTN_KEY());
+    if (!stored) return;
+    try {
+        const states = JSON.parse(stored);
+        document.querySelectorAll('.btn-refresh').forEach(btn => {
+            const metric = btn.dataset.metric;
+            if (states[metric] === 'updated') {
+                setButtonUpdated(btn);
+            }
+        });
+    } catch (_) {}
+}
+
+/* ── Pipeline Persistence ──────────────────────────── */
+
+function savePipelineState(state) {
+    localStorage.setItem(PIPELINE_KEY(), state);
+}
+
+function restorePipelineState() {
+    const state = localStorage.getItem(PIPELINE_KEY());
+    if (state === 'completed') {
+        const fill = document.getElementById('pipelineFill');
+        const steps = document.querySelectorAll('#monitoringPipeline .step');
+        const syncStatus = document.getElementById('syncStatus');
+
+        if (fill) fill.style.width = '100%';
+        steps.forEach(s => s.querySelector('.step-icon').classList.add('active'));
+        if (syncStatus) syncStatus.textContent = 'Active';
+
+        // Also set all sync buttons to Updated
+        document.querySelectorAll('.btn-refresh').forEach(btn => setButtonUpdated(btn));
+        saveSyncButtonState();
+    }
 }
 
 /**
@@ -133,6 +208,9 @@ function runPipelineSequence() {
     fill.style.width = "0%";
     steps.forEach(s => s.querySelector('.step-icon').classList.remove('active'));
 
+    // Reset sync buttons back to "Sync"
+    document.querySelectorAll('.btn-refresh').forEach(b => setButtonSync(b));
+
     let currentStep = 0;
     const progressInterval = setInterval(() => {
         currentStep++;
@@ -161,10 +239,47 @@ function runPipelineSequence() {
         const timeStr = `Today, ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
         document.getElementById('lastSyncLabel').textContent = timeStr;
 
+        // Persist pipeline completed state
+        savePipelineState('completed');
+        
+        // Add to Global Highlights
+        SustDB.addHighlight("Data Synced", "Monitoring pipeline completed automatically", "blue");
+
+        // Set all sync buttons to Updated + disabled
+        document.querySelectorAll('.btn-refresh').forEach(b => setButtonUpdated(b));
+        saveSyncButtonState();
+
         showToast("Monitoring cycle completed. Dashboard updated with live feeds.", "success");
         
         // Randomize metrics slightly to show "change"
         updateLiveMetrics();
+        
+        // Ensure pipeline animations smoothly cycle back to initial state after 3 sec
+        setTimeout(() => {
+            savePipelineState('initial');
+            const fill = document.getElementById('pipelineFill');
+            const steps = document.querySelectorAll('#monitoringPipeline .step');
+            const syncStatus = document.getElementById('syncStatus');
+            const btn = document.getElementById('btnForceRun');
+            
+            if(fill) fill.style.width = "0%";
+            steps.forEach(s => {
+                const icon = s.querySelector('.step-icon');
+                if (icon) icon.classList.remove('active');
+            });
+            if(syncStatus) syncStatus.textContent = "Standby";
+            const cycleBar = document.querySelector(".data-cycle-bar");
+            if(cycleBar) cycleBar.style.background = "#f4f6f8";
+            
+            if(btn) {
+                btn.innerHTML = `<span style="display:inline-flex;width:14px;height:14px;margin-right:6px;" data-icon="sync"></span> Run Sync Cycle`;
+                import('./utils/icons.js').then(icu => icu.injectIcons());
+            }
+            
+            // Also reset sync buttons to "Sync"
+            document.querySelectorAll('.btn-refresh').forEach(b => setButtonSync(b));
+            saveSyncButtonState();
+        }, 4000);
     }
 }
 

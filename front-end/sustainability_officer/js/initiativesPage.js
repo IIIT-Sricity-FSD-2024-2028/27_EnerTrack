@@ -33,8 +33,11 @@ function renderInitiatives() {
   approvedCols.innerHTML = "";
   completedCols.innerHTML = "";
 
+  let counts = { proposed: 0, "in-progress": 0, approved: 0, completed: 0 };
+
   initiatives.forEach(init => {
     const card = buildCard(init);
+    counts[init.status]++;
     
     if (init.status === "proposed") {
       proposedCols.appendChild(card);
@@ -47,18 +50,36 @@ function renderInitiatives() {
     }
   });
 
+  // Toggle Visibility of Column Headers
+  const toggleHeader = (colId, show) => {
+    const el = document.getElementById(colId);
+    if (el && el.previousElementSibling) {
+        el.previousElementSibling.style.display = show ? "block" : "none";
+    }
+  };
+
+  toggleHeader("col-proposed", counts.proposed > 0);
+  toggleHeader("col-in-progress", counts["in-progress"] > 0);
+  toggleHeader("col-approved", counts.approved > 0);
+  toggleHeader("col-completed", counts.completed > 0);
+
   // Default selection
   if (!currentSelectedId && initiatives.length > 0) {
     selectInitiative(initiatives[0].id);
   } else if (currentSelectedId) {
-    selectInitiative(currentSelectedId);
+    // Make sure we select an existing initiative, otherwise select the first
+    if (!SustDB.initiatives.find(i=>i.id === currentSelectedId)) {
+        if(initiatives.length > 0) selectInitiative(initiatives[0].id);
+    } else {
+        selectInitiative(currentSelectedId);
+    }
   }
 
   updateActiveCount();
 }
 
 function updateActiveCount() {
-  const activeCount = SustDB.initiatives.filter(i => i.status !== "completed").length;
+  const activeCount = SustDB.initiatives.filter(i => i.status === "approved" || i.status === "in-progress").length;
   const badge = document.querySelector(".badge-outline-green");
   if (badge) {
     badge.innerHTML = `<span style="display:inline-flex;width:14px;height:14px;margin-right:4px;" data-icon="compile"></span> ${activeCount} Active Initiatives`;
@@ -87,12 +108,29 @@ function buildCard(init) {
         <div class="kanban-stats-label">Target</div>
         <div class="kanban-stats-val">${init.target || '0%'}</div>
         <div class="kanban-stats-label">Cost</div>
-        <div class="kanban-stats-val">${init.cost || '$0'}</div>
+        <div class="kanban-stats-val">${init.cost || '₹0'}</div>
         <div class="kanban-stats-label">Timeline</div>
         <div class="kanban-stats-val">${init.timeline || 'N/A'}</div>
       </div>
     `;
   }
+
+  let actionButtonsHtml = '';
+  if (init.status === "proposed") {
+      actionButtonsHtml += `<button class="btn-approve" style="color:#0f8f63; background:#ebf7f3; border: 1px solid #0f8f63; padding: 4px 8px; border-radius: 4px;">Approve</button>`;
+  } else if (init.status === "approved") {
+      actionButtonsHtml += `<button class="btn-start" style="color:#2e89ff; background:#ebf3ff; border: 1px solid #2e89ff; padding: 4px 8px; border-radius: 4px;">Start</button>`;
+  } else if (init.status === "in-progress") {
+      actionButtonsHtml += `<button class="btn-complete" style="color:#0f8f63; background:#ebf7f3; border: 1px solid #0f8f63; padding: 4px 8px; border-radius: 4px;">Complete</button>`;
+  }
+
+  if (init.status !== "completed") {
+      actionButtonsHtml += `<button class="btn-edit" style="color:#374151; background:#f4f6f8; border: 1px solid #d8dde2; padding: 4px 8px; border-radius: 4px;">Edit</button>`;
+  } else {
+      actionButtonsHtml += `<button class="btn-archive" style="color:#8a95a2; background:#f4f6f8; border: 1px solid #d8dde2; padding: 4px 8px; border-radius: 4px;">Archive</button>`;
+  }
+  
+  actionButtonsHtml += `<button class="btn-delete" style="color:#dc2626; background:#fef2f2; border: 1px solid #fca5a5; padding: 4px 8px; border-radius: 4px;">Delete</button>`;
 
   div.innerHTML = `
     <div class="kanban-header">
@@ -100,27 +138,64 @@ function buildCard(init) {
       <span class="${badgeClass}">${badgeText}</span>
     </div>
     ${bodyHtml}
-    <div class="kanban-actions">
-      <button class="btn-edit" data-id="${init.id}">Edit</button>
-      <button class="btn-delete" data-id="${init.id}">Delete</button>
+    <div class="kanban-actions" style="display: flex; gap: 8px; margin-top: 12px;">
+      ${actionButtonsHtml}
     </div>
   `;
 
-  // Attach events
-  div.querySelector(".btn-edit").addEventListener("click", (e) => {
-    e.stopPropagation();
-    openEditModal(init);
-  });
-  div.querySelector(".btn-delete").addEventListener("click", (e) => {
-    e.stopPropagation();
-    confirmDelete(init.id);
-  });
+  // Action Event Attachment Utility
+  const bindAction = (selector, actionCallback) => {
+      const btn = div.querySelector(selector);
+      if (btn) {
+          btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              actionCallback(e);
+          });
+      }
+  };
+
+  bindAction(".btn-approve", () => switchStatus(init.id, "approved", "Initiative approved!"));
+  bindAction(".btn-start", () => switchStatus(init.id, "in-progress", "Initiative moved to in-progress!"));
+  bindAction(".btn-complete", () => switchStatus(init.id, "completed", "Initiative marked resolved!"));
   
+  bindAction(".btn-edit", () => openEditModal(init));
+  bindAction(".btn-archive", () => archiveInitiative(init.id));
+  bindAction(".btn-delete", () => confirmDelete(init.id));
+
   div.addEventListener("click", () => {
     selectInitiative(init.id);
   });
 
   return div;
+}
+
+function switchStatus(id, newStatus, msg) {
+    import('./utils/utils.js').then(utils => {
+        const init = SustDB.initiatives.find(i => i.id === id);
+        if (init) SustDB.addHighlight("Status Update", `${init.title} moved to ${newStatus}`, "blue");
+        
+        SustDB.updateInitiative(id, { status: newStatus });
+        renderInitiatives();
+        utils.showToast(msg, "success");
+    });
+}
+
+function archiveInitiative(id) {
+    import('./utils/utils.js').then(utils => {
+        const init = SustDB.initiatives.find(i => i.id === id);
+        utils.openModal({
+            title: "Archive Initiative",
+            bodyHTML: "<p>Archiving will remove this completed initiative from active view. Continue?</p>",
+            confirmLabel: "Archive",
+            danger: false,
+            onConfirm: () => {
+                if (init) SustDB.addHighlight("Initiative Archived", init.title, "gray");
+                SustDB.deleteInitiative(id); // Treat archive as delete for mockData
+                renderInitiatives();
+                utils.showToast("Initiative archived", "info");
+            }
+        });
+    });
 }
 
 function selectInitiative(id) {
@@ -192,7 +267,7 @@ function selectInitiative(id) {
 
     // 8. Cost benefit
     setItem("sel-cost", "Cost benefit", "finance", `
-        <p>${init.cost || "$0"} baseline cost. ROI forecast ~2.1 years.</p>
+        <p>${init.cost || "₹0"} baseline cost. ROI forecast ~2.1 years.</p>
     `);
 
     // Status track updates
@@ -225,18 +300,46 @@ function wireForm() {
         const targetEl = document.getElementById("new-init-target");
         const costEl = document.getElementById("new-init-cost");
         const timelineEl = document.querySelector("#new-init-timeline .select-value");
-        
-        if (!titleEl || !titleEl.value.trim()) {
-            showToast("Title is required", "error");
+
+        // ── Validation ──
+        const title = titleEl ? titleEl.value.trim() : "";
+        const desc = descEl ? descEl.value.trim() : "";
+        const target = targetEl ? targetEl.value.trim() : "";
+        const cost = costEl ? costEl.value.trim() : "";
+
+        if (!title) {
+            showToast("Title is required.", "error");
+            return;
+        }
+        if (!desc) {
+            showToast("Description is required.", "error");
+            return;
+        }
+        if (!target) {
+            showToast("Target Energy Reduction is required.", "error");
+            return;
+        }
+        if (isNaN(parseFloat(target)) || !isFinite(target.replace('%', ''))) {
+            showToast("Target Energy must be a valid number (e.g. 7.5).", "error");
+            return;
+        }
+        if (!cost) {
+            showToast("Estimated Cost is required.", "error");
+            return;
+        }
+        // Strip $ and commas for validation
+        const costClean = cost.replace(/[$,]/g, '');
+        if (isNaN(parseFloat(costClean)) || !isFinite(costClean)) {
+            showToast("Estimated Cost must be a valid number (e.g. 56500).", "error");
             return;
         }
 
         const newInit = {
             id: "init_" + generateId(),
-            title: titleEl.value.trim(),
-            description: descEl ? descEl.value.trim() : "",
-            target: targetEl ? targetEl.value.trim() : "",
-            cost: costEl ? costEl.value.trim() : "",
+            title: title,
+            description: desc,
+            target: target.includes('%') ? target : target + '%',
+            cost: cost.startsWith('₹') ? cost : '₹' + cost,
             timeline: timelineEl ? timelineEl.textContent.trim() : "",
             status: "proposed",
             feasible: true,
@@ -244,6 +347,8 @@ function wireForm() {
         };
 
         SustDB.addInitiative(newInit);
+        SustDB.addHighlight("Initiative Proposed", title, "blue");
+        
         showToast("Initiative proposed successfully!", "success");
         renderInitiatives();
         
@@ -317,6 +422,8 @@ function openEditModal(init) {
             }
 
             SustDB.updateInitiative(init.id, { title, status, feasible, target });
+            SustDB.addHighlight("Initiative Edited", title, "yellow");
+            
             showToast("Initiative updated", "success");
             renderInitiatives();
         }
@@ -324,12 +431,17 @@ function openEditModal(init) {
 }
 
 function confirmDelete(id) {
+    // Need utils for openModal, but we already have it in scope if openModal is globally imported or directly referenced
+    // Actually we are inside confirmDelete which calls openModal.
     openModal({
         title: "Delete Initiative",
         bodyHTML: "<p>Are you sure you want to permanently remove this initiative?</p>",
         danger: true,
         confirmLabel: "Delete",
         onConfirm: () => {
+            const init = SustDB.initiatives.find(i => i.id === id);
+            if (init) SustDB.addHighlight("Initiative Deleted", init.title, "gray");
+            
             SustDB.deleteInitiative(id);
             showToast("Initiative deleted", "success");
             renderInitiatives();

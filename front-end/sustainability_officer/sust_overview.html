@@ -6,6 +6,49 @@
     <title>Sustainability Dashboard - Overview</title>
     <link rel="stylesheet" href="sust_overview.css">
     <link rel="stylesheet" href="sust_shared.css">
+    <style>
+        .highlight-item {
+            display: flex; 
+            gap: 16px; 
+            align-items: flex-start; 
+            margin-bottom: 20px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            background: #fdfdfd;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+            position: relative;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.02);
+        }
+        .highlight-item:hover {
+            background: #ffffff;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.06), 0 4px 6px -2px rgba(0,0,0,0.03);
+            border-color: #d1d5db;
+            transform: translateY(-2px);
+        }
+        .highlight-item:last-child {
+            margin-bottom: 0;
+        }
+        .btn-mark-read {
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .btn-mark-read:hover {
+            background: #f3f4f6;
+            color: #111827;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -110,6 +153,12 @@
                         <span class="badge-positive">Positive trend</span>
                     </div>
 
+                    <div class="pill-nav" id="overviewPeriodSelector" style="display:flex;gap:6px;margin-bottom:12px;">
+                        <div class="pill-item active" data-period="30 Days" style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#e6f4ec;color:#0f9f6f;font-weight:600;">30 Days</div>
+                        <div class="pill-item" data-period="Quarter" style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#f3f4f6;color:#6b7280;">Quarter</div>
+                        <div class="pill-item" data-period="Year" style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#f3f4f6;color:#6b7280;">Year</div>
+                    </div>
+
                     <!-- Placeholder Chart using CSS -->
                     <div class="chart-container">
                         <div class="chart-group">
@@ -193,19 +242,8 @@
                 <h2 class="panel-title" style="margin-bottom: 4px;">Recent highlights</h2>
                 <p class="panel-subtitle">Important updates affecting current environmental performance and initiative planning.</p>
                 
-                <div class="highlights-list">
-                    <div class="highlight-item">
-                        <h4>Campus East reduced peak energy demand</h4>
-                        <p>HVAC scheduling updates lowered evening electricity usage by 5.4% over the last two weeks.</p>
-                    </div>
-                    <div class="highlight-item">
-                        <h4>Water efficiency project moved to rollout</h4>
-                        <p>The smart meter retrofit initiative is now approved for three high-consumption buildings.</p>
-                    </div>
-                    <div class="highlight-item">
-                        <h4>Reporting readiness improved</h4>
-                        <p>All emissions factors are verified, leaving only one campus dataset pending before submission.</p>
-                    </div>
+                <div class="highlights-list" id="global-highlights-list">
+                    <!-- Processed highlights will appear here -->
                 </div>
             </section>
 

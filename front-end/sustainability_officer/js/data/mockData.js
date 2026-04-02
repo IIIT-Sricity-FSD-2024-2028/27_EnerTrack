@@ -22,7 +22,7 @@ const defaultData = {
       status: "proposed",
       feasible: true,
       target: "7.5%",
-      cost: "$56,500",
+      cost: "₹56,500",
       timeline: "5 weeks",
       description: "Automate HVAC for night shifts."
     },
@@ -32,7 +32,7 @@ const defaultData = {
       status: "proposed",
       feasible: false,
       target: "14%",
-      cost: "$198,000",
+      cost: "₹198,000",
       timeline: "16 weeks",
       description: "Cover parking lot A with solar panels."
     },
@@ -42,7 +42,7 @@ const defaultData = {
       status: "in-progress",
       feasible: true,
       target: "12%",
-      cost: "$64,000",
+      cost: "₹64,000",
       timeline: "8 weeks",
       description: "Replace fluorescent lights in two buildings."
     },
@@ -52,7 +52,7 @@ const defaultData = {
       status: "in-progress",
       feasible: true,
       target: "6.1%",
-      cost: "$19,400",
+      cost: "₹19,400",
       timeline: "6 weeks",
       description: "Optimize base load cooling."
     },
@@ -62,7 +62,7 @@ const defaultData = {
       status: "approved",
       feasible: true,
       target: "5%",
-      cost: "$31,200",
+      cost: "₹31,200",
       timeline: "3 weeks",
       description: "Enhance insulation for primary heating."
     },
@@ -72,7 +72,7 @@ const defaultData = {
       status: "approved",
       feasible: true,
       target: "4.4%",
-      cost: "$9,700",
+      cost: "₹9,700",
       timeline: "4 weeks",
       description: "Identify and seal factory leaks."
     },
@@ -81,7 +81,7 @@ const defaultData = {
       title: "Server Room Cooling Reset",
       status: "completed",
       feasible: true,
-      outcomes: ["16 MWh saved", "41 tCO₂e reduced", "$14,400 saved"],
+      outcomes: ["16 MWh saved", "41 tCO₂e reduced", "₹14,400 saved"],
       description: "Raise server temps dynamically."
     },
     {
@@ -89,7 +89,7 @@ const defaultData = {
       title: "Kitchen Equipment Shutdown Policy",
       status: "completed",
       feasible: true,
-      outcomes: ["28 MWh saved", "82 tCO₂e reduced", "$6,700 saved"],
+      outcomes: ["28 MWh saved", "82 tCO₂e reduced", "₹6,700 saved"],
       description: "Ensure idle ovens are disabled."
     }
   ],
@@ -143,6 +143,29 @@ class SustDB {
   get metrics() { return this.data.metrics; }
   get initiatives() { return this.data.initiatives; }
   get monitoring() { return this.data.monitoring; }
+  get highlights() { return this.data.highlights || []; }
+
+  addHighlight(title, desc, color = "blue") {
+    if (!this.data.highlights) this.data.highlights = [];
+    const syncId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+    this.data.highlights.unshift({ id: syncId, title, desc, color, time: Date.now() });
+    if (this.data.highlights.length > 50) this.data.highlights.pop(); // Keep bounded
+    this.save();
+  }
+  
+  removeHighlight(id) {
+    if (this.data.highlights) {
+        this.data.highlights = this.data.highlights.filter(h => h.id !== id);
+        this.save();
+    }
+  }
+  
+  removeHighlightIndex(index) {
+    if (this.data.highlights && index >= 0 && index < this.data.highlights.length) {
+        this.data.highlights.splice(index, 1);
+        this.save();
+    }
+  }
   
   addInitiative(init) {
     this.data.initiatives.push(init);
