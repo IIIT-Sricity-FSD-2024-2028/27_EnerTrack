@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   CostModule.updateCostSummary();
   wireFilters();
   wireButtons();
+  wireTabs();
   wireRoleSwitcher();
   wireNavigation();
   populateScopeDropdown();
@@ -53,14 +54,76 @@ function wireButtons() {
     CostModule.openAddCostModal();
   });
 
-  // Retrieve & Calculate (simulated)
-  document.getElementById("btn-retrieve")?.addEventListener("click", () => {
+  // Retrieve & Calculate (Simulation)
+  const btn = document.getElementById("btn-retrieve");
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
     import("./utils/utils.js").then(({ showToast }) => {
-      showToast("Fetching consumption data…", "info", 1200);
+      btn.disabled = true;
+      btn.innerText = "Calculating...";
+
+      showToast("Triggering campus consumption sweep...", "info", 1500);
+
       setTimeout(() => {
-        CostModule.updateCostSummary();
-        showToast("Cost calculation complete.", "success");
-      }, 1400);
+        showToast("Synchronizing with Building Management Systems...", "info", 1500);
+        
+        setTimeout(() => {
+          // Perform the ±2% variance simulation
+          _runSimulation();
+
+          const { DashboardState } = CostModule;
+          DashboardState.isPending = false;
+          CostModule.updateCostSummary();
+
+          showToast("Financial calculation complete. Charts updated.", "success");
+          btn.disabled = false;
+          btn.innerText = "Retrieve & Calculate";
+        }, 1800);
+      }, 1500);
+    });
+  });
+}
+
+function _runSimulation() {
+  // Apply ±2% variance to every cost in FinanceDB
+  FinanceDB.energyCosts.forEach(rec => {
+    const factor = 1 + (Math.random() * 0.04 - 0.02); // 0.98 to 1.02
+    
+    rec.electricity = Math.round(rec.electricity * factor);
+    rec.gas         = Math.round(rec.gas * factor);
+    rec.water       = Math.round(rec.water * factor);
+    rec.wastewater  = Math.round((rec.wastewater || 0) * factor);
+    rec.demand      = Math.round(rec.demand * factor);
+    
+    rec.total = rec.electricity + rec.gas + rec.water + rec.wastewater + rec.demand;
+    rec.variance = rec.budget - rec.total;
+    rec.status = rec.variance > 0 ? "under-budget" : rec.variance === 0 ? "on-budget" : "over-budget";
+  });
+  
+  CostModule.renderCostTable();
+}
+
+/* ── TABS ─────────────────────────────────────────── */
+
+function wireTabs() {
+  const tabs = document.querySelectorAll(".tabs.toggle .pill");
+  if (!tabs.length) return;
+
+  const viewModes = ["energy", "building", "time"];
+
+  tabs.forEach((tab, idx) => {
+    tab.addEventListener("click", () => {
+      // Logic for active class
+      tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      const { DashboardState } = CostModule;
+      if (!DashboardState.isPending) {
+        CostModule.renderCostBreakdown(viewModes[idx]);
+      } else {
+        DashboardState.currentView = viewModes[idx]; // Just update state, it will render on "Calculate"
+      }
     });
   });
 }

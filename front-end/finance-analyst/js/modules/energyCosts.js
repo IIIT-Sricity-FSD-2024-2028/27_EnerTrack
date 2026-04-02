@@ -3,9 +3,16 @@
  * CRUD operations for energy cost records (Utility Costs page).
  */
 
-import FinanceDB from "../data/mockData.js";
+import FinanceDB, { persistData } from "../data/mockData.js";
 import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, can } from "../utils/utils.js";
 import { logActivity } from "./activity.js";
+
+/* ── STATE ────────────────────────────────────────── */
+export const DashboardState = {
+  isPending: true,
+  currentView: "energy" // "energy" | "building" | "time"
+};
+window.DashboardState = DashboardState;
 
 /* ── RENDER TABLE ─────────────────────────────────── */
 
@@ -19,7 +26,7 @@ export function renderCostTable(filter = {}) {
   if (filter.period && filter.period !== "") records = records.filter(r => r.period === filter.period);
 
   if (records.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:32px">No records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:32px">No records found.</td></tr>`;
     return;
   }
 
@@ -31,6 +38,7 @@ export function renderCostTable(filter = {}) {
       <td>${formatCurrency(rec.electricity)}</td>
       <td>${formatCurrency(rec.gas)}</td>
       <td>${formatCurrency(rec.water)}</td>
+      <td>${formatCurrency(rec.wastewater || 0)}</td>
       <td><strong>${formatCurrency(rec.total)}</strong></td>
       <td>${badgeHTML(rec.status)}</td>
       <td class="action-cell">
@@ -59,6 +67,7 @@ export function viewCostRecord(id) {
         <div><strong>Electricity</strong><p>${formatCurrency(rec.electricity)}</p></div>
         <div><strong>Gas</strong><p>${formatCurrency(rec.gas)}</p></div>
         <div><strong>Water</strong><p>${formatCurrency(rec.water)}</p></div>
+        <div><strong>Wastewater</strong><p>${formatCurrency(rec.wastewater || 0)}</p></div>
         <div><strong>Demand</strong><p>${formatCurrency(rec.demand)}</p></div>
         <div><strong>Total Cost</strong><p><strong>${formatCurrency(rec.total)}</strong></p></div>
         <div><strong>Budget</strong><p>${formatCurrency(rec.budget)}</p></div>
@@ -120,13 +129,19 @@ export function openAddCostModal() {
             <input id="ac-water" type="number" placeholder="0" min="0">
           </div>
           <div class="fm-group">
+            <label>Wastewater ($) *</label>
+            <input id="ac-wastewater" type="number" placeholder="0" min="0">
+          </div>
+        </div>
+        <div class="fm-row">
+          <div class="fm-group">
             <label>Demand Charge ($) *</label>
             <input id="ac-demand" type="number" placeholder="0" min="0">
           </div>
-        </div>
-        <div class="fm-group">
-          <label>Budget ($) *</label>
-          <input id="ac-budget" type="number" placeholder="0" min="1">
+          <div class="fm-group">
+            <label>Budget ($) *</label>
+            <input id="ac-budget" type="number" placeholder="0" min="1">
+          </div>
         </div>
       </form>`,
     confirmLabel: "Add Record",
@@ -149,11 +164,12 @@ function _submitAddCost() {
   const fields = {
     period:    document.getElementById("ac-period"),
     scopeType: document.getElementById("ac-scope-type"),
-    elec:      document.getElementById("ac-elec"),
-    gas:       document.getElementById("ac-gas"),
-    water:     document.getElementById("ac-water"),
-    demand:    document.getElementById("ac-demand"),
-    budget:    document.getElementById("ac-budget")
+    elec:       document.getElementById("ac-elec"),
+    gas:        document.getElementById("ac-gas"),
+    water:      document.getElementById("ac-water"),
+    wastewater: document.getElementById("ac-wastewater"),
+    demand:     document.getElementById("ac-demand"),
+    budget:     document.getElementById("ac-budget")
   };
 
   clearAllErrors(form);
@@ -182,7 +198,7 @@ function _submitAddCost() {
   }
 
   // Numeric fields
-  for (const key of ["elec","gas","water","demand","budget"]) {
+  for (const key of ["elec","gas","water","wastewater","demand","budget"]) {
     const val = Number(fields[key]?.value);
     if (fields[key]?.value === "" || isNaN(val) || val < 0) {
       showFieldError(fields[key], "Must be a valid non-negative number."); valid = false;
@@ -192,12 +208,13 @@ function _submitAddCost() {
   if (!valid) { showToast("Please fix the errors.", "warning"); return; }
 
   const [scopeId, , scopeLabel] = scopeValue.split("|");
-  const elec   = Number(fields.elec.value);
-  const gas    = Number(fields.gas.value);
-  const water  = Number(fields.water.value);
-  const demand = Number(fields.demand.value);
-  const total  = elec + gas + water + demand;
-  const budget = Number(fields.budget.value);
+  const elec       = Number(fields.elec.value);
+  const gas        = Number(fields.gas.value);
+  const water      = Number(fields.water.value);
+  const wastewater = Number(fields.wastewater.value);
+  const demand     = Number(fields.demand.value);
+  const total      = elec + gas + water + wastewater + demand;
+  const budget     = Number(fields.budget.value);
   const variance = budget - total;
 
   const newRec = {
@@ -206,11 +223,12 @@ function _submitAddCost() {
     scope: scopeType,
     scopeRef: scopeId,
     scopeLabel,
-    electricity: elec, gas, water, demand, total, budget, variance,
+    electricity: elec, gas, water, wastewater, demand, total, budget, variance,
     status: variance > 0 ? "under-budget" : variance === 0 ? "on-budget" : "over-budget"
   };
 
   FinanceDB.energyCosts.push(newRec);
+  persistData();
   logActivity("energy", `Cost record added for ${scopeLabel}`, `Period: ${periodVal}, Total: ${formatCurrency(total)}`);
   renderCostTable();
   updateCostSummary();
@@ -245,13 +263,19 @@ export function editCostRecord(id) {
             <input id="ecc-water" type="number" value="${rec.water}" min="0">
           </div>
           <div class="fm-group">
-            <label>Demand ($) *</label>
-            <input id="ecc-demand" type="number" value="${rec.demand}" min="0">
+            <label>Wastewater ($) *</label>
+            <input id="ecc-wastewater" type="number" value="${rec.wastewater || 0}" min="0">
           </div>
         </div>
-        <div class="fm-group">
-          <label>Budget ($) *</label>
-          <input id="ecc-budget" type="number" value="${rec.budget}" min="1">
+        <div class="fm-row">
+          <div class="fm-group">
+            <label>Demand Charge ($) *</label>
+            <input id="ecc-demand" type="number" value="${rec.demand}" min="0">
+          </div>
+          <div class="fm-group">
+            <label>Budget ($) *</label>
+            <input id="ecc-budget" type="number" value="${rec.budget}" min="1">
+          </div>
         </div>
       </form>`,
     confirmLabel: "Save Changes",
@@ -264,11 +288,12 @@ function _submitEditCost(id) {
   if (!form) return;
 
   const fields = {
-    elec:   document.getElementById("ecc-elec"),
-    gas:    document.getElementById("ecc-gas"),
-    water:  document.getElementById("ecc-water"),
-    demand: document.getElementById("ecc-demand"),
-    budget: document.getElementById("ecc-budget")
+    elec:       document.getElementById("ecc-elec"),
+    gas:        document.getElementById("ecc-gas"),
+    water:      document.getElementById("ecc-water"),
+    wastewater: document.getElementById("ecc-wastewater"),
+    demand:     document.getElementById("ecc-demand"),
+    budget:     document.getElementById("ecc-budget")
   };
 
   clearAllErrors(form);
@@ -287,20 +312,22 @@ function _submitEditCost(id) {
   if (!valid) { showToast("Please fix the errors.", "warning"); return; }
 
   const idx = FinanceDB.energyCosts.findIndex(r => r.id === id);
-  const elec   = Number(fields.elec.value);
-  const gas    = Number(fields.gas.value);
-  const water  = Number(fields.water.value);
-  const demand = Number(fields.demand.value);
-  const total  = elec + gas + water + demand;
-  const budget = Number(fields.budget.value);
+  const elec       = Number(fields.elec.value);
+  const gas        = Number(fields.gas.value);
+  const water      = Number(fields.water.value);
+  const wastewater = Number(fields.wastewater.value);
+  const demand     = Number(fields.demand.value);
+  const total      = elec + gas + water + wastewater + demand;
+  const budget     = Number(fields.budget.value);
   const variance = budget - total;
 
   FinanceDB.energyCosts[idx] = {
     ...FinanceDB.energyCosts[idx],
-    electricity: elec, gas, water, demand, total, budget, variance,
+    electricity: elec, gas, water, wastewater, demand, total, budget, variance,
     status: variance > 0 ? "under-budget" : variance === 0 ? "on-budget" : "over-budget"
   };
 
+  persistData();
   logActivity("energy", `Cost record updated for ${FinanceDB.energyCosts[idx].scopeLabel}`, `Total: ${formatCurrency(total)}`);
   renderCostTable();
   updateCostSummary();
@@ -321,6 +348,7 @@ export function deleteCostRecord(id) {
     danger: true,
     onConfirm: () => {
       FinanceDB.energyCosts = FinanceDB.energyCosts.filter(r => r.id !== id);
+      persistData();
       logActivity("energy", `Cost record deleted for ${rec.scopeLabel}`, `Period: ${rec.period}`);
       renderCostTable();
       updateCostSummary();
@@ -340,6 +368,133 @@ export function updateCostSummary() {
   _setText("cost-total",      formatCurrency(totalCost));
   _setText("cost-budget",     formatCurrency(totalBudget));
   _setText("cost-over-count", overBudget);
+
+  // If dashboard is pending, clear graphs/metrics
+  if (DashboardState.isPending) {
+    _setAnalyticsPending();
+    return;
+  }
+
+  _updateAnalyticMetrics(all);
+  renderCostBreakdown(DashboardState.currentView);
+  _updateBudgetVsActual(all);
+}
+
+function _setAnalyticsPending() {
+  const bars = document.querySelector(".bars");
+  if (bars) bars.innerHTML = `<div style="width:100%;text-align:center;color:#9ca3af;padding-top:20px;font-style:italic">Analytics pending. Click "Retrieve & Calculate" to begin simulation.</div>`;
+  
+  // Reset metrics
+  document.querySelectorAll(".metric strong").forEach(s => s.textContent = "—");
+  document.querySelectorAll(".budget-card strong").forEach(s => s.textContent = "—");
+}
+
+function _updateAnalyticMetrics(all) {
+  const totalConsumption = all.length * 1.24; // Mock scale
+  const totalCost = all.reduce((s, r) => s + r.total, 0);
+  const budgetTotal = all.reduce((s, r) => s + r.budget, 0);
+  const variance = budgetTotal - totalCost;
+
+  const labels = document.querySelectorAll(".metric strong");
+  if (labels[0]) labels[0].textContent = totalConsumption.toFixed(2) + "M kWh";
+  if (labels[1]) labels[1].textContent = formatCurrency(totalCost);
+  if (labels[2]) {
+    labels[2].textContent = (variance >= 0 ? "+" : "") + formatCurrency(variance);
+    labels[2].parentElement.style.color = variance >= 0 ? "#059669" : "#dc2626";
+  }
+}
+
+function _updateBudgetVsActual(all) {
+  const actual = all.reduce((s, r) => s + r.total, 0);
+  const budget = all.reduce((s, r) => s + r.budget, 0);
+  const variance = budget - actual;
+
+  const cards = document.querySelectorAll(".budget-card");
+  if (!cards.length) return;
+
+  // Budget card
+  cards[0].querySelector("strong").textContent = formatCurrency(budget);
+  
+  // Actual card
+  cards[1].querySelector("strong").textContent = formatCurrency(actual);
+  cards[1].classList.toggle("red", actual > budget);
+  
+  // Variance card
+  cards[2].querySelector("strong").textContent = (variance >= 0 ? "+" : "") + formatCurrency(variance);
+  cards[2].classList.toggle("red", variance < 0);
+  
+  const vNote = cards[2].lastChild;
+  if (vNote) {
+    vNote.textContent = variance < 0 
+      ? `Over budget by ${formatCurrency(Math.abs(variance))} (Loss)` 
+      : `${formatCurrency(variance)} savings against target.`;
+  }
+}
+
+/* ── CHARTS ───────────────────────────────────────── */
+
+export function renderCostBreakdown(viewMode) {
+  const container = document.querySelector(".bars");
+  if (!container) return;
+
+  DashboardState.currentView = viewMode;
+  let data = [];
+
+  const all = FinanceDB.energyCosts;
+
+  if (viewMode === "energy") {
+    data = [
+      { label: "Electricity", value: all.reduce((s, r) => s + r.electricity, 0) },
+      { label: "Gas",         value: all.reduce((s, r) => s + r.gas, 0) },
+      { label: "Water",       value: all.reduce((s, r) => s + r.water, 0) },
+      { label: "Wastewater",  value: all.reduce((s, r) => s + (r.wastewater || 0), 0) },
+      { label: "Demand",      value: all.reduce((s, r) => s + r.demand, 0), isDemand: true }
+    ];
+  } else if (viewMode === "building") {
+    const buildings = [...new Set(all.map(r => r.scopeLabel))];
+    data = buildings.map(b => ({
+      label: b.split(" – ")[0],
+      value: all.filter(r => r.scopeLabel === b).reduce((s, r) => s + r.total, 0)
+    }));
+  } else if (viewMode === "time") {
+    const periods = [...new Set(all.map(r => r.period))].sort();
+    data = periods.map(p => ({
+      label: p,
+      value: all.filter(r => r.period === p).reduce((s, r) => s + r.total, 0)
+    }));
+  }
+
+  const maxVal = Math.max(...data.map(d => d.value)) || 1;
+  const chartHeight = 160;
+
+  container.innerHTML = data.map(d => {
+    const totalH = (d.value / maxVal) * chartHeight;
+    const isMax = d.value === maxVal && d.value > 0;
+    
+    // Stacked Logic
+    let baseH = totalH * 0.85;
+    let taxH = totalH * 0.15;
+    
+    if (d.label === "Demand" || d.isDemand) {
+      baseH = 0; 
+      taxH = 0; // Pure gray for demand
+    }
+
+    return `
+      <div class="bar-group" style="${isMax ? 'border: 2px solid #059669; border-radius: 8px; padding: 6px; margin-top: -10px; background: rgba(5, 150, 105, 0.05);' : ''}">
+        <div class="stacked-bar" style="height:${totalH}px; width:44px; overflow:hidden; position:relative; display:flex; flex-direction:column-reverse; border-radius:4px;">
+          ${(d.label === "Demand" || d.isDemand) 
+            ? `<div class="bar bg-gray" style="height:100%; width:100%"></div>` 
+            : `
+              <div class="bar bg-green"  style="height:${(baseH/totalH)*100}%; width:100%" title="Base: ${formatCurrency(d.value * 0.85)}"></div>
+              <div class="bar bg-yellow" style="height:${(taxH/totalH)*100}%; width:100%" title="Taxes: ${formatCurrency(d.value * 0.15)}"></div>
+            `
+          }
+        </div>
+        <div class="bar-label" style="font-weight:${isMax ? '700' : '500'}; color:${isMax ? '#0f8f63' : '#8a95a2'}">${d.label}</div>
+      </div>
+    `;
+  }).join("");
 }
 
 function _setText(id, val) {
@@ -348,6 +503,6 @@ function _setText(id, val) {
 }
 
 /* ── EXPORT NAMESPACE ─────────────────────────────── */
-const CostModule = { renderCostTable, viewCostRecord, openAddCostModal, _toggleScopeSelect, editCostRecord, deleteCostRecord, updateCostSummary };
+const CostModule = { renderCostTable, viewCostRecord, openAddCostModal, _toggleScopeSelect, editCostRecord, deleteCostRecord, updateCostSummary, renderCostBreakdown, DashboardState };
 window.CostModule = CostModule;
 export default CostModule;

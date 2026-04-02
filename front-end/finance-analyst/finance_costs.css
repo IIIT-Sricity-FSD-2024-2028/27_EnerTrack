@@ -18,30 +18,34 @@ body {
 /* SIDEBAR */
 .sidebar {
   width: 280px;
-  background-color: #c9dbc9;
-  padding: 24px;
+  background-color: #b8cdb7;
+  padding: 16px 18px 18px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   flex-shrink: 0;
-  border-right: 1px solid rgba(0, 0, 0, 0.05);
+  border-right: 1px solid rgba(28, 46, 46, 0.16);
 }
 
-.logo {
+.sidebar-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 20px;
-  font-weight: 700;
+  gap: 10px;
+  text-decoration: none;
   color: #111827;
-  margin-bottom: 40px;
-  cursor: pointer;
+  padding: 6px 4px 14px;
+  margin: 0 -4px 16px;
+  border-bottom: 1px solid rgba(28, 46, 46, 0.14);
 }
 
-.logo img {
-  width: auto;
+.sidebar-logo .logo-icon {
+  width: 24px;
   height: 24px;
-  object-fit: contain;
+}
+
+.sidebar-logo .logo-text {
+  width: auto;
+  height: 20px;
 }
 
 .menu {
@@ -55,7 +59,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 15px;
+  font-size: 14px; /* Reduced slightly for better fit */
   font-weight: 500;
   color: #374151;
   padding: 12px 16px;
@@ -76,7 +80,7 @@ body {
 }
 
 .menu-item.active {
-  background-color: #111827;
+  background-color: #0f172a;
   color: #ffffff;
 }
 
@@ -181,6 +185,8 @@ body {
 /* TABLE */
 .tbl-wrap {
   overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #d8dde2;
 }
 
 table {
@@ -316,21 +322,37 @@ tbody td {
 .bars {
   display: flex;
   align-items: flex-end;
-  gap: 24px;
-  height: 120px;
-  margin-top: 20px;
+  justify-content: space-around; /* Better distribution */
+  height: 200px; /* Taller for detail */
+  margin-top: 30px;
+  padding: 0 10px;
 }
 
 .bar-group {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  transition: transform 0.2s ease;
+}
+.bar-group:hover {
+  transform: translateY(-4px);
+}
+
+.stacked-bar {
+  background: #cbd5e1;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .bar {
-  width: 40px;
-  border-radius: 999px;
+  width: 44px;
+  border-radius: 4px 4px 0 0; /* Only top rounding */
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bar:first-child {
+  border-radius: 0 0 4px 4px; /* Bottom rounding for the base */
 }
 
 .bg-green {
@@ -354,10 +376,14 @@ tbody td {
 
 /* BADGES */
 .badge {
-  padding: 6px 12px;
+  display: inline-block;
+  padding: 4px 12px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.4;
+  vertical-align: middle;
 }
 
 .badge-success {
@@ -477,11 +503,14 @@ tbody td {
 .budget-card {
   flex: 1;
   border-radius: 10px;
-  padding: 20px;
+  padding: 24px;
   border: 1px solid #d8dde2;
   font-size: 14px;
   color: #8a95a2;
   background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 .budget-card.red {
   background: #fee2e2;

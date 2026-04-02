@@ -4,7 +4,7 @@
  * Add, Edit, Delete, Approve, View — all reflected in the UI without page reloads.
  */
 
-import FinanceDB from "../data/mockData.js";
+import FinanceDB, { persistData } from "../data/mockData.js";
 import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, formatDate } from "../utils/utils.js";
 import { can } from "../utils/utils.js";
 import { logActivity } from "./activity.js";
@@ -207,6 +207,7 @@ function _submitAddInvoice() {
   };
 
   FinanceDB.invoices.push(newInv);
+  persistData();
   logActivity("invoice", `Invoice ${newInv.invoiceNumber} added`, `Vendor: ${newInv.vendor}`);
   renderInvoiceList();
   updateInvoiceSummary();
@@ -332,6 +333,7 @@ function _submitEditInvoice(id) {
     status:          data.status
   };
 
+  persistData();
   logActivity("invoice", `Invoice ${data.number} updated`, `Status: ${data.status}`);
   renderInvoiceList();
   updateInvoiceSummary();
@@ -352,6 +354,7 @@ export function approveInvoice(id) {
     onConfirm: () => {
       inv.status = "approved";
       inv.approvedBy = window.FinanceDB?.session?.user?.name ?? "Analyst";
+      persistData();
       logActivity("invoice", `Invoice ${inv.invoiceNumber} approved`, `Amount: ${formatCurrency(inv.amount)}`);
       renderInvoiceList();
       updateInvoiceSummary();
@@ -374,6 +377,7 @@ export function deleteInvoice(id) {
     danger: true,
     onConfirm: () => {
       FinanceDB.invoices = FinanceDB.invoices.filter(i => i.id !== id);
+      persistData();
       logActivity("invoice", `Invoice ${inv.invoiceNumber} deleted`, `Vendor: ${inv.vendor}`);
       renderInvoiceList();
       updateInvoiceSummary();
