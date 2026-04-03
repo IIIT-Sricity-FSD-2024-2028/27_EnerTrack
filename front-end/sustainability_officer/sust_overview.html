@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,9 +9,9 @@
     <link rel="stylesheet" href="sust_shared.css">
     <style>
         .highlight-item {
-            display: flex; 
-            gap: 16px; 
-            align-items: flex-start; 
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
             margin-bottom: 20px;
             padding: 16px 20px;
             border-radius: 12px;
@@ -18,17 +19,20 @@
             border: 1px solid #e5e7eb;
             transition: all 0.2s ease;
             position: relative;
-            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.02);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
         }
+
         .highlight-item:hover {
             background: #ffffff;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.06), 0 4px 6px -2px rgba(0,0,0,0.03);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
             border-color: #d1d5db;
             transform: translateY(-2px);
         }
+
         .highlight-item:last-child {
             margin-bottom: 0;
         }
+
         .btn-mark-read {
             border: none;
             background: none;
@@ -44,12 +48,14 @@
             gap: 4px;
             margin-top: 8px;
         }
+
         .btn-mark-read:hover {
             background: #f3f4f6;
             color: #111827;
         }
     </style>
 </head>
+
 <body>
     <div class="dashboard">
         <!-- SIDEBAR -->
@@ -58,7 +64,7 @@
                 <img src="images/logo.png" alt="EnerTrack Logo" class="logo-icon">
                 <img src="images/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
             </a>
-            
+
             <nav class="sidebar-nav">
                 <a href="sust_overview.html" class="nav-item active">
                     <span class="nav-icon" data-icon="overview"></span>
@@ -86,7 +92,7 @@
                         <p>Live meter feeds and emissio...</p>
                     </div>
                 </div>
-                
+
                 <div class="profile-card">
                     <img src="images/maya_patel.png" alt="User Profile" class="avatar">
                     <div class="profile-info">
@@ -102,7 +108,8 @@
         <main class="main-content">
             <header class="page-header">
                 <h1 id="welcomeHeading">Welcome back, Maya</h1>
-                <p>Monitor resource usage, review environmental trends, and jump into reporting and initiative planning from one sustainability workspace.</p>
+                <p>Monitor resource usage, review environmental trends, and jump into reporting and initiative planning
+                    from one sustainability workspace.</p>
             </header>
 
             <!-- TOP METRICS -->
@@ -148,15 +155,22 @@
                     <div class="panel-header">
                         <div>
                             <h2 class="panel-title">Environmental trends</h2>
-                            <p class="panel-subtitle">A quick monthly view of the core environmental indicators used in ongoing monitoring.</p>
+                            <p class="panel-subtitle">A quick monthly view of the core environmental indicators used in
+                                ongoing monitoring.</p>
                         </div>
                         <span class="badge-positive">Positive trend</span>
                     </div>
 
                     <div class="pill-nav" id="overviewPeriodSelector" style="display:flex;gap:6px;margin-bottom:12px;">
-                        <div class="pill-item active" data-period="30 Days" style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#e6f4ec;color:#0f9f6f;font-weight:600;">30 Days</div>
-                        <div class="pill-item" data-period="Quarter" style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#f3f4f6;color:#6b7280;">Quarter</div>
-                        <div class="pill-item" data-period="Year" style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#f3f4f6;color:#6b7280;">Year</div>
+                        <div class="pill-item active" data-period="30 Days"
+                            style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#e6f4ec;color:#0f9f6f;font-weight:600;">
+                            30 Days</div>
+                        <div class="pill-item" data-period="Quarter"
+                            style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#f3f4f6;color:#6b7280;">
+                            Quarter</div>
+                        <div class="pill-item" data-period="Year"
+                            style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#f3f4f6;color:#6b7280;">
+                            Year</div>
                     </div>
 
                     <!-- Placeholder Chart using CSS -->
@@ -201,17 +215,24 @@
                         <span>Jun</span>
                     </div>
                     <div class="chart-legend">
-                        <div class="legend-item"><div class="legend-dot" style="background: #2bd189;"></div>Energy</div>
-                        <div class="legend-item"><div class="legend-dot" style="background: #2e89ff;"></div>Water</div>
-                        <div class="legend-item"><div class="legend-dot" style="background: #d5d68d;"></div>Emissions</div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #2bd189;"></div>Energy
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #2e89ff;"></div>Water
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #d5d68d;"></div>Emissions
+                        </div>
                     </div>
                 </div>
 
                 <!-- QUICK STATS PANEL -->
                 <div class="panel">
                     <h2 class="panel-title" style="margin-bottom: 8px;">Quick stats</h2>
-                    <p class="panel-subtitle">Current operational signals from the latest sustainability review window.</p>
-                    
+                    <p class="panel-subtitle">Current operational signals from the latest sustainability review window.
+                    </p>
+
                     <div class="quick-stats-grid">
                         <div class="stat-box">
                             <h4>Reporting sites</h4>
@@ -221,12 +242,14 @@
                         <div class="stat-box">
                             <h4>Alerts resolved</h4>
                             <div class="stat-val" id="stat-alerts">14</div>
-                            <div class="stat-desc">Energy and water anomalies cleared by operations teams this week.</div>
+                            <div class="stat-desc">Energy and water anomalies cleared by operations teams this week.
+                            </div>
                         </div>
                         <div class="stat-box">
                             <h4>Reduction progress</h4>
                             <div class="stat-val" id="stat-progress">76%</div>
-                            <div class="stat-desc">Annual emissions reduction target completion based on current pace.</div>
+                            <div class="stat-desc">Annual emissions reduction target completion based on current pace.
+                            </div>
                         </div>
                         <div class="stat-box">
                             <h4>Next review</h4>
@@ -240,8 +263,9 @@
             <!-- RECENT HIGHLIGHTS -->
             <section class="panel">
                 <h2 class="panel-title" style="margin-bottom: 4px;">Recent highlights</h2>
-                <p class="panel-subtitle">Important updates affecting current environmental performance and initiative planning.</p>
-                
+                <p class="panel-subtitle">Important updates affecting current environmental performance and initiative
+                    planning.</p>
+
                 <div class="highlights-list" id="global-highlights-list">
                     <!-- Processed highlights will appear here -->
                 </div>
@@ -252,4 +276,5 @@
     <script type="module" src="js/overviewPage.js"></script>
     <script src="../dashboardProfileMenu.js"></script>
 </body>
+
 </html>

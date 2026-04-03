@@ -35,21 +35,21 @@ export function renderBackupJobs(containerId = "backupJobsContainer") {
 
 function buildBackupCard(job) {
   const showProgress = job.status === "pending" || job.status === "running";
-  const progressBar  = showProgress
+  const progressBar = showProgress
     ? `<div class="progress-bar-thin"><div class="progress" style="width:${job.progress}%;background:#1f2937"></div></div>`
     : "";
 
   const footerLeft = job.status === "pending" || job.status === "running"
     ? `In progress: ${job.progress}% • Est. remaining`
     : job.status === "scheduled"
-    ? `Window: ${job.nextRun}`
-    : `Last run: ${job.lastRun ?? "—"} • Duration: ${job.duration ?? "—"} • ${job.errors} errors`;
+      ? `Window: ${job.nextRun}`
+      : `Last run: ${job.lastRun ?? "—"} • Duration: ${job.duration ?? "—"} • ${job.errors} errors`;
 
   const footerRight = job.status === "scheduled"
     ? `Retention: ${job.retention ?? "30 days"}`
     : `Next: ${job.nextRun}`;
 
-  const actions = roleAllowed(["admin","superuser"]) ? `
+  const actions = roleAllowed(["admin", "superuser"]) ? `
     <div style="display:flex;gap:6px;margin-top:10px;justify-content:flex-end">
       <button class="btn-outline" style="font-size:12px;padding:4px 10px"
         onclick="BackupsModule.editBackupJob('${job.id}')">Edit</button>
@@ -78,7 +78,7 @@ function buildBackupCard(job) {
 /* ── CREATE ───────────────────────────────────────── */
 
 export function openNewBackupModal() {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("You do not have permission to create backup jobs.", "error");
     return;
   }
@@ -124,11 +124,11 @@ export function openNewBackupModal() {
     confirmLabel: "Create Job",
     onConfirm: () => {
       const data = {
-        name:      (document.getElementById("nb-name")?.value      ?? "").trim(),
-        scope:     (document.getElementById("nb-scope")?.value     ?? "").trim(),
-        status:    (document.getElementById("nb-status")?.value    ?? "").trim(),
-        target:    (document.getElementById("nb-target")?.value    ?? "").trim(),
-        nextRun:   (document.getElementById("nb-next")?.value      ?? "Tonight 02:00 AM").trim(),
+        name: (document.getElementById("nb-name")?.value ?? "").trim(),
+        scope: (document.getElementById("nb-scope")?.value ?? "").trim(),
+        status: (document.getElementById("nb-status")?.value ?? "").trim(),
+        target: (document.getElementById("nb-target")?.value ?? "").trim(),
+        nextRun: (document.getElementById("nb-next")?.value ?? "Tonight 02:00 AM").trim(),
         retention: (document.getElementById("nb-retention")?.value ?? "30 days").trim()
       };
       addBackupJob(data);
@@ -138,8 +138,8 @@ export function openNewBackupModal() {
 
 export function addBackupJob(data) {
   const { valid, errors } = validateForm(data, {
-    name:   { required: true, minLength: 3, maxLength: 80 },
-    scope:  { required: true, minLength: 2 },
+    name: { required: true, minLength: 3, maxLength: 80 },
+    scope: { required: true, minLength: 2 },
     status: { required: true },
     target: { required: true, minLength: 5 }
   });
@@ -150,31 +150,42 @@ export function addBackupJob(data) {
   }
 
   const newJob = {
-    id:        generateId("bk"),
-    name:      data.name,
-    scope:     data.scope,
-    target:    data.target,
-    status:    data.status,
-    progress:  0,
-    lastRun:   null,
-    duration:  null,
-    errors:    0,
-    nextRun:   data.nextRun || "Tonight 02:00 AM",
-    jobId:     `BK-${Date.now()}`,
+    id: generateId("bk"),
+    name: data.name,
+    scope: data.scope,
+    target: data.target,
+    status: data.status,
+    progress: 0,
+    lastRun: null,
+    duration: null,
+    errors: 0,
+    nextRun: data.nextRun || "Tonight 02:00 AM",
+    jobId: `BK-${Date.now()}`,
     retention: data.retention || "30 days"
   };
 
+  // EnerTrackDB.backupJobs.push(newJob);
+  // EnerTrackDB.save(); // Sync to localStorage
+  // showToast(`Backup job "${newJob.name}" created.`, "success");
+  // renderBackupJobs();
+  // EnerTrackDB.backupJobs.push(newJob);
+  // EnerTrackDB.save();
+  // showToast(`Backup job "${newJob.name}" created.`, "success");
+  // renderBackupJobs();
+  // window.UpdatesModule?.renderOverviewUpdates("overviewUpdatesContainer");
+  // return true;
   EnerTrackDB.backupJobs.push(newJob);
-  EnerTrackDB.save(); // Sync to localStorage
+  EnerTrackDB.save();
   showToast(`Backup job "${newJob.name}" created.`, "success");
   renderBackupJobs();
+  window.UpdatesModule?.renderOverviewUpdates("overviewUpdatesContainer");
   return true;
 }
 
 /* ── UPDATE ───────────────────────────────────────── */
 
 export function editBackupJob(id) {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("You do not have permission to edit backup jobs.", "error");
     return;
   }
@@ -198,10 +209,10 @@ export function editBackupJob(id) {
           <div class="et-form-group">
             <label for="eb-status">Status *</label>
             <select id="eb-status">
-              <option value="scheduled" ${job.status==="scheduled"?"selected":""}>Scheduled</option>
-              <option value="ready"     ${job.status==="ready"    ?"selected":""}>Ready</option>
-              <option value="pending"   ${job.status==="pending"  ?"selected":""}>Pending</option>
-              <option value="failed"    ${job.status==="failed"   ?"selected":""}>Failed</option>
+              <option value="scheduled" ${job.status === "scheduled" ? "selected" : ""}>Scheduled</option>
+              <option value="ready"     ${job.status === "ready" ? "selected" : ""}>Ready</option>
+              <option value="pending"   ${job.status === "pending" ? "selected" : ""}>Pending</option>
+              <option value="failed"    ${job.status === "failed" ? "selected" : ""}>Failed</option>
             </select>
           </div>
         </div>
@@ -224,11 +235,11 @@ export function editBackupJob(id) {
     confirmLabel: "Save Changes",
     onConfirm: () => {
       const fields = {
-        name:      (document.getElementById("eb-name")?.value      ?? job.name).trim(),
-        scope:     (document.getElementById("eb-scope")?.value     ?? job.scope).trim(),
-        status:    (document.getElementById("eb-status")?.value    ?? job.status).trim(),
-        target:    (document.getElementById("eb-target")?.value    ?? job.target).trim(),
-        nextRun:   (document.getElementById("eb-next")?.value      ?? job.nextRun).trim(),
+        name: (document.getElementById("eb-name")?.value ?? job.name).trim(),
+        scope: (document.getElementById("eb-scope")?.value ?? job.scope).trim(),
+        status: (document.getElementById("eb-status")?.value ?? job.status).trim(),
+        target: (document.getElementById("eb-target")?.value ?? job.target).trim(),
+        nextRun: (document.getElementById("eb-next")?.value ?? job.nextRun).trim(),
         retention: (document.getElementById("eb-retention")?.value ?? "30 days").trim()
       };
       updateBackupJob(id, fields);
@@ -241,8 +252,8 @@ export function updateBackupJob(id, fields) {
   if (idx === -1) { showToast("Backup job not found.", "error"); return false; }
 
   const { valid, errors } = validateForm(fields, {
-    name:   { required: true, minLength: 3 },
-    scope:  { required: true, minLength: 2 },
+    name: { required: true, minLength: 3 },
+    scope: { required: true, minLength: 2 },
     status: { required: true },
     target: { required: true, minLength: 5 }
   });
@@ -256,13 +267,14 @@ export function updateBackupJob(id, fields) {
   EnerTrackDB.save(); // Sync to localStorage
   showToast("Backup job updated.", "success");
   renderBackupJobs();
+  window.UpdatesModule?.renderOverviewUpdates("overviewUpdatesContainer");
   return true;
 }
 
 /* ── DELETE ───────────────────────────────────────── */
 
 export function deleteBackupJob(id) {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("You do not have permission to delete backup jobs.", "error");
     return;
   }
@@ -280,6 +292,7 @@ export function deleteBackupJob(id) {
       EnerTrackDB.save(); // Sync to localStorage
       showToast(`Backup job "${job.name}" deleted.`, "info");
       renderBackupJobs();
+      window.UpdatesModule?.renderOverviewUpdates("overviewUpdatesContainer");
     }
   });
 }

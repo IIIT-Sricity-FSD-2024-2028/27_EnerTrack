@@ -81,14 +81,14 @@ function selectAlert(id) {
     document.querySelector(`#alertQueueBody tr[data-alert-id="${id}"]`)?.classList.add('selected');
 
     // Update detail panel
-    setEl('detailAlertId',      `Alert ${alert.id} Details`);
+    setEl('detailAlertId', `Alert ${alert.id} Details`);
     setEl('detailSeverityBadge', `<span class="badge ${alert.severity}">${cap(alert.severity)}</span>`);
-    setEl('detailDescription',   alert.description);
-    setEl('detailZone',          alert.zone || 'Unknown Zone');
+    setEl('detailDescription', alert.description);
+    setEl('detailZone', alert.zone || 'Unknown Zone');
 
     // Wire action buttons
     const btnEmergency = document.getElementById('btnInitiateEmergency');
-    const btnSchedule  = document.getElementById('btnScheduleInspection');
+    const btnSchedule = document.getElementById('btnScheduleInspection');
     const btnAcknowledge = document.getElementById('btnAcknowledge');
 
     if (btnEmergency) {

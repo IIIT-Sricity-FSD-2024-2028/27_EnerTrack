@@ -9,7 +9,7 @@ export function timeAgo(isoString) {
   if (!isoString) return "—";
   const diff = Date.now() - new Date(isoString).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1)  return "Just now";
+  if (m < 1) return "Just now";
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
@@ -124,9 +124,9 @@ export function showToast(message, type = "info", duration = 3500) {
 
   const colors = {
     success: { bg: "#166534", border: "#14532d", icon: "✓" },
-    error:   { bg: "#dc2626", border: "#b91c1c", icon: "✕" },
+    error: { bg: "#dc2626", border: "#b91c1c", icon: "✕" },
     warning: { bg: "#ea580c", border: "#c2410c", icon: "⚠" },
-    info:    { bg: "#1f2937", border: "#111827", icon: "ℹ" }
+    info: { bg: "#1f2937", border: "#111827", icon: "ℹ" }
   };
   const c = colors[type] || colors.info;
 
@@ -164,7 +164,7 @@ export function showToast(message, type = "info", duration = 3500) {
  * options: { title, bodyHTML, confirmLabel, cancelLabel, onConfirm, onCancel, danger }
  * Returns the modal element.
  */
-export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLabel = "Cancel", onConfirm, onCancel, danger = false }) {
+export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLabel = null, onConfirm, onCancel, danger = false }) {
   closeModal(); // close any open modal first
 
   const overlay = document.createElement("div");
@@ -195,12 +195,12 @@ export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLab
     <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;color:#111827">${title}</h3>
     <div class="modal-body" style="margin-bottom:24px;color:#374151;font-size:15px;line-height:1.6">${bodyHTML}</div>
     <div style="display:flex;justify-content:flex-end;gap:10px">
-      <button id="modal-cancel" style="
-        padding:8px 18px;border-radius:6px;font-size:14px;font-weight:600;
-        border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer;
-        font-family:inherit">
+   ${cancelLabel ? `<button id="modal-cancel" style="
+    padding:8px 18px;border-radius:6px;font-size:14px;font-weight:600;
+    border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer;
+    font-family:inherit">
         ${cancelLabel}
-      </button>
+      </button>` : ""}
       <button id="modal-confirm" style="
         padding:8px 18px;border-radius:6px;font-size:14px;font-weight:600;
         ${confirmBtnStyle}cursor:pointer;font-family:inherit">
@@ -212,10 +212,10 @@ export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLab
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 
-  document.getElementById("modal-cancel").onclick = () => {
+  document.getElementById("modal-cancel")?.addEventListener("click", () => {
     closeModal();
     if (onCancel) onCancel();
-  };
+  });
   document.getElementById("modal-confirm").onclick = () => {
     if (onConfirm) onConfirm();
     closeModal();
@@ -271,20 +271,20 @@ export function generateId(prefix = "id") {
 /* ── BADGE HTML HELPER ────────────────────────────── */
 
 const BADGE_MAP = {
-  "ready":       { cls: "badge-success", label: "Ready" },
-  "passed":      { cls: "badge-success", label: "Passed" },
-  "healthy":     { cls: "badge-success", label: "All green" },
-  "applied":     { cls: "badge-success", label: "Applied" },
-  "scheduled":   { cls: "badge-gray",    label: "Scheduled" },
-  "planned":     { cls: "badge-gray",    label: "Planned" },
-  "pending":     { cls: "badge-warning", label: "Pending" },
+  "ready": { cls: "badge-success", label: "Ready" },
+  "passed": { cls: "badge-success", label: "Passed" },
+  "healthy": { cls: "badge-success", label: "All green" },
+  "applied": { cls: "badge-success", label: "Applied" },
+  "scheduled": { cls: "badge-gray", label: "Scheduled" },
+  "planned": { cls: "badge-gray", label: "Planned" },
+  "pending": { cls: "badge-warning", label: "Pending" },
   "not-applied": { cls: "badge-warning", label: "Not applied" },
-  "warning":     { cls: "badge-warning", label: "Warning" },
-  "issues":      { cls: "badge-warning", label: "Issues found" },
-  "running":     { cls: "badge-warning", label: "Running" },
-  "degraded":    { cls: "badge-danger",  label: "Degraded" },
-  "failed":      { cls: "badge-danger",  label: "Failed" },
-  "danger":      { cls: "badge-danger",  label: "Critical" }
+  "warning": { cls: "badge-warning", label: "Warning" },
+  "issues": { cls: "badge-warning", label: "Issues found" },
+  "running": { cls: "badge-warning", label: "Running" },
+  "degraded": { cls: "badge-danger", label: "Degraded" },
+  "failed": { cls: "badge-danger", label: "Failed" },
+  "danger": { cls: "badge-danger", label: "Critical" }
 };
 
 export function badgeHTML(status) {

@@ -19,7 +19,7 @@ function renderOverview() {
     setText("val-energy", SustDB.metrics.energyConsumed, " <small>GWh</small>");
     setText("val-water", SustDB.metrics.waterUsage, " <small>ML</small>");
     setText("val-emissions", SustDB.metrics.emissions, " <small>tCO₂e</small>");
-    
+
     // Dynamic Initiatives Count
     const activeInitsCount = SustDB.initiatives.filter(i => i.status !== "completed").length;
     setText("val-initiatives", activeInitsCount);
@@ -103,11 +103,11 @@ function renderRecentHighlights() {
 
     // Take the most recent 5
     const recent = highlights.slice(0, 5);
-    
+
     container.innerHTML = recent.map((h, index) => {
         // Simple color mappings
         const colorHex = h.color === 'green' ? '#10b981' : h.color === 'yellow' ? '#f59e0b' : h.color === 'gray' ? '#6b7280' : '#3b82f6';
-        
+
         // Relative time formatting
         const timeStr = new Date(h.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 

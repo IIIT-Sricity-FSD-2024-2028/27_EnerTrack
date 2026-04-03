@@ -11,7 +11,7 @@ function REPORT_PIPELINE_KEY() {
     try {
         const u = JSON.parse(localStorage.getItem('currentUser') || '{}');
         return 'et_sust_report_pipeline_' + (u.email || 'default');
-    } catch(_) { return 'et_sust_report_pipeline_default'; }
+    } catch (_) { return 'et_sust_report_pipeline_default'; }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -131,6 +131,7 @@ function wireGeneration() {
     if (!btn) return;
 
     btn.addEventListener("click", () => {
+        if (!validateReportForm()) return;
         // Capture Parameters
         const type = document.querySelector(".type-pill.active")?.dataset.reportType || "Monthly";
         const year = document.getElementById("yearSelect")?.querySelector(".select-value").textContent || "2026";
@@ -148,12 +149,13 @@ function wireGeneration() {
             const fromVal = document.getElementById("customDateFrom")?.value || "";
             const toVal = document.getElementById("customDateTo")?.value || "";
             if (fromVal && toVal) {
-                const fmt = (d) => new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+                const fmt = (d) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                 reportPeriod = `${fmt(fromVal)} – ${fmt(toVal)}`;
             } else {
                 reportPeriod = "Custom";
             }
         }
+        // if (!validateReportForm()) return;
 
         // Change button state
         btn.textContent = "Generating pipeline...";
@@ -163,7 +165,7 @@ function wireGeneration() {
         const steps = document.querySelectorAll(".pipeline-step");
         const circles = document.querySelectorAll(".pipeline-circle");
         const fillLine = document.querySelector(".pipeline-line-fill");
-        
+
         // Reset pipeline completely
         steps.forEach(s => s.classList.remove("active"));
         circles.forEach(c => c.classList.remove("active"));
@@ -187,23 +189,23 @@ function wireGeneration() {
 
                 btn.textContent = "Report Generated!";
                 btn.style.background = "#10b981";
-                
+
                 // Persist completed state
                 saveReportPipelineState('completed');
-                
+
                 // Add to Global Highlights
                 SustDB.addHighlight("Report Generated", `Period: ${reportPeriod}. ${reportTitle}`, "green");
-                
+
                 showToast("Report compiled successfully.", "success", 2000);
-                
+
                 setTimeout(() => {
                     showReportModal(reportTitle, reportPeriod);
-                    
+
                     // Reset button
                     btn.textContent = "Generate Report";
                     btn.disabled = false;
                     btn.style.opacity = "1";
-                    btn.style.background = ""; 
+                    btn.style.background = "";
                 }, 1000);
             }
         }, 600);
@@ -274,21 +276,41 @@ function showReportModal(title, period) {
 
 function resetReportingPipeline() {
     saveReportPipelineState('initial');
-    
+
     // Reset visual pipeline explicitly
     const steps = document.querySelectorAll(".pipeline-step");
     const circles = document.querySelectorAll(".pipeline-circle");
     const fillLine = document.querySelector(".pipeline-line-fill");
     const btn = document.querySelector(".btn-block-dark");
-    
+
     steps.forEach(s => s.classList.remove("active"));
     circles.forEach(c => c.classList.remove("active"));
     if (fillLine) fillLine.style.width = "0%";
-    
+
     if (btn) {
         btn.textContent = "Generate Report";
         btn.disabled = false;
         btn.style.opacity = "1";
-        btn.style.background = ""; 
+        btn.style.background = "";
     }
+}
+
+
+function validateReportForm() {
+    const type = document.querySelector(".type-pill.active")?.dataset.reportType;
+    if (type === "custom") {
+        const fromVal = document.getElementById("customDateFrom")?.value;
+        const toVal = document.getElementById("customDateTo")?.value;
+
+        if (!fromVal || !toVal) {
+            showToast("Please select both a From  and To date", "error");
+            return false;
+        }
+        if (new Date(fromVal) >= new Date(toVal)) {
+            showToast("From  date must be before the To date", "error");
+            return false;
+        }
+    }
+
+    return true;
 }
