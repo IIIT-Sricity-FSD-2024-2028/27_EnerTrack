@@ -1,0 +1,21 @@
+/* finance_shared.css */
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 280px;
+    height: 100vh;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+    flex-shrink: 0;
+}
+
+.content {
+    flex: 1;
+    height: 100vh;
+    overflow-y: auto;
+}

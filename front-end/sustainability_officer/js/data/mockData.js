@@ -11,10 +11,39 @@ const defaultData = {
     waterUsage: "18.6", // ML
     emissions: "1,284", // tCO₂e
     reportingSites: "9 / 10",
-    alertsResolved: 14,
     reductionProgress: 76,
     nextReviewDays: 6,
   },
+  alertsList: [
+    {
+      id: "a_1",
+      title: "HVAC High Energy Spike",
+      building: "Building B",
+      status: "resolved",
+      time: "2026-04-02T14:30:00Z",
+      messages: [
+        { id: "m_1", senderRole: "Technician", senderName: "Chirag (Tech)", time: "2026-04-02T15:10:00Z", text: "Found a faulty damper in AHU-2. Reset and manually recalibrated, power consumption is dropping now." }
+      ]
+    },
+    {
+      id: "a_2",
+      title: "Unexpected Water Flow",
+      building: "Cafeteria",
+      status: "resolved",
+      time: "2026-04-01T08:15:00Z",
+      messages: [
+        { id: "m_2", senderRole: "Technician", senderName: "Chirag (Tech)", time: "2026-04-01T09:40:00Z", text: "Kitchen sink valve was left open overnight. Closed it and adjusted motion sensors." }
+      ]
+    },
+    {
+      id: "a_3",
+      title: "Boiler Efficiency Drop",
+      building: "Heating Plant",
+      status: "active",
+      time: "2026-04-03T07:20:00Z",
+      messages: []
+    }
+  ],
   initiatives: [
     {
       id: "init_1",
@@ -99,18 +128,18 @@ const defaultData = {
     waterTrend: [48, 52, 45, 48],
     emissionsTrend: [55, 60, 50, 52],
     history: {
-        "30 Days": { 
-            e:[60, 75, 68, 65], w:[48, 52, 45, 48], m:[55, 60, 50, 52],
-            labels: ["Week 1", "Week 2", "Week 3", "Week 4"]
-        },
-        "Quarter": { 
-            e:[280, 310, 295], w:[12, 14, 11], m:[84, 92, 78],
-            labels: ["Month 1", "Month 2", "Month 3"]
-        },
-        "Year": { 
-            e:[1200, 1150, 1300, 1250], w:[45, 42, 48, 44], m:[320, 310, 340, 330],
-            labels: ["Q1", "Q2", "Q3", "Q4"]
-        }
+      "30 Days": {
+        e: [60, 75, 68, 65], w: [48, 52, 45, 48], m: [55, 60, 50, 52],
+        labels: ["Week 1", "Week 2", "Week 3", "Week 4"]
+      },
+      "Quarter": {
+        e: [280, 310, 295], w: [12, 14, 11], m: [84, 92, 78],
+        labels: ["Month 1", "Month 2", "Month 3"]
+      },
+      "Year": {
+        e: [1200, 1150, 1300, 1250], w: [45, 42, 48, 44], m: [320, 310, 340, 330],
+        labels: ["Q1", "Q2", "Q3", "Q4"]
+      }
     }
   }
 };
@@ -144,6 +173,22 @@ class SustDB {
   get initiatives() { return this.data.initiatives; }
   get monitoring() { return this.data.monitoring; }
   get highlights() { return this.data.highlights || []; }
+  get alertsList() { return this.data.alertsList || []; }
+
+  addAlertMessage(alertId, senderRole, senderName, text) {
+    const alert = this.data.alertsList.find(a => a.id === alertId);
+    if (alert) {
+      if (!alert.messages) alert.messages = [];
+      alert.messages.push({
+        id: "m" + Date.now().toString(36),
+        senderRole,
+        senderName,
+        text,
+        time: new Date().toISOString()
+      });
+      this.save();
+    }
+  }
 
   addHighlight(title, desc, color = "blue") {
     if (!this.data.highlights) this.data.highlights = [];
@@ -152,26 +197,26 @@ class SustDB {
     if (this.data.highlights.length > 50) this.data.highlights.pop(); // Keep bounded
     this.save();
   }
-  
+
   removeHighlight(id) {
     if (this.data.highlights) {
-        this.data.highlights = this.data.highlights.filter(h => h.id !== id);
-        this.save();
+      this.data.highlights = this.data.highlights.filter(h => h.id !== id);
+      this.save();
     }
   }
-  
+
   removeHighlightIndex(index) {
     if (this.data.highlights && index >= 0 && index < this.data.highlights.length) {
-        this.data.highlights.splice(index, 1);
-        this.save();
+      this.data.highlights.splice(index, 1);
+      this.save();
     }
   }
-  
+
   addInitiative(init) {
     this.data.initiatives.push(init);
     this.save();
   }
-  
+
   updateInitiative(id, changes) {
     const idx = this.data.initiatives.findIndex(i => i.id === id);
     if (idx !== -1) {

@@ -35,7 +35,7 @@ export function renderUpdates(containerId = "systemUpdatesContainer") {
 
 function buildUpdateCard(upd) {
   const isApplied = upd.status === "applied";
-  const actions = roleAllowed(["admin","superuser"]) ? `
+  const actions = roleAllowed(["admin", "superuser"]) ? `
     <div style="display:flex;gap:6px;justify-content:flex-end">
       ${!isApplied ? `
         <button class="btn-dark clickable"
@@ -70,31 +70,79 @@ function buildUpdateCard(upd) {
 /* ── RENDER (admin_overview.html) ─────────────────── */
 
 export function renderOverviewUpdates(containerId = "overviewUpdatesContainer") {
+  // const container = document.getElementById(containerId);
+  // if (!container) return;
+
+  // const updates = getUpdates().filter(u => u.status !== "applied");
+
+  // if (updates.length === 0) {
+  //   container.innerHTML = `<p style="color:#6b7280;text-align:center;padding:16px">All updates applied.</p>`;
+  //   return;
+  // }
+
+  // container.innerHTML = updates.map(upd => `
+  //   <div class="update-card" data-update-id="${upd.id}">
+  //     <div class="update-header">
+  //       <h4>${upd.title}</h4>
+  //       ${badgeHTML(upd.status)}
+  //     </div>
+  //     <p>${upd.details}</p>
+  //     <div class="update-footer">
+  //       <span>Est. downtime: ${upd.downtimeEst}</span>
+  //       <div style="display:flex;gap:8px">
+  //         ${roleAllowed(["admin", "superuser"]) ? `
+  //           <button class="btn-dark" onclick="UpdatesModule.applyUpdate('${upd.id}')">
+  //             Install Now
+  //           </button>
+  //           <button class="btn-outline" onclick="UpdatesModule.editUpdate('${upd.id}')">Reschedule</button>
+  //         ` : ""}
+  //       </div>
+  //     </div>
+  //   </div>
+  // `).join("");
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const updates = getUpdates().filter(u => u.status !== "applied");
+  // Merge pending system updates AND pending backup jobs
+  const pendingUpdates = EnerTrackDB.systemUpdates.filter(u => u.status !== "applied");
+  const pendingBackups = EnerTrackDB.backupJobs
+    .filter(job => job.status === "scheduled")
+    .map(job => ({
+      id: job.id,
+      title: job.name,
+      details: `Scope: ${job.scope} • Target: ${job.target}`,
+      downtimeEst: job.duration ?? "Unknown",
+      status: job.status,
+      _isBackup: true   // flag so we know which module to call
+    }));
 
-  if (updates.length === 0) {
+  const all = [...pendingUpdates, ...pendingBackups];
+
+  if (all.length === 0) {
     container.innerHTML = `<p style="color:#6b7280;text-align:center;padding:16px">All updates applied.</p>`;
     return;
   }
 
-  container.innerHTML = updates.map(upd => `
-    <div class="update-card" data-update-id="${upd.id}">
+  container.innerHTML = all.map(item => `
+    <div class="update-card" data-update-id="${item.id}">
       <div class="update-header">
-        <h4>${upd.title}</h4>
-        ${badgeHTML(upd.status)}
+        <h4>${item.title}</h4>
+        ${badgeHTML(item.status)}
       </div>
-      <p>${upd.details}</p>
+      <p>${item.details}</p>
       <div class="update-footer">
-        <span>Est. downtime: ${upd.downtimeEst}</span>
+        <span>Est. downtime: ${item.downtimeEst}</span>
         <div style="display:flex;gap:8px">
-          ${roleAllowed(["admin","superuser"]) ? `
-            <button class="btn-dark" onclick="UpdatesModule.applyUpdate('${upd.id}')">
-              <span data-icon="download"></span> Install Now
+          ${roleAllowed(["admin", "superuser"]) ? `
+            ${!item._isBackup ? `
+            <button class="btn-dark" onclick="UpdatesModule.applyUpdate('${item.id}')">
+              Install Now
             </button>
-            <button class="btn-outline" onclick="UpdatesModule.editUpdate('${upd.id}')">Reschedule</button>
+            ` : ""}
+            <button class="btn-outline" onclick="${item._isBackup
+        ? `BackupsModule.editBackupJob('${item.id}')`
+        : `UpdatesModule.editUpdate('${item.id}')`
+      }">Reschedule</button>
           ` : ""}
         </div>
       </div>
@@ -105,7 +153,7 @@ export function renderOverviewUpdates(containerId = "overviewUpdatesContainer") 
 /* ── CREATE ───────────────────────────────────────── */
 
 export function openAddUpdateModal() {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("You do not have permission to add updates.", "error");
     return;
   }
@@ -156,13 +204,13 @@ export function openAddUpdateModal() {
     confirmLabel: "Add Update",
     onConfirm: () => {
       const data = {
-        title:           (document.getElementById("au-title")?.value    ?? "").trim(),
-        description:     (document.getElementById("au-desc")?.value     ?? "").trim(),
-        details:         (document.getElementById("au-details")?.value  ?? "").trim(),
-        status:          (document.getElementById("au-status")?.value   ?? "").trim(),
-        downtimeEst:     (document.getElementById("au-downtime")?.value ?? "").trim(),
-        changeRequestId: (document.getElementById("au-crid")?.value     ?? "").trim() || null,
-        affectedNodes:   parseInt(document.getElementById("au-nodes")?.value ?? "1", 10)
+        title: (document.getElementById("au-title")?.value ?? "").trim(),
+        description: (document.getElementById("au-desc")?.value ?? "").trim(),
+        details: (document.getElementById("au-details")?.value ?? "").trim(),
+        status: (document.getElementById("au-status")?.value ?? "").trim(),
+        downtimeEst: (document.getElementById("au-downtime")?.value ?? "").trim(),
+        changeRequestId: (document.getElementById("au-crid")?.value ?? "").trim() || null,
+        affectedNodes: parseInt(document.getElementById("au-nodes")?.value ?? "1", 10)
       };
       addUpdate(data);
     }
@@ -171,10 +219,10 @@ export function openAddUpdateModal() {
 
 export function addUpdate(data) {
   const { valid, errors } = validateForm(data, {
-    title:       { required: true, minLength: 3 },
+    title: { required: true, minLength: 3 },
     description: { required: true, minLength: 3 },
-    details:     { required: true, minLength: 5 },
-    status:      { required: true },
+    details: { required: true, minLength: 5 },
+    status: { required: true },
     downtimeEst: { required: true, minLength: 1 }
   });
 
@@ -204,7 +252,7 @@ export function addUpdate(data) {
 /* ── APPLY ────────────────────────────────────────── */
 
 export function applyUpdate(id) {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("You do not have permission to apply updates.", "error");
     return;
   }
@@ -237,7 +285,7 @@ export function applyUpdate(id) {
 /* ── UPDATE ───────────────────────────────────────── */
 
 export function editUpdate(id) {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("You do not have permission to edit updates.", "error");
     return;
   }
@@ -261,10 +309,10 @@ export function editUpdate(id) {
           <div class="et-form-group">
             <label for="eu-status">Status *</label>
             <select id="eu-status">
-              <option value="not-applied" ${upd.status==="not-applied"?"selected":""}>Not Applied</option>
-              <option value="planned"     ${upd.status==="planned"    ?"selected":""}>Planned</option>
-              <option value="scheduled"   ${upd.status==="scheduled"  ?"selected":""}>Scheduled</option>
-              <option value="applied"     ${upd.status==="applied"    ?"selected":""}>Applied</option>
+              <option value="not-applied" ${upd.status === "not-applied" ? "selected" : ""}>Not Applied</option>
+              <option value="planned"     ${upd.status === "planned" ? "selected" : ""}>Planned</option>
+              <option value="scheduled"   ${upd.status === "scheduled" ? "selected" : ""}>Scheduled</option>
+              <option value="applied"     ${upd.status === "applied" ? "selected" : ""}>Applied</option>
             </select>
           </div>
           <div class="et-form-group">
@@ -287,12 +335,12 @@ export function editUpdate(id) {
     confirmLabel: "Save Changes",
     onConfirm: () => {
       const fields = {
-        title:           (document.getElementById("eu-title")?.value    ?? upd.title).trim(),
-        description:     (document.getElementById("eu-desc")?.value     ?? upd.description).trim(),
-        status:          (document.getElementById("eu-status")?.value   ?? upd.status).trim(),
-        downtimeEst:     (document.getElementById("eu-downtime")?.value ?? upd.downtimeEst).trim(),
-        changeRequestId: (document.getElementById("eu-crid")?.value     ?? "").trim() || null,
-        affectedNodes:   parseInt(document.getElementById("eu-nodes")?.value ?? upd.affectedNodes, 10)
+        title: (document.getElementById("eu-title")?.value ?? upd.title).trim(),
+        description: (document.getElementById("eu-desc")?.value ?? upd.description).trim(),
+        status: (document.getElementById("eu-status")?.value ?? upd.status).trim(),
+        downtimeEst: (document.getElementById("eu-downtime")?.value ?? upd.downtimeEst).trim(),
+        changeRequestId: (document.getElementById("eu-crid")?.value ?? "").trim() || null,
+        affectedNodes: parseInt(document.getElementById("eu-nodes")?.value ?? upd.affectedNodes, 10)
       };
       updateUpdate(id, fields);
     }
@@ -304,9 +352,9 @@ export function updateUpdate(id, fields) {
   if (idx === -1) { showToast("Update not found.", "error"); return false; }
 
   const { valid, errors } = validateForm(fields, {
-    title:       { required: true, minLength: 3 },
+    title: { required: true, minLength: 3 },
     description: { required: true, minLength: 3 },
-    status:      { required: true },
+    status: { required: true },
     downtimeEst: { required: true }
   });
 
@@ -326,7 +374,7 @@ export function updateUpdate(id, fields) {
 /* ── DELETE ───────────────────────────────────────── */
 
 export function deleteUpdate(id) {
-  if (!roleAllowed(["admin","superuser"])) {
+  if (!roleAllowed(["admin", "superuser"])) {
     showToast("You do not have permission to delete updates.", "error");
     return;
   }
