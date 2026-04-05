@@ -71,9 +71,14 @@ body {
   text-decoration: none;
 }
 
-.logo img {
+.logo .logo-icon {
   width: 24px;
   height: 24px;
+}
+
+.logo .logo-text {
+  width: auto;
+  height: 20px;
 }
 
 .nav-title {
