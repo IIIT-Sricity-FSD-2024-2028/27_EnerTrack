@@ -64,8 +64,16 @@
         /* Save current user to localStorage for persistence */
         localStorage.setItem("currentUser", JSON.stringify(user));
 
-        /* Redirect to landing page */
-        window.location.href = "../landing/landing.html";
+        /* Smart redirect based on role */
+        if (user.role === "Campus Visitor") {
+            window.location.href = "../enduser/enduser_dashboard.html";
+        } else if (user.role === "Technician") {
+            window.location.href = "../technician_jr/technician_jr_work_orders.html";
+        } else if (user.role === "Technician Administrator") {
+            window.location.href = "../technician/technician_overview.html";
+        } else {
+            window.location.href = "../landing/landing.html";
+        }
     });
 
 })();

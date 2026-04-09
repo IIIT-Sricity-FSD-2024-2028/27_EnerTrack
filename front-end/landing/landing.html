@@ -391,12 +391,20 @@
                         icon: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 2 8a7 7 0 0 1-7 7c0 1 0 3-2 3z"/>'
                     },
                     {
-                        role: 'Technician', label: 'Technician Dashboard', href: '../technician/technician_overview.html',
+                        role: 'Technician', label: 'My Work Orders', href: '../technician_jr/technician_jr_work_orders.html',
+                        icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'
+                    },
+                    {
+                        role: 'Technician Administrator', label: 'Technician Admin Dashboard', href: '../technician/technician_overview.html',
                         icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'
                     },
                     {
                         role: 'Financial Analyst', label: 'Finance Analyst Dashboard', href: '../finance-analyst/finance_overview.html',
                         icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'
+                    },
+                    {
+                        role: 'Campus Visitor', label: 'Report an Issue', href: '../enduser/enduser_dashboard.html',
+                        icon: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line>'
                     }
                 ];
 
@@ -439,7 +447,19 @@
                     var cardRole = card.getAttribute('data-role');
                     var cardHref = card.getAttribute('data-href');
 
-                    var isAllowed = (user.role === 'System Administrator') || (user.role === cardRole);
+                    var effectiveRole = user.role;
+                    if (user.role === 'Technician Administrator') effectiveRole = 'Technician';
+
+                    var isAllowed = (user.role === 'System Administrator') || (effectiveRole === cardRole);
+
+                    var targetHref = cardHref;
+                    if (cardRole === 'Technician') {
+                        if (user.role === 'Technician') {
+                            targetHref = '../technician_jr/technician_jr_work_orders.html';
+                        } else if (user.role === 'Technician Administrator') {
+                            targetHref = '../technician/technician_overview.html';
+                        }
+                    }
 
                     if (isAllowed) {
                         // Accessible card — green border + pointer
@@ -455,7 +475,7 @@
                             card.addEventListener('click', function () {
                                 window.location.href = href;
                             });
-                        })(cardHref);
+                        })(targetHref);
                     } else {
                         // Locked card — greyed out with lock icon
                         card.style.opacity = '0.5';
