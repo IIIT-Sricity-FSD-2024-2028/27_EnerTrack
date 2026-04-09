@@ -15,6 +15,7 @@ const defaultData = {
     // ── WORKFLOW-1 SHARED DATA ──────────────────────────────
     workflow: {
         serviceRequests: [],
+        wastageReports: [],
         categories: ["Electrical", "Plumbing", "HVAC", "General Maintenance", "Solar Installation"],
         technicians: [
             { name: "Elena", email: "elena@gmail.com", specialization: "Electrical" },

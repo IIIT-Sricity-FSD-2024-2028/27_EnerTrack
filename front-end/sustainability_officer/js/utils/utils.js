@@ -97,7 +97,10 @@ export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLab
   
   const confirmBtn = document.getElementById("btn-modal-confirm");
   confirmBtn.onclick = () => {
-    if (onConfirm) onConfirm();
+    if (onConfirm) {
+      const result = onConfirm();
+      if (result === false) return; // prevent close on validation failure
+    }
     close();
   };
   

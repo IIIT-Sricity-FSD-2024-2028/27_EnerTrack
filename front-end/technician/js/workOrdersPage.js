@@ -10,6 +10,7 @@ let selectedWOId = null;
 let selectedType = 'scheduled';
 
 document.addEventListener("DOMContentLoaded", () => {
+    populateTechnicianDropdown();
     try {
         initWorkOrders();
         console.log("TechWorkOrders: Initialized.");
@@ -17,6 +18,46 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("TechWorkOrders: Init error:", err);
     }
 });
+
+
+function populateTechnicianDropdown() {
+    const select = document.getElementById('inputTechnician');
+    if (!select) return;
+
+    // Seed MOCK_USERS if localStorage is empty
+    if (!localStorage.getItem('registeredUsers')) {
+        localStorage.setItem('registeredUsers', JSON.stringify(MOCK_USERS));
+    }
+
+    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    const techs = users.filter(u => u.role === 'Technician');
+
+
+    select.innerHTML = `<option value="">— Select —</option>` +
+        techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+}
+// function populateTechnicianDropdown() {
+//     const select = document.getElementById('inputTechnician');
+//     if (!select) return;
+
+//     // Get users from localStorage (registered via form)
+//     const storedUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+
+//     // Merge MOCK_USERS + storedUsers, avoid duplicates by email
+//     const allUsers = [...MOCK_USERS];
+//     storedUsers.forEach(stored => {
+//         const alreadyExists = allUsers.some(u => u.email === stored.email);
+//         if (!alreadyExists) allUsers.push(stored);
+//     });
+
+//     // Filter to Technicians only
+//     const techs = allUsers.filter(u => u.role === 'Technician');
+
+//     // select.innerHTML = `<option value="">— Select —</option>` +
+//     //     techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+// }
+
+
 
 function initWorkOrders() {
     renderBoard();
@@ -36,10 +77,10 @@ function initWorkOrders() {
 
 /* ─── Kanban Board Render ────────────────────────── */
 function renderBoard() {
-    renderColumn('woColNew',        'new');
-    renderColumn('woColApproval',   'approval');
+    renderColumn('woColNew', 'new');
+    renderColumn('woColApproval', 'approval');
     renderColumn('woColInProgress', 'inprogress');
-    renderColumn('woColReview',     'review');
+    renderColumn('woColReview', 'review');
     updateColumnCounts();
 }
 
@@ -101,18 +142,18 @@ function selectWorkOrder(id) {
     const checkSvg = `<svg width="14" height="14" style="vertical-align:middle; margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
     const crossSvg = `<svg width="14" height="14" style="vertical-align:middle; margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
     setEl('selectedWOParts', wo.parts ? `${checkSvg} Available` : `${crossSvg} Parts Needed`);
-    
+
     // Technician field updates dynamically
     setEl('selectedWOTechnician', wo.technician ? wo.technician : '<span style="color:#ef4444;font-style:italic">Unassigned (Rejected)</span>');
 
     // Update action buttons visibility
-    const submitBtn      = document.getElementById('btnSubmitForReview');
-    const closeBtn       = document.getElementById('btnCloseWO');
-    const orderPartsBtn  = document.getElementById('btnOrderParts');
-    const reassignBlock  = document.getElementById('reassignBlock');
+    const submitBtn = document.getElementById('btnSubmitForReview');
+    const closeBtn = document.getElementById('btnCloseWO');
+    const orderPartsBtn = document.getElementById('btnOrderParts');
+    const reassignBlock = document.getElementById('reassignBlock');
     const reassignSelect = document.getElementById('reassignTechSelect');
-    const reassignBtn    = document.getElementById('btnReassign');
-    
+    const reassignBtn = document.getElementById('btnReassign');
+
     if (reassignBlock) {
         if (wo.rejected) {
             reassignBlock.style.display = 'block';
@@ -134,10 +175,10 @@ function selectWorkOrder(id) {
     const notesBlock = document.getElementById('woCompletionNotesDisplay');
     if (wo.completionNotes) {
         if (!notesBlock) {
-             const div = document.createElement('div');
-             div.id = 'woCompletionNotesDisplay';
-             div.style.cssText = 'margin-top:12px; font-size:13px; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px;';
-             document.querySelector('.summary-grid').parentNode.appendChild(div);
+            const div = document.createElement('div');
+            div.id = 'woCompletionNotesDisplay';
+            div.style.cssText = 'margin-top:12px; font-size:13px; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px;';
+            document.querySelector('.summary-grid').parentNode.appendChild(div);
         }
         document.getElementById('woCompletionNotesDisplay').innerHTML = `<strong>Completion Notes:</strong><br/>${wo.completionNotes}`;
         document.getElementById('woCompletionNotesDisplay').style.display = 'block';
@@ -155,11 +196,11 @@ function selectWorkOrder(id) {
         renderBoard();
         selectWorkOrder(id);
     };
-    if (closeBtn)  closeBtn.onclick  = () => confirmCloseWO(id);
+    if (closeBtn) closeBtn.onclick = () => confirmCloseWO(id);
     if (orderPartsBtn) {
         orderPartsBtn.innerText = 'Submit Cost Estimate';
         orderPartsBtn.onclick = () => {
-            if(costEstBlock) costEstBlock.style.display = costEstBlock.style.display === 'none' ? 'block' : 'none';
+            if (costEstBlock) costEstBlock.style.display = costEstBlock.style.display === 'none' ? 'block' : 'none';
         };
     }
     const btnSubmitCostEst = document.getElementById('btnSubmitCostEst');
@@ -172,10 +213,10 @@ function selectWorkOrder(id) {
                 return;
             }
             const total = Number(materials) + Number(labor);
-            if(total > 0) {
-                TechDB.updateWorkOrder(id, { 
-                    status: 'approval', 
-                    estimate: { materials: Number(materials), labor: Number(labor), total, type: 'repair' } 
+            if (total > 0) {
+                TechDB.updateWorkOrder(id, {
+                    status: 'approval',
+                    estimate: { materials: Number(materials), labor: Number(labor), total, type: 'repair' }
                 });
                 showToast(`Cost estimate of $${total} submitted for approval.`, 'info');
                 if (costEstBlock) costEstBlock.style.display = 'none';
@@ -238,26 +279,26 @@ function wireTypeSelector() {
     });
 }
 
-window.triageRequest = function(id) {
+window.triageRequest = function (id) {
     const sr = TechDB.serviceRequests.find(s => s.id === id);
     if (!sr) return;
-    
+
     // Automatically open and scroll to the new work order form
     document.getElementById('newWOSetup')?.scrollIntoView({ behavior: 'smooth' });
-    
+
     // Fill the form fields
     const assetInput = document.getElementById('inputAsset');
     if (assetInput) {
         assetInput.value = `${sr.location} - ${sr.description}`;
     }
-    
+
     const priorityInput = document.getElementById('inputPriority');
     if (priorityInput && sr.priority) {
         let p = sr.priority.toLowerCase();
         if (p === 'critical') p = 'high';
         priorityInput.value = ['low', 'medium', 'high'].includes(p) ? p : 'medium';
     }
-    
+
     // We add an attribute to the form to track that this is a dispatched SR
     document.getElementById('newWOForm').dataset.linkedSrId = id;
 };
@@ -269,11 +310,11 @@ function wireNewWOForm() {
 
     form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const asset      = document.getElementById('inputAsset')?.value.trim();
-        const window_    = document.getElementById('inputWindow')?.value.trim();
-        const tech       = document.getElementById('inputTechnician')?.value;
-        const priority   = document.getElementById('inputPriority')?.value;
-        const parts      = document.getElementById('inputParts')?.value === 'yes';
+        const asset = document.getElementById('inputAsset')?.value.trim();
+        const window_ = document.getElementById('inputWindow')?.value.trim();
+        const tech = document.getElementById('inputTechnician')?.value;
+        const priority = document.getElementById('inputPriority')?.value;
+        const parts = document.getElementById('inputParts')?.value === 'yes';
 
         if (!asset || !tech) {
             showToast('Please fill in asset and assign a technician.', 'warning');
@@ -339,8 +380,8 @@ function renderArchive() {
 
 /* ─── Helpers ─────────────────────────────────────── */
 function cap(str) { if (!str) return '—'; return str.charAt(0).toUpperCase() + str.slice(1); }
-function setEl(id, val) { 
-    const el = document.getElementById(id); 
+function setEl(id, val) {
+    const el = document.getElementById(id);
     if (!el) return;
     if (String(val).includes('<svg')) el.innerHTML = val;
     else el.textContent = val;
@@ -350,20 +391,20 @@ function setEl(id, val) {
 function renderServiceRequests() {
     const container = document.getElementById("serviceRequestsContainer");
     if (!container) return;
-  
+
     // Combine both initially reported, and ones previously forwarded
     const requests = TechDB.serviceRequests.filter(sr => sr.status === 'Reported' || sr.status === 'Pending Category');
-    
+
     const countBadge = document.getElementById("pendingRequestsCount");
     if (countBadge) countBadge.textContent = `${requests.length} Pending`;
-  
+
     if (requests.length === 0) {
-      container.parentElement.style.display = 'none';
-      return;
+        container.parentElement.style.display = 'none';
+        return;
     } else {
-      container.parentElement.style.display = 'block';
+        container.parentElement.style.display = 'block';
     }
-  
+
     container.innerHTML = requests.map(sr => `
       <div class="alert-item card mb-12" style="border-left: 4px solid #f59e0b; padding: 12px; display: flex; align-items: center; justify-content: space-between;">
         <div style="flex:1">

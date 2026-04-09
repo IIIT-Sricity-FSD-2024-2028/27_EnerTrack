@@ -13,6 +13,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sidebarUserRole').textContent = user.role;
     document.getElementById('welcomeHeading').textContent = `Welcome, ${user.name}`;
 
+    // ── Pre-fill Email ───────────────────────────────────────
+    document.getElementById('userEmail').value = user.email;
+
+    // ── Form State Persistence ───────────────────────────────
+    const formStateKey = 'dashboardFormState';
+    
+    function saveFormState() {
+        const state = {
+            priority: document.getElementById('issuePriority').value
+        };
+        document.querySelectorAll('#issueReportForm input:not([type="hidden"]), #issueReportForm textarea, #issueReportForm select').forEach(el => {
+            if (el.id !== 'userEmail') state[el.id] = el.value;
+        });
+        sessionStorage.setItem(formStateKey, JSON.stringify(state));
+    }
+
     // ── Priority Selector ────────────────────────────────────
     const priorityInput = document.getElementById('issuePriority');
     document.querySelectorAll('.priority-btn').forEach(btn => {
@@ -23,20 +39,65 @@ document.addEventListener('DOMContentLoaded', () => {
             const p = btn.dataset.priority;
             btn.classList.add(`selected-${p.toLowerCase()}`);
             priorityInput.value = p;
+            saveFormState();
         });
     });
+
+    // ── Global Change Listener for Saving State ──────────────
+    document.getElementById('issueReportForm').addEventListener('input', (e) => {
+        if(e.target.id !== 'userEmail') {
+            saveFormState();
+            e.target.classList.remove('error-highlight');
+        }
+    });
+
+    // ── Load Persisted State ─────────────────────────────────
+    function loadPersistedState() {
+        const savedStateStr = sessionStorage.getItem(formStateKey);
+        if (savedStateStr) {
+            const state = JSON.parse(savedStateStr);
+            if (state.priority) {
+                priorityInput.value = state.priority;
+                document.querySelectorAll('.priority-btn').forEach(b => {
+                    b.classList.remove('selected-low', 'selected-medium', 'selected-high');
+                    if (b.dataset.priority === state.priority) {
+                        b.classList.add(`selected-${state.priority.toLowerCase()}`);
+                    }
+                });
+            }
+            Object.keys(state).forEach(id => {
+                const el = document.getElementById(id);
+                if (el && id !== 'priority') {
+                    el.value = state[id];
+                }
+            });
+        }
+    }
+    
+    loadPersistedState();
 
     // ── Form Submit ──────────────────────────────────────────
     document.getElementById('issueReportForm').addEventListener('submit', (e) => {
         e.preventDefault();
 
+        // Strict Validation
+        let isValid = true;
+        const formElements = document.querySelectorAll('#issueReportForm input, #issueReportForm textarea, #issueReportForm select');
+        formElements.forEach(el => {
+            if (el.required && !el.value.trim() && el.offsetParent !== null) {
+                el.classList.add('error-highlight');
+                isValid = false;
+            } else {
+                el.classList.remove('error-highlight');
+            }
+        });
+
+        if (!isValid) return;
+
         const location    = document.getElementById('issueLocation').value.trim();
         const description = document.getElementById('issueDescription').value.trim();
         const issueType   = document.getElementById('issueType').value;
         const priority    = priorityInput.value || 'Medium';
-        const contact     = document.getElementById('issueContact').value.trim();
-
-        if (!location || !description) return;
 
         const ticket = {
             id: 'SR-' + Date.now().toString(36).toUpperCase(),
@@ -47,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
             description,
             issueType: issueType || 'General Maintenance',
             priority,
-            contact: contact || null,
             status: 'Reported',
             category: null,
             assignedTo: null,
@@ -59,6 +119,10 @@ document.addEventListener('DOMContentLoaded', () => {
         universalDB.save();
 
         document.getElementById('issueReportForm').reset();
+        document.getElementById('userEmail').value = user.email; // Restore read-only email
+
+        sessionStorage.removeItem(formStateKey);
+        
         // Reset priority selection back to Medium
         document.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('selected-low','selected-medium','selected-high'));
         document.querySelector('[data-priority="Medium"]').classList.add('selected-medium');
