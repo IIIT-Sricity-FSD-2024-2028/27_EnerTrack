@@ -1,182 +1,28 @@
 /**
- * mockData.js
- * In-memory state synchronized with sessionStorage for the Sustainability Officer dashboard.
+ * mockData.js (Sustainability Officer Adapter)
+ * Redirects sust data access to the Universal DB.
  */
+import universalDB from '../../../shared/universalDB.js';
 
-const STORAGE_KEY = "et_sust_db_v1";
-
-const defaultData = {
-  metrics: {
-    energyConsumed: "4.9", // GWh
-    waterUsage: "18.6", // ML
-    emissions: "1,284", // tCO₂e
-    reportingSites: "9 / 10",
-    reductionProgress: 76,
-    nextReviewDays: 6,
-  },
-  alertsList: [
-    {
-      id: "a_1",
-      title: "HVAC High Energy Spike",
-      building: "Building B",
-      status: "resolved",
-      time: "2026-04-02T14:30:00Z",
-      messages: [
-        { id: "m_1", senderRole: "Technician", senderName: "Chirag (Tech)", time: "2026-04-02T15:10:00Z", text: "Found a faulty damper in AHU-2. Reset and manually recalibrated, power consumption is dropping now." }
-      ]
-    },
-    {
-      id: "a_2",
-      title: "Unexpected Water Flow",
-      building: "Cafeteria",
-      status: "resolved",
-      time: "2026-04-01T08:15:00Z",
-      messages: [
-        { id: "m_2", senderRole: "Technician", senderName: "Chirag (Tech)", time: "2026-04-01T09:40:00Z", text: "Kitchen sink valve was left open overnight. Closed it and adjusted motion sensors." }
-      ]
-    },
-    {
-      id: "a_3",
-      title: "Boiler Efficiency Drop",
-      building: "Heating Plant",
-      status: "active",
-      time: "2026-04-03T07:20:00Z",
-      messages: []
-    }
-  ],
-  initiatives: [
-    {
-      id: "init_1",
-      title: "HVAC After-Hours Automation",
-      status: "proposed",
-      feasible: true,
-      target: "7.5%",
-      cost: "₹56,500",
-      timeline: "5 weeks",
-      description: "Automate HVAC for night shifts."
-    },
-    {
-      id: "init_2",
-      title: "Solar Carport Phase 1",
-      status: "proposed",
-      feasible: false,
-      target: "14%",
-      cost: "₹198,000",
-      timeline: "16 weeks",
-      description: "Cover parking lot A with solar panels."
-    },
-    {
-      id: "init_3",
-      title: "LED Lighting Retrofit",
-      status: "in-progress",
-      feasible: true,
-      target: "12%",
-      cost: "₹64,000",
-      timeline: "8 weeks",
-      description: "Replace fluorescent lights in two buildings."
-    },
-    {
-      id: "init_4",
-      title: "Chiller Optimization Tuning",
-      status: "in-progress",
-      feasible: true,
-      target: "6.1%",
-      cost: "₹19,400",
-      timeline: "6 weeks",
-      description: "Optimize base load cooling."
-    },
-    {
-      id: "init_5",
-      title: "Boiler Insulation Upgrade",
-      status: "approved",
-      feasible: true,
-      target: "5%",
-      cost: "₹31,200",
-      timeline: "3 weeks",
-      description: "Enhance insulation for primary heating."
-    },
-    {
-      id: "init_6",
-      title: "Compressed Air Leak Program",
-      status: "approved",
-      feasible: true,
-      target: "4.4%",
-      cost: "₹9,700",
-      timeline: "4 weeks",
-      description: "Identify and seal factory leaks."
-    },
-    {
-      id: "init_7",
-      title: "Server Room Cooling Reset",
-      status: "completed",
-      feasible: true,
-      outcomes: ["16 MWh saved", "41 tCO₂e reduced", "₹14,400 saved"],
-      description: "Raise server temps dynamically."
-    },
-    {
-      id: "init_8",
-      title: "Kitchen Equipment Shutdown Policy",
-      status: "completed",
-      feasible: true,
-      outcomes: ["28 MWh saved", "82 tCO₂e reduced", "₹6,700 saved"],
-      description: "Ensure idle ovens are disabled."
-    }
-  ],
-  monitoring: {
-    lastSync: "Today, 10:42 AM",
-    energyTrend: [60, 75, 68, 65],
-    waterTrend: [48, 52, 45, 48],
-    emissionsTrend: [55, 60, 50, 52],
-    history: {
-      "30 Days": {
-        e: [60, 75, 68, 65], w: [48, 52, 45, 48], m: [55, 60, 50, 52],
-        labels: ["Week 1", "Week 2", "Week 3", "Week 4"]
-      },
-      "Quarter": {
-        e: [280, 310, 295], w: [12, 14, 11], m: [84, 92, 78],
-        labels: ["Month 1", "Month 2", "Month 3"]
-      },
-      "Year": {
-        e: [1200, 1150, 1300, 1250], w: [45, 42, 48, 44], m: [320, 310, 340, 330],
-        labels: ["Q1", "Q2", "Q3", "Q4"]
-      }
-    }
-  }
-};
-
-// Singleton wrapper to manage sync
 class SustDB {
-  constructor() {
-    this.data = this._loadData();
-  }
+  get metrics() { return universalDB.data.sust.metrics; }
+  get initiatives() { return universalDB.data.sust.initiatives; }
+  get monitoring() { return universalDB.data.sust.monitoring; }
+  get highlights() { return universalDB.data.sust.highlights; }
+  get alertsList() { return universalDB.data.sust.alertsList; }
 
-  _loadData() {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Deep merge or at least ensure new top-level keys like 'monitoring' exist
-        return { ...JSON.parse(JSON.stringify(defaultData)), ...parsed };
-      }
-    } catch (e) {
-      console.error("Failed to load DB", e);
-    }
-    return JSON.parse(JSON.stringify(defaultData));
-  }
+  set metrics(val) { universalDB.data.sust.metrics = val; universalDB.save(); }
+  set initiatives(val) { universalDB.data.sust.initiatives = val; universalDB.save(); }
+  set monitoring(val) { universalDB.data.sust.monitoring = val; universalDB.save(); }
+  set highlights(val) { universalDB.data.sust.highlights = val; universalDB.save(); }
+  set alertsList(val) { universalDB.data.sust.alertsList = val; universalDB.save(); }
 
   save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+    universalDB.save();
   }
 
-  // Helpers
-  get metrics() { return this.data.metrics; }
-  get initiatives() { return this.data.initiatives; }
-  get monitoring() { return this.data.monitoring; }
-  get highlights() { return this.data.highlights || []; }
-  get alertsList() { return this.data.alertsList || []; }
-
   addAlertMessage(alertId, senderRole, senderName, text) {
-    const alert = this.data.alertsList.find(a => a.id === alertId);
+    const alert = this.alertsList.find(a => a.id === alertId);
     if (alert) {
       if (!alert.messages) alert.messages = [];
       alert.messages.push({
@@ -191,48 +37,48 @@ class SustDB {
   }
 
   addHighlight(title, desc, color = "blue") {
-    if (!this.data.highlights) this.data.highlights = [];
+    if (!this.highlights) { universalDB.data.sust.highlights = []; }
     const syncId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-    this.data.highlights.unshift({ id: syncId, title, desc, color, time: Date.now() });
-    if (this.data.highlights.length > 50) this.data.highlights.pop(); // Keep bounded
+    this.highlights.unshift({ id: syncId, title, desc, color, time: Date.now() });
+    if (this.highlights.length > 50) this.highlights.pop(); // Keep bounded
     this.save();
   }
 
   removeHighlight(id) {
-    if (this.data.highlights) {
-      this.data.highlights = this.data.highlights.filter(h => h.id !== id);
+    if (this.highlights) {
+      universalDB.data.sust.highlights = this.highlights.filter(h => h.id !== id);
       this.save();
     }
   }
 
   removeHighlightIndex(index) {
-    if (this.data.highlights && index >= 0 && index < this.data.highlights.length) {
-      this.data.highlights.splice(index, 1);
+    if (this.highlights && index >= 0 && index < this.highlights.length) {
+      this.highlights.splice(index, 1);
       this.save();
     }
   }
 
   addInitiative(init) {
-    this.data.initiatives.push(init);
+    this.initiatives.push(init);
     this.save();
   }
 
   updateInitiative(id, changes) {
-    const idx = this.data.initiatives.findIndex(i => i.id === id);
+    const idx = this.initiatives.findIndex(i => i.id === id);
     if (idx !== -1) {
-      this.data.initiatives[idx] = { ...this.data.initiatives[idx], ...changes };
+      this.initiatives[idx] = { ...this.initiatives[idx], ...changes };
       this.save();
     }
   }
 
   deleteInitiative(id) {
-    this.data.initiatives = this.data.initiatives.filter(i => i.id !== id);
+    universalDB.data.sust.initiatives = this.initiatives.filter(i => i.id !== id);
     this.save();
   }
 
   reset() {
-    this.data = JSON.parse(JSON.stringify(defaultData));
-    this.save();
+    // universalDB.reset() resets everything. For modular reset, not fully replicating.
+    universalDB.reset();
   }
 }
 

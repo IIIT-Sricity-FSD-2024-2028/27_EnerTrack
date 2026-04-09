@@ -21,9 +21,13 @@ document.addEventListener("DOMContentLoaded", () => {
 function initWorkOrders() {
     renderBoard();
     renderArchive();
+    renderServiceRequests();
     wireTypeSelector();
     wireNewWOForm();
     wireInitiateBtn();
+
+    // Unassigned tasks popup removed by User request
+
 
     // Select first WO by default
     const first = TechDB.workOrders.find(w => w.status !== 'closed');
@@ -33,6 +37,7 @@ function initWorkOrders() {
 /* ─── Kanban Board Render ────────────────────────── */
 function renderBoard() {
     renderColumn('woColNew',        'new');
+    renderColumn('woColApproval',   'approval');
     renderColumn('woColInProgress', 'inprogress');
     renderColumn('woColReview',     'review');
     updateColumnCounts();
@@ -44,7 +49,7 @@ function renderColumn(containerId, status) {
 
     const orders = TechDB.workOrders.filter(w => w.status === status);
     container.innerHTML = orders.map(wo => `
-        <div class="task-card ${wo.id === selectedWOId ? 'selected-task' : ''}" data-wo-id="${wo.id}">
+        <div class="task-card ${wo.id === selectedWOId ? 'selected-task' : ''}" data-wo-id="${wo.id}" style="${wo.rejected ? 'border: 1.5px solid #ef4444; background: #fff1f2;' : ''}">
             <div class="task-title">
                 ${wo.id}
                 <span class="priority-tag priority-${wo.priority}">${cap(wo.priority)}</span>
@@ -69,9 +74,10 @@ function renderColumn(containerId, status) {
 }
 
 function updateColumnCounts() {
-    const counts = { new: 0, inprogress: 0, review: 0 };
+    const counts = { new: 0, approval: 0, inprogress: 0, review: 0 };
     TechDB.workOrders.forEach(w => { if (counts[w.status] !== undefined) counts[w.status]++; });
     setEl('countNew', counts.new);
+    setEl('countApproval', counts.approval);
     setEl('countInProgress', counts.inprogress);
     setEl('countReview', counts.review);
 }
@@ -95,17 +101,87 @@ function selectWorkOrder(id) {
     const checkSvg = `<svg width="14" height="14" style="vertical-align:middle; margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
     const crossSvg = `<svg width="14" height="14" style="vertical-align:middle; margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
     setEl('selectedWOParts', wo.parts ? `${checkSvg} Available` : `${crossSvg} Parts Needed`);
+    
+    // Technician field updates dynamically
+    setEl('selectedWOTechnician', wo.technician ? wo.technician : '<span style="color:#ef4444;font-style:italic">Unassigned (Rejected)</span>');
 
     // Update action buttons visibility
     const submitBtn      = document.getElementById('btnSubmitForReview');
     const closeBtn       = document.getElementById('btnCloseWO');
     const orderPartsBtn  = document.getElementById('btnOrderParts');
+    const reassignBlock  = document.getElementById('reassignBlock');
+    const reassignSelect = document.getElementById('reassignTechSelect');
+    const reassignBtn    = document.getElementById('btnReassign');
+    
+    if (reassignBlock) {
+        if (wo.rejected) {
+            reassignBlock.style.display = 'block';
+            reassignBtn.onclick = () => {
+                if (reassignSelect && reassignSelect.value) {
+                    TechDB.updateWorkOrder(id, { technician: reassignSelect.value, rejected: false });
+                    showToast(`Assigned ${id} to ${reassignSelect.value}`, 'success');
+                    renderBoard();
+                    selectWorkOrder(id);
+                } else {
+                    showToast('Please select a technician.', 'warning');
+                }
+            };
+        } else {
+            reassignBlock.style.display = 'none';
+        }
+    }
 
-    if (submitBtn) submitBtn.onclick = () => moveWOStatus(id, 'review');
+    const notesBlock = document.getElementById('woCompletionNotesDisplay');
+    if (wo.completionNotes) {
+        if (!notesBlock) {
+             const div = document.createElement('div');
+             div.id = 'woCompletionNotesDisplay';
+             div.style.cssText = 'margin-top:12px; font-size:13px; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px;';
+             document.querySelector('.summary-grid').parentNode.appendChild(div);
+        }
+        document.getElementById('woCompletionNotesDisplay').innerHTML = `<strong>Completion Notes:</strong><br/>${wo.completionNotes}`;
+        document.getElementById('woCompletionNotesDisplay').style.display = 'block';
+    } else if (notesBlock) {
+        notesBlock.style.display = 'none';
+    }
+
+    const costEstBlock = document.getElementById('costEstimateBlock');
+    if (costEstBlock) costEstBlock.style.display = 'none'; // reset visibility
+
+    if (submitBtn) submitBtn.onclick = () => {
+        const notes = document.getElementById('completionNotes')?.value;
+        TechDB.updateWorkOrder(id, { status: 'review', completionNotes: notes || '' });
+        showToast(`Work order ${id} moved to Review.`, 'success');
+        renderBoard();
+        selectWorkOrder(id);
+    };
     if (closeBtn)  closeBtn.onclick  = () => confirmCloseWO(id);
     if (orderPartsBtn) {
+        orderPartsBtn.innerText = 'Submit Cost Estimate';
         orderPartsBtn.onclick = () => {
-            showToast(`Parts order initiated for ${id}.`, 'info');
+            if(costEstBlock) costEstBlock.style.display = costEstBlock.style.display === 'none' ? 'block' : 'none';
+        };
+    }
+    const btnSubmitCostEst = document.getElementById('btnSubmitCostEst');
+    if (btnSubmitCostEst) {
+        btnSubmitCostEst.onclick = () => {
+            const materials = document.getElementById('estMaterials').value;
+            const labor = document.getElementById('estLabor').value;
+            if (!materials || !labor) {
+                showToast("Please enter both materials and labor costs.", "warning");
+                return;
+            }
+            const total = Number(materials) + Number(labor);
+            if(total > 0) {
+                TechDB.updateWorkOrder(id, { 
+                    status: 'approval', 
+                    estimate: { materials: Number(materials), labor: Number(labor), total, type: 'repair' } 
+                });
+                showToast(`Cost estimate of $${total} submitted for approval.`, 'info');
+                if (costEstBlock) costEstBlock.style.display = 'none';
+                renderBoard();
+                selectWorkOrder(id);
+            }
         };
     }
 
@@ -162,6 +238,30 @@ function wireTypeSelector() {
     });
 }
 
+window.triageRequest = function(id) {
+    const sr = TechDB.serviceRequests.find(s => s.id === id);
+    if (!sr) return;
+    
+    // Automatically open and scroll to the new work order form
+    document.getElementById('newWOSetup')?.scrollIntoView({ behavior: 'smooth' });
+    
+    // Fill the form fields
+    const assetInput = document.getElementById('inputAsset');
+    if (assetInput) {
+        assetInput.value = `${sr.location} - ${sr.description}`;
+    }
+    
+    const priorityInput = document.getElementById('inputPriority');
+    if (priorityInput && sr.priority) {
+        let p = sr.priority.toLowerCase();
+        if (p === 'critical') p = 'high';
+        priorityInput.value = ['low', 'medium', 'high'].includes(p) ? p : 'medium';
+    }
+    
+    // We add an attribute to the form to track that this is a dispatched SR
+    document.getElementById('newWOForm').dataset.linkedSrId = id;
+};
+
 /* ─── Create New WO form ─────────────────────────── */
 function wireNewWOForm() {
     const form = document.getElementById('newWOForm');
@@ -191,9 +291,20 @@ function wireNewWOForm() {
             linkedFault: null,
         };
 
+        const linkedSrId = form.dataset.linkedSrId;
+        if (linkedSrId) {
+            const sr = TechDB.serviceRequests.find(s => s.id === linkedSrId);
+            if (sr) {
+                sr.status = 'Dispatched';
+            }
+            newWO.sourceRequest = linkedSrId;
+            form.removeAttribute('data-linked-sr-id');
+        }
+
         TechDB.addWorkOrder(newWO);
         showToast(`Work order ${newWO.id} created successfully.`, 'success');
         form.reset();
+        renderServiceRequests();
         renderBoard();
     });
 }
@@ -233,4 +344,36 @@ function setEl(id, val) {
     if (!el) return;
     if (String(val).includes('<svg')) el.innerHTML = val;
     else el.textContent = val;
+}
+
+/* ─── Service Requests Triage ──────────────────────── */
+function renderServiceRequests() {
+    const container = document.getElementById("serviceRequestsContainer");
+    if (!container) return;
+  
+    // Combine both initially reported, and ones previously forwarded
+    const requests = TechDB.serviceRequests.filter(sr => sr.status === 'Reported' || sr.status === 'Pending Category');
+    
+    const countBadge = document.getElementById("pendingRequestsCount");
+    if (countBadge) countBadge.textContent = `${requests.length} Pending`;
+  
+    if (requests.length === 0) {
+      container.parentElement.style.display = 'none';
+      return;
+    } else {
+      container.parentElement.style.display = 'block';
+    }
+  
+    container.innerHTML = requests.map(sr => `
+      <div class="alert-item card mb-12" style="border-left: 4px solid #f59e0b; padding: 12px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="flex:1">
+          <h4 style="margin:0 0 4px 0;font-size:14px;color:var(--text-main);">${sr.location}</h4>
+          <p style="margin:0;font-size:13px;color:var(--text-muted);">${sr.description}</p>
+          <div style="font-size:11px;color:#888;margin-top:4px;">Reported by ${sr.reporterName} • ${new Date(sr.timestamp).toLocaleDateString()}</div>
+        </div>
+        <div>
+          <button class="btn btn-dark" style="padding: 6px 12px; font-size: 12px;" onclick="triageRequest('${sr.id}')">Create Work Order -></button>
+        </div>
+      </div>
+    `).join('');
 }

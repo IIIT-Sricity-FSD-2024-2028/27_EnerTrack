@@ -27,7 +27,21 @@ var MOCK_USERS = [
         email: "chirag@gmail.com",
         phone: "9876543212",
         password: "Chirag@123",
+        role: "Technician Administrator"
+    },
+    {
+        name: "Elena",
+        email: "elena@gmail.com",
+        phone: "9876543214",
+        password: "Elena@123",
         role: "Technician"
+    },
+    {
+        name: "Alex",
+        email: "alex@gmail.com",
+        phone: "9876543215",
+        password: "Alex@123",
+        role: "Campus Visitor"
     },
     {
         name: "Viksa",
