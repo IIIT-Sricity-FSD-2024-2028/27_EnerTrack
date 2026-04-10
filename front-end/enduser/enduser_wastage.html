@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EnerTrack – Campus Visitor Portal</title>
+  <link rel="stylesheet" href="../technician/tech_shared.css">
+  <style>
+    /* ── Layout ── */
+    .eu-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media(max-width:900px) {
+      .eu-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── Form Card ── */
+    .report-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px -4px var(--shadow);
+      overflow: hidden;
+    }
+
+    .report-card-header {
+      background: linear-gradient(135deg, #059669 0%, #065f46 100%);
+      padding: 24px 28px;
+      color: white;
+    }
+
+    .report-card-header h2 {
+      margin: 0 0 4px 0;
+      font-size: 18px;
+    }
+
+    .report-card-header p {
+      margin: 0;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    .report-card-body {
+      padding: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      transition: border-color .2s;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #059669;
+    }
+
+    .error-highlight {
+      border-color: #ef4444 !important;
+      background-color: #fef2f2 !important;
+    }
+
+    .priority-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .priority-btn {
+      padding: 10px 6px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      transition: all .18s;
+    }
+
+    .priority-btn.selected-low {
+      border-color: #22c55e;
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .priority-btn.selected-medium {
+      border-color: #f59e0b;
+      background: #fffbeb;
+      color: #92400e;
+    }
+
+    .priority-btn.selected-high {
+      border-color: #ef4444;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, #059669, #047857);
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover {
+      opacity: .88;
+      transform: translateY(-1px);
+    }
+
+    /* ── Dynamic Field States ── */
+    #dynamicFields>div {
+      display: none;
+    }
+
+    #dynamicFields.show-Energy>.field-Energy {
+      display: block;
+      animation: slideIn 0.3s ease-out forwards;
+    }
+
+    #dynamicFields.show-Water>.field-Water {
+      display: block;
+      animation: slideIn 0.3s ease-out forwards;
+    }
+
+    #dynamicFields.show-Emissions>.field-Emissions {
+      display: block;
+      animation: slideIn 0.3s ease-out forwards;
+    }
+
+    #dynamicFields.show-Food>.field-Food {
+      display: block;
+      animation: slideIn 0.3s ease-out forwards;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+
+    /* ── Right Panel ── */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .info-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 20px -4px var(--shadow);
+    }
+
+    .info-card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 14px 0;
+      color: #059669;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Status timeline */
+    .timeline {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .timeline li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding-bottom: 20px;
+      position: relative;
+    }
+
+    .timeline li:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 14px;
+      top: 28px;
+      width: 2px;
+      height: calc(100% - 28px);
+      background: var(--border);
+    }
+
+    .tl-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tl-dot.done {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .tl-dot.active {
+      background: #059669;
+      color: white;
+    }
+
+    .tl-dot.pending {
+      background: #f3f4f6;
+      color: #9ca3af;
+      border: 1.5px dashed #d1d5db;
+    }
+
+    .tl-label {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0 0 2px 0;
+      color: var(--dark);
+    }
+
+    .tl-desc {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    /* Tips */
+    .tip-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      margin-bottom: 12px;
+      color: #374151;
+    }
+
+    .tip-dot {
+      flex-shrink: 0;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #059669;
+      margin-top: 6px;
+    }
+
+    /* ── Ticket List ── */
+    .ticket-section {
+      margin-top: 32px;
+    }
+
+    .ticket-section h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ticket-count {
+      background: #059669;
+      color: white;
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-size: 12px;
+    }
+
+    .ticket-card {
+      background: white;
+      padding: 18px 20px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      transition: box-shadow .2s;
+    }
+
+    .ticket-card:hover {
+      box-shadow: 0 4px 12px -2px var(--shadow);
+    }
+
+    .ticket-meta {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 6px;
+    }
+
+    .ticket-location {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: #374151;
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 6px;
+    }
+
+    .ticket-priority {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    .ticket-status {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .status-reported {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-forwarded {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .status-dispatched {
+      background: #ede9fe;
+      color: #5b21b6;
+    }
+
+    .status-progress {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .status-resolved {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-closed {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      background: white;
+      border-radius: 12px;
+      border: 2px dashed var(--border);
+    }
+
+    .empty-state p {
+      color: #9ca3af;
+      font-size: 14px;
+      margin: 8px 0 0;
+    }
+
+    /* Success toast */
+    .eu-toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: #059669;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all .35s cubic-bezier(.34, 1.56, .64, 1);
+      z-index: 9999;
+    }
+
+    .eu-toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div>
+        <a href="../landing/landing.html" class="logo">
+          <img src="../finance-analyst/images/logo.png" alt="EnerTrack Logo" class="logo-icon">
+          <img src="../finance-analyst/images/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
+        </a>
+        <div class="nav-title">Navigation</div>
+        <ul class="nav">
+          <a href="enduser_dashboard.html">
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                <line x1="4" y1="22" x2="4" y2="15"></line>
+              </svg>
+              Report an Issue
+            </li>
+          </a>
+          <a href="enduser_wastage.html">
+            <li class="active">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              Report Wastage
+            </li>
+          </a>
+          <!-- <a href="#ticketSection"><li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          My Submissions
+        </li></a> -->
+        </ul>
+      </div>
+      <div class="profile" style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <img src="https://i.pravatar.cc/40?img=12" alt="User Profile" style="border-radius:50%;">
+          <div>
+            <div class="profile-name" id="sidebarUserName">Campus Visitor</div>
+            <div class="profile-role" id="sidebarUserRole">Campus Visitor</div>
+          </div>
+        </div>
+        <button title="Sign Out" style="background:none;border:none;cursor:pointer;opacity:0.6;"
+          onclick="localStorage.removeItem('currentUser'); window.location.href='../landing/landing.html';">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <div class="header-row">
+        <div class="page-header">
+          <h1 id="welcomeHeading">Report Wastage</h1>
+          <p>Help us improve our campus sustainability by logging cases of energy, water, emissions or food wastage.</p>
+        </div>
+      </div>
+
+      <div class="eu-grid">
+
+        <!-- LEFT: Form -->
+        <div>
+          <div class="report-card">
+            <div class="report-card-header">
+              <h2>New Wastage Report</h2>
+              <p>Our Sustainability Officers will directly analyze and resolve this issue.</p>
+            </div>
+            <div class="report-card-body">
+              <form id="wastageReportForm">
+
+                <!-- 1. Wastage Type Dropdown -->
+                <div class="form-group">
+                  <label>Wastage Category</label>
+                  <select id="wastageType" required>
+                    <option value="" disabled selected>Select the type of wastage...</option>
+                    <option value="Energy">Energy Wastage</option>
+                    <option value="Water">Water Wastage</option>
+                    <option value="Emissions">Emissions Issue</option>
+                    <option value="Food">Food Wastage</option>
+                  </select>
+                </div>
+
+                <!-- 2. Dynamic specific fields -->
+                <div id="dynamicFields">
+
+                  <!-- ENERGY -->
+                  <div class="field-Energy">
+                    <div class="form-group">
+                      <label>Building</label>
+                      <input type="text" id="energyBuilding" placeholder="e.g., Block B">
+                    </div>
+                    <div class="form-group">
+                      <label>Area / Room Category</label>
+                      <input type="text" id="energyArea" placeholder="e.g., 2nd Floor Corridor">
+                    </div>
+                    <div class="form-group">
+                      <label>Observation</label>
+                      <textarea id="energyObservation" rows="3"
+                        placeholder="e.g., Lights left on all night continuously..."></textarea>
+                    </div>
+                  </div>
+
+                  <!-- WATER -->
+                  <div class="field-Water">
+                    <div class="form-group">
+                      <label>Location</label>
+                      <input type="text" id="waterLocation" placeholder="e.g., Cafeteria Kitchen">
+                    </div>
+                    <div class="form-group">
+                      <label>Nature of Wastage</label>
+                      <textarea id="waterNature" rows="3"
+                        placeholder="e.g., Faucet leaking large amounts..."></textarea>
+                    </div>
+                  </div>
+
+                  <!-- EMISSIONS -->
+                  <div class="field-Emissions">
+                    <div class="form-group">
+                      <label>Source</label>
+                      <input type="text" id="emissionsSource" placeholder="e.g., Boiler, Backup Generator, Vehicle">
+                    </div>
+                    <div class="form-group">
+                      <label>Location</label>
+                      <input type="text" id="emissionsLocation" placeholder="e.g., Central Heating Plant">
+                    </div>
+                    <div class="form-group">
+                      <label>Observation</label>
+                      <textarea id="emissionsObservation" rows="3"
+                        placeholder="e.g., Thick black smoke observed..."></textarea>
+                    </div>
+                  </div>
+
+                  <!-- FOOD -->
+                  <div class="field-Food">
+                    <div class="form-group">
+                      <label>Cafeteria / Dining Area</label>
+                      <input type="text" id="foodCafeteria" placeholder="e.g., Main Student Dining Block">
+                    </div>
+                    <div class="form-group">
+                      <label>Type of Wastage</label>
+                      <input type="text" id="foodType" placeholder="e.g., Leftover cooked meals, expired raw items">
+                    </div>
+                    <div class="form-group">
+                      <label>Estimated Amount (kg)</label>
+                      <input type="number" id="foodAmount" placeholder="e.g., 20" min="0">
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- General Shared Details -->
+                <div class="form-group">
+                  <label>Priority / Severity</label>
+                  <div class="priority-grid" id="priorityGrid">
+                    <button type="button" class="priority-btn selected-low" data-priority="Low">Low<br><span
+                        style="font-weight:400;font-size:11px;">Minor wastage</span></button>
+                    <button type="button" class="priority-btn" data-priority="Medium">Medium<br><span
+                        style="font-weight:400;font-size:11px;">Significant</span></button>
+                    <button type="button" class="priority-btn" data-priority="High">High<br><span
+                        style="font-weight:400;font-size:11px;">Massive/Severe</span></button>
+                  </div>
+                  <input type="hidden" id="issuePriority" value="Low">
+                </div>
+
+                <div class="form-group">
+                  <label>Email Address</label>
+                  <input type="email" id="userEmail" readonly required>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9z"></path>
+                    <path d="M12 3a9 9 0 0 0 9 9H3a9 9 0 0 0 9-9z"></path>
+                  </svg>
+                  Log Wastage Report
+                </button>
+
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Info Panel -->
+        <div class="right-panel">
+
+          <!-- Flow -->
+          <div class="info-card">
+            <h3>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+              Sustainability Audit Flow
+            </h3>
+            <ul class="timeline">
+              <li>
+                <div class="tl-dot done">1</div>
+                <div>
+                  <p class="tl-label">Observation Logging</p>
+                  <p class="tl-desc">You observe and document exactly where waste is happening.</p>
+                </div>
+              </li>
+              <li>
+                <div class="tl-dot active">2</div>
+                <div>
+                  <p class="tl-label">System Cross-Check</p>
+                  <p class="tl-desc">We correlate your report with real-time IoT campus sensor data.</p>
+                </div>
+              </li>
+              <li>
+                <div class="tl-dot pending">3</div>
+                <div>
+                  <p class="tl-label">Officer Audit</p>
+                  <p class="tl-desc">Our Sustainability Officer validates and compiles the footprint report.</p>
+                </div>
+              </li>
+              <li>
+                <div class="tl-dot pending">4</div>
+                <div>
+                  <p class="tl-label">Finance Review</p>
+                  <p class="tl-desc">Analysts assign ROI impacts to justify process change.</p>
+                </div>
+              </li>
+              <li>
+                <div class="tl-dot pending">5</div>
+                <div>
+                  <p class="tl-label">Target Adjusted</p>
+                  <p class="tl-desc">Policy/process change is finalized to prevent future waste.</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TICKET LIST -->
+      <div class="ticket-section" id="ticketSection">
+        <h2>
+          My Wastage Logs
+          <span class="ticket-count" id="myReportsCount">0</span>
+        </h2>
+        <div id="userWastageContainer"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div class="eu-toast" id="euToast">Wastage Report Logged Successfully!</div>
+
+  <script type="module" src="js/wastage.js"></script>
+</body>
+
+</html>

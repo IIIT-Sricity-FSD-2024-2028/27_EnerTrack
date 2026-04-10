@@ -10,12 +10,38 @@ class SustDB {
   get monitoring() { return universalDB.data.sust.monitoring; }
   get highlights() { return universalDB.data.sust.highlights; }
   get alertsList() { return universalDB.data.sust.alertsList; }
+  get wastageReports() {
+    // Read fresh from localStorage every time to catch cross-page writes
+    try {
+      const raw = localStorage.getItem('enertrack_universal_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const reports = parsed?.workflow?.wastageReports;
+        if (Array.isArray(reports)) {
+          // Sync in-memory copy too
+          universalDB.data.workflow.wastageReports = reports;
+          return reports;
+        }
+      }
+    } catch (e) { /* fallback below */ }
+    return universalDB.data.workflow.wastageReports || [];
+  }
 
   set metrics(val) { universalDB.data.sust.metrics = val; universalDB.save(); }
   set initiatives(val) { universalDB.data.sust.initiatives = val; universalDB.save(); }
   set monitoring(val) { universalDB.data.sust.monitoring = val; universalDB.save(); }
   set highlights(val) { universalDB.data.sust.highlights = val; universalDB.save(); }
   set alertsList(val) { universalDB.data.sust.alertsList = val; universalDB.save(); }
+
+  updateWastageReport(reportId, changes) {
+    // Re-read fresh from localStorage before mutating
+    const freshReports = this.wastageReports;
+    const idx = freshReports.findIndex(r => r.id === reportId);
+    if (idx !== -1) {
+      universalDB.data.workflow.wastageReports[idx] = { ...freshReports[idx], ...changes };
+      this.save();
+    }
+  }
 
   save() {
     universalDB.save();
