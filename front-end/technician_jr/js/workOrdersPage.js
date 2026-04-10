@@ -6,15 +6,22 @@
 import TechDB from '../../technician/js/data/mockData.js';
 import { showToast, openModal, generateId } from '../../technician/js/utils/utils.js';
 
-let currentUser = { role: "Technician", name: "Elena Park" };
+let currentUser = { role: "Technician", name: "Guest" };
 
 let selectedWOId = null;
 let selectedType = 'scheduled';
 
 document.addEventListener("DOMContentLoaded", () => {
     try {
-        // Enforce Junior Tech profile
-        currentUser = { role: "Technician", name: "Elena Park" };
+        // Load from localStorage for actual user persistence
+        const stored = localStorage.getItem("currentUser");
+        if (stored) {
+            const user = JSON.parse(stored);
+            currentUser.name = user.name;
+        } else {
+            // Fallback for demo
+            currentUser.name = "Elena Park";
+        }
 
         initWorkOrders();
         console.log("TechJrWorkOrders: Initialized for", currentUser.name);
@@ -113,6 +120,15 @@ function selectWorkOrder(id) {
     if (actionPanelTitle && actionPanelOptions) {
         if (wo.status === 'new') {
             actionPanelTitle.textContent = "Work Order Assignment";
+            
+            let techOptions = '<option value="">-- Return to Admin --</option>';
+            const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+            registeredUsers.forEach(u => {
+                if ((u.role === 'Technician' || u.role === 'Technician Administrator') && u.name !== currentUser.name) {
+                    techOptions += `<option value="${u.name}">${u.name}</option>`;
+                }
+            });
+
             actionPanelOptions.innerHTML = `
               <div class="option active">
                 <b>Accept Task</b>
@@ -123,10 +139,7 @@ function selectWorkOrder(id) {
                 <b>Reject / Re-assign</b>
                 <p>Return or pass to other tech.</p>
                 <select id="reassignSelect" style="width:100%; border:1px solid #d1d5db; border-radius:4px; padding:4px; font-size:12px; margin-bottom:6px;">
-                  <option value="">-- Return to Admin --</option>
-                  <option value="Marcus Reed">Marcus Reed</option>
-                  <option value="Noah Smith">Noah Smith</option>
-                  <option value="Rina Das">Rina Das</option>
+                  ${techOptions}
                 </select>
                 <button class="btn btn-light btn-full" style="color:#ef4444; border-color:#ef4444;" onclick="rejectAndReassign('${id}')">Process</button>
               </div>
