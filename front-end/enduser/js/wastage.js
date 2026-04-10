@@ -345,8 +345,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(wr => wr.reporterEmail === user.email && !wr.archived)
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-        // If no reports exist at all, show a static default timeline
-        if (myReports.length === 0 && !reportId) {
+        // If nothing is selected, reset timeline to step 1 (default guidance state)
+        const lookupId = reportId || selectedReportId;
+        if (!lookupId) {
             const staticHTML = TIMELINE_STEPS.map(step => `
               <li>
                 <div class="tl-dot ${step.num === 1 ? 'active' : 'pending'}">${step.num}</div>
@@ -360,9 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // If a specific reportId is provided (card clicked), use that report only
-        // Otherwise use selectedReportId if set, else latest report
         let targetReport = null;
-        const lookupId = reportId || selectedReportId;
         if (lookupId) {
             targetReport = allReports.find(r => r.id === lookupId) || null;
         }
@@ -567,24 +566,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     dataGridHTML = `<div class="ticket-expanded-section">${costHTML}${targetHTML}${sensorHTML}</div>`;
                 }
 
-                // Before/After Comparison Bars for delivered/finalized reports
-                let comparisonHTML = '';
-                if (sd.baselineValue && sd.readingValue && mt) {
-                    const maxVal = Math.max(sd.readingValue, sd.baselineValue, parseFloat(mt.value) || 0) * 1.1;
-                    const baselineW = (sd.baselineValue / maxVal * 100).toFixed(1);
-                    const currentW = (sd.readingValue / maxVal * 100).toFixed(1);
-                    const targetW = ((parseFloat(mt.value) || 0) / maxVal * 100).toFixed(1);
-                    const unit = sd.readingUnit || '';
-                    comparisonHTML = `
+        // Before/After Comparison Bars for resolved reports.
+        // Show baseline vs current always; include target row when available.
+        let comparisonHTML = '';
+        if (sd.baselineValue && sd.readingValue) {
+            const targetVal = mt ? (parseFloat(mt.value) || 0) : 0;
+            const maxVal = Math.max(sd.readingValue, sd.baselineValue, targetVal) * 1.1;
+            const baselineW = (sd.baselineValue / maxVal * 100).toFixed(1);
+            const currentW = (sd.readingValue / maxVal * 100).toFixed(1);
+            const targetW = ((targetVal) / maxVal * 100).toFixed(1);
+            const unit = sd.readingUnit || '';
+            const targetRowHTML = mt ? `
+                        <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#6b7280;width:60px;">Target</span><div style="flex:1;background:#bbf7d0;border-radius:4px;height:18px;overflow:hidden;"><div style="width:${targetW}%;background:#059669;height:100%;border-radius:4px;"></div></div><span style="font-size:12px;font-weight:600;color:#059669;min-width:60px;text-align:right;">${mt.value} ${unit}</span></div>
+            ` : '';
+            comparisonHTML = `
                     <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-top:12px;">
                       <h5 style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#374151;margin:0 0 10px 0;">Before / After Comparison</h5>
                       <div style="display:flex;flex-direction:column;gap:8px;">
                         <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#6b7280;width:60px;">Baseline</span><div style="flex:1;background:#e5e7eb;border-radius:4px;height:18px;overflow:hidden;"><div style="width:${baselineW}%;background:#9ca3af;height:100%;border-radius:4px;"></div></div><span style="font-size:12px;font-weight:600;color:#6b7280;min-width:60px;text-align:right;">${sd.baselineValue} ${unit}</span></div>
                         <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#6b7280;width:60px;">Current</span><div style="flex:1;background:#fecaca;border-radius:4px;height:18px;overflow:hidden;"><div style="width:${currentW}%;background:#dc2626;height:100%;border-radius:4px;"></div></div><span style="font-size:12px;font-weight:600;color:#dc2626;min-width:60px;text-align:right;">${sd.readingValue} ${unit}</span></div>
-                        <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#6b7280;width:60px;">Target</span><div style="flex:1;background:#bbf7d0;border-radius:4px;height:18px;overflow:hidden;"><div style="width:${targetW}%;background:#059669;height:100%;border-radius:4px;"></div></div><span style="font-size:12px;font-weight:600;color:#059669;min-width:60px;text-align:right;">${mt.value} ${unit}</span></div>
+                        ${targetRowHTML}
                       </div>
                     </div>`;
-                }
+        }
 
                 expandedHTML = dataGridHTML + narrativeHTML + comparisonHTML;
             }
