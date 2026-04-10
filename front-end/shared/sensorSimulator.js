@@ -16,9 +16,9 @@ const SENSOR_PREFIXES = {
 };
 
 const METRIC_UNITS = {
-    Energy: 'MWh',
-    Water: 'ML',
-    Emissions: 'tCO₂e',
+    Energy: 'kWh',
+    Water: 'L',
+    Emissions: 'kg CO2e',
     Food: 'kg'
 };
 
@@ -29,12 +29,12 @@ const METRIC_CATEGORIES = {
     Food: 'food'
 };
 
-// Baseline ranges per type (realistic campus values)
+// Baseline ranges per type (typical report-level wastage bands for an ~1800-person campus)
 const BASELINES = {
-    Energy: { min: 8, max: 22, unit: 'MWh' },
-    Water: { min: 0.5, max: 4.2, unit: 'ML' },
-    Emissions: { min: 40, max: 180, unit: 'tCO₂e' },
-    Food: { min: 10, max: 80, unit: 'kg' }
+    Energy: { min: 60, max: 140, unit: 'kWh' },
+    Water: { min: 400, max: 1200, unit: 'L' },
+    Emissions: { min: 18, max: 45, unit: 'kg CO2e' },
+    Food: { min: 20, max: 40, unit: 'kg' }
 };
 
 /**
@@ -51,10 +51,18 @@ export function generateSensorData(wastageType, specificData) {
     const locationHash = hashString(JSON.stringify(specificData));
     const sensorId = `${SENSOR_PREFIXES[wastageType]}-${(locationHash % 99).toString().padStart(2, '0')}`;
 
-    // Generate reading: baseline + anomaly spike
-    const baselineValue = +(baseline.min + Math.random() * (baseline.max - baseline.min)).toFixed(2);
+    // Generate reading from user-provided value when available; otherwise simulate
+    const reportedValue = Number(specificData?.reportedValue);
+    const hasReportedValue = Number.isFinite(reportedValue) && reportedValue > 0;
+
+    const baselineValue = hasReportedValue
+        ? +(((baseline.min + baseline.max) / 2).toFixed(2))
+        : +(baseline.min + Math.random() * (baseline.max - baseline.min)).toFixed(2);
+
     const spikeMultiplier = 1.3 + Math.random() * 0.9; // 30%-120% above baseline
-    const readingValue = +(baselineValue * spikeMultiplier).toFixed(2);
+    const readingValue = hasReportedValue
+        ? +reportedValue.toFixed(2)
+        : +(baselineValue * spikeMultiplier).toFixed(2);
 
     // Anomaly confidence based on how far above baseline
     const deviation = (readingValue - baselineValue) / baselineValue;
@@ -63,12 +71,13 @@ export function generateSensorData(wastageType, specificData) {
     return {
         sensorId,
         readingValue,
-        readingUnit: METRIC_UNITS[wastageType],
+        readingUnit: (specificData && specificData.reportedUnit) || METRIC_UNITS[wastageType],
         readingTimestamp: new Date().toISOString(),
         baselineValue,
         deviation: +(deviation * 100).toFixed(1), // percentage above baseline
         anomalyDetected: deviation > 0.25,
-        confidence
+        confidence,
+        source: hasReportedValue ? 'user-reported' : 'simulated'
     };
 }
 
@@ -84,6 +93,15 @@ export function getMetricUnit(wastageType) {
  */
 export function getMetricCategory(wastageType) {
     return METRIC_CATEGORIES[wastageType] || 'unknown';
+}
+
+/**
+ * Get baseline range for a wastage type.
+ */
+export function getBaselineRange(wastageType) {
+    const baseline = BASELINES[wastageType];
+    if (!baseline) return null;
+    return { min: baseline.min, max: baseline.max, unit: baseline.unit };
 }
 
 // Simple string hash for deterministic sensor IDs

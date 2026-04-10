@@ -34,6 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === 'enertrack_universal_v1') {
       renderWastageReviewQueue();
     }
+    if (e.key && e.key.indexOf('enertrack_notifications_') === 0) {
+      renderBellIcon('notif-container', currentUser.email);
+    }
   });
 });
 

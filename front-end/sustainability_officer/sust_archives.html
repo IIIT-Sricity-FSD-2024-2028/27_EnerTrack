@@ -7,30 +7,80 @@
     <link rel="stylesheet" href="sust_overview.css">
     <link rel="stylesheet" href="sust_shared.css">
     <style>
-        .archive-card {
+        .ticket-card {
             background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
             padding: 18px 20px;
+            border-radius: 12px;
+            border: 1.5px solid #e5e7eb;
             margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
             transition: box-shadow .2s;
         }
-        .archive-card:hover {
-            box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08);
+        .ticket-card:hover { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); }
+        .ticket-location {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #374151;
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 6px;
         }
-        .archive-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
+        .ticket-priority {
             font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
             font-weight: 600;
-            background: #d1fae5;
-            color: #065f46;
+            display: inline-block;
         }
-        .archive-meta {
+        .p-Low { background: #f0fdf4; color: #166534; }
+        .p-Medium { background: #fffbeb; color: #92400e; }
+        .p-High { background: #fef2f2; color: #991b1b; }
+        .ticket-status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .status-finalized { background: #d1fae5; color: #065f46; }
+        .status-target-set { background: #dbeafe; color: #1e40af; }
+        .status-dismissed { background: #fee2e2; color: #991b1b; }
+        .ticket-expanded-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed #e5e7eb;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .ticket-expanded-section .exp-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+        .ticket-expanded-section .exp-box h5 {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #6b7280;
+            margin: 0 0 6px 0;
+        }
+        .ticket-expanded-section .exp-val {
+            font-size: 15px;
+            font-weight: 700;
+            color: #111827;
+        }
+        .ticket-expanded-section .exp-sub {
             font-size: 11px;
             color: #9ca3af;
-            margin-top: 4px;
+            margin-top: 2px;
         }
         .empty-state {
             text-align: center;
@@ -105,8 +155,6 @@
     </div>
 
     <script type="module">
-        import universalDB from '../shared/universalDB.js';
-
         document.addEventListener('DOMContentLoaded', () => {
             const stored = localStorage.getItem('currentUser');
             if (stored) {
@@ -115,52 +163,80 @@
                 document.getElementById('sidebarUserRole').textContent = user.role;
             }
 
+            const STATUS_MAP = {
+                'Finalized':  { label: 'Resolved',          cssClass: 'status-finalized' },
+                'Target Set': { label: 'Target Set',        cssClass: 'status-target-set' },
+                'Delivered':  { label: 'Report Delivered',  cssClass: 'status-finalized' },
+                'Dismissed':  { label: 'Dismissed',         cssClass: 'status-dismissed' }
+            };
+
             function render() {
                 const raw = localStorage.getItem('enertrack_universal_v1');
                 const data = raw ? JSON.parse(raw) : null;
                 const reports = data?.workflow?.wastageReports || [];
-                const archived = reports.filter(r => r.soArchived).sort((a,b) => new Date(b.soArchivedAt || b.timestamp) - new Date(a.soArchivedAt || a.timestamp));
+                const archived = reports
+                    .filter(r => r.soArchived || r.archived)
+                    .sort((a, b) => new Date(b.soArchivedAt || b.archivedAt || b.timestamp) - new Date(a.soArchivedAt || a.archivedAt || a.timestamp));
 
                 document.getElementById('archiveCount').textContent = archived.length;
                 const container = document.getElementById('archiveContainer');
 
                 if (archived.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><p>No archived reports yet. Reports are automatically archived after delivery to the campus visitor.</p></div>';
+                    container.innerHTML = '<div class="empty-state"><p>No archived reports yet.</p></div>';
                     return;
                 }
 
-                container.innerHTML = archived.map(r => {
-                    const formatCurr = v => '₹' + Number(v).toLocaleString('en-IN');
-                    const ci = r.costImpact;
-                    const mt = r.metricTarget;
+                container.innerHTML = archived.map(t => {
+                    const cfg = STATUS_MAP[t.status] || { label: t.status, cssClass: 'status-finalized' };
+                    const formatCurr = (v) => '₹' + Number(v).toLocaleString('en-IN');
+                    const ci = t.costImpact;
+                    const mt = t.metricTarget;
+                    const sd = t.systemData || {};
 
-                    let detailHTML = '';
+                    let summaryText = '';
+                    let locationText = '';
+                    if (t.type === 'Energy') { summaryText = t.specificData?.observation || ''; locationText = t.specificData?.building || ''; }
+                    else if (t.type === 'Water') { summaryText = t.specificData?.nature || ''; locationText = t.specificData?.location || ''; }
+                    else if (t.type === 'Emissions') { summaryText = t.specificData?.observation || ''; locationText = t.specificData?.location || ''; }
+                    else if (t.type === 'Food') { summaryText = (t.specificData?.typeOfWastage || '') + ' (' + (t.specificData?.estimatedAmount || '?') + 'kg)'; locationText = t.specificData?.cafeteria || ''; }
+
+                    let narrativeParts = [];
+                    narrativeParts.push(`This ${t.type.toLowerCase()} wastage report was reviewed and processed through the Sustainability workflow.`);
                     if (ci) {
-                        detailHTML += `<div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
-                            <div><span style="font-size:10px;color:#9ca3af;text-transform:uppercase;">Est. Loss</span><div style="font-weight:700;color:#dc2626;">${formatCurr(ci.estimatedLoss)}</div></div>
-                            <div><span style="font-size:10px;color:#9ca3af;text-transform:uppercase;">Remediation</span><div style="font-weight:700;">${formatCurr(ci.remediationCost)}</div></div>
-                            <div><span style="font-size:10px;color:#9ca3af;text-transform:uppercase;">Savings</span><div style="font-weight:700;color:#059669;">${formatCurr(ci.projectedSavings)}</div></div>
-                        </div>`;
+                        narrativeParts.push(`Finance impact estimated: loss <strong style="color:#dc2626;">${formatCurr(ci.estimatedLoss)}</strong>, remediation <strong>${formatCurr(ci.remediationCost)}</strong>, projected savings <strong style="color:#059669;">${formatCurr(ci.projectedSavings)}</strong>.`);
                     }
                     if (mt) {
-                        detailHTML += `<div style="margin-top:8px;font-size:12px;color:#374151;">Target: <strong style="color:#1e40af;">${mt.value} ${mt.unit}</strong> by ${new Date(mt.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>`;
+                        narrativeParts.push(`Target set at <strong style="color:#1e40af;">${mt.value} ${mt.unit}</strong> with deadline <strong>${new Date(mt.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>.`);
+                    }
+                    if (t.status === 'Dismissed') {
+                        narrativeParts.push(`Dismissed with reason: <strong>${t.dismissReason || 'Not specified'}</strong>.`);
+                    } else {
+                        narrativeParts.push('Report is now archived for audit trail and compliance reference.');
                     }
 
-                    return `
-                        <div class="archive-card">
-                            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                                <div>
-                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                                        <strong style="font-size:14px;color:#111827;">#${r.id}</strong>
-                                        <span style="background:#059669;color:white;padding:2px 8px;border-radius:4px;font-size:11px;">${r.type} Wastage</span>
-                                    </div>
-                                    <div style="font-size:13px;color:#374151;">Reported by: ${r.reporterName || 'Unknown'}</div>
-                                    <div class="archive-meta">Archived ${r.soArchivedAt ? new Date(r.soArchivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</div>
-                                </div>
-                                <span class="archive-badge">Delivered</span>
-                            </div>
-                            ${detailHTML}
-                        </div>`;
+                    let dataHTML = '';
+                    if (ci) {
+                        dataHTML += `<div class="exp-box"><h5>Financial Impact Assessment</h5><div style="display:flex;gap:12px;flex-wrap:wrap;"><div><div class="exp-sub">Est. Loss</div><div class="exp-val" style="color:#dc2626;">${formatCurr(ci.estimatedLoss)}</div></div><div><div class="exp-sub">Remediation</div><div class="exp-val">${formatCurr(ci.remediationCost)}</div></div><div><div class="exp-sub">Savings</div><div class="exp-val" style="color:#059669;">${formatCurr(ci.projectedSavings)}</div></div></div></div>`;
+                    }
+                    if (mt) {
+                        dataHTML += `<div class="exp-box"><h5>Sustainability Target</h5><div class="exp-val" style="color:#1e40af;">${mt.value} <small style="font-size:11px;font-weight:400;">${mt.unit}</small></div><div class="exp-sub">Deadline: ${new Date(mt.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>`;
+                    }
+                    if (sd.sensorId) {
+                        dataHTML += `<div class="exp-box"><h5>${t.type === 'Food' ? 'Wastage Assessment' : t.type === 'Water' ? 'Flow Monitoring' : t.type === 'Emissions' ? 'Emissions Monitoring' : 'Energy Meter Reading'} (${sd.sensorId})</h5><div style="display:flex;gap:12px;"><div><div class="exp-sub">Current</div><div class="exp-val">${sd.readingValue || '—'} <small style="font-size:11px;">${sd.readingUnit || ''}</small></div></div><div><div class="exp-sub">Baseline</div><div class="exp-val" style="color:#6b7280;">${sd.baselineValue || '—'} <small style="font-size:11px;">${sd.readingUnit || ''}</small></div></div></div></div>`;
+                    }
+
+                    let comparisonHTML = '';
+                    if (sd.baselineValue && sd.readingValue && mt) {
+                        const maxVal = Math.max(sd.readingValue, sd.baselineValue, parseFloat(mt.value) || 0) * 1.1;
+                        const baselineW = (sd.baselineValue / maxVal * 100).toFixed(1);
+                        const currentW = (sd.readingValue / maxVal * 100).toFixed(1);
+                        const targetW = ((parseFloat(mt.value) || 0) / maxVal * 100).toFixed(1);
+                        const unit = sd.readingUnit || '';
+                        comparisonHTML = `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-top:12px;"><h5 style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#374151;margin:0 0 10px 0;">Before / After Comparison</h5><div style="display:flex;flex-direction:column;gap:8px;"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#6b7280;width:60px;">Baseline</span><div style="flex:1;background:#e5e7eb;border-radius:4px;height:18px;overflow:hidden;"><div style="width:${baselineW}%;background:#9ca3af;height:100%;border-radius:4px;"></div></div><span style="font-size:12px;font-weight:600;color:#6b7280;min-width:60px;text-align:right;">${sd.baselineValue} ${unit}</span></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#6b7280;width:60px;">Current</span><div style="flex:1;background:#fecaca;border-radius:4px;height:18px;overflow:hidden;"><div style="width:${currentW}%;background:#dc2626;height:100%;border-radius:4px;"></div></div><span style="font-size:12px;font-weight:600;color:#dc2626;min-width:60px;text-align:right;">${sd.readingValue} ${unit}</span></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#6b7280;width:60px;">Target</span><div style="flex:1;background:#bbf7d0;border-radius:4px;height:18px;overflow:hidden;"><div style="width:${targetW}%;background:#059669;height:100%;border-radius:4px;"></div></div><span style="font-size:12px;font-weight:600;color:#059669;min-width:60px;text-align:right;">${mt.value} ${unit}</span></div></div></div>`;
+                    }
+
+                    const archivedAt = t.soArchivedAt || t.archivedAt;
+                    return `<div class="ticket-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;gap:16px;"><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px;"><strong style="font-size:14px;color:#111827;">#${t.id}</strong><span style="background:#059669;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px;">${t.type} Wastage</span></div><p style="font-size:13px;color:#374151;margin:0 0 6px 0;line-height:1.5;">${summaryText}</p><div class="ticket-location"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${locationText}</div><div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span class="ticket-priority p-${t.priority || 'Low'}">${t.priority || 'Low'} Priority</span><span style="font-size:11px;color:#9ca3af;">Archived ${archivedAt ? new Date(archivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;"><span class="ticket-status ${cfg.cssClass}">${cfg.label}</span></div></div>${dataHTML ? `<div class="ticket-expanded-section">${dataHTML}</div>` : ''}<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-top:12px;"><h5 style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#065f46;margin:0 0 8px 0;">Decision Summary</h5><div style="font-size:12px;color:#374151;line-height:1.7;">${narrativeParts.map(p => '<p style="margin:0 0 6px 0;">' + p + '</p>').join('')}</div></div>${comparisonHTML}</div>`;
                 }).join('');
             }
 

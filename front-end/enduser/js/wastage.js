@@ -1,5 +1,5 @@
 import universalDB from '../../shared/universalDB.js';
-import { generateSensorData, getMetricUnit, getMetricCategory } from '../../shared/sensorSimulator.js';
+import { generateSensorData, getMetricUnit, getMetricCategory, getBaselineRange } from '../../shared/sensorSimulator.js';
 import { renderBellIcon, notifyOnStateChange } from '../../shared/notifications.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -10,6 +10,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     const user = JSON.parse(stored);
+
+    // One-time backfill: older dismissed reports were not auto-archived.
+    // Normalize them so they disappear from active logs and show in archives.
+    (function backfillDismissedArchives() {
+        const raw = localStorage.getItem('enertrack_universal_v1');
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        const reports = data?.workflow?.wastageReports || [];
+        let changed = false;
+        reports.forEach((r) => {
+            if (r.status === 'Dismissed' && !r.archived) {
+                r.archived = true;
+                r.archivedAt = r.dismissedAt || new Date().toISOString();
+                changed = true;
+            }
+        });
+        if (changed) {
+            localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
+        }
+    })();
 
     document.getElementById('sidebarUserName').textContent = user.name;
     document.getElementById('sidebarUserRole').textContent = user.role;
@@ -143,17 +163,50 @@ document.addEventListener('DOMContentLoaded', () => {
             specificData.building = document.getElementById('energyBuilding').value.trim();
             specificData.area = document.getElementById('energyArea').value.trim();
             specificData.observation = document.getElementById('energyObservation').value.trim();
+            const reported = Number(document.getElementById('energyEstimatedValue').value);
+            if (Number.isFinite(reported) && reported > 0) {
+                specificData.reportedValue = reported;
+                specificData.reportedUnit = 'kWh';
+            }
         } else if (issueType === 'Water') {
             specificData.location = document.getElementById('waterLocation').value.trim();
             specificData.nature = document.getElementById('waterNature').value.trim();
+            const reported = Number(document.getElementById('waterEstimatedValue').value);
+            if (Number.isFinite(reported) && reported > 0) {
+                specificData.reportedValue = reported;
+                specificData.reportedUnit = 'L';
+            }
         } else if (issueType === 'Emissions') {
             specificData.source = document.getElementById('emissionsSource').value.trim();
             specificData.location = document.getElementById('emissionsLocation').value.trim();
             specificData.observation = document.getElementById('emissionsObservation').value.trim();
+            const reported = Number(document.getElementById('emissionsEstimatedValue').value);
+            if (Number.isFinite(reported) && reported > 0) {
+                specificData.reportedValue = reported;
+                specificData.reportedUnit = 'kg CO2e';
+            }
         } else if (issueType === 'Food') {
             specificData.cafeteria = document.getElementById('foodCafeteria').value.trim();
             specificData.typeOfWastage = document.getElementById('foodType').value.trim();
             specificData.estimatedAmount = document.getElementById('foodAmount').value.trim();
+            const reported = Number(specificData.estimatedAmount);
+            if (Number.isFinite(reported) && reported > 0) {
+                specificData.reportedValue = reported;
+                specificData.reportedUnit = 'kg';
+            }
+        }
+
+        // Enforce baseline guardrail: estimate must be >= 50% of baseline minimum.
+        const baseline = getBaselineRange(issueType);
+        const reportedValue = Number(specificData.reportedValue);
+        if (!baseline || !Number.isFinite(reportedValue) || reportedValue <= 0) {
+            window.alert('Please enter an estimated wastage value before submitting.');
+            return;
+        }
+        const minimumAccepted = baseline.min * 0.5;
+        if (reportedValue < minimumAccepted) {
+            window.alert(`This form cannot be accepted. Entered estimate (${reportedValue} ${baseline.unit}) is below 50% of baseline (${minimumAccepted} ${baseline.unit}).`);
+            return;
         }
 
         // ── System Actor (Steps 4-5): Enrich with sensor data ──
@@ -672,13 +725,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const bld = document.getElementById('energyBuilding'); if (bld) bld.value = sp.building || '';
             const area = document.getElementById('energyArea'); if (area) area.value = sp.area || '';
             const obs = document.getElementById('energyObservation'); if (obs) obs.value = sp.observation || '';
+            const est = document.getElementById('energyEstimatedValue'); if (est) est.value = sp.reportedValue || '';
         } else if (report.type === 'Water') {
             const loc = document.getElementById('waterLocation'); if (loc) loc.value = sp.location || '';
             const nat = document.getElementById('waterNature'); if (nat) nat.value = sp.nature || '';
+            const est = document.getElementById('waterEstimatedValue'); if (est) est.value = sp.reportedValue || '';
         } else if (report.type === 'Emissions') {
             const src = document.getElementById('emissionsSource'); if (src) src.value = sp.source || '';
             const loc = document.getElementById('emissionsLocation'); if (loc) loc.value = sp.location || '';
             const obs = document.getElementById('emissionsObservation'); if (obs) obs.value = sp.observation || '';
+            const est = document.getElementById('emissionsEstimatedValue'); if (est) est.value = sp.reportedValue || '';
         } else if (report.type === 'Food') {
             const caf = document.getElementById('foodCafeteria'); if (caf) caf.value = sp.cafeteria || '';
             const typ = document.getElementById('foodType'); if (typ) typ.value = sp.typeOfWastage || '';
@@ -758,7 +814,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const raw = localStorage.getItem('enertrack_universal_v1');
         if (!raw) return;
         const universalData = JSON.parse(raw);
-        const reports = universalData.workflow.wastageReports || [];
+        const reports = universalData?.workflow?.wastageReports || [];
         const report = reports.find(r => r.id === reportId);
         if (!report) return;
 
@@ -795,6 +851,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderTickets();
         renderAuditTimeline();
+        showToast();
     };
 
     // ── Toast ────────────────────────────────────────────────
@@ -807,4 +864,3 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTickets();
     renderAuditTimeline();
 });
-

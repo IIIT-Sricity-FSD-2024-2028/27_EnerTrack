@@ -16,6 +16,7 @@ function _getKey(email) {
  * @param {object} notification - { reportId, message }
  */
 export function pushNotification(targetEmail, notification) {
+    if (!targetEmail || !notification || !notification.message) return;
     const key = _getKey(targetEmail);
     const raw = localStorage.getItem(key);
     const notifs = raw ? JSON.parse(raw) : [];
@@ -121,12 +122,9 @@ export function renderBellIcon(containerId, email) {
 export function notifyOnStateChange(report, action, actorName) {
     const reportLabel = `Report #${report.id}`;
 
-    // Read all users from localStorage to find SO and Finance emails
-    const raw = localStorage.getItem('enertrack_users');
-    const users = raw ? JSON.parse(raw) : [];
-
-    const soEmails = users.filter(u => u.role === 'Sustainability Officer').map(u => u.email);
-    const faEmails = users.filter(u => u.role === 'Finance Analyst').map(u => u.email);
+    const users = _readUsers();
+    const soEmails = users.filter(u => _normalizeRole(u.role) === 'sustainability_officer').map(u => u.email);
+    const faEmails = users.filter(u => _normalizeRole(u.role) === 'finance_analyst').map(u => u.email);
     const reporterEmail = report.reporterEmail;
 
     switch (action) {
@@ -137,7 +135,9 @@ export function notifyOnStateChange(report, action, actorName) {
             pushNotification(reporterEmail, { reportId: report.id, message: `Your ${reportLabel} has been validated by the Sustainability Officer.` });
             break;
         case 'dismissed':
-            pushNotification(reporterEmail, { reportId: report.id, message: `Your ${reportLabel} was dismissed: ${report.dismissReason || 'See details'}.` });
+            pushNotification(reporterEmail, { reportId: report.id, message: `Your ${reportLabel} was dismissed: ${report.dismissReason || 'See details'}. It has been moved to My Archives.` });
+            soEmails.forEach(e => pushNotification(e, { reportId: report.id, message: `${actorName} dismissed ${reportLabel}. Reason: ${report.dismissReason || 'Not specified'}.` }));
+            faEmails.forEach(e => pushNotification(e, { reportId: report.id, message: `${reportLabel} was dismissed by Sustainability Officer (${report.dismissReason || 'No reason'}).` }));
             break;
         case 'forwarded':
             faEmails.forEach(e => pushNotification(e, { reportId: report.id, message: `${reportLabel} has been forwarded to you for cost impact assessment.` }));
@@ -157,4 +157,39 @@ export function notifyOnStateChange(report, action, actorName) {
             pushNotification(reporterEmail, { reportId: report.id, message: `Final report delivered for ${reportLabel}. Check your wastage logs for the full breakdown.` });
             break;
     }
+}
+
+function _normalizeRole(role) {
+    const r = (role || '').toString().trim().toLowerCase();
+    if (r === 'sustainability officer') return 'sustainability_officer';
+    if (r === 'finance analyst' || r === 'financial analyst') return 'finance_analyst';
+    return r;
+}
+
+function _readUsers() {
+    const sources = ['enertrack_users', 'registeredUsers'];
+    const all = [];
+    sources.forEach((key) => {
+        const raw = localStorage.getItem(key);
+        if (!raw) return;
+        try {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) all.push(...arr);
+        } catch (e) {
+            // ignore malformed storage payload
+        }
+    });
+    // Fallback defaults from bundled mock login data, used when no user list is persisted yet.
+    all.push(
+        { role: 'Sustainability Officer', email: 'viksa@gmail.com' },
+        { role: 'Financial Analyst', email: 'husaam@gmail.com' }
+    );
+    const seen = new Set();
+    return all.filter(u => {
+        if (!u || !u.email) return false;
+        const k = String(u.email).trim().toLowerCase();
+        if (!k || seen.has(k)) return false;
+        seen.add(k);
+        return true;
+    });
 }
