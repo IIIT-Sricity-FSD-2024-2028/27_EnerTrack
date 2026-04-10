@@ -74,11 +74,15 @@ body {
 .logo .logo-icon {
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
+  display: block;
 }
 
 .logo .logo-text {
   width: auto;
   height: 20px;
+  flex-shrink: 0;
+  display: block;
 }
 
 .nav-title {

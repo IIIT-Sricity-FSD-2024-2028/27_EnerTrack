@@ -9,7 +9,18 @@
     "use strict";
 
     var userData = localStorage.getItem("currentUser");
-    if (!userData) return;
+    if (!userData) {
+        // Fallback: build currentUser from sidebar DOM if available
+        var nameEl = document.getElementById("sidebarUserName");
+        var roleEl = document.getElementById("sidebarUserRole");
+        if (nameEl && roleEl && nameEl.textContent.trim()) {
+            var fallbackUser = { name: nameEl.textContent.trim(), role: roleEl.textContent.trim() };
+            localStorage.setItem("currentUser", JSON.stringify(fallbackUser));
+            userData = localStorage.getItem("currentUser");
+        } else {
+            return;
+        }
+    }
 
     var user = JSON.parse(userData);
     var firstName = user.name.split(" ")[0];

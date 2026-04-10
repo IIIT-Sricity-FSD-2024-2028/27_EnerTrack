@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
         initOverview();
         initWorkflow1();
+        initActiveWorkOrders();
         console.log("TechOverview: Initialized.");
     } catch (err) {
         console.error("TechOverview: Init error:", err);
@@ -116,6 +117,42 @@ window.verifyWO = function(id) {
         TechDB.closeWorkOrder(id);
         initWorkflow1();
         initOverview(); // Update stats
+        initActiveWorkOrders(); // Refresh list
         showToast('Work order verified and closed.', 'success');
     }
 };
+
+function initActiveWorkOrders() {
+    const list = document.getElementById('activeWOsList');
+    if (!list) return;
+
+    // Filter for work orders that are NOT closed/archived
+    const active = TechDB.workOrders.filter(wo => wo.status !== 'closed');
+
+    if (active.length === 0) {
+        list.parentElement.style.display = 'none';
+        return;
+    }
+
+    list.parentElement.style.display = 'block';
+    
+    list.innerHTML = active.slice(0, 6).map(wo => `
+        <div style="padding:14px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
+                <span style="font-size:12px; font-weight:700; color:#111827;">${wo.id}</span>
+                <span class="badge ${wo.status === 'new' ? 'new' : wo.status === 'review' ? 'review' : 'inprogress'}" style="font-size:10px;">${wo.status.toUpperCase()}</span>
+            </div>
+            <h4 style="margin:0 0 4px; font-size:13px; color:#111827; line-height:1.4;">${wo.title}</h4>
+            <div style="font-size:11px; color:#6b7280; display:flex; align-items:center; gap:8px; margin-top:8px;">
+                <span style="display:inline-flex; align-items:center; gap:3px;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    ${wo.technician || 'Unassigned'}
+                </span>
+                <span style="display:inline-flex; align-items:center; gap:3px; color:${wo.priority === 'high' ? '#b91c1c' : '#6b7280'}">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    ${wo.priority}
+                </span>
+            </div>
+        </div>
+    `).join('');
+}
