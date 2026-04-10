@@ -575,23 +575,12 @@
         </li></a> -->
         </ul>
       </div>
-      <div class="profile" style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <img src="https://i.pravatar.cc/40?img=12" alt="User Profile" style="border-radius:50%;">
-          <div>
-            <div class="profile-name" id="sidebarUserName">Campus Visitor</div>
-            <div class="profile-role" id="sidebarUserRole">Campus Visitor</div>
-          </div>
+      <div class="profile" style="display:flex; align-items:center; gap:12px;">
+        <img src="https://i.pravatar.cc/40?img=12" alt="User Profile" style="border-radius:50%;">
+        <div>
+          <div class="profile-name" id="sidebarUserName">Campus Visitor</div>
+          <div class="profile-role" id="sidebarUserRole">Campus Visitor</div>
         </div>
-        <button title="Sign Out" style="background:none;border:none;cursor:pointer;opacity:0.6;"
-          onclick="localStorage.removeItem('currentUser'); window.location.href='../landing/landing.html';">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-        </button>
       </div>
     </aside>
 
@@ -783,6 +772,7 @@
   <div class="eu-toast" id="euToast">Wastage Report Logged Successfully!</div>
 
   <script type="module" src="js/wastage.js"></script>
+  <script src="../dashboardProfileMenu.js"></script>
 </body>
 
 </html>

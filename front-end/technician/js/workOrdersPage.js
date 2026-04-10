@@ -22,40 +22,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function populateTechnicianDropdown() {
     const select = document.getElementById('inputTechnician');
-    if (!select) return;
+    const reassignSelect = document.getElementById('reassignTechSelect');
 
-    // Seed MOCK_USERS if localStorage is empty
-    if (!localStorage.getItem('registeredUsers')) {
-        localStorage.setItem('registeredUsers', JSON.stringify(MOCK_USERS));
+    // Seed known technicians into registeredUsers if not already present
+    const KNOWN_TECHNICIANS = [
+        { name: 'Teja', email: 'teja@gmail.com', phone: '9876543214', password: 'Teja@123', role: 'Technician' }
+    ];
+
+    let registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    let dirty = false;
+    KNOWN_TECHNICIANS.forEach(kt => {
+        if (!registeredUsers.some(u => u.email.toLowerCase() === kt.email.toLowerCase())) {
+            registeredUsers.push(kt);
+            dirty = true;
+        }
+    });
+    if (dirty) {
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
     }
 
-    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    const techs = users.filter(u => u.role === 'Technician');
+    const techs = registeredUsers.filter(u =>
+        u.role === 'Technician' || u.role === 'Technician Administrator'
+    );
 
-
-    select.innerHTML = `<option value="">— Select —</option>` +
+    const optionsHTML = `<option value="">— Select —</option>` +
         techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+
+    if (select) select.innerHTML = optionsHTML;
+
+    // Also populate the reassign dropdown dynamically
+    if (reassignSelect) {
+        reassignSelect.innerHTML = `<option value="">-- Select Alternate Tech --</option>` +
+            techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+    }
 }
-// function populateTechnicianDropdown() {
-//     const select = document.getElementById('inputTechnician');
-//     if (!select) return;
-
-//     // Get users from localStorage (registered via form)
-//     const storedUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-
-//     // Merge MOCK_USERS + storedUsers, avoid duplicates by email
-//     const allUsers = [...MOCK_USERS];
-//     storedUsers.forEach(stored => {
-//         const alreadyExists = allUsers.some(u => u.email === stored.email);
-//         if (!alreadyExists) allUsers.push(stored);
-//     });
-
-//     // Filter to Technicians only
-//     const techs = allUsers.filter(u => u.role === 'Technician');
-
-//     // select.innerHTML = `<option value="">— Select —</option>` +
-//     //     techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
-// }
 
 
 
