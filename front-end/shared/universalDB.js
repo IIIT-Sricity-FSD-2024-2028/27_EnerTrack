@@ -18,7 +18,8 @@ const defaultData = {
         wastageReports: [],
         categories: ["Electrical", "Plumbing", "HVAC", "General Maintenance", "Solar Installation"],
         technicians: [
-            { name: "Elena", email: "elena@gmail.com", specialization: "Electrical" },
+            { name: "Elena Park", email: "elena@gmail.com", specialization: "Electrical" },
+            { name: "Teja", email: "teja@gmail.com", specialization: "Solar Installation" },
             { name: "Marcus Reed", email: "marcus@gmail.com", specialization: "HVAC" },
             { name: "Noah Smith", email: "noah@gmail.com", specialization: "General Maintenance" },
             { name: "Rina Das", email: "rina@gmail.com", specialization: "Plumbing" }
