@@ -27,6 +27,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === 'enertrack_universal_v1') {
             renderWastageAuditQueue();
         }
+        if (e.key && e.key.indexOf('enertrack_notifications_') === 0) {
+            renderBellIcon('notif-container', currentUser.email);
+        }
     });
 });
 
@@ -183,12 +186,17 @@ function renderWastageAuditQueue() {
     const universalData = raw ? JSON.parse(raw) : null;
     const reports = universalData?.workflow?.wastageReports || [];
 
-    // Auto-archive any delivered reports that weren't already marked
+    // Auto-archive delivered and legacy dismissed reports that weren't already marked
     let needsSave = false;
     reports.forEach(r => {
         if (r.status === 'Delivered' && !r.soArchived) {
             r.soArchived = true;
             r.soArchivedAt = r.deliveredAt || new Date().toISOString();
+            needsSave = true;
+        }
+        if (r.status === 'Dismissed' && !r.archived) {
+            r.archived = true;
+            r.archivedAt = r.dismissedAt || new Date().toISOString();
             needsSave = true;
         }
     });
@@ -238,7 +246,7 @@ function renderWastageAuditQueue() {
         else if (r.status === 'Returned to SO') { statusBg = '#fef3c7'; statusColor = '#92400e'; statusLabel = 'Returned with Cost Data'; }
         else if (r.status === 'Finalized') { statusBg = '#d1fae5'; statusColor = '#065f46'; }
         else if (r.status === 'Target Set') { statusBg = '#dbeafe'; statusColor = '#1e40af'; statusLabel = '✓ Target Set'; }
-        else if (r.status === 'Dismissed') { statusBg = '#f1f5f9'; statusColor = '#475569'; }
+        else if (r.status === 'Dismissed') { statusBg = '#fee2e2'; statusColor = '#991b1b'; }
         else if (r.status === 'Delivered') { statusBg = '#d1fae5'; statusColor = '#065f46'; statusLabel = 'Delivered to Campus Visitor'; }
 
         // Cost impact display (from Finance Analyst — Steps 13)
@@ -318,7 +326,7 @@ function renderWastageAuditQueue() {
         if (r.status === 'Reported') {
             actionsHTML = `
                 <button onclick="window._auditAction('${r.id}','validate')" style="padding:6px 14px;border-radius:6px;border:none;background:#059669;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">✓ Validate</button>
-                <button onclick="window._auditAction('${r.id}','dismiss')" style="padding:6px 14px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#6b7280;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">✗ Dismiss</button>`;
+                <button onclick="window._auditAction('${r.id}','dismiss')" style="padding:6px 14px;border-radius:6px;border:1px solid #fecaca;background:#fff1f2;color:#b91c1c;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .2s;">✗ Dismiss</button>`;
         } else if (r.status === 'Validated') {
             actionsHTML = `
                 <button onclick="window._auditAction('${r.id}','forward')" style="padding:6px 14px;border-radius:6px;border:none;background:#3b82f6;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">→ Forward to Finance</button>`;
@@ -338,6 +346,9 @@ function renderWastageAuditQueue() {
         const anomalyTag = sd.anomalyDetected
             ? `<span style="background:#fef2f2;color:#991b1b;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ Anomaly Detected</span>`
             : `<span style="background:#f0fdf4;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">Normal Range</span>`;
+        const reportedValueLabel = spec.reportedValue
+            ? `${spec.reportedValue} ${spec.reportedUnit || ''}`.trim()
+            : 'Not provided';
 
         return `
         <div style="background:#fdfdfd;border:1px solid #e5e7eb;border-left:4px solid ${color};border-radius:10px;padding:20px;margin-bottom:14px;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)'" onmouseout="this.style.boxShadow='none'">
@@ -385,6 +396,9 @@ function renderWastageAuditQueue() {
                         ${anomalyTag}
                         <span style="font-size:11px;color:#6b7280;">Confidence: ${sd.confidence ? (sd.confidence * 100).toFixed(0) + '%' : '—'}</span>
                     </div>
+                    <div style="margin-top:6px;font-size:11px;color:#0f766e;background:#ecfeff;border:1px solid #a5f3fc;border-radius:6px;padding:6px 8px;">
+                        End-user provided estimate: <strong>${reportedValueLabel}</strong> (${sd.source === 'user-reported' ? 'used in assessment' : 'no value provided, simulated baseline used'})
+                    </div>
                     <div style="margin-top:4px;font-size:11px;color:#9ca3af;">${sd.deviation ? sd.deviation + '% above baseline' : ''}</div>
                 </div>
             </div>
@@ -404,7 +418,7 @@ function renderWastageAuditQueue() {
                     </div>`;
                 }).join('');
                 return `
-                <div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px;">
+                <div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px;margin-bottom:14px;">
                     <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="const el=this.nextElementSibling;el.style.display=el.style.display==='none'?'block':'none';this.querySelector('.cmt-toggle').textContent=el.style.display==='none'?'Show':'Hide';">
                         <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#6b7280;font-weight:600;">Comments (${comments.length})</span>
                         <span class="cmt-toggle" style="font-size:11px;color:#059669;font-weight:600;">Show</span>
@@ -419,7 +433,7 @@ function renderWastageAuditQueue() {
                 </div>`;
             })()}
 
-            <div style="display:flex;gap:8px;align-items:center;">
+            <div style="display:flex;gap:8px;align-items:center;border-top:1px solid #f3f4f6;padding-top:12px;">
                 ${actionsHTML}
                 <span style="margin-left:auto;font-size:11px;color:#9ca3af;">${new Date(r.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
             </div>
@@ -490,26 +504,35 @@ window._auditAction = function (reportId, action) {
     } else if (action === 'dismiss') {
         // Open rejection modal instead of direct dismiss
         openModal({
-            title: 'Dismiss Wastage Report',
+            title: 'Dismiss Report With Reason',
             bodyHTML: `
-                <div style="margin-bottom:6px;font-size:13px;color:#6b7280;">Provide a reason for dismissing <strong>Report #${reportId}</strong>.</div>
-                <div class="fm-group">
-                    <label>Reason *</label>
-                    <select id="dismiss-reason" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#1f2937;background:#fff;">
+                <div style="margin-bottom:12px;background:linear-gradient(135deg,#fff1f2,#ffe4e6);border:1px solid #fecdd3;border-radius:12px;padding:12px 14px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                        <span style="display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:999px;background:#ef4444;color:white;font-size:12px;font-weight:700;">!</span>
+                        <strong style="font-size:13px;color:#9f1239;">Dismissal Confirmation</strong>
+                    </div>
+                    <div style="font-size:13px;color:#6b7280;line-height:1.5;">This will close <strong>Report #${reportId}</strong>, notify the end user, and move it to archives.</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr;gap:12px;">
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">Reason *</label>
+                        <select id="dismiss-reason" style="width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#1f2937;background:#fff;">
                         <option value="">Select a reason...</option>
                         <option value="False Alarm">False Alarm</option>
                         <option value="Insufficient Evidence">Insufficient Evidence</option>
                         <option value="Already Addressed">Already Addressed</option>
                         <option value="Out of Scope">Out of Scope</option>
                         <option value="Other">Other</option>
-                    </select>
-                </div>
-                <div class="fm-group">
-                    <label>Explanation *</label>
-                    <textarea id="dismiss-comment" rows="3" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#1f2937;resize:vertical;font-family:inherit;" placeholder="Provide details (min. 10 characters)..."></textarea>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">Explanation *</label>
+                        <textarea id="dismiss-comment" rows="4" style="width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;color:#1f2937;resize:vertical;font-family:inherit;" placeholder="Provide clear details (minimum 10 characters)..."></textarea>
+                        <div style="font-size:11px;color:#9ca3af;margin-top:6px;">This explanation is shown to the end user in their dismissal notice.</div>
+                    </div>
                 </div>
             `,
-            confirmLabel: 'Dismiss Report',
+            confirmLabel: 'Confirm Dismissal',
             cancelLabel: 'Cancel',
             danger: true,
             onConfirm: () => {
@@ -534,6 +557,15 @@ window._auditAction = function (reportId, action) {
                 freshReport.dismissedAt = new Date().toISOString();
                 freshReport.dismissReason = reason;
                 freshReport.dismissComment = comment;
+                freshReport.archived = true;
+                freshReport.archivedAt = new Date().toISOString();
+                if (!freshReport.comments) freshReport.comments = [];
+                freshReport.comments.push({
+                    author: currentUser.name || 'Sustainability Officer',
+                    role: 'Sustainability Officer',
+                    text: `Dismissed this report. Reason: ${reason}. ${comment}`,
+                    timestamp: new Date().toISOString()
+                });
                 localStorage.setItem('enertrack_universal_v1', JSON.stringify(freshData));
                 showToast('Report dismissed with reason.', 'info', 2000);
                 notifyOnStateChange(freshReport, 'dismissed', currentUser.name || 'Sustainability Officer');
@@ -689,7 +721,7 @@ window._sendReportToUser = function (reportId) {
 
 /* ── Step 15: Set New Metric Target ───────────────── */
 
-const METRIC_UNITS = { Energy: 'GWh', Water: 'ML', Emissions: 'tCO₂e', Food: 'kg' };
+const METRIC_UNITS = { Energy: 'kWh', Water: 'L', Emissions: 'kg CO2e', Food: 'kg' };
 const METRIC_FIELDS = { Energy: 'energyConsumed', Water: 'waterUsage', Emissions: 'emissions', Food: null };
 
 window._openTargetModal = function (reportId) {
@@ -701,10 +733,23 @@ window._openTargetModal = function (reportId) {
     if (!report) return;
 
     const metricType = report.type || 'Energy';
-    const unit = METRIC_UNITS[metricType] || 'units';
+    const unit = report?.systemData?.readingUnit || METRIC_UNITS[metricType] || 'units';
     const metricField = METRIC_FIELDS[metricType];
     const currentValue = metricField ? (universalData.sust?.metrics?.[metricField] || '—') : '—';
     const existing = report.metricTarget || {};
+    const currentMeasured = Number(report?.systemData?.readingValue);
+    const currentBaseline = Number(report?.systemData?.baselineValue);
+    const userProvided = Number(report?.specificData?.reportedValue);
+    const suggestedTarget = Number.isFinite(currentMeasured) && currentMeasured > 0
+        ? (currentMeasured * 0.85).toFixed(2)
+        : '';
+    const targetHelpText = metricType === 'Energy'
+        ? 'Set a realistic reduction target in kWh for the reported wastage zone.'
+        : metricType === 'Water'
+            ? 'Set a capped water loss target in liters for the identified location.'
+            : metricType === 'Emissions'
+                ? 'Set an emissions reduction target in kg CO2e for this source.'
+                : 'Set an upper limit for food wastage (kg) for this cafeteria area.';
 
     // Build today's date string for min attribute
     const todayStr = new Date().toISOString().split('T')[0];
@@ -718,19 +763,30 @@ window._openTargetModal = function (reportId) {
                 </div>
                 <div style="font-size:12px;color:#6b7280;text-align:right;">Report #${report.id}<br>${report.type} Wastage</div>
             </div>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;">
+                <div style="font-size:12px;font-weight:600;color:#1d4ed8;margin-bottom:6px;">How to set this target</div>
+                <div style="font-size:12px;color:#334155;line-height:1.5;">
+                    <div>${targetHelpText}</div>
+                    <div>Measured current: <strong>${Number.isFinite(currentMeasured) ? currentMeasured : '—'} ${unit}</strong> | Baseline: <strong>${Number.isFinite(currentBaseline) ? currentBaseline : '—'} ${unit}</strong> | End-user estimate: <strong>${Number.isFinite(userProvided) ? userProvided : '—'} ${report?.specificData?.reportedUnit || unit}</strong></div>
+                    <div>Recommended starting target: <strong>${suggestedTarget || '—'} ${unit}</strong> (about 15% below current measured value).</div>
+                </div>
+            </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;">
             <div>
                 <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">New Target Value (${unit}) *</label>
-                <input type="number" id="mt-value" min="0" step="0.01" placeholder="e.g. ${metricType === 'Energy' ? '4.2' : metricType === 'Water' ? '16.0' : '1100'}" value="${existing.value || ''}" style="width:100%;padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;">
+                <input type="number" id="mt-value" min="0" step="0.01" placeholder="e.g. ${metricType === 'Energy' ? '120' : metricType === 'Water' ? '650' : metricType === 'Emissions' ? '45' : '18'}" value="${existing.value || suggestedTarget || ''}" style="width:100%;padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;">
+                <div style="font-size:11px;color:#9ca3af;margin-top:4px;line-height:1.4;">Use the same unit as the measured/estimated wastage value shown above. Keep the target lower than the current measured value whenever possible.</div>
             </div>
             <div>
                 <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Target Deadline *</label>
                 <input type="date" id="mt-deadline" min="${todayStr}" value="${existing.deadline || ''}" style="width:100%;padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;">
+                <div style="font-size:11px;color:#9ca3af;margin-top:4px;line-height:1.4;">Pick a date by which this target should be met and verified in the next audit cycle.</div>
             </div>
             <div>
                 <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Justification (optional)</label>
                 <textarea id="mt-justification" rows="2" placeholder="Based on Finance cost-impact analysis..." style="width:100%;padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;resize:vertical;font-family:inherit;box-sizing:border-box;">${existing.justification || ''}</textarea>
+                <div style="font-size:11px;color:#9ca3af;margin-top:4px;line-height:1.4;">Add assumptions, operational constraints, and why this target is practical for the reported location.</div>
             </div>
         </div>
     `;

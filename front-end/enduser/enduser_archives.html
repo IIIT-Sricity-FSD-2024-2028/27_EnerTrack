@@ -58,6 +58,7 @@
 
     .status-finalized { background: #d1fae5; color: #065f46; }
     .status-target-set { background: #d1fae5; color: #065f46; }
+    .status-dismissed { background: #fee2e2; color: #991b1b; }
 
     .ticket-count {
       background: #6b7280;
@@ -204,12 +205,29 @@
   </div>
 
   <script type="module">
-    import universalDB from '../../shared/universalDB.js';
-
     document.addEventListener('DOMContentLoaded', () => {
       const stored = localStorage.getItem('currentUser');
       if (!stored) { window.location.href = '../sign_in/sign_in.html'; return; }
       const user = JSON.parse(stored);
+
+      // One-time backfill for legacy dismissed reports.
+      (function backfillDismissedArchives() {
+        const raw = localStorage.getItem('enertrack_universal_v1');
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        const reports = data?.workflow?.wastageReports || [];
+        let changed = false;
+        reports.forEach((r) => {
+          if (r.status === 'Dismissed' && !r.archived) {
+            r.archived = true;
+            r.archivedAt = r.dismissedAt || new Date().toISOString();
+            changed = true;
+          }
+        });
+        if (changed) {
+          localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
+        }
+      })();
 
       document.getElementById('sidebarUserName').textContent = user.name;
       document.getElementById('sidebarUserRole').textContent = user.role;
@@ -217,7 +235,8 @@
       const STATUS_MAP = {
         'Finalized':  { label: 'Resolved',          cssClass: 'status-finalized' },
         'Target Set': { label: 'Target Set',         cssClass: 'status-target-set' },
-        'Delivered':  { label: 'Report Delivered',    cssClass: 'status-finalized' }
+        'Delivered':  { label: 'Report Delivered',    cssClass: 'status-finalized' },
+        'Dismissed':  { label: 'Dismissed',           cssClass: 'status-dismissed' }
       };
 
       function renderArchives() {
@@ -261,7 +280,11 @@
           if (mt) {
             narrativeParts.push(`In response, the Sustainability Officer has established a revised ${t.type.toLowerCase()} reduction target of <strong style="color:#1e40af;">${mt.value} ${mt.unit}</strong>, effective until <strong>${new Date(mt.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>.`);
           }
-          narrativeParts.push('This report has been formally closed and archived for your records.');
+          if (t.status === 'Dismissed') {
+            narrativeParts.push(`This report was dismissed by the Sustainability Officer. Reason: <strong>${t.dismissReason || 'Not specified'}</strong>.`);
+          } else {
+            narrativeParts.push('This report has been formally closed and archived for your records.');
+          }
 
           expandedHTML = `
             <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-top:12px;">
