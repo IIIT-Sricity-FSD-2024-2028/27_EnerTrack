@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>EnerTrack – Archives</title>
+  <link rel="stylesheet" href="finance_overview.css">
+  <link rel="stylesheet" href="finance_shared.css">
+  <style>
+    .archive-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      transition: box-shadow .2s;
+    }
+    .archive-card:hover {
+      box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08);
+    }
+    .archive-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      background: white;
+      border-radius: 12px;
+      border: 2px dashed #e5e7eb;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+
+<body>
+  <div style="display:flex;width:100%;">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div>
+        <a href="../landing/landing.html" class="logo">
+          <img src="images/logo.png" alt="EnerTrack Logo" class="logo-icon">
+          <img src="images/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
+        </a>
+        <div class="menu">
+          <div class="menu-item" data-page="finance_overview.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+            </svg>
+            Overview
+          </div>
+          <div class="menu-item" data-page="finance_reports.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="9" y1="17" x2="9" y2="13" />
+              <line x1="12" y1="17" x2="12" y2="11" />
+              <line x1="15" y1="17" x2="15" y2="15" />
+            </svg>
+            Financial<br>Reports &amp; Impact
+          </div>
+          <div class="menu-item" data-page="finance_costs.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 9v3a5 5 0 0 0 10 0V9" />
+              <line x1="10" y1="4" x2="10" y2="8" />
+              <line x1="14" y1="4" x2="14" y2="8" />
+              <path d="M12 17v3" />
+            </svg>
+            Utility Costs
+          </div>
+          <div class="menu-item active" data-page="finance_archives.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="21 8 21 21 3 21 3 8"></polyline>
+              <rect x="1" y="3" width="22" height="5"></rect>
+              <line x1="10" y1="12" x2="14" y2="12"></line>
+            </svg>
+            Archives
+          </div>
+        </div>
+      </div>
+      <div class="profile">
+        <div class="profile-left">
+          <img src="https://i.pravatar.cc/40?img=12">
+          <div>
+            <div class="profile-name" id="sidebarUserName">Aadithya Mouli</div>
+            <div class="profile-role" id="sidebarUserRole">Finance Analyst</div>
+          </div>
+        </div>&#x22EE;
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <div class="container">
+        <h1 class="welcome">Archives</h1>
+        <div class="sub">Past reports that have been processed and returned to the Sustainability Officer.</div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;margin-top:24px;">
+          <h3 style="margin:0;font-size:16px;color:#111827;">Archived Reports</h3>
+          <span id="archiveCount" style="background:#059669;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
+        </div>
+
+        <div id="archiveContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import universalDB from '../shared/universalDB.js';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const stored = localStorage.getItem('currentUser');
+      if (stored) {
+        const user = JSON.parse(stored);
+        document.getElementById('sidebarUserName').textContent = user.name;
+        document.getElementById('sidebarUserRole').textContent = user.role;
+      }
+
+      function render() {
+        const raw = localStorage.getItem('enertrack_universal_v1');
+        const data = raw ? JSON.parse(raw) : null;
+        const reports = data?.workflow?.wastageReports || [];
+        // Show reports that have been returned to SO (Returned to SO status or beyond) and have cost impact added
+        const archived = reports.filter(r =>
+          r.costImpact && (r.status === 'Returned to SO' || r.status === 'Target Set' || r.status === 'Finalized' || r.status === 'Delivered')
+        ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        document.getElementById('archiveCount').textContent = archived.length;
+        const container = document.getElementById('archiveContainer');
+
+        if (archived.length === 0) {
+          container.innerHTML = '<div class="empty-state"><p>No archived reports yet. Reports appear here after you complete the cost impact assessment and return them to the Sustainability Officer.</p></div>';
+          return;
+        }
+
+        container.innerHTML = archived.map(r => {
+          const formatCurr = v => '₹' + Number(v).toLocaleString('en-IN');
+          const ci = r.costImpact;
+          const statusMap = {
+            'Returned to SO': 'Returned to SO',
+            'Target Set': 'Target Set by SO',
+            'Finalized': 'Finalized',
+            'Delivered': 'Delivered to Visitor'
+          };
+          const statusLabel = statusMap[r.status] || r.status;
+
+          return `
+            <div class="archive-card">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <strong style="font-size:14px;color:#111827;">#${r.id}</strong>
+                    <span style="background:#059669;color:white;padding:2px 8px;border-radius:4px;font-size:11px;">${r.type} Wastage</span>
+                  </div>
+                  <div style="font-size:13px;color:#374151;">Reported by: ${r.reporterName || 'Unknown'}</div>
+                  <div style="font-size:11px;color:#9ca3af;margin-top:4px;">Processed ${new Date(r.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                </div>
+                <span class="archive-badge">${statusLabel}</span>
+              </div>
+              ${ci ? `<div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;">
+                <div><span style="font-size:10px;color:#9ca3af;text-transform:uppercase;">Est. Loss</span><div style="font-weight:700;color:#dc2626;">${formatCurr(ci.estimatedLoss)}</div></div>
+                <div><span style="font-size:10px;color:#9ca3af;text-transform:uppercase;">Remediation</span><div style="font-weight:700;">${formatCurr(ci.remediationCost)}</div></div>
+                <div><span style="font-size:10px;color:#9ca3af;text-transform:uppercase;">Savings</span><div style="font-weight:700;color:#059669;">${formatCurr(ci.projectedSavings)}</div></div>
+              </div>` : ''}
+            </div>`;
+        }).join('');
+      }
+
+      render();
+      window.addEventListener('storage', e => { if (e.key === 'enertrack_universal_v1') render(); });
+
+      // Wire sidebar navigation
+      document.querySelectorAll('.menu-item[data-page]').forEach(item => {
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', () => {
+          window.location.href = item.dataset.page;
+        });
+      });
+    });
+  </script>
+  <script src="../dashboardProfileMenu.js"></script>
+</body>
+
+</html>
