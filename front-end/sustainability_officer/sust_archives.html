@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sustainability Dashboard - Archives</title>
+    <link rel="stylesheet" href="sust_overview.css">
+    <link rel="stylesheet" href="sust_shared.css">
+    <style>
+        .archive-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            transition: box-shadow .2s;
+        }
+        .archive-card:hover {
+            box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08);
+        }
+        .archive-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .archive-meta {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            background: white;
+            border-radius: 12px;
+            border: 2px dashed #e5e7eb;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <a href="../landing/landing.html" class="sidebar-logo">
+                <img src="images/logo.png" alt="EnerTrack Logo" class="logo-icon">
+                <img src="images/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
+            </a>
+            <nav class="sidebar-nav">
+                <a href="sust_overview.html" class="nav-item">
+                    <span class="nav-icon" data-icon="overview"></span>
+                    Overview
+                </a>
+                <a href="sust_monitoring.html" class="nav-item">
+                    <span class="nav-icon" data-icon="monitoring"></span>
+                    Environmental Impact Monitoring
+                </a>
+                <a href="sust_report.html" class="nav-item">
+                    <span class="nav-icon" data-icon="reporting"></span>
+                    Sustainability Reporting
+                </a>
+                <a href="sust_initiatives.html" class="nav-item">
+                    <span class="nav-icon" data-icon="initiatives"></span>
+                    Sustainable Conservation Initiatives
+                </a>
+                <a href="sust_archives.html" class="nav-item active">
+                    <span class="nav-icon" data-icon="overview"></span>
+                    Archives
+                </a>
+            </nav>
+            <div class="sidebar-bottom">
+                <div class="sync-card">
+                    <div class="sync-dot"></div>
+                    <div class="sync-info">
+                        <h4>Data Sync: Active</h4>
+                        <p>Live meter feeds and emissio...</p>
+                    </div>
+                </div>
+                <div class="profile-card">
+                    <img src="images/maya_patel.png" alt="User Profile" class="avatar">
+                    <div class="profile-info">
+                        <h4 id="sidebarUserName">Maya Patel</h4>
+                        <p id="sidebarUserRole">Sustainability Officer</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="page-header">
+                <h1>Archives</h1>
+                <p>Reports that have been fully resolved and delivered to the campus visitor are automatically archived here.</p>
+            </header>
+
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                <h3 style="margin:0;font-size:16px;color:#111827;">Archived Reports</h3>
+                <span id="archiveCount" style="background:#059669;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
+            </div>
+
+            <div id="archiveContainer"></div>
+        </main>
+    </div>
+
+    <script type="module">
+        import universalDB from '../shared/universalDB.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const stored = localStorage.getItem('currentUser');
+            if (stored) {
+                const user = JSON.parse(stored);
+                document.getElementById('sidebarUserName').textContent = user.name;
+                document.getElementById('sidebarUserRole').textContent = user.role;
+            }
+
+            function render() {
+                const raw = localStorage.getItem('enertrack_universal_v1');
+                const data = raw ? JSON.parse(raw) : null;
+                const reports = data?.workflow?.wastageReports || [];
+                const archived = reports.filter(r => r.soArchived).sort((a,b) => new Date(b.soArchivedAt || b.timestamp) - new Date(a.soArchivedAt || a.timestamp));
+
+                document.getElementById('archiveCount').textContent = archived.length;
+                const container = document.getElementById('archiveContainer');
+
+                if (archived.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No archived reports yet. Reports are automatically archived after delivery to the campus visitor.</p></div>';
+                    return;
+                }
+
+                container.innerHTML = archived.map(r => {
+                    const formatCurr = v => '₹' + Number(v).toLocaleString('en-IN');
+                    const ci = r.costImpact;
+                    const mt = r.metricTarget;
+
+                    let detailHTML = '';
+                    if (ci) {
+                        detailHTML += `<div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
+                            <div><span style="font-size:10px;color:#9ca3af;text-transform:uppercase;">Est. Loss</span><div style="font-weight:700;color:#dc2626;">${formatCurr(ci.estimatedLoss)}</div></div>
+                            <div><span style="font-size:10px;color:#9ca3af;text-transform:uppercase;">Remediation</span><div style="font-weight:700;">${formatCurr(ci.remediationCost)}</div></div>
+                            <div><span style="font-size:10px;color:#9ca3af;text-transform:uppercase;">Savings</span><div style="font-weight:700;color:#059669;">${formatCurr(ci.projectedSavings)}</div></div>
+                        </div>`;
+                    }
+                    if (mt) {
+                        detailHTML += `<div style="margin-top:8px;font-size:12px;color:#374151;">Target: <strong style="color:#1e40af;">${mt.value} ${mt.unit}</strong> by ${new Date(mt.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>`;
+                    }
+
+                    return `
+                        <div class="archive-card">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                                <div>
+                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                                        <strong style="font-size:14px;color:#111827;">#${r.id}</strong>
+                                        <span style="background:#059669;color:white;padding:2px 8px;border-radius:4px;font-size:11px;">${r.type} Wastage</span>
+                                    </div>
+                                    <div style="font-size:13px;color:#374151;">Reported by: ${r.reporterName || 'Unknown'}</div>
+                                    <div class="archive-meta">Archived ${r.soArchivedAt ? new Date(r.soArchivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</div>
+                                </div>
+                                <span class="archive-badge">Delivered</span>
+                            </div>
+                            ${detailHTML}
+                        </div>`;
+                }).join('');
+            }
+
+            render();
+            window.addEventListener('storage', e => { if (e.key === 'enertrack_universal_v1') render(); });
+        });
+    </script>
+    <script src="../dashboardProfileMenu.js"></script>
+</body>
+</html>

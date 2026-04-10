@@ -52,6 +52,15 @@
             </svg>
             Utility Costs
           </div>
+          <div class="menu-item" data-page="finance_archives.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <polyline points="21 8 21 21 3 21 3 8"></polyline>
+              <rect x="1" y="3" width="22" height="5"></rect>
+              <line x1="10" y1="12" x2="14" y2="12"></line>
+            </svg>
+            Archives
+          </div>
         </div>
       </div>
       <div class="profile">
@@ -68,8 +77,13 @@
     <!-- CONTENT -->
     <div class="content">
       <div class="container">
-        <h1 class="welcome" id="welcomeHeading">Welcome back, Aadithya</h1>
-        <div class="sub">Track key financial metrics and access main tools.</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div>
+            <h1 class="welcome" id="welcomeHeading">Welcome back, Aadithya</h1>
+            <div class="sub">Track key financial metrics and access main tools.</div>
+          </div>
+          <div id="notif-container" style="position:relative;flex-shrink:0;margin-top:8px;"></div>
+        </div>
 
         <!-- CARDS -->
         <div class="cards">
@@ -79,7 +93,7 @@
                   <line x1="12" y1="1" x2="12" y2="23" />
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg></span></div>
-            <div class="value green" id="card-energy-cost">$124,500</div>
+            <div class="value green" id="card-energy-cost">₹1,24,500</div>
             <div class="change">Latest month (Mar 2025)</div>
           </div>
           <div class="card">
@@ -89,7 +103,7 @@
                   <line x1="8" y1="21" x2="16" y2="21" />
                   <line x1="12" y1="17" x2="12" y2="21" />
                 </svg></span></div>
-            <div class="value green" id="card-savings">$32,400</div>
+            <div class="value green" id="card-savings">₹32,400</div>
             <div class="change">↗ Under-budget depts</div>
           </div>
           <div class="card">

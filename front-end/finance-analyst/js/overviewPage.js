@@ -8,6 +8,9 @@ import FinanceDB      from "./data/mockData.js";
 import SessionModule  from "./modules/session.js";
 import { renderActivityList } from "./modules/activity.js";
 import { formatCurrency, showToast, openModal, closeModal, validateForm } from "./utils/utils.js";
+import { renderBellIcon, notifyOnStateChange } from '../../shared/notifications.js';
+
+const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
 /* ── BOOT ─────────────────────────────────────────── */
 
@@ -22,6 +25,9 @@ document.addEventListener("DOMContentLoaded", () => {
   renderFinanceWorkflow();
   renderWastageReviewQueue();
   wireNavigation();
+
+  // Render notification bell
+  renderBellIcon('notif-container', currentUser.email);
 
   // Cross-tab sync: re-render when SO forwards a report
   window.addEventListener('storage', (e) => {
@@ -393,10 +399,11 @@ function _buildReportCard(r) {
     ? new Date(r.validatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : '—';
 
-  // Cost impact display (if already added)
   let costImpactHTML = '';
   if (r.costImpact) {
     const ci = r.costImpact;
+    const payback = ci.projectedSavings > 0 ? (ci.remediationCost / ci.projectedSavings) : null;
+    const roi = ci.remediationCost > 0 ? (((ci.projectedSavings - ci.remediationCost) / ci.remediationCost) * 100) : null;
     costImpactHTML = `
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px;margin-top:14px;">
         <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;margin:0 0 10px 0;">Cost Impact (Added)</h4>
@@ -414,7 +421,30 @@ function _buildReportCard(r) {
             <div style="font-size:16px;font-weight:700;color:#059669;">${formatCurrency(ci.projectedSavings)}</div>
           </div>
         </div>
-        ${ci.notes ? `<div style="margin-top:8px;font-size:12px;color:#6b7280;font-style:italic;">"${ci.notes}"</div>` : ''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px dashed #fde68a;">
+          <div>
+            <div style="font-size:11px;color:#6b7280;">ROI</div>
+            <div style="font-size:16px;font-weight:700;color:${roi !== null && roi >= 0 ? '#059669' : '#dc2626'};">${roi !== null ? roi.toFixed(1) + '%' : '—'}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#6b7280;">Payback Period</div>
+            <div style="font-size:16px;font-weight:700;color:#1e40af;">${payback !== null ? payback.toFixed(1) + ' yrs' : '—'}</div>
+          </div>
+        </div>
+        ${ci.notes ? `<div style="margin-top:8px;font-size:12px;color:#6b7280;font-style:italic;">${ci.notes}</div>` : ''}
+      </div>`;
+  }
+
+  // Revision request from SO (shown when report is sent back)
+  let revisionHTML = '';
+  if (r.revisionRequest && r.status === 'Forwarded to Finance') {
+    const rr = r.revisionRequest;
+    revisionHTML = `
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px;margin-top:14px;">
+        <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#991b1b;margin:0 0 8px 0;">⚠ Revision Requested by SO</h4>
+        <p style="font-size:13px;color:#374151;margin:0 0 4px 0;line-height:1.5;">${rr.reason}</p>
+        ${rr.notes ? `<p style="font-size:12px;color:#6b7280;margin:0;font-style:italic;">Note: "${rr.notes}"</p>` : ''}
+        <div style="margin-top:6px;font-size:11px;color:#9ca3af;">Requested at ${rr.requestedAt ? new Date(rr.requestedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
       </div>`;
   }
 
@@ -460,7 +490,7 @@ function _buildReportCard(r) {
 
       <!-- System Sensor Data -->
       <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px;">
-        <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#0369a1;margin:0 0 10px 0;">Sensor Reading (${sd.sensorId || '—'})</h4>
+        <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#0369a1;margin:0 0 10px 0;">${r.type === 'Food' ? 'Wastage Assessment' : r.type === 'Water' ? 'Flow Monitoring' : r.type === 'Emissions' ? 'Emissions Monitoring' : 'Energy Meter Reading'} (${sd.sensorId || '—'})</h4>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div>
             <div style="font-size:11px;color:#6b7280;">Current</div>
@@ -480,6 +510,37 @@ function _buildReportCard(r) {
     </div>
 
     ${costImpactHTML}
+    ${revisionHTML}
+
+    <!-- Comment Thread -->
+    ${(() => {
+        const comments = r.comments || [];
+        const commentListHTML = comments.map(c => {
+            const roleBadge = c.role === 'Sustainability Officer' ? 'SO' : c.role === 'Finance Analyst' ? 'FA' : 'CV';
+            const roleBg = c.role === 'Sustainability Officer' ? '#059669' : c.role === 'Finance Analyst' ? '#6366f1' : '#6b7280';
+            return `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6;">
+                <div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:${roleBg};color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">${roleBadge}</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:600;color:#111827;">${c.author}</span><span style="font-size:10px;color:#9ca3af;">${new Date(c.timestamp).toLocaleDateString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</span></div>
+                    <p style="font-size:12px;color:#374151;margin:2px 0 0 0;line-height:1.5;">${c.text}</p>
+                </div>
+            </div>`;
+        }).join('');
+        return `
+        <div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="const el=this.nextElementSibling;el.style.display=el.style.display==='none'?'block':'none';this.querySelector('.cmt-toggle').textContent=el.style.display==='none'?'Show':'Hide';">
+                <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#6b7280;font-weight:600;">Comments (${comments.length})</span>
+                <span class="cmt-toggle" style="font-size:11px;color:#059669;font-weight:600;">Show</span>
+            </div>
+            <div style="display:none;">
+                ${commentListHTML || '<p style="font-size:12px;color:#9ca3af;margin:8px 0;">No comments yet.</p>'}
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                    <input type="text" id="fa-cmt-${r.id}" placeholder="Add a comment..." style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;color:#1f2937;">
+                    <button onclick="window._addFAComment('${r.id}')" style="padding:6px 12px;border-radius:6px;border:none;background:#111827;color:white;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">Send</button>
+                </div>
+            </div>
+        </div>`;
+    })()}
 
     <!-- Actions -->
     <div style="display:flex;gap:8px;align-items:center;margin-top:14px;">
@@ -488,6 +549,28 @@ function _buildReportCard(r) {
     </div>
   </div>`;
 }
+
+// Finance Comment Handler
+window._addFAComment = function (reportId) {
+    const input = document.getElementById(`fa-cmt-${reportId}`);
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+
+    const reports = _readWastageReports();
+    const report = reports.find(r => r.id === reportId);
+    if (!report) return;
+
+    if (!report.comments) report.comments = [];
+    report.comments.push({
+        author: currentUser.name || 'Finance Analyst',
+        role: 'Finance Analyst',
+        text: text,
+        timestamp: new Date().toISOString()
+    });
+    _writeWastageReports(reports);
+    renderWastageReviewQueue();
+};
 
 /* ── Cost Impact Modal ────────────────────────────── */
 
@@ -501,20 +584,23 @@ window._openCostImpactModal = function(reportId) {
   const bodyHTML = `
     <div style="margin-bottom:6px;font-size:13px;color:#6b7280;">Add financial figures for <strong>${report.type} Wastage Report #${report.id}</strong></div>
     <div class="fm-group">
-      <label>Estimated Financial Loss ($) *</label>
+      <label>Estimated Financial Loss (₹) *</label>
       <input type="number" id="ci-loss" min="0" step="0.01" placeholder="e.g. 12500" value="${existing.estimatedLoss || ''}">
+      <div style="font-size:11px;color:#9ca3af;margin-top:4px;line-height:1.4;">The total projected monetary loss if this wastage continues unchecked over a year. Include direct resource costs, operational inefficiency, and any regulatory penalties.</div>
     </div>
     <div class="fm-group">
-      <label>Remediation Cost ($) *</label>
+      <label>Remediation Cost (₹) *</label>
       <input type="number" id="ci-remediation" min="0" step="0.01" placeholder="e.g. 3200" value="${existing.remediationCost || ''}">
+      <div style="font-size:11px;color:#9ca3af;margin-top:4px;line-height:1.4;">One-time expenditure required to fix the root cause — e.g. equipment repair, process redesign, staff training, or infrastructure upgrades.</div>
     </div>
     <div class="fm-group">
-      <label>Projected Annual Savings ($) *</label>
+      <label>Projected Annual Savings (₹) *</label>
       <input type="number" id="ci-savings" min="0" step="0.01" placeholder="e.g. 8400" value="${existing.projectedSavings || ''}">
+      <div style="font-size:11px;color:#9ca3af;margin-top:4px;line-height:1.4;">Expected yearly savings after remediation. This is the difference between current wastage cost and the projected cost after implementing corrective measures.</div>
     </div>
     <div class="fm-group">
       <label>Notes (optional)</label>
-      <textarea id="ci-notes" rows="3" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#1f2937;resize:vertical;font-family:inherit;" placeholder="Peak tariff period amplified loss...">${existing.notes || ''}</textarea>
+      <textarea id="ci-notes" rows="3" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#1f2937;resize:vertical;font-family:inherit;" placeholder="Any additional context, assumptions, or justification...">${existing.notes || ''}</textarea>
     </div>
   `;
 
@@ -554,6 +640,8 @@ window._openCostImpactModal = function(reportId) {
         estimatedLoss: parseFloat(lossVal),
         remediationCost: parseFloat(remVal),
         projectedSavings: parseFloat(savVal),
+        roi: parseFloat(remVal) > 0 ? +(((parseFloat(savVal) - parseFloat(remVal)) / parseFloat(remVal)) * 100).toFixed(1) : 0,
+        paybackPeriod: parseFloat(savVal) > 0 ? +(parseFloat(remVal) / parseFloat(savVal)).toFixed(2) : 0,
         notes: notesVal || '',
         addedBy: 'Finance Analyst',
         addedAt: new Date().toISOString()
@@ -562,6 +650,8 @@ window._openCostImpactModal = function(reportId) {
 
       _writeWastageReports(freshReports);
       showToast('Cost impact saved. Review and return to SO when ready.', 'success');
+      notifyOnStateChange(target, 'cost_added', 'Finance Analyst');
+      renderBellIcon('notif-container', currentUser.email);
       renderWastageReviewQueue();
     }
   });
@@ -584,5 +674,7 @@ window._sendBackToSO = function(reportId) {
 
   _writeWastageReports(freshReports);
   showToast('Report sent back to Sustainability Officer with cost figures.', 'success');
+  notifyOnStateChange(target, 'returned_to_so', 'Finance Analyst');
+  renderBellIcon('notif-container', currentUser.email);
   renderWastageReviewQueue();
 };

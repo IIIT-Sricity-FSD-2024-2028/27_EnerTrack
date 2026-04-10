@@ -24,7 +24,7 @@ export function formatDate(isoString) {
 
 export function formatCurrency(value) {
   if (value == null || isNaN(value)) return "—";
-  return "$" + Number(value).toLocaleString();
+  return "₹" + Number(value).toLocaleString('en-IN');
 }
 
 /* ── VALIDATION ───────────────────────────────────── */

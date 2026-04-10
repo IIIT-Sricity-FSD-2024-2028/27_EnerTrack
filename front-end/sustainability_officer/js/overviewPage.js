@@ -7,6 +7,9 @@ import SessionModule from './modules/session.js';
 import { injectIcons } from './utils/icons.js';
 
 import { showToast, openModal } from './utils/utils.js';
+import { renderBellIcon, notifyOnStateChange } from '../../shared/notifications.js';
+
+const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
 document.addEventListener("DOMContentLoaded", () => {
     SessionModule.initSession();
@@ -16,7 +19,10 @@ document.addEventListener("DOMContentLoaded", () => {
     renderRecentHighlights();
     renderWastageAuditQueue();
 
-    // Auto-refresh queue if another tab (End User) submits a report
+    // Render notification bell
+    renderBellIcon('notif-container', currentUser.email);
+
+    // Auto-refresh queue if another tab (Campus Visitor) submits a report
     window.addEventListener('storage', (e) => {
         if (e.key === 'enertrack_universal_v1') {
             renderWastageAuditQueue();
@@ -177,8 +183,23 @@ function renderWastageAuditQueue() {
     const universalData = raw ? JSON.parse(raw) : null;
     const reports = universalData?.workflow?.wastageReports || [];
 
-    const pendingReports = reports.filter(r => r.status === 'Reported' || r.status === 'Validated');
-    const allActionable = reports.filter(r => r.status !== 'Dismissed');
+    // Auto-archive any delivered reports that weren't already marked
+    let needsSave = false;
+    reports.forEach(r => {
+        if (r.status === 'Delivered' && !r.soArchived) {
+            r.soArchived = true;
+            r.soArchivedAt = r.deliveredAt || new Date().toISOString();
+            needsSave = true;
+        }
+    });
+    if (needsSave && universalData) {
+        localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
+    }
+
+    const activeReports = reports.filter(r => !r.soArchived);
+
+    const pendingReports = activeReports.filter(r => r.status === 'Reported' || r.status === 'Validated');
+    const allActionable = activeReports.filter(r => r.status !== 'Dismissed');
 
     if (countBadge) countBadge.textContent = `${pendingReports.length} pending`;
 
@@ -218,15 +239,47 @@ function renderWastageAuditQueue() {
         else if (r.status === 'Finalized') { statusBg = '#d1fae5'; statusColor = '#065f46'; }
         else if (r.status === 'Target Set') { statusBg = '#dbeafe'; statusColor = '#1e40af'; statusLabel = '✓ Target Set'; }
         else if (r.status === 'Dismissed') { statusBg = '#f1f5f9'; statusColor = '#475569'; }
+        else if (r.status === 'Delivered') { statusBg = '#d1fae5'; statusColor = '#065f46'; statusLabel = 'Delivered to Campus Visitor'; }
 
         // Cost impact display (from Finance Analyst — Steps 13)
         let costImpactHTML = '';
-        if (r.costImpact && (r.status === 'Returned to SO' || r.status === 'Finalized' || r.status === 'Target Set')) {
+        if (r.costImpact && (r.status === 'Returned to SO' || r.status === 'Finalized' || r.status === 'Target Set' || r.status === 'Delivered')) {
             const ci = r.costImpact;
-            const formatCurr = (v) => '$' + Number(v).toLocaleString();
+            const formatCurr = (v) => '₹' + Number(v).toLocaleString('en-IN');
+
+            // Green box when target is set or finalized; orange when still pending action
+            const isTargetDone = r.status === 'Target Set' || r.status === 'Finalized' || r.status === 'Delivered';
+            const boxBg    = isTargetDone ? '#f0fdf4' : '#fffbeb';
+            const boxBorder = isTargetDone ? '#bbf7d0' : '#fde68a';
+            const headColor = isTargetDone ? '#065f46' : '#92400e';
+            const headIcon  = isTargetDone ? '✅' : '💰';
+            const headLabel = isTargetDone ? 'Finance Assessment — Resolved' : 'Finance Cost Impact Assessment';
+
+            // Embedded target section (only when target is set)
+            let embeddedTargetHTML = '';
+            if (r.metricTarget && isTargetDone) {
+                const mt = r.metricTarget;
+                embeddedTargetHTML = `
+                <div style="margin-top:14px;padding-top:14px;border-top:1px dashed ${boxBorder};">
+                    <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#1e40af;margin:0 0 8px 0;">🎯 New Metric Target</h4>
+                    <div style="display:flex;gap:20px;align-items:center;">
+                        <div>
+                            <div style="font-size:11px;color:#6b7280;">Target Value</div>
+                            <div style="font-size:18px;font-weight:700;color:#1e40af;">${mt.value} <small>${mt.unit}</small></div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:#6b7280;">Deadline</div>
+                            <div style="font-size:14px;font-weight:600;color:#374151;">${new Date(mt.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                        </div>
+                    </div>
+                    ${mt.justification ? `<div style="margin-top:6px;font-size:12px;color:#6b7280;">"${mt.justification}"</div>` : ''}
+                    <div style="margin-top:4px;font-size:11px;color:#9ca3af;">Set at ${mt.setAt ? new Date(mt.setAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                </div>`;
+            }
+
             costImpactHTML = `
-            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px;margin-bottom:14px;">
-                <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;margin:0 0 10px 0;">💰 Finance Cost Impact Assessment</h4>
+            <div style="background:${boxBg};border:1px solid ${boxBorder};border-radius:8px;padding:14px;margin-bottom:14px;">
+                <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:${headColor};margin:0 0 10px 0;">${headIcon} ${headLabel}</h4>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
                     <div>
                         <div style="font-size:11px;color:#6b7280;">Est. Financial Loss</div>
@@ -241,31 +294,24 @@ function renderWastageAuditQueue() {
                         <div style="font-size:16px;font-weight:700;color:#059669;">${formatCurr(ci.projectedSavings)}</div>
                     </div>
                 </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px dashed ${boxBorder};">
+                    <div>
+                        <div style="font-size:11px;color:#6b7280;">ROI</div>
+                        <div style="font-size:16px;font-weight:700;color:${ci.roi != null && ci.roi >= 0 ? '#059669' : '#dc2626'};">${ci.roi != null ? ci.roi.toFixed(1) + '%' : (ci.projectedSavings && ci.remediationCost ? (((ci.projectedSavings - ci.remediationCost) / ci.remediationCost) * 100).toFixed(1) + '%' : '\u2014')}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:11px;color:#6b7280;">Payback Period</div>
+                        <div style="font-size:16px;font-weight:700;color:#1e40af;">${ci.paybackPeriod != null ? ci.paybackPeriod.toFixed(1) + ' yrs' : (ci.projectedSavings > 0 ? (ci.remediationCost / ci.projectedSavings).toFixed(1) + ' yrs' : '\u2014')}</div>
+                    </div>
+                </div>
                 ${ci.notes ? `<div style="margin-top:8px;font-size:12px;color:#6b7280;font-style:italic;">"${ci.notes}"</div>` : ''}
                 <div style="margin-top:6px;font-size:11px;color:#9ca3af;">Added by ${ci.addedBy || 'Finance'} • ${ci.addedAt ? new Date(ci.addedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                ${embeddedTargetHTML}
             </div>`;
         }
 
-        // Metric target display (from Step 15)
+        // Standalone target display is no longer needed — target is now embedded in cost-impact box
         let targetHTML = '';
-        if (r.metricTarget && r.status === 'Target Set') {
-            const mt = r.metricTarget;
-            targetHTML = `
-            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;margin-bottom:14px;">
-                <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#1e40af;margin:0 0 8px 0;">🎯 New Metric Target</h4>
-                <div style="display:flex;gap:20px;align-items:center;">
-                    <div>
-                        <div style="font-size:11px;color:#6b7280;">Target Value</div>
-                        <div style="font-size:18px;font-weight:700;color:#1e40af;">${mt.value} <small>${mt.unit}</small></div>
-                    </div>
-                    <div>
-                        <div style="font-size:11px;color:#6b7280;">Deadline</div>
-                        <div style="font-size:14px;font-weight:600;color:#374151;">${new Date(mt.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                    </div>
-                </div>
-                ${mt.justification ? `<div style="margin-top:6px;font-size:12px;color:#6b7280;">"${mt.justification}"</div>` : ''}
-            </div>`;
-        }
 
         // Action buttons (only for actionable statuses)
         let actionsHTML = '';
@@ -278,11 +324,15 @@ function renderWastageAuditQueue() {
                 <button onclick="window._auditAction('${r.id}','forward')" style="padding:6px 14px;border-radius:6px;border:none;background:#3b82f6;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">→ Forward to Finance</button>`;
         } else if (r.status === 'Returned to SO') {
             actionsHTML = `
+                <button onclick="window._openTargetModal('${r.id}')" style="padding:8px 16px;border-radius:6px;border:none;background:#2563eb;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">🎯 Set New Target</button>
+                <button onclick="window._sendBackToFinance('${r.id}')" style="padding:8px 16px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#6b7280;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">↻ Send Back to Finance</button>`;
+        } else if (r.status === 'Target Set') {
+            actionsHTML = `
                 <button onclick="window._finalizeReport('${r.id}')" style="padding:8px 16px;border-radius:6px;border:none;background:#111827;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">✓ Finalize Report</button>
-                <button onclick="window._openTargetModal('${r.id}')" style="padding:8px 16px;border-radius:6px;border:none;background:#2563eb;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">🎯 Set New Target</button>`;
+                <button onclick="window._openTargetModal('${r.id}')" style="padding:8px 16px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#374151;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">🎯 Edit Target</button>`;
         } else if (r.status === 'Finalized') {
             actionsHTML = `
-                <button onclick="window._openTargetModal('${r.id}')" style="padding:8px 16px;border-radius:6px;border:none;background:#2563eb;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">🎯 Set New Target</button>`;
+                <button onclick="window._sendReportToUser('${r.id}')" style="padding:8px 16px;border-radius:6px;border:none;background:#059669;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">Send Detailed Report to Campus Visitor</button>`;
         }
 
         const anomalyTag = sd.anomalyDetected
@@ -320,7 +370,7 @@ function renderWastageAuditQueue() {
 
                 <!-- System Sensor Data -->
                 <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px;">
-                    <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#0369a1;margin:0 0 10px 0;">Sensor Reading (${sd.sensorId || '—'})</h4>
+                    <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#0369a1;margin:0 0 10px 0;">${r.type === 'Food' ? 'Wastage Assessment' : r.type === 'Water' ? 'Flow Monitoring' : r.type === 'Emissions' ? 'Emissions Monitoring' : 'Energy Meter Reading'} (${sd.sensorId || '—'})</h4>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                         <div>
                             <div style="font-size:11px;color:#6b7280;">Current</div>
@@ -339,6 +389,36 @@ function renderWastageAuditQueue() {
                 </div>
             </div>
 
+            <!-- Comment Thread -->
+            ${(() => {
+                const comments = r.comments || [];
+                const commentListHTML = comments.map(c => {
+                    const roleBadge = c.role === 'Sustainability Officer' ? 'SO' : c.role === 'Finance Analyst' ? 'FA' : 'CV';
+                    const roleBg = c.role === 'Sustainability Officer' ? '#059669' : c.role === 'Finance Analyst' ? '#6366f1' : '#6b7280';
+                    return `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6;">
+                        <div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:${roleBg};color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">${roleBadge}</div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:600;color:#111827;">${c.author}</span><span style="font-size:10px;color:#9ca3af;">${new Date(c.timestamp).toLocaleDateString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</span></div>
+                            <p style="font-size:12px;color:#374151;margin:2px 0 0 0;line-height:1.5;">${c.text}</p>
+                        </div>
+                    </div>`;
+                }).join('');
+                return `
+                <div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="const el=this.nextElementSibling;el.style.display=el.style.display==='none'?'block':'none';this.querySelector('.cmt-toggle').textContent=el.style.display==='none'?'Show':'Hide';">
+                        <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#6b7280;font-weight:600;">Comments (${comments.length})</span>
+                        <span class="cmt-toggle" style="font-size:11px;color:#059669;font-weight:600;">Show</span>
+                    </div>
+                    <div style="display:none;">
+                        ${commentListHTML || '<p style="font-size:12px;color:#9ca3af;margin:8px 0;">No comments yet.</p>'}
+                        <div style="display:flex;gap:8px;margin-top:8px;">
+                            <input type="text" id="so-cmt-${r.id}" placeholder="Add a comment..." style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;color:#1f2937;">
+                            <button onclick="window._addSOComment('${r.id}')" style="padding:6px 12px;border-radius:6px;border:none;background:#111827;color:white;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">Send</button>
+                        </div>
+                    </div>
+                </div>`;
+            })()}
+
             <div style="display:flex;gap:8px;align-items:center;">
                 ${actionsHTML}
                 <span style="margin-left:auto;font-size:11px;color:#9ca3af;">${new Date(r.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
@@ -346,6 +426,30 @@ function renderWastageAuditQueue() {
         </div>`;
     }).join('');
 }
+
+// SO Comment Handler
+window._addSOComment = function (reportId) {
+    const input = document.getElementById(`so-cmt-${reportId}`);
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+
+    const raw = localStorage.getItem('enertrack_universal_v1');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    const report = (data.workflow.wastageReports || []).find(r => r.id === reportId);
+    if (!report) return;
+
+    if (!report.comments) report.comments = [];
+    report.comments.push({
+        author: currentUser.name || 'Sustainability Officer',
+        role: 'Sustainability Officer',
+        text: text,
+        timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
+    renderWastageAuditQueue();
+};
 
 // Global action handler for audit buttons
 // window._auditAction = function (reportId, action) {
@@ -377,20 +481,78 @@ window._auditAction = function (reportId, action) {
     if (action === 'validate') {
         report.status = 'Validated';
         report.validatedAt = new Date().toISOString();
+        localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
         showToast('Report validated successfully.', 'success', 2000);
+        notifyOnStateChange(report, 'validated', currentUser.name || 'Sustainability Officer');
+        renderBellIcon('notif-container', currentUser.email);
+        renderWastageAuditQueue();
+        renderRecentHighlights();
     } else if (action === 'dismiss') {
-        report.status = 'Dismissed';
-        report.dismissedAt = new Date().toISOString();
-        showToast('Report dismissed.', 'info', 2000);
+        // Open rejection modal instead of direct dismiss
+        openModal({
+            title: 'Dismiss Wastage Report',
+            bodyHTML: `
+                <div style="margin-bottom:6px;font-size:13px;color:#6b7280;">Provide a reason for dismissing <strong>Report #${reportId}</strong>.</div>
+                <div class="fm-group">
+                    <label>Reason *</label>
+                    <select id="dismiss-reason" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#1f2937;background:#fff;">
+                        <option value="">Select a reason...</option>
+                        <option value="False Alarm">False Alarm</option>
+                        <option value="Insufficient Evidence">Insufficient Evidence</option>
+                        <option value="Already Addressed">Already Addressed</option>
+                        <option value="Out of Scope">Out of Scope</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="fm-group">
+                    <label>Explanation *</label>
+                    <textarea id="dismiss-comment" rows="3" style="padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#1f2937;resize:vertical;font-family:inherit;" placeholder="Provide details (min. 10 characters)..."></textarea>
+                </div>
+            `,
+            confirmLabel: 'Dismiss Report',
+            cancelLabel: 'Cancel',
+            danger: true,
+            onConfirm: () => {
+                const reason = document.getElementById('dismiss-reason')?.value;
+                const comment = document.getElementById('dismiss-comment')?.value?.trim();
+                if (!reason) {
+                    showToast('Please select a reason for dismissal.', 'warning');
+                    return false;
+                }
+                if (!comment || comment.length < 10) {
+                    showToast('Explanation must be at least 10 characters.', 'warning');
+                    return false;
+                }
+                // Re-read fresh data to avoid stale writes
+                const freshRaw = localStorage.getItem('enertrack_universal_v1');
+                if (!freshRaw) return;
+                const freshData = JSON.parse(freshRaw);
+                const freshReport = (freshData.workflow.wastageReports || []).find(r => r.id === reportId);
+                if (!freshReport) return;
+
+                freshReport.status = 'Dismissed';
+                freshReport.dismissedAt = new Date().toISOString();
+                freshReport.dismissReason = reason;
+                freshReport.dismissComment = comment;
+                localStorage.setItem('enertrack_universal_v1', JSON.stringify(freshData));
+                showToast('Report dismissed with reason.', 'info', 2000);
+                notifyOnStateChange(freshReport, 'dismissed', currentUser.name || 'Sustainability Officer');
+                renderBellIcon('notif-container', currentUser.email);
+                renderWastageAuditQueue();
+                renderRecentHighlights();
+            }
+        });
+        return; // Don't fall through to save/render below
     } else if (action === 'forward') {
         report.status = 'Forwarded to Finance';
         report.forwardedAt = new Date().toISOString();
+        localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
         showToast('Report forwarded to Finance Analyst.', 'success', 2000);
+        notifyOnStateChange(report, 'forwarded', currentUser.name || 'Sustainability Officer');
+        renderBellIcon('notif-container', currentUser.email);
+        renderWastageAuditQueue();
+        renderRecentHighlights();
     }
-
-    localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
-    renderWastageAuditQueue();
-    renderRecentHighlights();
 };
 
 /* ══════════════════════════════════════════════════════
@@ -411,9 +573,11 @@ window._finalizeReport = function (reportId) {
     report.finalizedAt = new Date().toISOString();
     report.finalizedBy = 'Sustainability Officer';
 
+    // Sync in-memory universalDB BEFORE calling addHighlight (which calls universalDB.save)
     localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
+    // Re-read into universalDB via the SustDB getter which syncs in-memory data
+    void SustDB.wastageReports;
 
-    // Add highlight
     SustDB.addHighlight(
         'Wastage Report Finalized',
         `Report #${reportId} (${report.type}) finalized with Finance cost-impact data.`,
@@ -421,6 +585,104 @@ window._finalizeReport = function (reportId) {
     );
 
     showToast('Report finalized and archived.', 'success', 2500);
+    renderWastageAuditQueue();
+    renderRecentHighlights();
+};
+
+/* ── Send Back to Finance (with revision notes form) ─ */
+
+window._sendBackToFinance = function (reportId) {
+    const bodyHTML = `
+        <div style="margin-bottom:6px;font-size:13px;color:#6b7280;">Explain what changes are needed for report <strong>#${reportId}</strong>:</div>
+        <div style="margin-bottom:12px;">
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">What needs to be revised? *</label>
+            <textarea id="sb-reason" rows="3" placeholder="e.g. The remediation cost seems too high, please re-assess..." style="width:100%;padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+        </div>
+        <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Additional notes (optional)</label>
+            <input type="text" id="sb-notes" placeholder="Any extra context..." style="width:100%;padding:9px 11px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;">
+        </div>
+    `;
+
+    openModal({
+        title: '↻ Send Back to Finance Analyst',
+        bodyHTML,
+        confirmLabel: 'Send Back',
+        cancelLabel: 'Cancel',
+        onConfirm: () => {
+            const reason = document.getElementById('sb-reason')?.value?.trim();
+            const notes = document.getElementById('sb-notes')?.value?.trim();
+
+            if (!reason) {
+                showToast('Please explain what changes are needed.', 'warning');
+                return false; // keep modal open
+            }
+
+            const raw = localStorage.getItem('enertrack_universal_v1');
+            if (!raw) return;
+            const universalData = JSON.parse(raw);
+            const reports = universalData.workflow.wastageReports || [];
+            const report = reports.find(r => r.id === reportId);
+            if (!report) return;
+
+            // Clear cost-impact data and reset status
+            delete report.costImpact;
+            delete report.returnedAt;
+            report.status = 'Forwarded to Finance';
+            report.sentBackAt = new Date().toISOString();
+            report.revisionRequest = {
+                reason: reason,
+                notes: notes || '',
+                requestedAt: new Date().toISOString(),
+                requestedBy: 'Sustainability Officer'
+            };
+
+            localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
+            // Sync in-memory cache before addHighlight writes back
+            void SustDB.wastageReports;
+
+            SustDB.addHighlight(
+                'Report Sent Back to Finance',
+                `Report #${reportId} sent back for revision: "${reason.substring(0, 60)}${reason.length > 60 ? '...' : ''}"`,
+                'yellow'
+            );
+
+            showToast('Report sent back to Finance for revision.', 'warning', 2500);
+            renderWastageAuditQueue();
+            renderRecentHighlights();
+        }
+    });
+};
+
+/* ── Send Detailed Report to End User ─────────────── */
+
+window._sendReportToUser = function (reportId) {
+    const raw = localStorage.getItem('enertrack_universal_v1');
+    if (!raw) return;
+    const universalData = JSON.parse(raw);
+    const reports = universalData.workflow.wastageReports || [];
+    const report = reports.find(r => r.id === reportId);
+    if (!report) return;
+
+    report.status = 'Delivered';
+    report.deliveredAt = new Date().toISOString();
+    report.deliveredBy = 'Sustainability Officer';
+    report.soArchived = true;
+    report.soArchivedAt = new Date().toISOString();
+
+    localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
+    // Sync in-memory cache before addHighlight writes back
+    void SustDB.wastageReports;
+
+    SustDB.addHighlight(
+        'Report Delivered to Campus Visitor',
+        `Full report for #${reportId} (${report.type}) sent to ${report.reporterName}.`,
+        'green'
+    );
+
+    showToast('Detailed report delivered to the end user.', 'success', 2500);
+    notifyOnStateChange(report, 'delivered', 'Sustainability Officer');
+    renderBellIcon('notif-container', currentUser.email);
     renderWastageAuditQueue();
     renderRecentHighlights();
 };
@@ -520,6 +782,8 @@ window._openTargetModal = function (reportId) {
             }
 
             localStorage.setItem('enertrack_universal_v1', JSON.stringify(freshData));
+            // Sync in-memory cache before addHighlight writes back
+            void SustDB.wastageReports;
 
             // Highlight
             SustDB.addHighlight(
@@ -529,6 +793,8 @@ window._openTargetModal = function (reportId) {
             );
 
             showToast(`${metricType} target set to ${valueStr} ${unit}.`, 'success', 2500);
+            notifyOnStateChange(target, 'target_set', 'Sustainability Officer');
+            renderBellIcon('notif-container', currentUser.email);
             renderWastageAuditQueue();
             renderRecentHighlights();
         }
