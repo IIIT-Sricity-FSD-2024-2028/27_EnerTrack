@@ -89,14 +89,6 @@
             </nav>
 
             <div class="sidebar-bottom">
-                <div class="sync-card">
-                    <div class="sync-dot"></div>
-                    <div class="sync-info">
-                        <h4>Data Sync: Active</h4>
-                        <p>Live meter feeds and emissio...</p>
-                    </div>
-                </div>
-
                 <div class="profile-card">
                     <img src="images/maya_patel.png" alt="User Profile" class="avatar">
                     <div class="profile-info">
@@ -127,7 +119,7 @@
                         <span class="metric-icon" data-icon="energy"></span>
                     </div>
                     <div class="metric-value" id="val-energy">4.9 <small>GWh</small></div>
-                    <p class="metric-desc">3.2% lower than the previous month across all monitored facilities.</p>
+                    <p class="metric-desc">Equivalent to the combined monthly electricity draw of core academic and lab blocks currently under monitoring.</p>
                 </div>
                 <div class="metric-card">
                     <div class="metric-header">
@@ -135,7 +127,7 @@
                         <span class="metric-icon" data-icon="water"></span>
                     </div>
                     <div class="metric-value" id="val-water">18.6 <small>ML</small></div>
-                    <p class="metric-desc">Consumption remains within quarterly conservation limits.</p>
+                    <p class="metric-desc">Represents total metered campus water consumption this cycle across utilities, sanitation, and facility operations.</p>
                 </div>
                 <div class="metric-card">
                     <div class="metric-header">
@@ -143,7 +135,7 @@
                         <span class="metric-icon" data-icon="emissions"></span>
                     </div>
                     <div class="metric-value" id="val-emissions">1,284 <small>tCO₂e</small></div>
-                    <p class="metric-desc">Down 6.8% versus the last reporting cycle after procurement changes.</p>
+                    <p class="metric-desc">Calculated from current energy mix and usage profile, including grid electricity and fuel-linked operational emissions.</p>
                 </div>
                 <div class="metric-card">
                     <div class="metric-header">
@@ -151,7 +143,15 @@
                         <span class="metric-icon" data-icon="initiatives"></span>
                     </div>
                     <div class="metric-value" id="val-initiatives">18</div>
-                    <p class="metric-desc">14 on track, 3 ahead of plan, and 1 awaiting stakeholder review.</p>
+                    <p class="metric-desc">Initiatives in execution or review phases that are actively contributing to measurable reduction goals.</p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <h3>Food Wastage</h3>
+                        <span class="metric-icon" data-icon="overview"></span>
+                    </div>
+                    <div class="metric-value" id="val-food-wastage">742 <small>kg</small></div>
+                    <p class="metric-desc">Total recoverable and non-recoverable food waste recorded from dining and event facilities during the reporting window.</p>
                 </div>
             </section>
 
@@ -166,129 +166,6 @@
                 </div>
                 <div id="wastageAuditContainer">
                     <!-- Populated by JS -->
-                </div>
-            </section>
-
-            <!-- MIDDLE ROW -->
-            <section class="middle-grid">
-                <!-- CHART PANEL -->
-                <div class="panel">
-                    <div class="panel-header">
-                        <div>
-                            <h2 class="panel-title">Environmental trends</h2>
-                            <p class="panel-subtitle">A quick monthly view of the core environmental indicators used in
-                                ongoing monitoring.</p>
-                        </div>
-                        <span class="badge-positive">Positive trend</span>
-                    </div>
-
-                    <div class="pill-nav" id="overviewPeriodSelector" style="display:flex;gap:6px;margin-bottom:12px;">
-                        <div class="pill-item active" data-period="30 Days"
-                            style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#e6f4ec;color:#0f9f6f;font-weight:600;">
-                            30 Days</div>
-                        <div class="pill-item" data-period="Quarter"
-                            style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#f3f4f6;color:#6b7280;">
-                            Quarter</div>
-                        <div class="pill-item" data-period="Year"
-                            style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;background:#f3f4f6;color:#6b7280;">
-                            Year</div>
-                    </div>
-
-                    <!-- Placeholder Chart using CSS -->
-                    <div class="chart-container">
-                        <div class="chart-group">
-                            <div class="bar energy" style="height: 60%;"></div>
-                            <div class="bar water" style="height: 40%;"></div>
-                            <div class="bar emissions" style="height: 50%;"></div>
-                        </div>
-                        <div class="chart-group">
-                            <div class="bar energy" style="height: 70%;"></div>
-                            <div class="bar water" style="height: 45%;"></div>
-                            <div class="bar emissions" style="height: 45%;"></div>
-                        </div>
-                        <div class="chart-group">
-                            <div class="bar energy" style="height: 55%;"></div>
-                            <div class="bar water" style="height: 38%;"></div>
-                            <div class="bar emissions" style="height: 42%;"></div>
-                        </div>
-                        <div class="chart-group">
-                            <div class="bar energy" style="height: 50%;"></div>
-                            <div class="bar water" style="height: 35%;"></div>
-                            <div class="bar emissions" style="height: 40%;"></div>
-                        </div>
-                        <div class="chart-group">
-                            <div class="bar energy" style="height: 55%;"></div>
-                            <div class="bar water" style="height: 42%;"></div>
-                            <div class="bar emissions" style="height: 48%;"></div>
-                        </div>
-                        <div class="chart-group">
-                            <div class="bar energy" style="height: 48%;"></div>
-                            <div class="bar water" style="height: 38%;"></div>
-                            <div class="bar emissions" style="height: 42%;"></div>
-                        </div>
-                    </div>
-                    <div class="chart-labels">
-                        <span>Jan</span>
-                        <span>Feb</span>
-                        <span>Mar</span>
-                        <span>Apr</span>
-                        <span>May</span>
-                        <span>Jun</span>
-                    </div>
-                    <div class="chart-legend">
-                        <div class="legend-item">
-                            <div class="legend-dot" style="background: #2bd189;"></div>Energy
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-dot" style="background: #2e89ff;"></div>Water
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-dot" style="background: #d5d68d;"></div>Emissions
-                        </div>
-                    </div>
-                </div>
-
-                <!-- QUICK STATS PANEL -->
-                <div class="panel">
-                    <h2 class="panel-title" style="margin-bottom: 8px;">Quick stats</h2>
-                    <p class="panel-subtitle">Current operational signals from the latest sustainability review window.
-                    </p>
-
-                    <div class="quick-stats-grid">
-                        <div class="stat-box">
-                            <h4>Reporting sites</h4>
-                            <div class="stat-val" id="stat-sites">9 / 10</div>
-                            <div class="stat-desc">One campus data package is still pending validation.</div>
-                        </div>
-                        <div class="stat-box">
-                            <h4>Alerts resolved</h4>
-                            <div class="stat-val" id="stat-alerts">14</div>
-                            <div class="stat-desc">Energy and water anomalies cleared by operations teams this week.
-                            </div>
-                        </div>
-                        <div class="stat-box">
-                            <h4>Reduction progress</h4>
-                            <div class="stat-val" id="stat-progress">76%</div>
-                            <div class="stat-desc">Annual emissions reduction target completion based on current pace.
-                            </div>
-                        </div>
-                        <div class="stat-box">
-                            <h4>Next review</h4>
-                            <div class="stat-val" id="stat-review">6 days</div>
-                            <div class="stat-desc">Cross-functional sustainability checkpoint is due next week.</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- RECENT HIGHLIGHTS -->
-            <section class="panel">
-                <h2 class="panel-title" style="margin-bottom: 4px;">Recent highlights</h2>
-                <p class="panel-subtitle">Important updates affecting current environmental performance and initiative
-                    planning.</p>
-
-                <div class="highlights-list" id="global-highlights-list">
-                    <!-- Processed highlights will appear here -->
                 </div>
             </section>
 

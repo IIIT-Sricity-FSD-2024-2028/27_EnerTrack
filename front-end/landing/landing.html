@@ -23,7 +23,6 @@
                 <a href="#hero">Home</a>
                 <a href="#about">About</a>
                 <a href="#roles">Roles</a>
-                <a href="#contact">Contact</a>
             </div>
         </div>
         <div class="right-nav">
@@ -307,38 +306,6 @@
 
     <hr class="section-divider">
 
-    <!-- CONTACT SECTION -->
-    <section class="section contact" id="contact">
-        <span class="section-label">Get In Touch</span>
-        <div class="contact-container">
-            <div class="contact-info">
-                <h2 class="section-title">Have questions? We're here to help you power smarter.</h2>
-                <p>Share your campus details, and our sustainability consultants will reach out with a tailored
-                    efficiency plan.</p>
-                <div style="margin-top: 24px;">
-                    <p style="font-weight: 600; font-size: 18px; margin-bottom: 8px;">✉ sustainability@ertrack.edu</p>
-                    <p style="font-weight: 600; font-size: 18px;">📞 +1 (555) 012-3456</p>
-                </div>
-            </div>
-
-            <form class="contact-form">
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" placeholder="John Doe">
-                </div>
-                <div class="form-group">
-                    <label>Campus Email</label>
-                    <input type="email" placeholder="john@university.edu">
-                </div>
-                <div class="form-group">
-                    <label>Message</label>
-                    <textarea rows="4" placeholder="How can we help your campus?"></textarea>
-                </div>
-                <button type="submit" class="btn-send">Send Inquiry</button>
-            </form>
-        </div>
-    </section>
-
     <!-- FOOTER -->
     <footer class="footer">
         <div class="copyright">© 2026 EnerTrack Energy Solutions.</div>
@@ -513,43 +480,6 @@
             }
         })();
 
-        document.querySelector('.contact-form').addEventListener('submit', function (e) {
-            e.preventDefault(); // stops the page reload/scroll to top
-
-            const name = this.querySelector('input[type="text"]').value.trim();
-            const email = this.querySelector('input[type="email"]').value.trim();
-            const message = this.querySelector('textarea').value.trim();
-
-            // Basic validation
-            if (!name || !email || !message) {
-                alert('Please fill in all fields.');
-                return;
-            }
-
-            // Replace form with a success message
-            //         this.innerHTML = `
-            //     <div style="text-align:center; padding: 40px 0;">
-            //         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2f7d4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-            //         <h3 style="margin-top:16px; color:#2f7d4f;">Inquiry Sent!</h3>
-            //         <p style="color:#555; margin-top:8px;">Thanks, <strong>${name}</strong>. We'll get back to you at <strong>${email}</strong> shortly.</p>
-            //     </div>
-            // `;
-            const popup = document.createElement('div');
-            popup.innerHTML = `
-        <div id="inquiry-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;">
-            <div style="background:#fff;border-radius:16px;padding:40px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
-                <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#2f7d4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                <h3 style="margin-top:16px;color:#2f7d4f;font-size:22px;">Inquiry Sent!</h3>
-                <p style="color:#555;margin-top:8px;">Thanks, <strong>${name}</strong>. We'll get back to you at <strong>${email}</strong> shortly.</p>
-                <button onclick="document.getElementById('inquiry-overlay').remove()" style="margin-top:24px;padding:10px 28px;background:#2f7d4f;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;">Close</button>
-            </div>
-        </div>
-    `;
-            document.body.appendChild(popup);
-
-            // Reset the form so fields stay
-            this.reset();
-        });
     </script>
 </body>
 

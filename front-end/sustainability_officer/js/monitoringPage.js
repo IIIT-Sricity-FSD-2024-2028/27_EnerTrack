@@ -80,14 +80,6 @@ function initMonitoring() {
         });
     }
 
-    // Wire Manual Override
-    const btnManualOverride = document.getElementById('btnManualOverride');
-    if (btnManualOverride) {
-        btnManualOverride.addEventListener('click', () => {
-            showToast("Manual override engaged. System entering maintenance polling mode.", "warning");
-        });
-    }
-
 }
 
 /* ── Sync Button Helpers ───────────────────────────── */
@@ -160,32 +152,36 @@ function updateTrendsChart(period) {
     const history = SustDB.data.monitoring.history[period];
     if (!history) return;
 
-    const chartGroups = document.querySelectorAll('#trendsChart .chart-group');
-    
-    chartGroups.forEach((group, index) => {
-        if (index >= history.e.length) {
-            group.style.display = 'none';
-            return;
-        }
-        group.style.display = 'flex';
-        
-        const energyBar = group.querySelector('.bar.c1');
-        const waterBar = group.querySelector('.bar.c2');
-        const emissionsBar = group.querySelector('.bar.c3');
-
-        const eVal = history.e[index];
-        const wVal = history.w[index];
-        const mVal = history.m[index];
-
-        if (energyBar) energyBar.style.height = `${Math.min(eVal, 100)}px`;
-        if (waterBar) waterBar.style.height = `${Math.min(wVal * 2, 100)}px`;
-        if (emissionsBar) emissionsBar.style.height = `${Math.min(mVal, 100)}px`;
-    });
-
+    const chartContainer = document.getElementById('trendsChart');
     const labelContainer = document.querySelector('.chart-labels');
-    if (labelContainer && history.labels) {
-        labelContainer.innerHTML = history.labels.map(l => `<span>${l}</span>`).join('');
+    if (!chartContainer || !labelContainer) return;
+
+    const foodSeries = Array.isArray(history.f) && history.f.length === history.e.length
+        ? history.f
+        : history.e.map(v => Math.round(v * 0.62));
+
+    const maxE = Math.max(...history.e);
+    const maxW = Math.max(...history.w);
+    const maxM = Math.max(...history.m);
+    const maxF = Math.max(...foodSeries);
+    const globalMax = Math.max(maxE, maxW, maxM, maxF) || 1;
+
+    let groupsHTML = '';
+    for (let i = 0; i < history.e.length; i++) {
+        const eH = Math.round((history.e[i] / globalMax) * 90);
+        const wH = Math.round((history.w[i] / globalMax) * 90);
+        const mH = Math.round((history.m[i] / globalMax) * 90);
+        const fH = Math.round((foodSeries[i] / globalMax) * 90);
+        groupsHTML += `
+            <div class="chart-group">
+                <div class="bar energy" style="height: ${eH}%;"></div>
+                <div class="bar water" style="height: ${wH}%;"></div>
+                <div class="bar emissions" style="height: ${mH}%;"></div>
+                <div class="bar food" style="height: ${fH}%;"></div>
+            </div>`;
     }
+    chartContainer.innerHTML = groupsHTML;
+    labelContainer.innerHTML = history.labels.map(l => `<span>${l}</span>`).join('');
 
     showToast(`Viewing trends for ${period}`, "info");
 }
@@ -204,7 +200,7 @@ function runPipelineSequence() {
     // Reset UI
     btn.disabled = true;
     btn.textContent = "Syncing...";
-    syncStatus.textContent = "Processing...";
+    if (syncStatus) syncStatus.textContent = "Processing...";
     fill.style.width = "0%";
     steps.forEach(s => s.querySelector('.step-icon').classList.remove('active'));
 
@@ -232,12 +228,13 @@ function runPipelineSequence() {
         btn.disabled = false;
         btn.innerHTML = `<span style="display:inline-flex;width:14px;height:14px;margin-right:6px;" data-icon="sync"></span> Run Sync Cycle`;
         injectIcons();
-        syncStatus.textContent = "Active";
+        if (syncStatus) syncStatus.textContent = "Active";
         
         // Update last sync time
         const now = new Date();
         const timeStr = `Today, ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
-        document.getElementById('lastSyncLabel').textContent = timeStr;
+        const lastSyncLabel = document.getElementById('lastSyncLabel');
+        if (lastSyncLabel) lastSyncLabel.textContent = timeStr;
 
         // Persist pipeline completed state
         savePipelineState('completed');
@@ -283,24 +280,27 @@ function runPipelineSequence() {
     }
 }
 
-let baseMetrics = { e: 812, w: 3.6, m: 214 };
+let baseMetrics = { e: 812, w: 3.6, m: 214, f: 742 };
 
 function updateLiveMetrics() {
     const e = document.getElementById('metricEnergy');
     const w = document.getElementById('metricWater');
     const m = document.getElementById('metricEmissions');
+    const f = document.getElementById('metricFood');
 
     // Add +/- 2% max variation for realism
     const varE = baseMetrics.e * (0.98 + Math.random() * 0.04);
     const varW = baseMetrics.w * (0.98 + Math.random() * 0.04);
     const varM = baseMetrics.m * (0.98 + Math.random() * 0.04);
+    const varF = baseMetrics.f * (0.98 + Math.random() * 0.04);
 
     if (e) e.textContent = Math.round(varE).toString();
     if (w) w.textContent = varW.toFixed(1);
     if (m) m.textContent = Math.round(varM).toString();
+    if (f) f.textContent = Math.round(varF).toString();
 
     // Small animation effect on metrics
-    [e, w, m].forEach(el => {
+    [e, w, m, f].forEach(el => {
         if (!el) return;
         el.style.transition = 'all 0.5s ease';
         el.style.color = '#00f96f';

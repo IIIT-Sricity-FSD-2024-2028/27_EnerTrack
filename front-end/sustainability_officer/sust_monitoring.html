@@ -40,14 +40,6 @@
             </nav>
 
             <div class="sidebar-bottom">
-                <div class="sync-card">
-                    <div class="sync-dot"></div>
-                    <div class="sync-info">
-                        <h4>Data Sync: Active</h4>
-                        <p>Live meter feeds and emissio...</p>
-                    </div>
-                </div>
-                
                 <div class="profile-card">
                     <img src="images/maya_patel.png" alt="Maya Patel" class="avatar">
                     <div class="profile-info">
@@ -63,15 +55,6 @@
             <header class="page-header">
                 <h1>Environmental Impact Monitoring</h1>
             </header>
-
-            <!-- DATA CYCLE BAR -->
-            <div class="data-cycle-bar">
-                <div class="cycle-badge">
-                    <div class="sync-dot"></div>
-                    Data Collection Cycle: <span id="syncStatus">Active</span>
-                </div>
-                <div class="sync-time">Last sync: <span id="lastSyncLabel">Today, 10:42 AM</span></div>
-            </div>
 
             <!-- METRICS ROW -->
             <section class="metrics-row">
@@ -109,6 +92,18 @@
                     </div>
                     <div class="metric-val"><span id="metricEmissions">214</span> <small>tCO₂e</small></div>
                     <div class="metric-footer">Emission factor tables were verified during the latest reporting rules sync.</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div>
+                            <h3>Food Wastage</h3>
+                            <p>Consolidated food discard data from kitchens, canteens, and event service points.</p>
+                        </div>
+                        <button class="btn-refresh" data-metric="food"><span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="sync"></span> Sync</button>
+                    </div>
+                    <div class="metric-val"><span id="metricFood">742</span> <small>kg</small></div>
+                    <div class="metric-footer">Collection logs were reconciled with waste handling records for this cycle.</div>
                 </div>
             </section>
 
@@ -227,27 +222,30 @@
                         <div class="pill-item" data-period="Year">Year</div>
                     </div>
                     
-                    <!-- Chart Placeholder -->
-                    <div class="view-chart-container" id="trendsChart">
+                    <div class="chart-container" id="trendsChart">
                         <div class="chart-group">
-                            <div class="bar c1" style="height: 60px;"></div>
-                            <div class="bar c2" style="height: 48px;"></div>
-                            <div class="bar c3" style="height: 55px;"></div>
+                            <div class="bar energy" style="height: 60%;"></div>
+                            <div class="bar water" style="height: 42%;"></div>
+                            <div class="bar emissions" style="height: 50%;"></div>
+                            <div class="bar food" style="height: 36%;"></div>
                         </div>
                         <div class="chart-group">
-                            <div class="bar c1" style="height: 75px;"></div>
-                            <div class="bar c2" style="height: 52px;"></div>
-                            <div class="bar c3" style="height: 60px;"></div>
+                            <div class="bar energy" style="height: 70%;"></div>
+                            <div class="bar water" style="height: 46%;"></div>
+                            <div class="bar emissions" style="height: 45%;"></div>
+                            <div class="bar food" style="height: 40%;"></div>
                         </div>
                         <div class="chart-group">
-                            <div class="bar c1" style="height: 68px;"></div>
-                            <div class="bar c2" style="height: 45px;"></div>
-                            <div class="bar c3" style="height: 50px;"></div>
+                            <div class="bar energy" style="height: 55%;"></div>
+                            <div class="bar water" style="height: 39%;"></div>
+                            <div class="bar emissions" style="height: 42%;"></div>
+                            <div class="bar food" style="height: 35%;"></div>
                         </div>
                         <div class="chart-group">
-                            <div class="bar c1" style="height: 65px;"></div>
-                            <div class="bar c2" style="height: 48px;"></div>
-                            <div class="bar c3" style="height: 52px;"></div>
+                            <div class="bar energy" style="height: 50%;"></div>
+                            <div class="bar water" style="height: 35%;"></div>
+                            <div class="bar emissions" style="height: 40%;"></div>
+                            <div class="bar food" style="height: 33%;"></div>
                         </div>
                     </div>
                     <div class="chart-labels">
@@ -258,9 +256,10 @@
                     </div>
                     
                     <div class="chart-legend">
-                        <div class="legend-item"><div class="legend-dot" style="background:#2bd189;"></div>Energy</div>
-                        <div class="legend-item"><div class="legend-dot" style="background:#2e89ff;"></div>Water</div>
-                        <div class="legend-item"><div class="legend-dot" style="background:#d5d68d;"></div>Emissions</div>
+                        <div class="legend-item"><div class="legend-dot energy"></div>Energy</div>
+                        <div class="legend-item"><div class="legend-dot water"></div>Water</div>
+                        <div class="legend-item"><div class="legend-dot emissions"></div>Emissions</div>
+                        <div class="legend-item"><div class="legend-dot food"></div>Food</div>
                     </div>
                 </div>
             </section>
@@ -269,13 +268,9 @@
             <section class="action-bar">
                 <div class="action-bar-text">
                     <h4>More data to be collected?</h4>
-                    <p>The system will automatically trigger the next collection cycle when new meter or utility data is detected. Use manual override if you need to force the next run immediately.</p>
+                    <p>The system will automatically trigger the next collection cycle when new meter or utility data is detected.</p>
                 </div>
                 <div class="action-btns">
-                    <button class="btn-outline" id="btnManualOverride">
-                        <span style="display:inline-flex;width:14px;height:14px;margin-right:6px;" data-icon="compile"></span>
-                        Manual Override
-                    </button>
                     <button class="btn-green" id="btnForceRun">
                         <span style="display:inline-flex;width:14px;height:14px;margin-right:6px;" data-icon="sync"></span>
                         Run Sync Cycle
@@ -289,5 +284,3 @@
     <script src="../dashboardProfileMenu.js"></script>
 </body>
 </html>
-
-

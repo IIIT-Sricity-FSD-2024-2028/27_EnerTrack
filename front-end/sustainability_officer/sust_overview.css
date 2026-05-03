@@ -185,7 +185,7 @@ body {
 /* TOP METRICS ROW */
 .top-metrics-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 22px;
 }
@@ -196,6 +196,7 @@ body {
     padding: 20px;
     border: 1px solid #d8dde2;
     box-shadow: none;
+    grid-column: span 2;
 }
 
 .metric-header {
@@ -236,10 +237,18 @@ body {
     line-height: 1.4;
 }
 
+.top-metrics-grid .metric-card:nth-child(4) {
+    grid-column: 2 / span 2;
+}
+
+.top-metrics-grid .metric-card:nth-child(5) {
+    grid-column: 4 / span 2;
+}
+
 /* MIDDLE ROW */
 .middle-grid {
     display: grid;
-    grid-template-columns: 1.65fr 1fr;
+    grid-template-columns: 1fr;
     gap: 24px;
     margin-bottom: 24px;
 }
@@ -303,9 +312,10 @@ body {
     border-radius: 999px;
 }
 
-.bar.energy { background-color: #2bd189; }
-.bar.water { background-color: #2e89ff; }
-.bar.emissions { background-color: #d5d68d; }
+.bar.energy { background-color: #14b8a6; }
+.bar.water { background-color: #6366f1; }
+.bar.emissions { background-color: #f59e0b; }
+.bar.food { background-color: #f43f5e; }
 
 .chart-labels {
     display: flex;
@@ -340,6 +350,11 @@ body {
     height: 8px;
     border-radius: 50%;
 }
+
+.legend-dot.energy { background-color: #14b8a6; }
+.legend-dot.water { background-color: #6366f1; }
+.legend-dot.emissions { background-color: #f59e0b; }
+.legend-dot.food { background-color: #f43f5e; }
 
 /* Quick Stats */
 .quick-stats-grid {
@@ -399,6 +414,21 @@ body {
 .highlight-item p {
     font-size: 14px;
     color: #8a95a2;
+}
+
+@media (max-width: 1600px) {
+    .top-metrics-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .top-metrics-grid .metric-card {
+        grid-column: auto;
+    }
+
+    .top-metrics-grid .metric-card:nth-child(4),
+    .top-metrics-grid .metric-card:nth-child(5) {
+        grid-column: auto;
+    }
 }
 
 @media (max-width: 1240px) {

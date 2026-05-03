@@ -214,7 +214,7 @@ body {
 /* METRICS ROW */
 .metrics-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-bottom: 24px;
 }
@@ -269,10 +269,15 @@ body {
     font-weight: 700;
     color: #111827;
     margin: 16px 0 12px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    white-space: nowrap;
 }
 
 .metric-card .metric-val small {
     font-size: 34px;
+    line-height: 1;
 }
 
 .metric-card .metric-footer {
@@ -487,41 +492,48 @@ body {
     color: #ffffff;
 }
 
-/* VIEW METRICS CHART (Right side placeholder) */
-.view-chart-container {
-    height: 208px;
-    background: #f4f6f8;
-    border: 1px solid #d8dde2;
-    border-radius: 10px;
+/* VIEW METRICS CHART */
+.chart-container {
+    height: 220px;
     display: flex;
     align-items: flex-end;
-    gap: 30px;
-    justify-content: center;
+    gap: 24px;
+    justify-content: space-between;
     margin-bottom: 16px;
-    padding-bottom: 18px;
+    padding: 0 10px;
 }
 .chart-group { display: flex; align-items: flex-end; gap: 6px; height: 100%; }
-.bar { width: 16px; border-radius: 999px; }
-.bar.c1 { background: #2bd189; }
-.bar.c2 { background: #2e89ff; }
-.bar.c3 { background: #d5d68d; }
+.bar { width: 22px; border-radius: 999px; }
+.bar.energy { background: #14b8a6; }
+.bar.water { background: #6366f1; }
+.bar.emissions { background: #f59e0b; }
+.bar.food { background: #f43f5e; }
 
 .chart-labels {
     display: flex;
-    justify-content: center;
-    gap: 50px;
+    justify-content: space-between;
+    padding: 0 10px;
     color: #8a95a2;
-    font-size: 12px;
-    margin-bottom: 16px;
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+
+.chart-labels span {
+    width: 60px;
+    text-align: center;
 }
 
 .chart-legend {
     display: flex;
-    justify-content: flex-start;
-    gap: 16px;
+    gap: 20px;
+    padding: 0 20px;
 }
-.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #4b5563; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4b5563; }
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.legend-dot.energy { background: #14b8a6; }
+.legend-dot.water { background: #6366f1; }
+.legend-dot.emissions { background: #f59e0b; }
+.legend-dot.food { background: #f43f5e; }
 
 /* BOTTOM ACTION BAR */
 .action-bar {

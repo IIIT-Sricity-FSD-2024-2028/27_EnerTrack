@@ -14,7 +14,23 @@ document.addEventListener("DOMContentLoaded", () => {
   wireForm();
 });
 
-let currentSelectedId = null;
+// State flow for forward/backward transitions
+const STATE_ORDER = ["proposed", "approved", "in-progress", "completed"];
+
+function getNextState(status) {
+  const idx = STATE_ORDER.indexOf(status);
+  return idx < STATE_ORDER.length - 1 ? STATE_ORDER[idx + 1] : null;
+}
+
+function getPrevState(status) {
+  const idx = STATE_ORDER.indexOf(status);
+  return idx > 0 ? STATE_ORDER[idx - 1] : null;
+}
+
+function formatStatus(status) {
+  const map = { "proposed": "Proposed", "approved": "Approved", "in-progress": "In Progress", "completed": "Completed" };
+  return map[status] || status;
+}
 
 // Render the entire pipeline based on SustDB
 function renderInitiatives() {
@@ -62,39 +78,17 @@ function renderInitiatives() {
   toggleHeader("col-in-progress", counts["in-progress"] > 0);
   toggleHeader("col-approved", counts.approved > 0);
   toggleHeader("col-completed", counts.completed > 0);
-
-  // Default selection
-  if (!currentSelectedId && initiatives.length > 0) {
-    selectInitiative(initiatives[0].id);
-  } else if (currentSelectedId) {
-    // Make sure we select an existing initiative, otherwise select the first
-    if (!SustDB.initiatives.find(i=>i.id === currentSelectedId)) {
-        if(initiatives.length > 0) selectInitiative(initiatives[0].id);
-    } else {
-        selectInitiative(currentSelectedId);
-    }
-  }
-
-  updateActiveCount();
-}
-
-function updateActiveCount() {
-  const activeCount = SustDB.initiatives.filter(i => i.status === "approved" || i.status === "in-progress").length;
-  const badge = document.querySelector(".badge-outline-green");
-  if (badge) {
-    badge.innerHTML = `<span style="display:inline-flex;width:14px;height:14px;margin-right:4px;" data-icon="compile"></span> ${activeCount} Active Initiatives`;
-    injectIcons();
-  }
 }
 
 function buildCard(init) {
   const div = document.createElement("div");
-  div.className = `kanban-card ${currentSelectedId === init.id ? 'selected' : ''}`;
+  div.className = `kanban-card ${init.onTrack === false ? 'offtrack' : ''}`;
   div.dataset.id = init.id;
 
-  const badgeClass = init.feasible ? "badge-feasible" : "badge-not-feasible";
-  const badgeText = init.feasible ? "Feasible" : "Not Feasible";
+  // Description
+  const descHtml = init.description ? `<p class="kanban-desc">${init.description}</p>` : '';
 
+  // Body: stats or outcomes
   let bodyHtml = "";
   if (init.status === "completed" && init.outcomes) {
     bodyHtml = `
@@ -106,44 +100,83 @@ function buildCard(init) {
     bodyHtml = `
       <div class="kanban-stats">
         <div class="kanban-stats-label">Target</div>
-        <div class="kanban-stats-val">${init.target || '0%'}</div>
+        <div class="kanban-stats-val">${init.target || '—'}</div>
         <div class="kanban-stats-label">Cost</div>
-        <div class="kanban-stats-val">${init.cost || '₹0'}</div>
+        <div class="kanban-stats-val">${init.cost || '—'}</div>
         <div class="kanban-stats-label">Timeline</div>
-        <div class="kanban-stats-val">${init.timeline || 'N/A'}</div>
+        <div class="kanban-stats-val">${(init.timeline || '—').split(' - ')[0]}</div>
       </div>
     `;
   }
 
-  let actionButtonsHtml = '';
-  if (init.status === "proposed") {
-      actionButtonsHtml += `<button class="btn-approve" style="color:#0f8f63; background:#ebf7f3; border: 1px solid #0f8f63; padding: 4px 8px; border-radius: 4px;">Approve</button>`;
-  } else if (init.status === "approved") {
-      actionButtonsHtml += `<button class="btn-start" style="color:#2e89ff; background:#ebf3ff; border: 1px solid #2e89ff; padding: 4px 8px; border-radius: 4px;">Start</button>`;
-  } else if (init.status === "in-progress") {
-      actionButtonsHtml += `<button class="btn-complete" style="color:#0f8f63; background:#ebf7f3; border: 1px solid #0f8f63; padding: 4px 8px; border-radius: 4px;">Complete</button>`;
+  // On Track / Off Track toggle
+  const trackHtml = init.status !== "completed" ? `
+    <div class="kanban-track-toggle">
+      <button class="track-btn ${init.onTrack !== false ? 'active on' : ''}" data-track="on">On Track</button>
+      <button class="track-btn ${init.onTrack === false ? 'active off' : ''}" data-track="off">Off Track</button>
+    </div>
+  ` : '';
+
+  // State transition buttons
+  const nextState = getNextState(init.status);
+  const prevState = getPrevState(init.status);
+
+  let stateButtonsHtml = '';
+  if (prevState) {
+    stateButtonsHtml += `<button class="btn-state btn-state-prev" data-to="${prevState}">← ${formatStatus(prevState)}</button>`;
+  }
+  if (nextState) {
+    stateButtonsHtml += `<button class="btn-state btn-state-next" data-to="${nextState}">${formatStatus(nextState)} →</button>`;
   }
 
-  if (init.status !== "completed") {
-      actionButtonsHtml += `<button class="btn-edit" style="color:#374151; background:#f4f6f8; border: 1px solid #d8dde2; padding: 4px 8px; border-radius: 4px;">Edit</button>`;
-  } else {
-      actionButtonsHtml += `<button class="btn-archive" style="color:#8a95a2; background:#f4f6f8; border: 1px solid #d8dde2; padding: 4px 8px; border-radius: 4px;">Archive</button>`;
+  // Action buttons
+  let actionButtonsHtml = `
+    <button class="btn-action btn-edit-action">Edit</button>
+  `;
+  if (init.status === "completed") {
+    actionButtonsHtml += `<button class="btn-action btn-archive-action">Archive</button>`;
   }
-  
-  actionButtonsHtml += `<button class="btn-delete" style="color:#dc2626; background:#fef2f2; border: 1px solid #fca5a5; padding: 4px 8px; border-radius: 4px;">Delete</button>`;
+  actionButtonsHtml += `<button class="btn-action btn-delete-action">Delete</button>`;
 
   div.innerHTML = `
     <div class="kanban-header">
       <h5>${init.title}</h5>
-      <span class="${badgeClass}">${badgeText}</span>
     </div>
+    ${descHtml}
     ${bodyHtml}
-    <div class="kanban-actions" style="display: flex; gap: 8px; margin-top: 12px;">
+    ${trackHtml}
+    <div class="kanban-state-row">
+      ${stateButtonsHtml}
+    </div>
+    <div class="kanban-actions">
       ${actionButtonsHtml}
     </div>
   `;
 
-  // Action Event Attachment Utility
+  // Bind track toggle
+  div.querySelectorAll('.track-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOn = btn.dataset.track === 'on';
+      SustDB.updateInitiative(init.id, { onTrack: isOn });
+      showToast(isOn ? "Marked 'On Track'" : "Marked 'Off Track'", isOn ? "success" : "warning");
+      renderInitiatives();
+    });
+  });
+
+  // Bind state transitions
+  div.querySelectorAll('.btn-state').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const newStatus = btn.dataset.to;
+      SustDB.updateInitiative(init.id, { status: newStatus });
+      SustDB.addHighlight("Status Update", `${init.title} → ${formatStatus(newStatus)}`, "blue");
+      showToast(`Moved to ${formatStatus(newStatus)}`, "success");
+      renderInitiatives();
+    });
+  });
+
+  // Bind actions
   const bindAction = (selector, actionCallback) => {
       const btn = div.querySelector(selector);
       if (btn) {
@@ -154,144 +187,68 @@ function buildCard(init) {
       }
   };
 
-  bindAction(".btn-approve", () => switchStatus(init.id, "approved", "Initiative approved!"));
-  bindAction(".btn-start", () => switchStatus(init.id, "in-progress", "Initiative moved to in-progress!"));
-  bindAction(".btn-complete", () => switchStatus(init.id, "completed", "Initiative marked resolved!"));
-  
-  bindAction(".btn-edit", () => openEditModal(init));
-  bindAction(".btn-archive", () => archiveInitiative(init.id));
-  bindAction(".btn-delete", () => confirmDelete(init.id));
-
-  div.addEventListener("click", () => {
-    selectInitiative(init.id);
-  });
+  bindAction(".btn-edit-action", () => openEditModal(init));
+  bindAction(".btn-archive-action", () => archiveInitiative(init.id));
+  bindAction(".btn-delete-action", () => confirmDelete(init.id));
 
   return div;
 }
 
 function switchStatus(id, newStatus, msg) {
-    import('./utils/utils.js').then(utils => {
-        const init = SustDB.initiatives.find(i => i.id === id);
-        if (init) SustDB.addHighlight("Status Update", `${init.title} moved to ${newStatus}`, "blue");
-        
-        SustDB.updateInitiative(id, { status: newStatus });
-        renderInitiatives();
-        utils.showToast(msg, "success");
-    });
+    const init = SustDB.initiatives.find(i => i.id === id);
+    if (init) SustDB.addHighlight("Status Update", `${init.title} moved to ${newStatus}`, "blue");
+    SustDB.updateInitiative(id, { status: newStatus });
+    renderInitiatives();
+    showToast(msg, "success");
 }
 
 function archiveInitiative(id) {
-    import('./utils/utils.js').then(utils => {
-        const init = SustDB.initiatives.find(i => i.id === id);
-        utils.openModal({
-            title: "Archive Initiative",
-            bodyHTML: "<p>Archiving will remove this completed initiative from active view. Continue?</p>",
-            confirmLabel: "Archive",
-            danger: false,
-            onConfirm: () => {
-                if (init) SustDB.addHighlight("Initiative Archived", init.title, "gray");
-                SustDB.deleteInitiative(id); // Treat archive as delete for mockData
-                renderInitiatives();
-                utils.showToast("Initiative archived", "info");
+    const init = SustDB.initiatives.find(i => i.id === id);
+    openModal({
+        title: "Archive Initiative",
+        bodyHTML: "<p>Archiving will remove this completed initiative from active view. Continue?</p>",
+        confirmLabel: "Archive",
+        danger: false,
+        onConfirm: () => {
+            if (init) {
+                SustDB.addHighlight("Initiative Archived", init.title, "gray");
+
+                // Read fresh from localStorage to get the full data tree
+                const raw = localStorage.getItem('enertrack_universal_v1');
+                const fullData = raw ? JSON.parse(raw) : {};
+
+                if (fullData.sust) {
+                    if (!Array.isArray(fullData.sust.initiativeArchives)) {
+                        fullData.sust.initiativeArchives = [];
+                    }
+                    fullData.sust.initiativeArchives.unshift({
+                        ...init,
+                        archivedAt: new Date().toISOString(),
+                        archiveType: 'initiative'
+                    });
+
+                    // Remove from active initiatives in the same data object
+                    fullData.sust.initiatives = (fullData.sust.initiatives || []).filter(i => i.id !== id);
+
+                    // Single atomic write
+                    localStorage.setItem('enertrack_universal_v1', JSON.stringify(fullData));
+
+                    // Sync in-memory state by reloading the page
+                    showToast("Initiative archived", "info");
+                    window.location.href = 'sust_archives.html';
+                    return;
+                }
             }
-        });
+            SustDB.deleteInitiative(id);
+            renderInitiatives();
+            showToast("Initiative archived", "info");
+            window.location.href = 'sust_archives.html';
+        }
     });
 }
 
-function selectInitiative(id) {
-    const init = SustDB.initiatives.find(i => i.id === id);
-    if (!init) return;
-
-    currentSelectedId = id;
-
-    // UI Feedback for Kanban Cards
-    document.querySelectorAll(".kanban-card").forEach(c => c.classList.remove("selected"));
-    const card = document.querySelector(`.kanban-card[data-id="${id}"]`);
-    if (card) card.classList.add("selected");
-
-    // Populate panel title
-    const panelTitle = document.querySelector(".col-span-2.flex-col-gap .panel-title");
-    if (panelTitle) panelTitle.textContent = `${init.title}`;
-
-    const setItem = (id, title, icon, contentHtml) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.innerHTML = `
-            <div class="box-icon" data-icon="${icon}"></div>
-            <div class="box-content">
-                <h5>${title}</h5>
-                ${contentHtml}
-            </div>
-        `;
-    };
-
-    // 1. Implementation tracking
-    setItem("sel-targets", "Implementation tracking", "monitoring", `
-        <p>${init.target || "N/A"} reduction goal established. Monitoring sub-feeders for baseline verification.</p>
-    `);
-
-    // 2. Progress (with bar)
-    const progVal = init.status === "completed" ? 100 : (init.status === "in-progress" ? 65 : 15);
-    setItem("sel-progress", "Progress", "compile", `
-        <p>${progVal}% complete — ${init.status === "completed" ? "All phases finalized" : "On track for schedule"}</p>
-        <div class="progress-mini"><div class="progress-mini-fill" style="width: ${progVal}%"></div></div>
-    `);
-
-    // 3. Initial evaluation (with bar)
-    const evalTarget = parseFloat(init.target || 8);
-    setItem("sel-evaluation", "Initial evaluation", "performance", `
-        <p>${evalTarget}% projected monthly reduction across monitored sites.</p>
-        <div class="progress-mini"><div class="progress-mini-fill" style="width: ${evalTarget * 5}%"></div></div>
-    `);
-
-    // 4. Resources
-    setItem("sel-resources", "Resources", "technician", `
-        <p><span class="status-dot green"></span>On-site facilities team assigned • External HVAC vendor approved.</p>
-    `);
-
-    // 5. Timeline
-    setItem("sel-timeline", "Timeline", "calendar", `
-        <p>Current: ${init.status} phase<br>Baseline: ${init.timeline || '5 weeks'}</p>
-    `);
-
-    // 6. Environmental impact
-    const impact = parseFloat(init.target || 0) * 8.2;
-    setItem("sel-impact", "Environmental impact", "carbon", `
-        <p>Forecasted: <strong>${impact.toFixed(1)} tCO₂e</strong> monthly reduction post-implementation.</p>
-    `);
-
-    // 7. Risks
-    setItem("sel-risks", "Risks", "alerts", `
-        <p><span class="status-dot green"></span>No critical blockers. Supply chain for units is cleared.</p>
-    `);
-
-    // 8. Cost benefit
-    setItem("sel-cost", "Cost benefit", "finance", `
-        <p>${init.cost || "₹0"} baseline cost. ROI forecast ~2.1 years.</p>
-    `);
-
-    // Status track updates
-    const badgeTrack = document.querySelector(".badge-track");
-    if (badgeTrack) {
-        badgeTrack.textContent = init.onTrack === false ? "Off Track" : "On Track";
-        badgeTrack.style.background = init.onTrack === false ? "#dc2626" : "#0f9f6f";
-    }
-
-    // Toggle button states
-    const btnOn = document.getElementById("btn-set-ontrack");
-    const btnOff = document.getElementById("btn-set-offtrack");
-    if (btnOn && btnOff) {
-        btnOn.classList.toggle("active", init.onTrack !== false);
-        btnOff.classList.toggle("active", init.onTrack === false);
-    }
-
-    injectIcons();
-}
-
-
-
 function wireForm() {
-    const btnPropose = document.querySelector(".btn-dark");
+    const btnPropose = document.querySelector(".btn-propose");
     if (!btnPropose) return;
 
     btnPropose.addEventListener("click", () => {
@@ -358,51 +315,49 @@ function wireForm() {
         targetEl.value = "";
         costEl.value = "";
     });
-
-    // Wire selection buttons
-    const btnOnTrack = document.getElementById("btn-set-ontrack");
-    const btnOffTrack = document.getElementById("btn-set-offtrack");
-
-    if (btnOnTrack) {
-        btnOnTrack.addEventListener("click", () => {
-            if (!currentSelectedId) return;
-            SustDB.updateInitiative(currentSelectedId, { onTrack: true });
-            selectInitiative(currentSelectedId);
-            showToast("Strategy updated to 'On Track'", "success");
-        });
-    }
-    if (btnOffTrack) {
-        btnOffTrack.addEventListener("click", () => {
-            if (!currentSelectedId) return;
-            SustDB.updateInitiative(currentSelectedId, { onTrack: false });
-            selectInitiative(currentSelectedId);
-            showToast("Strategy marked 'Off Track'", "warning");
-        });
-    }
 }
 
 function openEditModal(init) {
     const formHtml = `
-      <div style="display:flex; flex-direction:column; gap: 10px;">
-        <label>Title</label>
-        <input type="text" id="edit-init-title" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" value="${init.title}">
-        
-        <label>Status</label>
-        <select id="edit-init-status" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-            <option value="proposed" ${init.status === "proposed" ? "selected" : ""}>Proposed</option>
-            <option value="approved" ${init.status === "approved" ? "selected" : ""}>Approved</option>
-            <option value="in-progress" ${init.status === "in-progress" ? "selected" : ""}>In Progress</option>
-            <option value="completed" ${init.status === "completed" ? "selected" : ""}>Completed</option>
-        </select>
-        
-        <label>Feasibility</label>
-        <select id="edit-init-feasible" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-            <option value="true" ${init.feasible ? "selected" : ""}>Feasible</option>
-            <option value="false" ${!init.feasible ? "selected" : ""}>Not Feasible</option>
-        </select>
-        
-        <label>Target (%)</label>
-        <input type="text" id="edit-init-target" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" value="${init.target || ''}">
+      <div style="display:flex; flex-direction:column; gap: 12px;">
+        <div>
+          <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Title</label>
+          <input type="text" id="edit-init-title" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" value="${init.title}">
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Description</label>
+          <input type="text" id="edit-init-desc" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" value="${init.description || ''}">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Target (%)</label>
+            <input type="text" id="edit-init-target" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" value="${init.target || ''}">
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Cost</label>
+            <input type="text" id="edit-init-cost" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" value="${init.cost || ''}">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Timeline</label>
+            <select id="edit-init-timeline" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; background: #fff;">
+                <option value="3 weeks - Assessment -> Procurement -> Install" ${(init.timeline || '').includes('3 weeks') ? 'selected' : ''}>3 weeks</option>
+                <option value="6 weeks - Assessment -> Procurement -> Install -> QA" ${(init.timeline || '').includes('6 weeks') ? 'selected' : ''}>6 weeks</option>
+                <option value="8 weeks - Assessment -> Procurement -> Install -> Validation" ${(init.timeline || '').includes('8 weeks') ? 'selected' : ''}>8 weeks</option>
+                <option value="12 weeks - Multi-phase rollout" ${(init.timeline || '').includes('12 weeks') ? 'selected' : ''}>12 weeks</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Status</label>
+            <select id="edit-init-status" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; background: #fff;">
+                <option value="proposed" ${init.status === "proposed" ? "selected" : ""}>Proposed</option>
+                <option value="approved" ${init.status === "approved" ? "selected" : ""}>Approved</option>
+                <option value="in-progress" ${init.status === "in-progress" ? "selected" : ""}>In Progress</option>
+                <option value="completed" ${init.status === "completed" ? "selected" : ""}>Completed</option>
+            </select>
+          </div>
+        </div>
       </div>
     `;
 
@@ -411,17 +366,45 @@ function openEditModal(init) {
         bodyHTML: formHtml,
         confirmLabel: "Save Changes",
         onConfirm: () => {
-            const title = document.getElementById("edit-init-title").value;
+            const title = document.getElementById("edit-init-title").value.trim();
+            const description = document.getElementById("edit-init-desc").value.trim();
             const status = document.getElementById("edit-init-status").value;
-            const feasible = document.getElementById("edit-init-feasible").value === "true";
-            const target = document.getElementById("edit-init-target").value;
+            const target = document.getElementById("edit-init-target").value.trim();
+            const cost = document.getElementById("edit-init-cost").value.trim();
+            const timeline = document.getElementById("edit-init-timeline").value.trim();
 
             if (!title) {
-                showToast("Title is required", "error");
+                showToast("Title is required.", "error");
+                return;
+            }
+            if (!description) {
+                showToast("Description is required.", "error");
+                return;
+            }
+            if (!target) {
+                showToast("Target reduction is required.", "error");
+                return;
+            }
+            const targetClean = target.replace('%', '');
+            if (isNaN(parseFloat(targetClean)) || !isFinite(targetClean)) {
+                showToast("Target must be a valid number (e.g. 7.5).", "error");
+                return;
+            }
+            if (!cost) {
+                showToast("Cost is required.", "error");
+                return;
+            }
+            const costClean = cost.replace(/[₹$,]/g, '');
+            if (isNaN(parseFloat(costClean)) || !isFinite(costClean)) {
+                showToast("Cost must be a valid number (e.g. 56500).", "error");
+                return;
+            }
+            if (!timeline) {
+                showToast("Timeline is required.", "error");
                 return;
             }
 
-            SustDB.updateInitiative(init.id, { title, status, feasible, target });
+            SustDB.updateInitiative(init.id, { title, description, status, target, cost, timeline });
             SustDB.addHighlight("Initiative Edited", title, "yellow");
             
             showToast("Initiative updated", "success");
@@ -431,8 +414,6 @@ function openEditModal(init) {
 }
 
 function confirmDelete(id) {
-    // Need utils for openModal, but we already have it in scope if openModal is globally imported or directly referenced
-    // Actually we are inside confirmDelete which calls openModal.
     openModal({
         title: "Delete Initiative",
         bodyHTML: "<p>Are you sure you want to permanently remove this initiative?</p>",
