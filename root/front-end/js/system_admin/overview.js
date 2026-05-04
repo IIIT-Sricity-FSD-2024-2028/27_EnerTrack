@@ -14,33 +14,40 @@ import { injectIcons } from "./utils/icons.js";
 
 /* ── BOOT ─────────────────────────────────────────── */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   // Re-sync from localStorage on every page load
   const stored = localStorage.getItem('enertrack_unified_db');
   if (stored) {
     try { Object.assign(EnerTrackDB, JSON.parse(stored)); } catch (e) { }
   }
-  // 1. Make DB globally accessible (for inline onclick handlers in other modules)
   window.EnerTrackDB = EnerTrackDB;
 
-  // 2. Session
   SessionModule.initSession();
-
-  // 3. Inject SVG Icons
   injectIcons();
 
-  // 4. Render live data sections
   AlertsModule.renderAlerts("alertContainer");
   UpdatesModule.renderOverviewUpdates("overviewUpdatesContainer");
   renderOverviewBackups();
-
-  // 4. Render stat cards
   renderStatCards();
-
-  // 5. Wire buttons
   wireButtons();
 
+  // Live: fetch user count from backend and update stat card
+  try {
+    if (window.api) {
+      const users = await window.api.get('/users');
+      if (Array.isArray(users)) {
+        const countEl = document.getElementById('statTotalUsers');
+        if (countEl) countEl.textContent = users.length;
+      }
+    }
+  } catch (err) {
+    console.warn('[SA Overview] Could not fetch user count:', err.message);
+  }
+
+  await renderUsersTable();
+  wireUserDirectory();
 });
+
 
 
 /* ── OVERVIEW BACKUPS ─────────────────────────────── */
@@ -172,3 +179,154 @@ function handleToolAction(label) {
 /* ── GLOBAL ONCLICK HANDLERS (called from HTML) ───── */
 
 window.viewMetrics = () => { window.location.href = "system_admin_monitor.html"; };
+
+/* ── USER DIRECTORY ───────────────────────────────── */
+
+async function renderUsersTable() {
+  const tbody = document.getElementById('usersTableBody');
+  if (!tbody) return;
+
+  try {
+    if (!window.api) throw new Error('API not available');
+    const users = await window.api.get('/users');
+    if (!Array.isArray(users)) throw new Error('Invalid response');
+
+    // Also update the total users stat card just in case
+    const countEl = document.getElementById('statTotalUsers');
+    if (countEl) countEl.textContent = users.length;
+
+    if (users.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="padding: 20px; text-align: center; color: #6b7280;">No users found.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = users.map(u => `
+      <tr style="border-bottom: 1px solid #f3f4f6;">
+        <td style="padding: 12px 8px; font-size: 14px; color: #111827; font-weight: 500;">${u.name || '—'}</td>
+        <td style="padding: 12px 8px; font-size: 14px; color: #6b7280;">${u.email || '—'}</td>
+        <td style="padding: 12px 8px; font-size: 13px;">
+          <span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 9999px; font-weight: 600;">${u.role || 'User'}</span>
+        </td>
+        <td style="padding: 12px 8px; font-size: 14px; color: #6b7280;">${u.department || '—'}</td>
+        <td style="padding: 12px 8px;">
+          <button onclick="editUser('${u.user_id}')" style="background: none; border: none; color: #4f46e5; cursor: pointer; font-size: 13px; font-weight: 600; margin-right: 8px;">Edit</button>
+          <button onclick="deleteUser('${u.user_id}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 13px; font-weight: 600;">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.warn('[SA Overview] User directory fetch failed:', err);
+    tbody.innerHTML = `<tr><td colspan="5" style="padding: 20px; text-align: center; color: #ef4444;">Failed to load users. Backend unavailable.</td></tr>`;
+  }
+}
+
+function wireUserDirectory() {
+  const modal = document.getElementById('userModal');
+  const form = document.getElementById('userForm');
+  const btnCreate = document.getElementById('btnCreateUser');
+  const btnCancel = document.getElementById('btnCancelUser');
+
+  if (btnCreate) {
+    btnCreate.addEventListener('click', () => {
+      form.reset();
+      document.getElementById('userId').value = '';
+      document.getElementById('userPassword').required = true;
+      document.getElementById('userModalTitle').textContent = 'Add New User';
+      modal.style.display = 'flex';
+    });
+  }
+
+  if (btnCancel) {
+    btnCancel.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+  }
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const id = document.getElementById('userId').value;
+      const name = document.getElementById('userName').value.trim();
+      const email = document.getElementById('userEmail').value.trim();
+      const password = document.getElementById('userPassword').value;
+      const role = document.getElementById('userRole').value;
+      const department = document.getElementById('userDepartment').value.trim();
+
+      const payload = { name, email, role, department };
+      if (password) payload.password = password;
+
+      try {
+        if (!window.api) throw new Error('API not loaded');
+
+        if (id) {
+          // Update
+          const res = await window.api.patch(`/users/${id}`, payload);
+          if (res && !res.error) showToast('User updated successfully', 'success');
+        } else {
+          // Create
+          const res = await window.api.post('/users', payload);
+          if (res && !res.error) showToast('User created successfully', 'success');
+        }
+
+        modal.style.display = 'none';
+        renderUsersTable();
+      } catch (err) {
+        showToast('Failed to save user. See console for details.', 'error');
+        console.error('[SA Overview] Save user error:', err);
+      }
+    });
+  }
+}
+
+window.editUser = async (id) => {
+  try {
+    if (!window.api) throw new Error('API not available');
+    
+    // In a real scenario, we might get the user from cache. Let's fetch to be safe.
+    // Or we could parse it from the table... fetching is better:
+    const users = await window.api.get('/users');
+    const user = users.find(u => u.user_id === id);
+    if (!user) throw new Error('User not found');
+
+    document.getElementById('userId').value = user.user_id;
+    document.getElementById('userName').value = user.name || '';
+    document.getElementById('userEmail').value = user.email || '';
+    document.getElementById('userPassword').value = '';
+    document.getElementById('userPassword').required = false; // Optional on edit
+    
+    const roleSelect = document.getElementById('userRole');
+    if (user.role) {
+      for (let i = 0; i < roleSelect.options.length; i++) {
+        if (roleSelect.options[i].value === user.role) {
+          roleSelect.selectedIndex = i;
+          break;
+        }
+      }
+    }
+
+    document.getElementById('userDepartment').value = user.department || '';
+    
+    document.getElementById('userModalTitle').textContent = 'Edit User';
+    document.getElementById('userModal').style.display = 'flex';
+  } catch (err) {
+    showToast('Failed to load user for editing.', 'error');
+    console.error(err);
+  }
+};
+
+window.deleteUser = async (id) => {
+  if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+  
+  try {
+    if (!window.api) throw new Error('API not available');
+    const res = await window.api.delete(`/users/${id}`);
+    if (res && !res.error) {
+      showToast('User deleted successfully', 'success');
+      renderUsersTable();
+    }
+  } catch (err) {
+    showToast('Failed to delete user.', 'error');
+    console.error(err);
+  }
+};

@@ -223,12 +223,38 @@ document.addEventListener('DOMContentLoaded', () => {
             return '';
         }
 
-        function _submitReport(report) {
-            if (!universalDB.data.workflow.wastageReports) {
-                universalDB.data.workflow.wastageReports = [];
+        async function _submitReport(reportObj) {
+            // POST to backend
+            try {
+                if (window.api) {
+                    const payload = {
+                        reporter_id: user.user_id || null,
+                        type: reportObj.type,
+                        status: 'Reported',
+                        details: {
+                            specificData: reportObj.specificData,
+                            priority: reportObj.priority,
+                            metricUnit: reportObj.metricUnit,
+                            metricCategory: reportObj.metricCategory,
+                            systemData: reportObj.systemData,
+                            location: _getLocation(reportObj.type, reportObj.specificData)
+                        }
+                    };
+                    const res = await window.api.post('/wastage-reports', payload);
+                    if (res && !res.error) {
+                        console.log('[EndUser] Wastage report created in backend:', res.wastage_report_id);
+                    } else {
+                        console.warn('[EndUser] Backend returned error:', res);
+                    }
+                }
+            } catch (err) {
+                console.warn('[EndUser] Could not reach backend, saving locally only:', err.message);
+                if (!universalDB.data.workflow.wastageReports) {
+                    universalDB.data.workflow.wastageReports = [];
+                }
+                universalDB.data.workflow.wastageReports.push(reportObj);
+                universalDB.save();
             }
-            universalDB.data.workflow.wastageReports.push(report);
-            universalDB.save();
 
             // Reset
             document.getElementById('wastageReportForm').reset();
@@ -241,9 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
             priorityInput.value = 'Low';
 
             showToast();
-            renderTickets();
-            renderAuditTimeline();
-            notifyOnStateChange(report, 'submitted', user.name);
+            await renderTickets();
+            await renderAuditTimeline();
+            notifyOnStateChange(reportObj, 'submitted', user.name);
             renderBellIcon('notif-container', user.email);
         }
 
@@ -297,9 +323,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.appendChild(overlay);
             overlay.addEventListener('click', (ev) => { if (ev.target === overlay) overlay.remove(); });
             document.getElementById('dup-cancel').onclick = () => overlay.remove();
-            document.getElementById('dup-submit').onclick = () => { overlay.remove(); _submitReport(report); };
+            document.getElementById('dup-submit').onclick = async () => { overlay.remove(); await _submitReport(report); };
         } else {
-            _submitReport(report);
+            _submitReport(report); // Handle async carefully if needed here, but since it's the end of the handler it's fine
         }
     });
 
@@ -327,20 +353,58 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Track selected report for per-log timeline filtering ──
     let selectedReportId = null;
 
-    // Helper: always read fresh from localStorage to avoid stale cache
-    function getFreshReports() {
-        const raw = localStorage.getItem('enertrack_universal_v1');
-        if (!raw) return [];
-        const data = JSON.parse(raw);
-        return data?.workflow?.wastageReports || [];
+    // Helper: fetch from backend OR local
+    async function getFreshReports() {
+        let reports = [];
+        try {
+            if (window.api) {
+                const res = await window.api.get('/wastage-reports');
+                if (Array.isArray(res)) {
+                    reports = res.map((r, i) => {
+                        let offset = r.wastage_report_id ? (r.wastage_report_id.charCodeAt(5) || 0) * 3600000 : i * 86400000;
+                        const fallbackDate = new Date(1777521600000 - offset).toISOString(); // May 2026
+
+                        return {
+                            id: r.wastage_report_id || r.id,
+                            type: r.type || r.category || 'Energy',
+                            status: r.status ? (r.status.charAt(0).toUpperCase() + r.status.slice(1)) : 'Reported',
+                            reporterEmail: r.reporter_id === user.user_id ? user.email : 'other', // proxy
+                            reporterName: r.reporter_id === user.user_id ? user.name : 'Unknown',
+                            specificData: r.details?.specificData || {},
+                            systemData: r.details?.systemData || {},
+                            costImpact: r.details?.costImpact || null,
+                            metricTarget: r.details?.metricTarget || null,
+                            priority: r.details?.priority || 'Low',
+                            archived: r.details?.archived || false,
+                            comments: r.details?.comments || [],
+                            timestamp: r.created_at || r.details?.timestamp || fallbackDate,
+                            dismissReason: r.details?.dismissReason,
+                            dismissComment: r.details?.dismissComment,
+                            dismissedAt: r.details?.dismissedAt
+                        };
+                    });
+                }
+            }
+        } catch (err) {
+            console.warn('[EndUser] Failed to fetch wastage reports from backend:', err);
+        }
+
+        if (reports.length === 0) {
+            const raw = localStorage.getItem('enertrack_universal_v1');
+            if (raw) {
+                const data = JSON.parse(raw);
+                reports = data?.workflow?.wastageReports || [];
+            }
+        }
+        return reports;
     }
 
     // ── Render Audit Timeline ─────────────────────────────────
-    function renderAuditTimeline(reportId) {
+    async function renderAuditTimeline(reportId) {
         const container = document.getElementById('auditTimeline');
         if (!container) return;
 
-        const allReports = getFreshReports();
+        const allReports = await getFreshReports();
         const myReports = allReports
             .filter(wr => wr.reporterEmail === user.email && !wr.archived)
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -450,11 +514,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Render Tickets ───────────────────────────────────────
-    function renderTickets() {
+    async function renderTickets() {
         const container = document.getElementById('userWastageContainer');
         const countBadge = document.getElementById('myReportsCount');
 
-        const myReports = getFreshReports()
+        const freshReports = await getFreshReports();
+        const myReports = freshReports
             .filter(wr => wr.reporterEmail === user.email && !wr.archived)
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
@@ -697,8 +762,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ── Select Report (click card → prefill form + filter timeline) ──
-    window._selectReport = function (reportId) {
-        const reports = getFreshReports();
+    window._selectReport = async function (reportId) {
+        const reports = await getFreshReports();
         const report = reports.find(r => r.id === reportId);
         if (!report) return;
 

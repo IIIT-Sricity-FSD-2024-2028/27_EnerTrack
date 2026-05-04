@@ -185,10 +185,26 @@
             </section>
 
             <!-- Generate Button -->
-            <button class="btn-block-dark">Generate Report</button>
+            <section class="report-panel" style="margin-top:24px; display:flex; justify-content:center; padding: 24px;">
+                <button class="btn-block-dark" style="max-width: 400px; width: 100%;">Generate Report</button>
+            </section>
+
+            <!-- Report Archive -->
+            <section class="report-panel" style="margin-top:24px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <div>
+                        <h3 class="section-title" style="margin:0 0 4px 0;">Archived Reports</h3>
+                        <p class="section-desc" style="margin:0;">Previously generated and archived sustainability reports from the backend.</p>
+                    </div>
+                </div>
+                <div id="reportArchiveList">
+                    <p style="color:#9ca3af;font-size:13px;text-align:center;padding:16px;">Loading reports...</p>
+                </div>
+            </section>
         </main>
     </div>
 
+    <script src="../../js/shared/api.js"></script>
     <script type="module" src="../../js/sustainability_officer/reportingPage.js"></script>
     <script src="../../js/shared/dashboardProfileMenu.js"></script>
 </body>

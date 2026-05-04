@@ -30,11 +30,45 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-function initMonitoring() {
+async function initMonitoring() {
     const monitoringData = SustDB?.data?.monitoring;
     if (!monitoringData) {
         console.warn("Monitoring data missing from SustDB.");
     }
+
+    // Fetch from Backend API
+    try {
+        if (window.api) {
+            const metricsRes = await window.api.get('/sustainability-metrics');
+            const metrics = Array.isArray(metricsRes) ? metricsRes : (metricsRes?.data || []);
+            if (metrics.length > 0) {
+                // sort to get latest
+                metrics.sort((a,b) => (b.period || '').localeCompare(a.period || ''));
+                const latest = metrics[0];
+                baseMetrics.e = Number(latest.energy_consumed) || baseMetrics.e;
+                baseMetrics.w = Number(latest.water_usage) || baseMetrics.w;
+                baseMetrics.m = Number(latest.emissions) || baseMetrics.m;
+            }
+
+            const wRes = await window.api.get('/wastage-reports');
+            const wastages = Array.isArray(wRes) ? wRes : (wRes?.data || []);
+            let foodTotal = 0;
+            wastages.forEach(w => {
+                if (w.type === 'Food' && w.details?.specificData?.estimatedAmount) {
+                    foodTotal += parseFloat(w.details.specificData.estimatedAmount) || 0;
+                }
+            });
+            if (foodTotal > 0) baseMetrics.f = foodTotal;
+
+            // Render backend data immediately without animation
+            updateLiveMetrics(true);
+        }
+    } catch(e) { 
+        console.warn("Failed to sync backend metrics, using local mock data", e); 
+    }
+
+    // Simulate real-time sensor jitter
+    setInterval(() => updateLiveMetrics(false), 5000);
 
     // Set initial sync label
     const lastSyncLabel = document.getElementById('lastSyncLabel');
@@ -282,7 +316,7 @@ function runPipelineSequence() {
 
 let baseMetrics = { e: 812, w: 3.6, m: 214, f: 742 };
 
-function updateLiveMetrics() {
+function updateLiveMetrics(skipAnimation = false) {
     const e = document.getElementById('metricEnergy');
     const w = document.getElementById('metricWater');
     const m = document.getElementById('metricEmissions');
@@ -298,6 +332,8 @@ function updateLiveMetrics() {
     if (w) w.textContent = varW.toFixed(1);
     if (m) m.textContent = Math.round(varM).toString();
     if (f) f.textContent = Math.round(varF).toString();
+
+    if (skipAnimation) return;
 
     // Small animation effect on metrics
     [e, w, m, f].forEach(el => {

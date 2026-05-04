@@ -5,11 +5,11 @@
 import TechDB from './data/mockData.js';
 import { showToast } from './utils/utils.js';
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     try {
-        initOverview();
-        initWorkflow1();
-        initActiveWorkOrders();
+        await initOverview();
+        await initWorkflow1();
+        await initActiveWorkOrders();
         console.log("TechOverview: Initialized.");
     } catch (err) {
         console.error("TechOverview: Init error:", err);
@@ -53,15 +53,30 @@ function setEl(id, value) {
 }
 
 // ── TECH ADMIN: TRIAGE & DISPATCH ──────────────────────
-function initWorkflow1() {
-    const srs = TechDB.serviceRequests;
-    const technicians = TechDB.technicians;
+// ── TECH ADMIN: TRIAGE & DISPATCH ──────────────────────
+async function initWorkflow1() {
+    let srs = [];
+    let wos = [];
 
-    // Triage Feed logic has been migrated to Maintenance Work Orders.
+    try {
+        if (window.api) {
+            const [srsRes, wosRes] = await Promise.all([
+                window.api.get('/service-requests'),
+                window.api.get('/work-orders')
+            ]);
+            if (Array.isArray(srsRes)) srs = srsRes;
+            if (Array.isArray(wosRes)) wos = wosRes;
+        }
+    } catch (err) {
+        console.warn('Backend fetch failed, using local data', err.message);
+    }
+
+    if (!srs.length) srs = TechDB.serviceRequests;
+    if (!wos.length) wos = TechDB.workOrders;
 
     // Verify Feed — items completed by technician
     const pendingVerifySRs = srs.filter(sr => sr.status === 'Work Complete (Awaiting Validation)');
-    const pendingVerifyWOs = TechDB.workOrders.filter(wo => wo.status === 'review');
+    const pendingVerifyWOs = wos.filter(wo => wo.status === 'review' || wo.status === 'completed');
     const verifyFeed    = document.getElementById('verifyFeed');
 
     if (verifyFeed) {
@@ -70,29 +85,35 @@ function initWorkflow1() {
         } else {
             let html = '';
             
-            html += pendingVerifySRs.map(sr => `
+            html += pendingVerifySRs.map(sr => {
+                const srId = sr.service_request_id || sr.id;
+                const location = sr.location || 'Unknown';
+                const category = sr.category || 'General';
+                return `
                 <div style="padding:16px;border-bottom:1px solid var(--border);">
-                    <h4 style="margin:0 0 4px;">${sr.id} — ${sr.location} (${sr.category})</h4>
+                    <h4 style="margin:0 0 4px;">${srId} — ${location} (${category})</h4>
                     <p style="margin:0 0 8px;font-size:13px;color:#555;">
                         Completed by <strong>${sr.assignedTo || 'Technician'}</strong>. Awaiting quality check.
                     </p>
-                    <button class="btn btn-dark" onclick="verifyJob('${sr.id}')">
+                    <button class="btn btn-dark" onclick="verifyJob('${srId}')">
                         Verify & Authorize Payment
                     </button>
                 </div>
-            `).join('');
+            `}).join('');
 
-            html += pendingVerifyWOs.map(wo => `
+            html += pendingVerifyWOs.map(wo => {
+                const woId = wo.work_order_id || wo.id;
+                return `
                 <div style="padding:16px;border-bottom:1px solid var(--border);">
-                    <h4 style="margin:0 0 4px;">${wo.id} — ${wo.title} (${wo.type})</h4>
+                    <h4 style="margin:0 0 4px;">${woId} — ${wo.title} (${wo.type})</h4>
                     <p style="margin:0 0 8px;font-size:13px;color:#555;">
                         Completed by <strong>${wo.technician || 'Technician'}</strong>. Awaiting quality check.
                     </p>
-                    <button class="btn btn-dark" onclick="verifyWO('${wo.id}')">
+                    <button class="btn btn-dark" onclick="verifyWO('${woId}')">
                         Verify & Close Work Order
                     </button>
                 </div>
-            `).join('');
+            `}).join('');
 
             verifyFeed.innerHTML = html;
         }
@@ -101,7 +122,19 @@ function initWorkflow1() {
 
 
 
-window.verifyJob = function(id) {
+window.verifyJob = async function(id) {
+    try {
+        if (window.api) {
+            const res = await window.api.patch(`/service-requests/${id}`, { status: 'Validated (Awaiting Payment)' });
+            if (res && !res.error) {
+                showToast('Work verified. Sent to Financial Analyst for payment.', 'success');
+                initWorkflow1();
+                return;
+            }
+        }
+    } catch (err) {
+        console.warn('Backend patch failed, using local', err);
+    }
     const sr = TechDB.serviceRequests.find(s => s.id === id);
     if (sr) {
         sr.status = 'Validated (Awaiting Payment)';
@@ -111,7 +144,21 @@ window.verifyJob = function(id) {
     }
 };
 
-window.verifyWO = function(id) {
+window.verifyWO = async function(id) {
+    try {
+        if (window.api && id.includes('-')) { // check if UUID
+            const res = await window.api.patch(`/work-orders/${id}`, { status: 'closed' });
+            if (res && !res.error) {
+                showToast('Work order verified and closed.', 'success');
+                initWorkflow1();
+                initOverview();
+                initActiveWorkOrders();
+                return;
+            }
+        }
+    } catch (err) {
+        console.warn('Backend patch failed, using local', err);
+    }
     const wo = TechDB.workOrders.find(w => w.id === id);
     if (wo) {
         TechDB.closeWorkOrder(id);
@@ -122,12 +169,23 @@ window.verifyWO = function(id) {
     }
 };
 
-function initActiveWorkOrders() {
+async function initActiveWorkOrders() {
     const list = document.getElementById('activeWOsList');
     if (!list) return;
 
+    let wos = [];
+    try {
+        if (window.api) {
+            const res = await window.api.get('/work-orders');
+            if (Array.isArray(res)) wos = res;
+        }
+    } catch (err) {
+        console.warn('Backend fetch failed, using local data', err);
+    }
+    if (!wos.length) wos = TechDB.workOrders;
+
     // Filter for work orders that are NOT closed/archived
-    const active = TechDB.workOrders.filter(wo => wo.status !== 'closed');
+    const active = wos.filter(wo => wo.status !== 'closed');
 
     if (active.length === 0) {
         list.parentElement.style.display = 'none';
@@ -136,10 +194,12 @@ function initActiveWorkOrders() {
 
     list.parentElement.style.display = 'block';
     
-    list.innerHTML = active.slice(0, 6).map(wo => `
+    list.innerHTML = active.slice(0, 6).map(wo => {
+        const woId = wo.work_order_id || wo.id;
+        return `
         <div style="padding:14px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
-                <span style="font-size:12px; font-weight:700; color:#111827;">${wo.id}</span>
+                <span style="font-size:12px; font-weight:700; color:#111827;">${woId}</span>
                 <span class="badge ${wo.status === 'new' ? 'new' : wo.status === 'review' ? 'review' : 'inprogress'}" style="font-size:10px;">${wo.status.toUpperCase()}</span>
             </div>
             <h4 style="margin:0 0 4px; font-size:13px; color:#111827; line-height:1.4;">${wo.title}</h4>
@@ -154,5 +214,5 @@ function initActiveWorkOrders() {
                 </span>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }

@@ -31,21 +31,48 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-function renderOverview() {
-    // 1. Update Core Metrics
-    setText("val-energy", SustDB.metrics.energyConsumed, " <small>GWh</small>");
-    setText("val-water", SustDB.metrics.waterUsage, " <small>ML</small>");
-    setText("val-emissions", SustDB.metrics.emissions, " <small>tCO₂e</small>");
+async function renderOverview() {
+    // Fetch sustainability metrics from backend
+    try {
+        const [metricsRes, initsRes] = await Promise.all([
+            window.api.get('/sustainability-metrics'),
+            window.api.get('/initiatives'),
+        ]);
 
-    // Dynamic Initiatives Count
-    const activeInitsCount = SustDB.initiatives.filter(i => i.status !== "completed").length;
-    setText("val-initiatives", activeInitsCount);
+        if (metricsRes.success && metricsRes.data.length > 0) {
+            // Use the latest period record
+            const latest = metricsRes.data[metricsRes.data.length - 1];
+            setText("val-energy",    latest.energy_consumed, " <small>GWh</small>");
+            setText("val-water",     latest.water_usage,     " <small>ML</small>");
+            setText("val-emissions", latest.emissions,       " <small>tCO₂e</small>");
+        } else {
+            // Fallback to SustDB values
+            setText("val-energy",    SustDB.metrics.energyConsumed, " <small>GWh</small>");
+            setText("val-water",     SustDB.metrics.waterUsage,     " <small>ML</small>");
+            setText("val-emissions", SustDB.metrics.emissions,      " <small>tCO₂e</small>");
+        }
 
-    // 2. Update Quick Stats
-    setText("stat-sites", SustDB.metrics.reportingSites);
-    setText("stat-alerts", SustDB.metrics.alertsResolved);
+        if (initsRes.success) {
+            const activeCount = initsRes.data.filter(i => i.status !== "completed").length;
+            setText("val-initiatives", activeCount);
+        } else {
+            const activeInitsCount = SustDB.initiatives.filter(i => i.status !== "completed").length;
+            setText("val-initiatives", activeInitsCount);
+        }
+    } catch (err) {
+        console.warn('[SO Overview] Backend unavailable, using SustDB fallback:', err.message);
+        setText("val-energy",    SustDB.metrics.energyConsumed, " <small>GWh</small>");
+        setText("val-water",     SustDB.metrics.waterUsage,     " <small>ML</small>");
+        setText("val-emissions", SustDB.metrics.emissions,      " <small>tCO₂e</small>");
+        const activeInitsCount = SustDB.initiatives.filter(i => i.status !== "completed").length;
+        setText("val-initiatives", activeInitsCount);
+    }
+
+    // Quick Stats remain from SustDB (no backend entity for these yet)
+    setText("stat-sites",    SustDB.metrics.reportingSites);
+    setText("stat-alerts",   SustDB.metrics.alertsResolved);
     setText("stat-progress", SustDB.metrics.reductionProgress + "%");
-    setText("stat-review", SustDB.metrics.nextReviewDays + " days");
+    setText("stat-review",   SustDB.metrics.nextReviewDays + " days");
 }
 
 /* ── Period Selector for Overview Chart ───────────── */
@@ -177,38 +204,77 @@ function setText(id, value, fallbackSuffix = "") {
 
 /* ── Wastage Audit Queue (Steps 6-8) ──────────────── */
 
-function renderWastageAuditQueue() {
+async function renderWastageAuditQueue() {
     const container = document.getElementById('wastageAuditContainer');
     const countBadge = document.getElementById('wastageQueueCount');
     const section = document.getElementById('wastageAuditSection');
     if (!container) return;
 
-    // const reports = SustDB.wastageReports;
-    // const raw = localStorage.getItem('enertrack_universal_v1');
-    // alert("DIAGNOSTIC: Queue has " + (reports ? reports.length : 0) + " items. localStorage len = " + (raw ? raw.length : "NULL"));
+    let reports = [];
+
+    // Try backend first
+    try {
+        if (window.api) {
+            const res = await window.api.get('/wastage-reports');
+            if (Array.isArray(res)) {
+                reports = res.map(r => {
+                    const details = r.details || {};
+                    // Capitalize status if needed (backend might use lowercase 'reported')
+                    let capStatus = r.status ? (r.status.charAt(0).toUpperCase() + r.status.slice(1)) : 'Reported';
+                    if (capStatus === 'Target set') capStatus = 'Target Set';
+                    if (capStatus === 'Cost impact added') capStatus = 'Cost Impact Added';
+                    
+                    let rawType = r.type || r.category || 'energy';
+                    let capType = rawType.charAt(0).toUpperCase() + rawType.slice(1);
+                    
+                    return {
+                        id: r.wastage_report_id || r.id,
+                        type: capType,
+                        timestamp: r.created_at || details.timestamp || new Date().toISOString(),
+                        status: capStatus,
+                        specificData: details.specificData || details || {},
+                        systemData: details.systemData || {},
+                        priority: details.priority || 'Medium',
+                        reporterName: r.reporter_id || 'Unknown User', // we might not have names
+                        ...r,
+                        status: capStatus,
+                        details: details
+                    };
+                });
+                console.log('[SO Wastage] Loaded', reports.length, 'reports from backend');
+            }
+        }
+    } catch (err) {
+        console.warn('[SO Wastage] Backend fetch failed, using local data', err.message);
+    }
+
     const raw = localStorage.getItem('enertrack_universal_v1');
     const universalData = raw ? JSON.parse(raw) : null;
-    const reports = universalData?.workflow?.wastageReports || [];
+    
+    // Fallback to local
+    if (!reports.length && universalData && universalData.workflow && universalData.workflow.wastageReports) {
+        reports = universalData.workflow.wastageReports;
+    }
 
     // Auto-archive delivered and legacy dismissed reports that weren't already marked
     let needsSave = false;
-    reports.forEach(r => {
-        if (r.status === 'Delivered' && !r.soArchived) {
-            r.soArchived = true;
-            r.soArchivedAt = r.deliveredAt || new Date().toISOString();
+    for (let r of reports) {
+        if (r.status === 'Delivered' && !r.details?.soArchived) {
+            r.details = r.details || {};
+            r.details.soArchived = true;
+            r.details.soArchivedAt = r.details.deliveredAt || new Date().toISOString();
             needsSave = true;
         }
-        if (r.status === 'Dismissed' && !r.archived) {
-            r.archived = true;
-            r.archivedAt = r.dismissedAt || new Date().toISOString();
+        if (r.status === 'Dismissed' && !r.details?.archived) {
+            r.details = r.details || {};
+            r.details.archived = true;
+            r.details.archivedAt = r.details.dismissedAt || new Date().toISOString();
             needsSave = true;
         }
-    });
-    if (needsSave && universalData) {
-        localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
     }
-
-    const activeReports = reports.filter(r => !r.soArchived);
+    // We don't auto-patch backend for this minor state, relying on the fact that these are read-only views now
+    
+    const activeReports = reports.filter(r => !r.details?.soArchived);
 
     const pendingReports = activeReports.filter(r => r.status === 'Reported' || r.status === 'Validated');
     const allActionable = activeReports.filter(r => r.status !== 'Dismissed');
@@ -354,14 +420,21 @@ function renderWastageAuditQueue() {
             ? `${spec.reportedValue} ${spec.reportedUnit || ''}`.trim()
             : 'Not provided';
 
+        // Format UUIDs for display
+        const shortId = r.id ? (r.id.includes('-') ? r.id.split('-')[0].toUpperCase() : r.id.substring(0, 8).toUpperCase()) : 'UNK';
+        let reporterDisplay = r.reporterName || 'Campus Visitor';
+        if (reporterDisplay.includes('-')) {
+            reporterDisplay = 'Campus Visitor';
+        }
+
         return `
         <div style="background:#fdfdfd;border:1px solid #e5e7eb;border-left:4px solid ${color};border-radius:10px;padding:20px;margin-bottom:14px;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)'" onmouseout="this.style.boxShadow='none'">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span style="color:${color}">${icon}</span>
-                    <strong style="font-size:14px;color:#111827;">#${r.id}</strong>
+                    <strong style="font-size:14px;color:#111827;" title="${r.id}">#WR-${shortId}</strong>
                     <span style="background:${color};color:white;padding:2px 8px;border-radius:4px;font-size:11px;">${r.type} Wastage</span>
-                    <span style="font-size:12px;color:#9ca3af;">by ${r.reporterName}</span>
+                    <span style="font-size:12px;color:#9ca3af;" title="${r.reporterName}">by ${reporterDisplay}</span>
                 </div>
                 <span style="background:${statusBg};color:${statusColor};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">${statusLabel}</span>
             </div>
@@ -445,28 +518,59 @@ function renderWastageAuditQueue() {
     }).join('');
 }
 
+async function _updateWastageReport(id, patchData) {
+    try {
+        if (window.api) {
+            const all = await window.api.get('/wastage-reports');
+            const target = all.find(r => r.wastage_report_id === id);
+            if (target) {
+                const payload = {
+                    status: patchData.status || target.status,
+                    details: { ...(target.details || {}), ...(patchData.details || {}) }
+                };
+                await window.api.patch(`/wastage-reports/${id}`, payload);
+                return true;
+            }
+        }
+    } catch(e) { console.error('Failed to update via API', e); }
+
+    // Fallback
+    const raw = localStorage.getItem('enertrack_universal_v1');
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    const target = (data.workflow.wastageReports || []).find(r => r.id === id);
+    if (target) {
+        Object.assign(target, patchData);
+        if (patchData.details) Object.assign(target, patchData.details);
+        localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
+        return true;
+    }
+    return false;
+}
+
 // SO Comment Handler
-window._addSOComment = function (reportId) {
+window._addSOComment = async function (reportId) {
     const input = document.getElementById(`so-cmt-${reportId}`);
     if (!input) return;
     const text = input.value.trim();
     if (!text) return;
 
-    const raw = localStorage.getItem('enertrack_universal_v1');
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    const report = (data.workflow.wastageReports || []).find(r => r.id === reportId);
-    if (!report) return;
+    let reports = [];
+    if (window.api) {
+        reports = await window.api.get('/wastage-reports');
+    }
+    const report = reports.find(r => r.wastage_report_id === reportId) || {};
+    const comments = report.details?.comments || [];
 
-    if (!report.comments) report.comments = [];
-    report.comments.push({
+    comments.push({
         author: currentUser.name || 'Sustainability Officer',
         role: 'Sustainability Officer',
         text: text,
         timestamp: new Date().toISOString()
     });
-    localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
-    renderWastageAuditQueue();
+    
+    await _updateWastageReport(reportId, { details: { comments } });
+    await renderWastageAuditQueue();
 };
 
 // Global action handler for audit buttons
@@ -488,25 +592,16 @@ window._addSOComment = function (reportId) {
 //     renderRecentHighlights();
 // };
 
-window._auditAction = function (reportId, action) {
-    const raw = localStorage.getItem('enertrack_universal_v1');
-    if (!raw) return;
-    const universalData = JSON.parse(raw);
-    const reports = universalData.workflow.wastageReports || [];
-    const report = reports.find(r => r.id === reportId);
-    if (!report) return;
-
+window._auditAction = async function (reportId, action) {
     if (action === 'validate') {
-        report.status = 'Validated';
-        report.validatedAt = new Date().toISOString();
-        localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
+        await _updateWastageReport(reportId, { status: 'Validated', details: { validatedAt: new Date().toISOString() } });
         showToast('Report validated successfully.', 'success', 2000);
-        notifyOnStateChange(report, 'validated', currentUser.name || 'Sustainability Officer');
+        notifyOnStateChange({ id: reportId }, 'validated', currentUser.name || 'Sustainability Officer');
         renderBellIcon('notif-container', currentUser.email);
-        renderWastageAuditQueue();
+        await renderWastageAuditQueue();
         renderRecentHighlights();
+
     } else if (action === 'dismiss') {
-        // Open rejection modal instead of direct dismiss
         openModal({
             title: 'Dismiss Report With Reason',
             bodyHTML: `
@@ -539,54 +634,56 @@ window._auditAction = function (reportId, action) {
             confirmLabel: 'Confirm Dismissal',
             cancelLabel: 'Cancel',
             danger: true,
-            onConfirm: () => {
+            onConfirm: async () => {
                 const reason = document.getElementById('dismiss-reason')?.value;
                 const comment = document.getElementById('dismiss-comment')?.value?.trim();
-                if (!reason) {
-                    showToast('Please select a reason for dismissal.', 'warning');
-                    return false;
-                }
-                if (!comment || comment.length < 10) {
-                    showToast('Explanation must be at least 10 characters.', 'warning');
-                    return false;
-                }
-                // Re-read fresh data to avoid stale writes
-                const freshRaw = localStorage.getItem('enertrack_universal_v1');
-                if (!freshRaw) return;
-                const freshData = JSON.parse(freshRaw);
-                const freshReport = (freshData.workflow.wastageReports || []).find(r => r.id === reportId);
-                if (!freshReport) return;
+                if (!reason) { showToast('Please select a reason for dismissal.', 'warning'); return false; }
+                if (!comment || comment.length < 10) { showToast('Explanation must be at least 10 characters.', 'warning'); return false; }
 
-                freshReport.status = 'Dismissed';
-                freshReport.dismissedAt = new Date().toISOString();
-                freshReport.dismissReason = reason;
-                freshReport.dismissComment = comment;
-                freshReport.archived = true;
-                freshReport.archivedAt = new Date().toISOString();
-                if (!freshReport.comments) freshReport.comments = [];
-                freshReport.comments.push({
+                const newComment = {
                     author: currentUser.name || 'Sustainability Officer',
                     role: 'Sustainability Officer',
                     text: `Dismissed this report. Reason: ${reason}. ${comment}`,
                     timestamp: new Date().toISOString()
+                };
+
+                // Get existing comments first to append
+                let comments = [];
+                if (window.api) {
+                    const all = await window.api.get('/wastage-reports');
+                    const rep = all.find(r => r.wastage_report_id === reportId);
+                    if (rep && rep.details?.comments) comments = rep.details.comments;
+                }
+                comments.push(newComment);
+
+                await _updateWastageReport(reportId, { 
+                    status: 'Dismissed', 
+                    details: { 
+                        dismissedAt: new Date().toISOString(), 
+                        dismissReason: reason, 
+                        dismissComment: comment, 
+                        archived: true, 
+                        archivedAt: new Date().toISOString(),
+                        comments 
+                    } 
                 });
-                localStorage.setItem('enertrack_universal_v1', JSON.stringify(freshData));
+
                 showToast('Report dismissed with reason.', 'info', 2000);
-                notifyOnStateChange(freshReport, 'dismissed', currentUser.name || 'Sustainability Officer');
+                notifyOnStateChange({ id: reportId }, 'dismissed', currentUser.name || 'Sustainability Officer');
                 renderBellIcon('notif-container', currentUser.email);
-                renderWastageAuditQueue();
+                await renderWastageAuditQueue();
                 renderRecentHighlights();
+                return true;
             }
         });
-        return; // Don't fall through to save/render below
+        return;
+
     } else if (action === 'forward') {
-        report.status = 'Forwarded to Finance';
-        report.forwardedAt = new Date().toISOString();
-        localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
+        await _updateWastageReport(reportId, { status: 'Forwarded to Finance', details: { forwardedAt: new Date().toISOString() } });
         showToast('Report forwarded to Finance Analyst.', 'success', 2000);
-        notifyOnStateChange(report, 'forwarded', currentUser.name || 'Sustainability Officer');
+        notifyOnStateChange({ id: reportId }, 'forwarded', currentUser.name || 'Sustainability Officer');
         renderBellIcon('notif-container', currentUser.email);
-        renderWastageAuditQueue();
+        await renderWastageAuditQueue();
         renderRecentHighlights();
     }
 };
@@ -597,31 +694,17 @@ window._auditAction = function (reportId, action) {
 
 /* ── Step 14: Finalize Report ─────────────────────── */
 
-window._finalizeReport = function (reportId) {
-    const raw = localStorage.getItem('enertrack_universal_v1');
-    if (!raw) return;
-    const universalData = JSON.parse(raw);
-    const reports = universalData.workflow.wastageReports || [];
-    const report = reports.find(r => r.id === reportId);
-    if (!report) return;
-
-    report.status = 'Finalized';
-    report.finalizedAt = new Date().toISOString();
-    report.finalizedBy = 'Sustainability Officer';
-
-    // Sync in-memory universalDB BEFORE calling addHighlight (which calls universalDB.save)
-    localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
-    // Re-read into universalDB via the SustDB getter which syncs in-memory data
-    void SustDB.wastageReports;
+window._finalizeReport = async function (reportId) {
+    await _updateWastageReport(reportId, { status: 'Finalized', details: { finalizedAt: new Date().toISOString(), finalizedBy: 'Sustainability Officer' } });
 
     SustDB.addHighlight(
         'Wastage Report Finalized',
-        `Report #${reportId} (${report.type}) finalized with Finance cost-impact data.`,
+        `Report #${reportId} finalized with Finance cost-impact data.`,
         'green'
     );
 
     showToast('Report finalized and archived.', 'success', 2500);
-    renderWastageAuditQueue();
+    await renderWastageAuditQueue();
     renderRecentHighlights();
 };
 
@@ -645,37 +728,28 @@ window._sendBackToFinance = function (reportId) {
         bodyHTML,
         confirmLabel: 'Send Back',
         cancelLabel: 'Cancel',
-        onConfirm: () => {
+        onConfirm: async () => {
             const reason = document.getElementById('sb-reason')?.value?.trim();
             const notes = document.getElementById('sb-notes')?.value?.trim();
 
-            if (!reason) {
-                showToast('Please explain what changes are needed.', 'warning');
-                return false; // keep modal open
-            }
+            if (!reason) { showToast('Please explain what changes are needed.', 'warning'); return false; }
 
-            const raw = localStorage.getItem('enertrack_universal_v1');
-            if (!raw) return;
-            const universalData = JSON.parse(raw);
-            const reports = universalData.workflow.wastageReports || [];
-            const report = reports.find(r => r.id === reportId);
-            if (!report) return;
-
-            // Clear cost-impact data and reset status
-            delete report.costImpact;
-            delete report.returnedAt;
-            report.status = 'Forwarded to Finance';
-            report.sentBackAt = new Date().toISOString();
-            report.revisionRequest = {
+            const revisionRequest = {
                 reason: reason,
                 notes: notes || '',
                 requestedAt: new Date().toISOString(),
                 requestedBy: 'Sustainability Officer'
             };
 
-            localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
-            // Sync in-memory cache before addHighlight writes back
-            void SustDB.wastageReports;
+            await _updateWastageReport(reportId, { 
+                status: 'Forwarded to Finance', 
+                details: { 
+                    costImpact: null, // Clear cost impact
+                    returnedAt: null,
+                    sentBackAt: new Date().toISOString(),
+                    revisionRequest
+                } 
+            });
 
             SustDB.addHighlight(
                 'Report Sent Back to Finance',
@@ -684,7 +758,7 @@ window._sendBackToFinance = function (reportId) {
             );
 
             showToast('Report sent back to Finance for revision.', 'warning', 2500);
-            renderWastageAuditQueue();
+            await renderWastageAuditQueue();
             renderRecentHighlights();
         }
     });
@@ -692,34 +766,27 @@ window._sendBackToFinance = function (reportId) {
 
 /* ── Send Detailed Report to End User ─────────────── */
 
-window._sendReportToUser = function (reportId) {
-    const raw = localStorage.getItem('enertrack_universal_v1');
-    if (!raw) return;
-    const universalData = JSON.parse(raw);
-    const reports = universalData.workflow.wastageReports || [];
-    const report = reports.find(r => r.id === reportId);
-    if (!report) return;
-
-    report.status = 'Delivered';
-    report.deliveredAt = new Date().toISOString();
-    report.deliveredBy = 'Sustainability Officer';
-    report.soArchived = true;
-    report.soArchivedAt = new Date().toISOString();
-
-    localStorage.setItem('enertrack_universal_v1', JSON.stringify(universalData));
-    // Sync in-memory cache before addHighlight writes back
-    void SustDB.wastageReports;
+window._sendReportToUser = async function (reportId) {
+    await _updateWastageReport(reportId, { 
+        status: 'Delivered', 
+        details: { 
+            deliveredAt: new Date().toISOString(), 
+            deliveredBy: 'Sustainability Officer', 
+            soArchived: true, 
+            soArchivedAt: new Date().toISOString() 
+        } 
+    });
 
     SustDB.addHighlight(
         'Report Delivered to Campus Visitor',
-        `Full report for #${reportId} (${report.type}) sent to ${report.reporterName}.`,
+        `Full report for #${reportId} sent.`,
         'green'
     );
 
     showToast('Detailed report delivered to the end user.', 'success', 2500);
-    notifyOnStateChange(report, 'delivered', 'Sustainability Officer');
+    notifyOnStateChange({ id: reportId }, 'delivered', 'Sustainability Officer');
     renderBellIcon('notif-container', currentUser.email);
-    renderWastageAuditQueue();
+    await renderWastageAuditQueue();
     renderRecentHighlights();
 };
 
@@ -800,7 +867,7 @@ window._openTargetModal = function (reportId) {
         bodyHTML,
         confirmLabel: 'Set Target',
         cancelLabel: 'Cancel',
-        onConfirm: () => {
+        onConfirm: async () => {
             const valueStr = document.getElementById('mt-value')?.value?.trim();
             const deadline = document.getElementById('mt-deadline')?.value?.trim();
             const justification = document.getElementById('mt-justification')?.value?.trim();
@@ -815,35 +882,18 @@ window._openTargetModal = function (reportId) {
                 return false;
             }
 
-            // Re-read fresh from storage
-            const freshRaw = localStorage.getItem('enertrack_universal_v1');
-            if (!freshRaw) return;
-            const freshData = JSON.parse(freshRaw);
-            const freshReports = freshData.workflow.wastageReports || [];
-            const target = freshReports.find(r => r.id === reportId);
-            if (!target) return;
-
-            // Save target to report
-            target.metricTarget = {
-                value: parseFloat(valueStr),
-                unit: unit,
-                deadline: deadline,
-                justification: justification || '',
-                setAt: new Date().toISOString()
+            const targetPayload = {
+                metricTarget: {
+                    value: parseFloat(valueStr),
+                    unit: unit,
+                    deadline: deadline,
+                    justification: justification || '',
+                    setAt: new Date().toISOString()
+                },
+                targetSetAt: new Date().toISOString()
             };
-            target.status = 'Target Set';
-            target.targetSetAt = new Date().toISOString();
 
-            // Update system-wide metrics if applicable (Step 16-17 system behavior)
-            if (metricField && freshData.sust?.metrics) {
-                // Store the reduction target as a dedicated field
-                freshData.sust.metrics[metricField + 'Target'] = parseFloat(valueStr);
-                freshData.sust.metrics[metricField + 'TargetDeadline'] = deadline;
-            }
-
-            localStorage.setItem('enertrack_universal_v1', JSON.stringify(freshData));
-            // Sync in-memory cache before addHighlight writes back
-            void SustDB.wastageReports;
+            await _updateWastageReport(reportId, { status: 'Target Set', details: targetPayload });
 
             // Highlight
             SustDB.addHighlight(
@@ -853,9 +903,9 @@ window._openTargetModal = function (reportId) {
             );
 
             showToast(`${metricType} target set to ${valueStr} ${unit}.`, 'success', 2500);
-            notifyOnStateChange(target, 'target_set', 'Sustainability Officer');
+            notifyOnStateChange({ id: reportId }, 'target_set', 'Sustainability Officer');
             renderBellIcon('notif-container', currentUser.email);
-            renderWastageAuditQueue();
+            await renderWastageAuditQueue();
             renderRecentHighlights();
         }
     });
