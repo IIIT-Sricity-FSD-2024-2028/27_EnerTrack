@@ -1,0 +1,215 @@
+/**
+ * universalDB.js
+ * Centralized store for the entire EnerTrack application.
+ * Manages the data for all 4 actors + the End User + Workflow-1.
+ */
+
+const STORAGE_KEY = "enertrack_universal_v1";
+
+const defaultData = {
+    // ── COMMON SESSION ───────────────────────────────────────
+    session: {
+        user: { id: "u-000", name: "Guest", role: "none" }
+    },
+
+    // ── WORKFLOW-1 SHARED DATA ──────────────────────────────
+    workflow: {
+        serviceRequests: [],
+        wastageReports: [],
+        categories: ["Electrical", "Plumbing", "HVAC", "General Maintenance", "Solar Installation"],
+        technicians: [
+            { name: "Elena Park", email: "elena@gmail.com", specialization: "Electrical" },
+            { name: "Teja", email: "teja@gmail.com", specialization: "Solar Installation" },
+            { name: "Marcus Reed", email: "marcus@gmail.com", specialization: "HVAC" },
+            { name: "Noah Smith", email: "noah@gmail.com", specialization: "General Maintenance" },
+            { name: "Rina Das", email: "rina@gmail.com", specialization: "Plumbing" }
+        ]
+    },
+
+    // ── ADMIN STATE ─────────────────────────────────────────
+    system_admin: {
+        alerts: [
+            { id: "alt-001", title: "Storage Capacity Critical", description: "Database Volume-1 is at 94% capacity. Immediate cleanup or expansion required.", severity: "danger", server: "DB-Prod-01", timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(), resolved: false },
+            { id: "alt-002", title: "High CPU Utilization Spike", description: "Web server node experienced an 85% CPU load spike for 5 minutes.", severity: "warning", server: "Web-Node-03", timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), resolved: false },
+            { id: "alt-003", title: "API Latency Warning", description: "Payment gateway API endpoint response time exceeded 800 ms threshold.", severity: "warning", server: "Payment-API", timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), resolved: false }
+        ],
+        backupJobs: [
+            { id: "bk-001", name: "Production DB - full backup", scope: "All schemas", target: "s3://backups/prod/full", status: "ready", progress: 100, lastRun: "02:00 AM", duration: "45m", errors: 0, nextRun: "Tonight 02:00 AM", jobId: "BK-2024-09-21-FULL" },
+            { id: "bk-002", name: "Logs & configs - incremental", scope: "/var/log, /etc", target: "s3://backups/prod/logs", status: "pending", progress: 40, lastRun: null, duration: null, errors: 0, nextRun: "In progress", jobId: "BK-2024-09-21-LOG" },
+            { id: "bk-003", name: "Staging DB - nightly snapshot", scope: "staging schemas", target: "local snapshot", status: "scheduled", progress: 0, lastRun: "Yesterday 03:05 AM", duration: "18m", errors: 0, nextRun: "Tonight 03:00 AM", jobId: "BK-2024-09-21-STG", retention: "7 days" }
+        ],
+        systemUpdates: [
+            { id: "upd-001", title: "Ubuntu security patches", description: "Reboot required • Affects 4 nodes", details: "Critical vulnerabilities fix (CVE-2024-XXXX). Reboot required.", status: "not-applied", downtimeEst: "5 min", changeRequestId: null, scheduledWindow: "Tonight 02:00 AM", affectedNodes: 4 },
+            { id: "upd-002", title: "Database engine minor upgrade", description: "From 13.9 to 13.10 • Zero-downtime planned", details: "Performance improvements and minor bug fixes.", status: "planned", downtimeEst: "0 min", changeRequestId: "CR-2048", scheduledWindow: "Tonight 02:00 AM", affectedNodes: 1 },
+            { id: "upd-003", title: "Redis Cache Version Update", description: "Upgrade from v6.2 to v7.0 for performance improvements.", details: "Major version upgrade with improved memory efficiency.", status: "scheduled", downtimeEst: "2 min", changeRequestId: "CR-2049", scheduledWindow: "Tonight 02:00 AM", affectedNodes: 2 }
+        ],
+        systemHealth: {
+            lastRefresh: new Date().toISOString(),
+            services: [
+                { id: "svc-001", name: "Core services", description: "API gateway, auth, database, cache", status: "healthy", healthyCount: 4, totalCount: 4, latency: "120 ms p95" },
+                { id: "svc-002", name: "Background workers", description: "Queues, schedulers, reporting jobs", status: "warning", queueDepth: 1200, oldestJob: "2m 10s", throughput: "480 jobs/min" },
+                { id: "svc-003", name: "External dependencies", description: "Payment provider, email, SMS, SSO", status: "degraded", note: "Payment-API latency slightly elevated", errorRate: "0.9%" }
+            ],
+            activeAlerts: [
+                { id: "ma-001", title: "Payment-API latency", severity: "warning", desc: "p95 > 250 ms for 5 minutes", time: "04:22", region: "eu-west-1" },
+                { id: "ma-002", title: "Worker queue depth", severity: "warning", desc: "High-priority jobs pending > 1k", time: "04:28", note: "Throughput recovering after spike" }
+            ],
+            metrics: {
+                cpu: { avg: 62, peak: 78, label: "CPU & memory", scope: "Across all application nodes • Last 15 minutes", memory: 68 },
+                requests: { perMin: 8400, successRate: 99.96, errorRate: 0.04, label: "Requests & errors", scope: "All HTTP endpoints • Last 5 minutes", barWidth: 90 }
+            },
+            slo: { target: 99.9, current: 99.93 }
+        },
+        performanceStats: {
+            systemHealth: { value: "99.9%", note: "All systems operational" },
+            avgCpuLoad:   { value: "42%",   note: "Normal operating range" },
+            lastBackup:   { value: "2h ago", note: "Completed successfully at 04:00 AM" }
+        },
+        errorScans: [
+            { id: "scan-001", check: "Backup verification", status: "passed", time: "04:15", details: "Verified 245 GB • 0 checksum mismatches detected.", description: "Checksum and restore-test sample" },
+            { id: "scan-002", check: "Service health checks", status: "issues", time: "04:22", details: "Payment-API latency slightly above baseline, review before logout.", description: "APIs, queues, background workers" }
+        ],
+        maintenanceWindow: { next: "Tonight 02:00 AM - 03:00 AM", lastRun: "2024-09-21T02:00:00Z", status: "scheduled" }
+    },
+
+    // ── FINANCE ANALYST STATE ───────────────────────────────
+    finance: {
+        departments: [
+            { id: "dept-001", name: "Computer Science",  budget: 80000 }, { id: "dept-002", name: "Electronics", budget: 45000 }, { id: "dept-003", name: "Data Science", budget: 30000 }, { id: "dept-004", name: "Mechanical", budget: 25000 }, { id: "dept-005", name: "Civil Engineering", budget: 20000 }
+        ],
+        buildings: [
+            { id: "bldg-001", name: "Block A – Main Building",  budget: 55000 }, { id: "bldg-002", name: "Block B – Research Wing",  budget: 40000 }, { id: "bldg-003", name: "Block C – System Admin Tower",    budget: 30000 }
+        ],
+        energyCosts: [
+            { id: "ec-001", period: "2025-03", scope: "department", scopeRef: "dept-001", scopeLabel: "Computer Science", electricity: 42000, gas: 14500, water: 6200, demand: 5500, total: 68200, budget: 80000, variance: 11800, status: "under-budget" },
+            { id: "ec-002", period: "2025-03", scope: "department", scopeRef: "dept-002", scopeLabel: "Electronics", electricity: 22000, gas: 7500, water: 3100, demand: 2500, total: 35100, budget: 45000, variance: 9900, status: "under-budget" },
+            { id: "ec-003", period: "2025-03", scope: "department", scopeRef: "dept-003", scopeLabel: "Data Science", electricity: 13000, gas: 4500, water: 2200, demand: 1500, total: 21200, budget: 30000, variance: 8800, status: "under-budget" },
+            { id: "ec-004", period: "2025-02", scope: "department", scopeRef: "dept-001", scopeLabel: "Computer Science", electricity: 44000, gas: 15000, water: 6500, demand: 5800, total: 71300, budget: 80000, variance: 8700, status: "under-budget" },
+            { id: "ec-005", period: "2025-01", scope: "department", scopeRef: "dept-004", scopeLabel: "Mechanical", electricity: 16000, gas: 5200, water: 2800, demand: 2000, total: 26000, budget: 25000, variance: -1000, status: "over-budget" },
+            { id: "ec-006", period: "2025-03", scope: "building", scopeRef: "bldg-001", scopeLabel: "Block A – Main Building", electricity: 34000, gas: 11000, water: 5000, demand: 5000, total: 55000, budget: 55000, variance: 0, status: "on-budget" }
+        ],
+        financialReports: [
+            { id: "rep-001", title: "Q3 2024 Financial Impact Report", period: "2024-Q3", category: "energy", scope: "campus", scopeLabel: "Full Campus", generatedAt: "2024-09-21T04:10:00Z", generatedBy: "Aadithya Mouli", format: "PDF", roi: 18.5, npv: 148320, paybackYears: 2.8, status: "viable", notes: "Strong ROI driven by solar panel installation in Block A." },
+            { id: "rep-002", title: "February 2025 Electronics Dept Report", period: "2025-02", category: "energy", scope: "department", scopeLabel: "Electronics", generatedAt: "2025-03-01T09:00:00Z", generatedBy: "Aadithya Mouli", format: "CSV", roi: 12.4, npv: 89500, paybackYears: 3.5, status: "viable", notes: "Moderate returns; recommend LED lighting upgrade next quarter." },
+            { id: "rep-003", title: "Q1 2025 Mechanical Dept Operations Review", period: "2025-Q1", category: "operations", scope: "department", scopeLabel: "Mechanical", generatedAt: "2025-03-15T10:30:00Z", generatedBy: "Aadithya Mouli", format: "PDF", roi: 6.2, npv: 32000, paybackYears: 5.1, status: "marginal", notes: "Exceeded budget by $1,000 in January. HVAC inefficiency identified." }
+        ],
+        invoices: [
+            { id: "inv-001", invoiceNumber: "INV-88921", vendor: "CityPower Utilities", amount: 42000, department: "dept-001", departmentLabel: "Computer Science", dueDate: "2025-04-15", issuedDate: "2025-03-01", status: "approved", approvedBy: "Aadithya Mouli", type: "electricity" },
+            { id: "inv-002", invoiceNumber: "INV-88922", vendor: "GasNet Corp", amount: 14500, department: "dept-001", departmentLabel: "Computer Science", dueDate: "2025-04-20", issuedDate: "2025-03-01", status: "pending", approvedBy: null, type: "gas" },
+            { id: "inv-003", invoiceNumber: "INV-88923", vendor: "AquaFlow Services", amount: 6200, department: "dept-002", departmentLabel: "Electronics", dueDate: "2025-04-10", issuedDate: "2025-03-01", status: "pending", approvedBy: null, type: "water" },
+            { id: "inv-004", invoiceNumber: "INV-88924", vendor: "CityPower Utilities", amount: 22000, department: "dept-002", departmentLabel: "Electronics", dueDate: "2025-04-15", issuedDate: "2025-03-01", status: "approved", approvedBy: "Aadithya Mouli", type: "electricity" },
+            { id: "inv-005", invoiceNumber: "INV-88925", vendor: "GasNet Corp", amount: 5200, department: "dept-004", departmentLabel: "Mechanical", dueDate: "2025-04-18", issuedDate: "2025-03-01", status: "overdue", approvedBy: null, type: "gas" }
+        ],
+        activityLog: [
+            { id: "act-001", type: "report", title: "Q3 Financial Report Generated", detail: "System automated report creation for Q3 2024.", timestamp: "2025-03-30T10:00:00Z", user: "Aadithya Mouli" },
+            { id: "act-002", type: "invoice", title: "Utility Invoice Approved", detail: "Invoice #INV-88921 approved.", timestamp: "2025-03-30T07:00:00Z", user: "Aadithya Mouli" },
+            { id: "act-003", type: "alert", title: "Budget Threshold Alert", detail: "Mechanical dept exceeded 100% budget in January.", timestamp: "2025-03-29T14:00:00Z", user: "System" },
+            { id: "act-004", type: "forecast", title: "ROI Forecast Updated", detail: "Updated forecast model for Q1 2025.", timestamp: "2025-03-29T09:00:00Z", user: "Aadithya Mouli" }
+        ],
+        rolePermissions: { superuser: ["view", "create", "edit", "delete", "approve", "export", "manage_users"], finance_analyst: ["view", "create", "edit", "delete", "approve", "export"], enduser: ["view", "export"] }
+    },
+
+    // ── SUSTAINABILITY OFFICER STATE ────────────────────────
+    sust: {
+        metrics: { energyConsumed: "4.9", waterUsage: "18.6", emissions: "1,284", reportingSites: "9 / 10", reductionProgress: 76, nextReviewDays: 6 },
+        alertsList: [
+            { id: "a_1", title: "HVAC High Energy Spike", building: "Building B", status: "resolved", time: "2026-04-02T14:30:00Z", messages: [{ id: "m_1", senderRole: "Technician", senderName: "Chirag (Tech)", time: "2026-04-02T15:10:00Z", text: "Found a faulty damper in AHU-2. Reset and manually recalibrated, power consumption is dropping now." }] },
+            { id: "a_2", title: "Unexpected Water Flow", building: "Cafeteria", status: "resolved", time: "2026-04-01T08:15:00Z", messages: [{ id: "m_2", senderRole: "Technician", senderName: "Chirag (Tech)", time: "2026-04-01T09:40:00Z", text: "Kitchen sink valve was left open overnight. Closed it and adjusted motion sensors." }] },
+            { id: "a_3", title: "Boiler Efficiency Drop", building: "Heating Plant", status: "active", time: "2026-04-03T07:20:00Z", messages: [] }
+        ],
+        initiatives: [
+            { id: "init_1", title: "HVAC After-Hours Automation", status: "proposed", feasible: true, target: "7.5%", cost: "₹56,500", timeline: "5 weeks", description: "Automate HVAC for night shifts." },
+            { id: "init_2", title: "Solar Carport Phase 1", status: "proposed", feasible: false, target: "14%", cost: "₹198,000", timeline: "16 weeks", description: "Cover parking lot A with solar panels." },
+            { id: "init_3", title: "LED Lighting Retrofit", status: "in-progress", feasible: true, target: "12%", cost: "₹64,000", timeline: "8 weeks", description: "Replace fluorescent lights in two buildings." },
+            { id: "init_4", title: "Chiller Optimization Tuning", status: "in-progress", feasible: true, target: "6.1%", cost: "₹19,400", timeline: "6 weeks", description: "Optimize base load cooling." },
+            { id: "init_5", title: "Boiler Insulation Upgrade", status: "approved", feasible: true, target: "5%", cost: "₹31,200", timeline: "3 weeks", description: "Enhance insulation for primary heating." },
+            { id: "init_6", title: "Compressed Air Leak Program", status: "approved", feasible: true, target: "4.4%", cost: "₹9,700", timeline: "4 weeks", description: "Identify and seal factory leaks." },
+            { id: "init_7", title: "Server Room Cooling Reset", status: "completed", feasible: true, outcomes: ["16 MWh saved", "41 tCO₂e reduced", "₹14,400 saved"], description: "Raise server temps dynamically." },
+            { id: "init_8", title: "Kitchen Equipment Shutdown Policy", status: "completed", feasible: true, outcomes: ["28 MWh saved", "82 tCO₂e reduced", "₹6,700 saved"], description: "Ensure idle ovens are disabled." }
+        ],
+        monitoring: {
+            lastSync: "Today, 10:42 AM", energyTrend: [60, 75, 68, 65], waterTrend: [48, 52, 45, 48], emissionsTrend: [55, 60, 50, 52], history: { "30 Days": { e: [60, 75, 68, 65], w: [48, 52, 45, 48], m: [55, 60, 50, 52], labels: ["Week 1", "Week 2", "Week 3", "Week 4"] }, "Quarter": { e: [280, 310, 295], w: [12, 14, 11], m: [84, 92, 78], labels: ["Month 1", "Month 2", "Month 3"] }, "Year": { e: [1200, 1150, 1300, 1250], w: [45, 42, 48, 44], m: [320, 310, 340, 330], labels: ["Q1", "Q2", "Q3", "Q4"] } }
+        },
+        highlights: []
+    },
+
+    // ── TECHNICIAN STATE ────────────────────────────────────
+    tech: {
+        summary: { activeAlerts: 18, openFaults: 9, pendingWorkOrders: 14, resolvedToday: 27 },
+        alerts: [
+            { id: "ALR-8921", severity: "critical", timestamp: "2 min ago", status: "open", description: "Compressor C-12 Temperature Spike", zone: "Zone 4" },
+            { id: "ALR-8920", severity: "moderate", timestamp: "14 min ago", status: "open", description: "Pump B-07 Abnormal Vibration Pattern", zone: "Line B" },
+            { id: "ALR-8919", severity: "low", timestamp: "35 min ago", status: "open", description: "Valve V-19 Intermittent Sensor Drift", zone: "Utilities" },
+            { id: "ALR-8918", severity: "moderate", timestamp: "1 hour ago", status: "open", description: "Boiler A-03 Pressure Instability", zone: "Boiler Room" },
+            { id: "ALR-8917", severity: "critical", timestamp: "1.5 hrs ago", status: "open", description: "Motor M-02 Overtemperature Condition", zone: "Zone 2" },
+            { id: "ALR-8916", severity: "low", timestamp: "2 hours ago", status: "open", description: "Tank F-01 Low Fluid Level Approaching", zone: "Storage" },
+            { id: "ALR-8915", severity: "moderate", timestamp: "2 hours ago", status: "resolved", description: "Pressure drop in Boiler A-03", actionTaken: "Remote reset applied by Marcus Reed" },
+            { id: "ALR-8914", severity: "critical", timestamp: "4 hours ago", status: "resolved", description: "Vibration limit exceeded on Pump B-07", actionTaken: "Emergency Response Initiated" },
+            { id: "ALR-8913", severity: "low", timestamp: "5 hours ago", status: "resolved", description: "Low fluid level in Tank F-01", actionTaken: "Inspection Scheduled" },
+            { id: "ALR-8912", severity: "moderate", timestamp: "Yesterday", status: "resolved", description: "Sensor miscalibration on Valve V-19", actionTaken: "Inspection Scheduled" }
+        ],
+        faults: [
+            { id: "FD-204", alertId: "ALR-8921", type: "Cooling system failure", severity: "high", asset: "Compressor C-12", status: "active", assignedTo: "Marcus Reed" },
+            { id: "FD-203", alertId: "ALR-8920", type: "Bearing wear", severity: "moderate", asset: "Pump B-07", status: "active", assignedTo: "Marcus Reed" },
+            { id: "FD-202", alertId: "ALR-8918", type: "Pressure regulator", severity: "moderate", asset: "Boiler A-03", status: "active", assignedTo: "Marcus Reed" },
+            { id: "FD-201", alertId: "ALR-8916", type: "Sensor drift", severity: "low", asset: "Valve V-19", status: "pending", assignedTo: "Marcus Reed" }
+        ],
+        workOrders: [
+            { id: "WO-3021", title: "Compressor C-12 cooling line repair", type: "emergency", priority: "high", technician: "Marcus Reed", parts: false, status: "new", linkedFault: "FD-204" },
+            { id: "WO-3018", title: "Pump B-07 inspection and vibration check", type: "scheduled", priority: "medium", technician: "Elena Park", parts: true, status: "new", linkedFault: "FD-203" },
+            { id: "WO-2997", title: "Boiler A-03 pressure stability corrective", type: "immediate", priority: "immediate", technician: "Marcus Reed", parts: true, status: "inprogress", linkedFault: "FD-202" },
+            { id: "WO-2992", title: "Valve V-19 replacement planning", type: "scheduled", priority: "scheduled", technician: "Rina Das", parts: false, status: "inprogress", linkedFault: "FD-201" },
+            { id: "WO-2988", title: "Sensor calibration follow-up for Line B", type: "preventive", priority: "preventive", technician: "Noah Smith", parts: true, status: "review", linkedFault: null }
+        ],
+        activityFeed: [
+            { icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`, type: "yellow", title: "Anomaly detected on Compressor C-12", desc: "Temperature spike exceeded threshold for 3 consecutive cycles in Zone 4.", time: "2 min ago" },
+            { icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`, type: "red", title: "Fault #FD-204 escalated to diagnostics", desc: "Vibration pattern on Pump B-07 now matches bearing wear signature.", time: "8 min ago" },
+            { icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>`, type: "green", title: "Work order WO-391 assigned", desc: "Inspection task created for cooling valve replacement.", time: "16 min ago" },
+            { icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, type: "yellow", title: "Pressure anomaly cleared", desc: "Sensor readings returned to normal range after reset.", time: "24 min ago" },
+            { icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`, type: "green", title: "Work order WO-384 completed", desc: "Motor coupling alignment confirmed by technician.", time: "37 min ago" }
+        ]
+    }
+};
+
+class UniversalDB {
+    constructor() {
+        this.data = this._load();
+    }
+
+    _load() {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                // Deep merge
+                return this._deepMerge(JSON.parse(JSON.stringify(defaultData)), parsed);
+            }
+        } catch (e) {
+            console.error("UniversalDB: Failed to load from localStorage", e);
+        }
+        return JSON.parse(JSON.stringify(defaultData));
+    }
+
+    _deepMerge(target, source) {
+        for (const key of Object.keys(source)) {
+            if (source[key] instanceof Object && key in target && !Array.isArray(source[key])) {
+                Object.assign(source[key], this._deepMerge(target[key], source[key]));
+            }
+        }
+        Object.assign(target || {}, source);
+        return target;
+    }
+
+    save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+    }
+
+    reset() {
+        this.data = JSON.parse(JSON.stringify(defaultData));
+        this.save();
+    }
+}
+
+const db = new UniversalDB();
+export default db;
+window.UniversalDB = db; // expose for easy debugging
