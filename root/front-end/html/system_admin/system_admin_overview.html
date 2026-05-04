@@ -4,61 +4,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Admin Overview - EnerTrack</title>
-    <link rel="stylesheet" href="../../css/system_admin/system_admin_overview.css">
-    <link rel="stylesheet" href="../../css/system_admin/system_admin_icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
-        rel="stylesheet">
+    <title>Admin Dashboard - EnerTrack</title>
+    <link rel="stylesheet" href="admin_overview.css">
 </head>
 
 <body>
-
-    <div class="dashboard">
-        <!-- SIDEBAR -->
-        <aside class="sidebar">
-            <a href="../landing/landing.html" class="sidebar-logo">
-                <img class="logo-icon" src="../../assets/SVG.png" alt="logo">
-                <img class="logo-text" src="../../assets/EnerTrack_text.png" alt="EnerTrack">
+    <div class="dashboard-shell">
+        <aside class="sidebar" aria-label="Admin navigation">
+            <a href="admin_overview.html" class="sidebar-logo" aria-label="EnerTrack admin dashboard">
+                <img class="logo-icon" src="images/SVG.png" alt="">
+                <img class="logo-text" src="images/EnerTrack_text.png" alt="EnerTrack">
             </a>
 
             <nav class="sidebar-nav">
-
-                <div class="nav-section">
-                    <span class="nav-section-title nav-heading">SYSTEM TASKS</span>
-                    <div class="nav-group">
-                        <a href="system_admin_overview.html" class="nav-subitem active-subitem" id="nav-overview">
-                            <span data-icon="overview" class="subitem-icon"></span>
-                            Overview
-                        </a>
-                    </div>
-                </div>
-
-
-
+                <span class="nav-section-title">ADMIN DASHBOARD</span>
+                <button class="nav-subitem active" type="button" data-admin-tab="users">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </span>
+                    User Management
+                </button>
+                <button class="nav-subitem" type="button" data-admin-tab="infrastructure">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 21h18"></path>
+                            <path d="M5 21V7l8-4v18"></path>
+                            <path d="M19 21V11l-6-4"></path>
+                            <path d="M9 9v.01"></path>
+                            <path d="M9 13v.01"></path>
+                            <path d="M9 17v.01"></path>
+                        </svg>
+                    </span>
+                    Infrastructure
+                </button>
             </nav>
 
-            <a href="#" class="profile-card">
-                <img src="../../assets/logo.png" alt="Profile" class="profile-img">
+            <div class="profile-card" aria-label="Current admin profile">
+                <img src="images/logo.png" alt="" class="profile-img">
                 <div class="profile-info">
                     <strong id="sidebarUserName">Aadithya Mouli</strong>
-                    <span id="sidebarUserRole">System Admin</span>
+                    <span id="sidebarUserRole">System Administrator</span>
                 </div>
-            </a>
+            </div>
         </aside>
 
-        <!-- ADMIN MAIN CONTENT -->
-        <main class="main-content" id="adminContent">
+        <main class="main-content">
             <header class="page-header">
-                <h1 id="welcomeHeading">Welcome back, Aadithya</h1>
-                <p>Here's what's happening with your systems today.</p>
+                <div>
+                    <h1 id="welcomeHeading">Welcome back, Aadithya</h1>
+                <p id="pageSubheading">Manage DB-aligned users, campuses, buildings, and meter inventory.</p>
+                </div>
+                <button class="btn-outline" type="button" id="resetDemoData">Reset demo data</button>
             </header>
-        </main>
 
+            <section id="adminApp" class="admin-app" aria-live="polite"></section>
+        </main>
     </div>
 
-    <script type="module" src="../../js/system_admin/overview.js"></script>
-    <script src="../../js/shared/dashboardProfileMenu.js"></script>
-
+    <script type="module" src="js/overview.js"></script>
 </body>
 
 </html>
