@@ -4,7 +4,9 @@
 .detail-card {
   padding: 32px;
   border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
   border: 1px solid #e2e8f0;
   background: #ffffff;
   margin-bottom: 24px;
@@ -37,21 +39,22 @@
   background: #f8fafc;
   resize: vertical;
   transition: all 0.2s;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
   margin-bottom: 8px;
 }
 .diag-textarea:focus {
   outline: none;
   border-color: #94a3b8;
   background: #ffffff;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.02), 0 0 0 3px rgba(226, 232, 240, 0.5);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.02),
+    0 0 0 3px rgba(226, 232, 240, 0.5);
 }
 
 .action-bar {
   display: flex;
   justify-content: flex-end;
 }
-
 
 /* Alert selector grid */
 .alert-selector-grid {
@@ -78,7 +81,10 @@
   position: relative;
 }
 
-.alert-tile:hover { border-color: #9ca3af; background: #f9fafb; }
+.alert-tile:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
 
 .alert-tile.active {
   background: var(--green-soft);
@@ -138,7 +144,11 @@
   font-size: 13px;
 }
 
-.small-card b { display: block; margin-bottom: 8px; font-size: 13px; }
+.small-card b {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
 
 .data-row {
   display: flex;
@@ -148,7 +158,9 @@
   color: var(--dark);
 }
 
-.data-row span:last-child { font-weight: 600; }
+.data-row span:last-child {
+  font-weight: 600;
+}
 
 .checklist {
   margin-top: 12px;
@@ -163,7 +175,10 @@
   list-style: none;
 }
 
-.check { color: #16a34a; font-weight: 700; }
+.check {
+  color: #16a34a;
+  font-weight: 700;
+}
 
 .greenbox {
   background: var(--green-soft);
@@ -190,7 +205,14 @@
   font-size: 13px;
 }
 
-.fault-card b { display: block; margin-bottom: 6px; font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.fault-card b {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 
 .fault-tag {
   display: inline-block;
@@ -240,5 +262,11 @@
 }
 
 @media (max-width: 900px) {
-  .alert-selector-grid, .main-grid, .small-grid, .fault-grid, .repair-selector { grid-template-columns: 1fr; }
+  .alert-selector-grid,
+  .main-grid,
+  .small-grid,
+  .fault-grid,
+  .repair-selector {
+    grid-template-columns: 1fr;
+  }
 }

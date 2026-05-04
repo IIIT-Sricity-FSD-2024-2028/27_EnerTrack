@@ -1,185 +1,277 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EnerTrack – Maintenance Work Orders</title>
-  <link rel="stylesheet" href="../../css/shared/tech_shared.css">
-  <link rel="stylesheet" href="../../css/shared/tech_work_orders.css">
-</head>
-<body>
-<div class="layout">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div>
-      <a href="../landing/landing.html" class="logo">
-        <img src="../../assets/logo_technician.png" alt="EnerTrack Logo" class="logo-icon">
-        <img src="../../assets/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
-      </a>
-      <div class="nav-title">Navigation</div>
-      <ul class="nav">
-        <a href="technician_jr_work_orders.html"><li class="active">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-          My Work Orders
-        </li></a>
-      </ul>
-    </div>
-    <div class="profile" id="sidebarProfile">
-      <img src="https://i.pravatar.cc/100" alt="Profile" id="sidebarUserImg">
-      <div>
-        <div class="profile-name" id="sidebarUserName">Loading...</div>
-        <div class="profile-role" id="sidebarUserRole">Technician</div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- MAIN -->
-  <main class="main">
-
-    <div class="wo-header-row">
-      <div class="page-header no-margin">
-        <h1>My Work Orders</h1>
-        <p>View and manage maintenance requests assigned to you.</p>
-      </div>
-    </div>
-
-
-
-    <!-- ─── KANBAN BOARD ─────────────────────────────── -->
-    <div class="card">
-      <h2>Open Work Orders Board</h2>
-      <small>Click any card to inspect and manage in the detail panel below.</small>
-      <div class="board mt-16">
-        <div class="column">
-          <div class="column-title">New <span class="count-chip" id="countNew">0</span></div>
-          <div id="woColNew"></div>
-        </div>
-        <div class="column">
-          <div class="column-title">Cost Estimate Approval <span class="count-chip" id="countApproval">0</span></div>
-          <div id="woColApproval"></div>
-        </div>
-        <div class="column">
-          <div class="column-title">In Progress <span class="count-chip green" id="countInProgress">0</span></div>
-          <div id="woColInProgress"></div>
-        </div>
-        <div class="column">
-          <div class="column-title">Review / Ready to Close <span class="count-chip" id="countReview">0</span></div>
-          <div id="woColReview"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ─── SELECTED WORK ORDER DETAIL ──────────────── -->
-    <div class="card">
-      <h2 id="selectedWOTitle">Select a work order from the board</h2>
-
-      <div class="grid2 mt-16">
-
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EnerTrack – Maintenance Work Orders</title>
+    <link rel="stylesheet" href="../../css/shared/tech_shared.css" />
+    <link rel="stylesheet" href="../../css/shared/tech_work_orders.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
         <div>
-          <!-- Cost Estimate -->
-          <div class="card mb-16">
-            <h2 style="font-size:14px;">Cost Estimate</h2>
-            <div class="option mt-10">
-              <span id="selectedWOCost" style="display:block; margin-bottom:8px;">—</span>
-              <button class="btn btn-light btn-full" id="btnShowCostForm">Cost Estimate Form</button>
+          <a href="../landing/landing.html" class="logo">
+            <img
+              src="../../assets/logo_technician.png"
+              alt="EnerTrack Logo"
+              class="logo-icon"
+            />
+            <img
+              src="../../assets/EnerTrack_text.png"
+              alt="EnerTrack"
+              class="logo-text"
+            />
+          </a>
+          <div class="nav-title">Navigation</div>
+          <ul class="nav">
+            <a href="technician_jr_work_orders.html"
+              ><li class="active">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+                  />
+                  <rect x="8" y="2" width="8" height="4" rx="1" />
+                  <line x1="9" y1="12" x2="15" y2="12" />
+                  <line x1="9" y1="16" x2="13" y2="16" />
+                </svg>
+                My Work Orders
+              </li></a
+            >
+          </ul>
+        </div>
+        <div class="profile" id="sidebarProfile">
+          <img
+            src="https://i.pravatar.cc/100"
+            alt="Profile"
+            id="sidebarUserImg"
+          />
+          <div>
+            <div class="profile-name" id="sidebarUserName">Loading...</div>
+            <div class="profile-role" id="sidebarUserRole">Technician</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN -->
+      <main class="main">
+        <div class="wo-header-row">
+          <div class="page-header no-margin">
+            <h1>My Work Orders</h1>
+            <p>View and manage maintenance requests assigned to you.</p>
+          </div>
+        </div>
+
+        <!-- ─── KANBAN BOARD ─────────────────────────────── -->
+        <div class="card">
+          <h2>Open Work Orders Board</h2>
+          <small
+            >Click any card to inspect and manage in the detail panel
+            below.</small
+          >
+          <div class="board mt-16">
+            <div class="column">
+              <div class="column-title">
+                New <span class="count-chip" id="countNew">0</span>
+              </div>
+              <div id="woColNew"></div>
             </div>
-            <div id="costEstimateBlock" style="margin:16px 0 0 0; display:none; padding:12px; background:var(--bg-base); border:1.5px dashed #f59e0b; border-radius:8px;">
-               <p style="color:#f59e0b; font-size:13px; margin:0 0 8px 0;"><strong>Submit Cost Estimate</strong></p>
-               <input type="number" id="estMaterials" placeholder="Materials cost (₹)" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); font-size:13px; margin-bottom:8px; box-sizing: border-box;">
-               <input type="number" id="estLabor" placeholder="Labor cost (₹)" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); font-size:13px; margin-bottom:8px; box-sizing: border-box;">
-               <button class="btn btn-dark btn-full" id="btnSubmitCostEst">Send to Finance</button>
+            <div class="column">
+              <div class="column-title">
+                Cost Estimate Approval
+                <span class="count-chip" id="countApproval">0</span>
+              </div>
+              <div id="woColApproval"></div>
+            </div>
+            <div class="column">
+              <div class="column-title">
+                In Progress
+                <span class="count-chip green" id="countInProgress">0</span>
+              </div>
+              <div id="woColInProgress"></div>
+            </div>
+            <div class="column">
+              <div class="column-title">
+                Review / Ready to Close
+                <span class="count-chip" id="countReview">0</span>
+              </div>
+              <div id="woColReview"></div>
             </div>
           </div>
+        </div>
 
+        <!-- ─── SELECTED WORK ORDER DETAIL ──────────────── -->
+        <div class="card">
+          <h2 id="selectedWOTitle">Select a work order from the board</h2>
 
-          <!-- Task execution flow -->
-          <div class="card no-margin">
-            <h2 class="section-title-small mb-12">Task Execution Flow</h2>
-            <div class="task-execution-flow">
-              <div class="step-box" id="step-schedule">
-                <div class="step-num">1</div>
-                <h3>Schedule</h3>
-                <p>Window booked and team assigned.</p>
+          <div class="grid2 mt-16">
+            <div>
+              <!-- Cost Estimate -->
+              <div class="card mb-16">
+                <h2 style="font-size: 14px">Cost Estimate</h2>
+                <div class="option mt-10">
+                  <span
+                    id="selectedWOCost"
+                    style="display: block; margin-bottom: 8px"
+                    >—</span
+                  >
+                  <button class="btn btn-light btn-full" id="btnShowCostForm">
+                    Cost Estimate Form
+                  </button>
+                </div>
+                <div
+                  id="costEstimateBlock"
+                  style="
+                    margin: 16px 0 0 0;
+                    display: none;
+                    padding: 12px;
+                    background: var(--bg-base);
+                    border: 1.5px dashed #f59e0b;
+                    border-radius: 8px;
+                  "
+                >
+                  <p style="color: #f59e0b; font-size: 13px; margin: 0 0 8px 0">
+                    <strong>Submit Cost Estimate</strong>
+                  </p>
+                  <input
+                    type="number"
+                    id="estMaterials"
+                    placeholder="Materials cost (₹)"
+                    style="
+                      width: 100%;
+                      padding: 8px;
+                      border-radius: 6px;
+                      border: 1px solid var(--border);
+                      font-size: 13px;
+                      margin-bottom: 8px;
+                      box-sizing: border-box;
+                    "
+                  />
+                  <input
+                    type="number"
+                    id="estLabor"
+                    placeholder="Labor cost (₹)"
+                    style="
+                      width: 100%;
+                      padding: 8px;
+                      border-radius: 6px;
+                      border: 1px solid var(--border);
+                      font-size: 13px;
+                      margin-bottom: 8px;
+                      box-sizing: border-box;
+                    "
+                  />
+                  <button class="btn btn-dark btn-full" id="btnSubmitCostEst">
+                    Send to Finance
+                  </button>
+                </div>
               </div>
-              <div class="step-box" id="step-inspect">
-                <div class="step-num">2</div>
-                <h3>Inspect</h3>
-                <p>Technician verifies the fault on-site.</p>
+
+              <!-- Task execution flow -->
+              <div class="card no-margin">
+                <h2 class="section-title-small mb-12">Task Execution Flow</h2>
+                <div class="task-execution-flow">
+                  <div class="step-box" id="step-schedule">
+                    <div class="step-num">1</div>
+                    <h3>Schedule</h3>
+                    <p>Window booked and team assigned.</p>
+                  </div>
+                  <div class="step-box" id="step-inspect">
+                    <div class="step-num">2</div>
+                    <h3>Inspect</h3>
+                    <p>Technician verifies the fault on-site.</p>
+                  </div>
+                  <div class="step-box" id="step-perform">
+                    <div class="step-num">3</div>
+                    <h3>Perform Task</h3>
+                    <p>Execute the repair or replacement.</p>
+                  </div>
+                  <div class="step-box" id="step-test">
+                    <div class="step-num">4</div>
+                    <h3>Test System</h3>
+                    <p>Final operational test after repair.</p>
+                  </div>
+                </div>
               </div>
-              <div class="step-box" id="step-perform">
-                <div class="step-num">3</div>
-                <h3>Perform Task</h3>
-                <p>Execute the repair or replacement.</p>
+            </div>
+
+            <!-- Right: Summary + Actions -->
+            <div>
+              <div class="card mb-16">
+                <h2 class="section-title-small mb-12">Work Order Summary</h2>
+                <div class="summary-grid">
+                  <span class="summary-label">ID</span>
+                  <span id="selectedWOStatus">—</span>
+                  <span class="summary-label">Type</span>
+                  <span id="selectedWOType">—</span>
+                  <span class="summary-label">Priority</span>
+                  <span id="selectedWOPriority">—</span>
+                  <span class="summary-label">Technician</span>
+                  <span id="selectedWOTechnician">—</span>
+                </div>
               </div>
-              <div class="step-box" id="step-test">
-                <div class="step-num">4</div>
-                <h3>Test System</h3>
-                <p>Final operational test after repair.</p>
+
+              <!-- System operational check -->
+              <div class="card no-margin">
+                <h2 class="section-title-small mb-10" id="actionPanelTitle">
+                  System Operational Check
+                </h2>
+                <div class="grid2" id="actionPanelOptions">
+                  <div class="option active">
+                    <b>Operational</b>
+                    <p>Document completion and submit for review.</p>
+                    <button
+                      class="btn btn-dark btn-full"
+                      id="btnSubmitForReview"
+                    >
+                      Submit for Review
+                    </button>
+                  </div>
+                  <div class="option">
+                    <b>Not Operational</b>
+                    <p>Keep WO in-progress pending further work.</p>
+                    <button class="btn btn-light btn-full">Mark On Hold</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Right: Summary + Actions -->
-        <div>
-          <div class="card mb-16">
-            <h2 class="section-title-small mb-12">Work Order Summary</h2>
-            <div class="summary-grid">
-              <span class="summary-label">ID</span>          <span id="selectedWOStatus">—</span>
-              <span class="summary-label">Type</span>        <span id="selectedWOType">—</span>
-              <span class="summary-label">Priority</span>    <span id="selectedWOPriority">—</span>
-              <span class="summary-label">Technician</span>  <span id="selectedWOTechnician">—</span>
-            </div>
-          </div>
-
-          <!-- System operational check -->
-          <div class="card no-margin">
-            <h2 class="section-title-small mb-10" id="actionPanelTitle">System Operational Check</h2>
-            <div class="grid2" id="actionPanelOptions">
-              <div class="option active">
-                <b>Operational</b>
-                <p>Document completion and submit for review.</p>
-                <button class="btn btn-dark btn-full" id="btnSubmitForReview">Submit for Review</button>
-              </div>
-              <div class="option">
-                <b>Not Operational</b>
-                <p>Keep WO in-progress pending further work.</p>
-                <button class="btn btn-light btn-full">Mark On Hold</button>
-              </div>
-            </div>
-            </div>
-          </div>
+        <!-- ─── ARCHIVED WORK ORDERS ─────────────────────── -->
+        <div class="card">
+          <h2>Archived Work Orders</h2>
+          <small>Closed and completed work orders from this shift.</small>
+          <table class="archive-table mt-14">
+            <thead>
+              <tr>
+                <th>WO ID</th>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Technician</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="archiveBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
         </div>
-
-      </div>
+      </main>
     </div>
 
-    <!-- ─── ARCHIVED WORK ORDERS ─────────────────────── -->
-    <div class="card">
-      <h2>Archived Work Orders</h2>
-      <small>Closed and completed work orders from this shift.</small>
-      <table class="archive-table mt-14">
-        <thead>
-          <tr>
-            <th>WO ID</th>
-            <th>Title</th>
-            <th>Type</th>
-            <th>Technician</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="archiveBody">
-          <!-- Populated by JS -->
-        </tbody>
-      </table>
-    </div>
-
-  </main>
-</div>
-
-<script src="../../js/shared/api.js"></script>
-<script src="../../js/technician_jr/workOrdersPage.js"></script>
-<script src="../../js/shared/dashboardProfileMenu.js"></script>
-</body>
+    <script src="../../js/shared/api.js"></script>
+    <script src="../../js/technician_jr/workOrdersPage.js"></script>
+    <script src="../../js/shared/dashboardProfileMenu.js"></script>
+  </body>
 </html>

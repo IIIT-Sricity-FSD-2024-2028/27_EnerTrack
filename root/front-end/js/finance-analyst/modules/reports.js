@@ -5,7 +5,19 @@
  */
 
 import FinanceDB, { persistData } from "../data/mockData.js";
-import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, formatDate, can } from "../utils/utils.js";
+import universalDB from "../../shared/universalDB.js";
+import {
+  showToast,
+  openModal,
+  badgeHTML,
+  formatCurrency,
+  generateId,
+  validateForm,
+  showFieldError,
+  clearAllErrors,
+  formatDate,
+  can,
+} from "../utils/utils.js";
 import { logActivity } from "./activity.js";
 
 /* ── RENDER LIST ──────────────────────────────────── */
@@ -17,20 +29,22 @@ export function renderReportList(filter = {}) {
   let records = [...FinanceDB.financialReports];
 
   if (filter.category && filter.category !== "all") {
-    records = records.filter(r => r.category === filter.category);
+    records = records.filter((r) => r.category === filter.category);
   }
   if (filter.status && filter.status !== "all") {
-    records = records.filter(r => r.status === filter.status);
+    records = records.filter((r) => r.status === filter.status);
   }
   // Exclude archived
-  records = records.filter(r => !r.archived);
+  records = records.filter((r) => !r.archived);
 
   if (records.length === 0) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:32px">No reports found.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = records.map(rep => `
+  tbody.innerHTML = records
+    .map(
+      (rep) => `
     <tr data-id="${rep.id}">
       <td>${rep.title}</td>
       <td>${rep.period}</td>
@@ -42,19 +56,21 @@ export function renderReportList(filter = {}) {
       <td class="action-cell">
         <div class="action-row">
           <button class="action-btn btn-view"   onclick="ReportModule.viewReport('${rep.id}')">View</button>
-          ${can("edit")   ? `<button class="action-btn btn-edit"   onclick="ReportModule.editReport('${rep.id}')">Edit</button>` : ""}
+          ${can("edit") ? `<button class="action-btn btn-edit"   onclick="ReportModule.editReport('${rep.id}')">Edit</button>` : ""}
           ${can("export") ? `<button class="action-btn btn-export" onclick="ReportModule.archiveReport('${rep.id}')">Archive</button>` : ""}
         </div>
         ${can("delete") ? `<button class="action-btn btn-delete" onclick="ReportModule.deleteReport('${rep.id}')">Delete</button>` : ""}
       </td>
     </tr>
-  `).join("");
+  `,
+    )
+    .join("");
 }
 
 /* ── VIEW ─────────────────────────────────────────── */
 
 export function viewReport(id) {
-  const rep = FinanceDB.financialReports.find(r => r.id === id);
+  const rep = FinanceDB.financialReports.find((r) => r.id === id);
   if (!rep) return;
 
   openModal({
@@ -77,19 +93,26 @@ export function viewReport(id) {
       </div>`,
     confirmLabel: "Close",
     cancelLabel: "",
-    onConfirm: () => {}
+    onConfirm: () => {},
   });
 }
 
 /* ── ADD ──────────────────────────────────────────── */
 
 export function openAddReportModal() {
-  if (!can("create")) { showToast("Permission denied.", "error"); return; }
+  if (!can("create")) {
+    showToast("Permission denied.", "error");
+    return;
+  }
 
   const scopeOptions = [
-    ...FinanceDB.departments.map(d => `<option value="${d.name}">Dept: ${d.name}</option>`),
-    ...FinanceDB.buildings.map(b => `<option value="${b.name}">Building: ${b.name}</option>`),
-    `<option value="Full Campus">Campus: Full Campus</option>`
+    ...FinanceDB.departments.map(
+      (d) => `<option value="${d.name}">Dept: ${d.name}</option>`,
+    ),
+    ...FinanceDB.buildings.map(
+      (b) => `<option value="${b.name}">Building: ${b.name}</option>`,
+    ),
+    `<option value="Full Campus">Campus: Full Campus</option>`,
   ].join("");
 
   openModal({
@@ -160,7 +183,7 @@ export function openAddReportModal() {
         </div>
       </form>`,
     confirmLabel: "Generate Report",
-    onConfirm: () => _submitAddReport()
+    onConfirm: () => _submitAddReport(),
   });
 }
 
@@ -169,30 +192,34 @@ function _submitAddReport() {
   if (!form) return;
 
   const fields = {
-    title:    document.getElementById("ar-title"),
-    period:   document.getElementById("ar-period"),
+    title: document.getElementById("ar-title"),
+    period: document.getElementById("ar-period"),
     category: document.getElementById("ar-category"),
-    scope:    document.getElementById("ar-scope"),
-    format:   document.getElementById("ar-format"),
-    roi:      document.getElementById("ar-roi"),
-    npv:      document.getElementById("ar-npv"),
-    payback:  document.getElementById("ar-payback"),
-    status:   document.getElementById("ar-status"),
-    notes:    document.getElementById("ar-notes")
+    scope: document.getElementById("ar-scope"),
+    format: document.getElementById("ar-format"),
+    roi: document.getElementById("ar-roi"),
+    npv: document.getElementById("ar-npv"),
+    payback: document.getElementById("ar-payback"),
+    status: document.getElementById("ar-status"),
+    notes: document.getElementById("ar-notes"),
   };
 
   clearAllErrors(form);
   let valid = true;
 
   const rules = {
-    title:    { required: true, minLength: 4, maxLength: 80 },
-    period:   { required: true, pattern: /^\d{4}-(0[1-9]|1[0-2]|Q[1-4])$/, patternMsg: "Format must be YYYY-MM or YYYY-Q1 to YYYY-Q4." },
+    title: { required: true, minLength: 4, maxLength: 80 },
+    period: {
+      required: true,
+      pattern: /^\d{4}-(0[1-9]|1[0-2]|Q[1-4])$/,
+      patternMsg: "Format must be YYYY-MM or YYYY-Q1 to YYYY-Q4.",
+    },
     category: { required: true },
-    scope:    { required: true },
-    status:   { required: true },
-    roi:      { positiveNumber: true },
-    npv:      { positiveNumber: true },
-    payback:  { positiveNumber: true }
+    scope: { required: true },
+    status: { required: true },
+    roi: { positiveNumber: true },
+    npv: { positiveNumber: true },
+    payback: { positiveNumber: true },
   };
 
   const data = {};
@@ -200,7 +227,10 @@ function _submitAddReport() {
 
   const { errors } = validateForm(data, rules);
   for (const [k, msg] of Object.entries(errors)) {
-    if (fields[k]) { showFieldError(fields[k], msg); valid = false; }
+    if (fields[k]) {
+      showFieldError(fields[k], msg);
+      valid = false;
+    }
   }
 
   if (!valid) {
@@ -208,34 +238,65 @@ function _submitAddReport() {
   }
 
   const newRep = {
-    id: generateId("rep"),
-    title:        data.title.trim(),
-    period:       data.period.trim(),
-    category:     data.category,
-    scope:        data.scope.includes("Campus") ? "campus" : data.scope.includes("Dept") ? "department" : "building",
-    scopeLabel:   data.scope,
-    generatedAt:  new Date().toISOString(),
-    generatedBy:  window.FinanceDB?.session?.user?.name ?? "Analyst",
-    format:       data.format,
-    roi:          data.roi !== "" ? Number(data.roi) : null,
-    npv:          data.npv !== "" ? Number(data.npv) : null,
+    title: data.title.trim(),
+    period: data.period.trim(),
+    category: data.category,
+    scope: data.scope.includes("Campus")
+      ? "campus"
+      : data.scope.includes("Dept")
+        ? "department"
+        : "building",
+    scopeLabel: data.scope,
+    generatedAt: new Date().toISOString(),
+    generatedBy: window.FinanceDB?.session?.user?.name ?? "Analyst",
+    format: data.format,
+    roi: data.roi !== "" ? Number(data.roi) : null,
+    npv: data.npv !== "" ? Number(data.npv) : null,
     paybackYears: data.payback !== "" ? Number(data.payback) : null,
-    status:       data.status,
-    notes:        data.notes.trim()
+    status: data.status,
+    notes: data.notes.trim(),
   };
 
-  FinanceDB.financialReports.unshift(newRep);
-  persistData();
-  logActivity("report", `Report "${newRep.title}" generated`, `Period: ${newRep.period}`);
-  renderReportList();
-  showToast(`Report "${newRep.title}" created.`, "success");
+  if (window.api) {
+    window.api
+      .post("/financial-reports", newRep)
+      .then((res) => {
+        if (res) {
+          const repWithId = {
+            ...newRep,
+            id: res.report_id || generateId("rep"),
+          };
+          FinanceDB.financialReports.unshift(repWithId);
+          _finishAdd(repWithId);
+        }
+      })
+      .catch(console.warn);
+  } else {
+    const repWithId = { ...newRep, id: generateId("rep") };
+    FinanceDB.financialReports.unshift(repWithId);
+    _finishAdd(repWithId);
+  }
+
+  function _finishAdd(rep) {
+    persistData();
+    logActivity(
+      "report",
+      `Report "${rep.title}" generated`,
+      `Period: ${rep.period}`,
+    );
+    renderReportList();
+    showToast(`Report "${rep.title}" created.`, "success");
+  }
 }
 
 /* ── EDIT ─────────────────────────────────────────── */
 
 export function editReport(id) {
-  if (!can("edit")) { showToast("Permission denied.", "error"); return; }
-  const rep = FinanceDB.financialReports.find(r => r.id === id);
+  if (!can("edit")) {
+    showToast("Permission denied.", "error");
+    return;
+  }
+  const rep = FinanceDB.financialReports.find((r) => r.id === id);
   if (!rep) return;
 
   openModal({
@@ -264,9 +325,12 @@ export function editReport(id) {
           <div class="fm-group">
             <label>Status *</label>
             <select id="er-status">
-              ${["viable","marginal","not-viable"].map(s =>
-                `<option value="${s}" ${s === rep.status ? "selected":""}>${s.charAt(0).toUpperCase()+s.slice(1).replace("-"," ")}</option>`
-              ).join("")}
+              ${["viable", "marginal", "not-viable"]
+                .map(
+                  (s) =>
+                    `<option value="${s}" ${s === rep.status ? "selected" : ""}>${s.charAt(0).toUpperCase() + s.slice(1).replace("-", " ")}</option>`,
+                )
+                .join("")}
             </select>
           </div>
         </div>
@@ -276,7 +340,7 @@ export function editReport(id) {
         </div>
       </form>`,
     confirmLabel: "Save Changes",
-    onConfirm: () => _submitEditReport(id)
+    onConfirm: () => _submitEditReport(id),
   });
 }
 
@@ -285,12 +349,12 @@ function _submitEditReport(id) {
   if (!form) return;
 
   const fields = {
-    title:   document.getElementById("er-title"),
-    roi:     document.getElementById("er-roi"),
-    npv:     document.getElementById("er-npv"),
+    title: document.getElementById("er-title"),
+    roi: document.getElementById("er-roi"),
+    npv: document.getElementById("er-npv"),
     payback: document.getElementById("er-payback"),
-    status:  document.getElementById("er-status"),
-    notes:   document.getElementById("er-notes")
+    status: document.getElementById("er-status"),
+    notes: document.getElementById("er-notes"),
   };
 
   clearAllErrors(form);
@@ -299,44 +363,70 @@ function _submitEditReport(id) {
   for (const [k, el] of Object.entries(fields)) data[k] = el.value;
 
   const rules = {
-    title:   { required: true, minLength: 4, maxLength: 80 },
-    status:  { required: true },
-    roi:     { positiveNumber: true },
-    npv:     { positiveNumber: true },
-    payback: { positiveNumber: true }
+    title: { required: true, minLength: 4, maxLength: 80 },
+    status: { required: true },
+    roi: { positiveNumber: true },
+    npv: { positiveNumber: true },
+    payback: { positiveNumber: true },
   };
 
   const { errors } = validateForm(data, rules);
   for (const [k, msg] of Object.entries(errors)) {
-    if (fields[k]) { showFieldError(fields[k], msg); valid = false; }
+    if (fields[k]) {
+      showFieldError(fields[k], msg);
+      valid = false;
+    }
   }
 
   if (!valid) {
     return false;
   }
 
-  const idx = FinanceDB.financialReports.findIndex(r => r.id === id);
-  FinanceDB.financialReports[idx] = {
-    ...FinanceDB.financialReports[idx],
-    title:        data.title.trim(),
-    roi:          data.roi !== "" ? Number(data.roi) : null,
-    npv:          data.npv !== "" ? Number(data.npv) : null,
+  const idx = FinanceDB.financialReports.findIndex((r) => r.id === id);
+  if (idx < 0) return;
+
+  const payload = {
+    title: data.title.trim(),
+    roi: data.roi !== "" ? Number(data.roi) : null,
+    npv: data.npv !== "" ? Number(data.npv) : null,
     paybackYears: data.payback !== "" ? Number(data.payback) : null,
-    status:       data.status,
-    notes:        data.notes.trim()
+    status: data.status,
+    notes: data.notes.trim(),
   };
 
-  persistData();
-  logActivity("report", `Report "${data.title}" updated`, `Status: ${data.status}`);
-  renderReportList();
-  showToast("Report updated.", "success");
+  if (window.api) {
+    window.api
+      .patch(`/financial-reports/${id}`, payload)
+      .then(() => {
+        Object.assign(FinanceDB.financialReports[idx], payload);
+        _finishEdit();
+      })
+      .catch(console.warn);
+  } else {
+    Object.assign(FinanceDB.financialReports[idx], payload);
+    _finishEdit();
+  }
+
+  function _finishEdit() {
+    persistData();
+    logActivity(
+      "report",
+      `Report "${data.title}" updated`,
+      `Status: ${data.status}`,
+    );
+    renderReportList();
+    showToast("Report updated.", "success");
+  }
 }
 
 /* ── DELETE ───────────────────────────────────────── */
 
 export function deleteReport(id) {
-  if (!can("delete")) { showToast("Permission denied.", "error"); return; }
-  const rep = FinanceDB.financialReports.find(r => r.id === id);
+  if (!can("delete")) {
+    showToast("Permission denied.", "error");
+    return;
+  }
+  const rep = FinanceDB.financialReports.find((r) => r.id === id);
   if (!rep) return;
 
   openModal({
@@ -345,37 +435,77 @@ export function deleteReport(id) {
     confirmLabel: "Delete",
     danger: true,
     onConfirm: () => {
-      FinanceDB.financialReports = FinanceDB.financialReports.filter(r => r.id !== id);
-      persistData();
-      logActivity("report", `Report "${rep.title}" deleted`, "");
-      renderReportList();
-      showToast("Report deleted.", "success");
-    }
+      if (window.api) {
+        window.api
+          .delete(`/financial-reports/${id}`)
+          .then(() => {
+            universalDB.data.finance.financialReports =
+              FinanceDB.financialReports.filter((r) => r.id !== id);
+            _finishDelete();
+          })
+          .catch(console.warn);
+      } else {
+        universalDB.data.finance.financialReports =
+          FinanceDB.financialReports.filter((r) => r.id !== id);
+        _finishDelete();
+      }
+
+      function _finishDelete() {
+        persistData();
+        logActivity("report", `Report "${rep.title}" deleted`, "");
+        renderReportList();
+        showToast("Report deleted.", "success");
+      }
+    },
   });
 }
 
 /* ── EXPORT (simulated) ───────────────────────────── */
 
 export function archiveReport(id) {
-  if (!can("export")) { showToast("Permission denied.", "error"); return; }
-  const rep = FinanceDB.financialReports.find(r => r.id === id);
+  if (!can("export")) {
+    showToast("Permission denied.", "error");
+    return;
+  }
+  const rep = FinanceDB.financialReports.find((r) => r.id === id);
   if (!rep) return;
-  
+
   openModal({
     title: "Archive Report",
     bodyHTML: `<p>Archive <strong>"${rep.title}"</strong>? It will be moved to the Archives section.</p>`,
     confirmLabel: "Archive",
     onConfirm: () => {
-      rep.archived = true;
-      persistData();
-      logActivity("report", `Report "${rep.title}" archived`, "");
-      renderReportList();
-      showToast(`"${rep.title}" archived successfully.`, "success");
-    }
+      if (window.api) {
+        window.api
+          .patch(`/financial-reports/${id}`, { archived: true })
+          .then(() => {
+            rep.archived = true;
+            _finishArchive();
+          })
+          .catch(console.warn);
+      } else {
+        rep.archived = true;
+        _finishArchive();
+      }
+
+      function _finishArchive() {
+        persistData();
+        logActivity("report", `Report "${rep.title}" archived`, "");
+        renderReportList();
+        showToast(`"${rep.title}" archived successfully.`, "success");
+      }
+    },
   });
 }
 
 /* ── EXPORT NAMESPACE ─────────────────────────────── */
-const ReportModule = { renderReportList, viewReport, openAddReportModal, editReport, deleteReport, archiveReport };
+const ReportModule = {
+  renderReportList,
+  viewReport,
+  openAddReportModal,
+  editReport,
+  deleteReport,
+  archiveReport,
+};
 window.ReportModule = ReportModule;
 export default ReportModule;

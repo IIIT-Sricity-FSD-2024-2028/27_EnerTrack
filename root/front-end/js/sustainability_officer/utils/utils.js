@@ -16,14 +16,21 @@ export function showToast(message, type = "info", duration = 3000) {
       display: "flex",
       flexDirection: "column",
       gap: "10px",
-      zIndex: "9999"
+      zIndex: "9999",
     });
     document.body.appendChild(container);
   }
 
   const toast = document.createElement("div");
-  const bg = type === "success" ? "#10b981" : type === "error" ? "#ef4444" : type === "warning" ? "#f59e0b" : "#3b82f6";
-  
+  const bg =
+    type === "success"
+      ? "#10b981"
+      : type === "error"
+        ? "#ef4444"
+        : type === "warning"
+          ? "#f59e0b"
+          : "#3b82f6";
+
   Object.assign(toast.style, {
     background: bg,
     color: "#fff",
@@ -34,7 +41,7 @@ export function showToast(message, type = "info", duration = 3000) {
     boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
     opacity: "0",
     transform: "translateY(10px)",
-    transition: "all 0.3s ease"
+    transition: "all 0.3s ease",
   });
 
   toast.textContent = message;
@@ -55,15 +62,31 @@ export function showToast(message, type = "info", duration = 3000) {
 }
 
 // Basic modal implementation
-export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLabel = "Cancel", onConfirm, danger = false }) {
+export function openModal({
+  title,
+  bodyHTML,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+  onConfirm,
+  danger = false,
+}) {
   let overlay = document.getElementById("et-modal");
   if (!overlay) {
     overlay = document.createElement("div");
     overlay.id = "et-modal";
     Object.assign(overlay.style, {
-      position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
-      background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center",
-      zIndex: "10000", opacity: "0", transition: "opacity 0.2s"
+      position: "fixed",
+      top: "0",
+      left: "0",
+      width: "100%",
+      height: "100%",
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: "10000",
+      opacity: "0",
+      transition: "opacity 0.2s",
     });
     document.body.appendChild(overlay);
   }
@@ -84,17 +107,20 @@ export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLab
 
   overlay.style.display = "flex";
   // Trigger animation
-  setTimeout(() => overlay.style.opacity = "1", 10);
+  setTimeout(() => (overlay.style.opacity = "1"), 10);
 
   const close = () => {
     overlay.style.opacity = "0";
-    setTimeout(() => { overlay.style.display = "none"; overlay.innerHTML = ""; }, 200);
+    setTimeout(() => {
+      overlay.style.display = "none";
+      overlay.innerHTML = "";
+    }, 200);
   };
 
   if (cancelLabel) {
     document.getElementById("btn-modal-cancel").onclick = close;
   }
-  
+
   const confirmBtn = document.getElementById("btn-modal-confirm");
   confirmBtn.onclick = () => {
     if (onConfirm) {
@@ -103,10 +129,10 @@ export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLab
     }
     close();
   };
-  
+
   // Custom hover effect
-  confirmBtn.onmouseover = () => confirmBtn.style.backgroundColor = hoverBtn;
-  confirmBtn.onmouseout = () => confirmBtn.style.backgroundColor = bgBtn;
+  confirmBtn.onmouseover = () => (confirmBtn.style.backgroundColor = hoverBtn);
+  confirmBtn.onmouseout = () => (confirmBtn.style.backgroundColor = bgBtn);
 }
 
 // Generate unique ID

@@ -1,61 +1,69 @@
-/* System Admin SVG Icon Styling */
+/* Admin SVG Icon Styling */
 [data-icon] {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
 }
 
 [data-icon] svg {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 /* Sidebar sizing */
 .nav-item [data-icon] {
-    width: 20px;
-    height: 20px;
+  width: 20px;
+  height: 20px;
 }
 
 .nav-subitem [data-icon] {
-    width: 16px;
-    height: 16px;
-    opacity: 0.7;
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
 }
 
 .nav-item.active [data-icon] {
-    color: #fff;
-    opacity: 1;
+  color: #fff;
+  opacity: 1;
 }
 
 /* Dashboard sizing */
 .stat-header [data-icon] {
-    width: 24px;
-    height: 24px;
+  width: 24px;
+  height: 24px;
 }
 
 .panel-title [data-icon] {
-    width: 20px;
-    height: 20px;
+  width: 20px;
+  height: 20px;
 }
 
 .tool-btn [data-icon] {
-    width: 24px;
-    height: 24px;
+  width: 24px;
+  height: 24px;
 }
 
 .backup-header [data-icon] {
-    width: 32px;
-    height: 32px;
+  width: 32px;
+  height: 32px;
 }
 
 .btn-dark [data-icon] {
-    width: 18px;
-    height: 18px;
+  width: 18px;
+  height: 18px;
 }
 
 /* Coloring */
-.text-success [data-icon] { color: #10b981; }
-.text-danger [data-icon] { color: #ef4444; }
-.icon-danger [data-icon] { color: #ef4444; }
-.text-warning [data-icon] { color: #f59e0b; }
+.text-success [data-icon] {
+  color: #10b981;
+}
+.text-danger [data-icon] {
+  color: #ef4444;
+}
+.icon-danger [data-icon] {
+  color: #ef4444;
+}
+.text-warning [data-icon] {
+  color: #f59e0b;
+}

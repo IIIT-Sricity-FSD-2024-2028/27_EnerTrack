@@ -1,223 +1,299 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sustainability Dashboard - Monitoring</title>
-    <link rel="stylesheet" href="../../css/sustainability_officer/sust_monitor.css">
-    <link rel="stylesheet" href="../../css/sustainability_officer/sust_shared.css">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="../../css/sustainability_officer/sust_monitor.css"
+    />
+    <link
+      rel="stylesheet"
+      href="../../css/sustainability_officer/sust_shared.css"
+    />
+  </head>
+  <body>
     <div class="dashboard">
-        <!-- SIDEBAR -->
-        <aside class="sidebar">
-            <a href="../landing/landing.html" class="sidebar-logo">
-                <img src="../../assets/logo_sustainability_officer.png" alt="EnerTrack Logo" class="logo-icon">
-                <img src="../../assets/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
-            </a>
-            
-            <nav class="sidebar-nav">
-                <a href="sust_overview.html" class="nav-item">
-                    <span class="nav-icon" data-icon="overview"></span>
-                    Overview
-                </a>
-                <a href="sust_monitoring.html" class="nav-item active">
-                    <span class="nav-icon" data-icon="monitoring"></span>
-                    Environmental Impact Monitoring
-                </a>
-                <a href="sust_report.html" class="nav-item">
-                    <span class="nav-icon" data-icon="reporting"></span>
-                    Sustainability Reporting
-                </a>
-                <a href="sust_initiatives.html" class="nav-item">
-                    <span class="nav-icon" data-icon="initiatives"></span>
-                    Sustainable Conservation Initiatives
-                </a>
-                <a href="sust_archives.html" class="nav-item">
-                    <span class="nav-icon" data-icon="overview"></span>
-                    Archives
-                </a>
-            </nav>
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <a href="../landing/landing.html" class="sidebar-logo">
+          <img
+            src="../../assets/logo_sustainability_officer.png"
+            alt="EnerTrack Logo"
+            class="logo-icon"
+          />
+          <img
+            src="../../assets/EnerTrack_text.png"
+            alt="EnerTrack"
+            class="logo-text"
+          />
+        </a>
 
-            <div class="sidebar-bottom">
-                <div class="profile-card">
-                    <img src="../../assets/maya_patel.png" alt="Maya Patel" class="avatar">
-                    <div class="profile-info">
-                        <h4 id="sidebarUserName">Maya Patel</h4>
-                        <p id="sidebarUserRole">Sustainability Officer</p>
-                    </div>
-                </div>
+        <nav class="sidebar-nav">
+          <a href="sust_overview.html" class="nav-item">
+            <span class="nav-icon" data-icon="overview"></span>
+            Overview
+          </a>
+          <a href="sust_monitoring.html" class="nav-item active">
+            <span class="nav-icon" data-icon="monitoring"></span>
+            Environmental Impact Monitoring
+          </a>
+          <a href="sust_report.html" class="nav-item">
+            <span class="nav-icon" data-icon="reporting"></span>
+            Sustainability Reporting
+          </a>
+          <a href="sust_initiatives.html" class="nav-item">
+            <span class="nav-icon" data-icon="initiatives"></span>
+            Sustainable Conservation Initiatives
+          </a>
+          <a href="sust_archives.html" class="nav-item">
+            <span class="nav-icon" data-icon="overview"></span>
+            Archives
+          </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="profile-card">
+            <img
+              src="../../assets/maya_patel.png"
+              alt="Maya Patel"
+              class="avatar"
+            />
+            <div class="profile-info">
+              <h4 id="sidebarUserName">Maya Patel</h4>
+              <p id="sidebarUserRole">Sustainability Officer</p>
             </div>
-        </aside>
+          </div>
+        </div>
+      </aside>
 
-        <!-- MAIN CONTENT -->
-        <main class="main-content">
-            <header class="page-header">
-                <h1>Environmental Impact Monitoring</h1>
-            </header>
+      <!-- MAIN CONTENT -->
+      <main class="main-content">
+        <header class="page-header">
+          <h1>Environmental Impact Monitoring</h1>
+        </header>
 
-            <!-- METRICS ROW -->
-            <section class="metrics-row">
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div>
-                            <h3>Energy Consumption</h3>
-                            <p>Current electricity and gas usage across all monitors.</p>
-                        </div>
-                    </div>
-                    <div class="metric-val"><span id="metricEnergy">812</span> <small>MWh</small></div>
-                    <div class="metric-footer">Upstream feeds completed for 24 of 24 monitored meters in current cycle.</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div>
-                            <h3>Water Usage</h3>
-                            <p>Aggregated water intake from facilities and process lines.</p>
-                        </div>
-                    </div>
-                    <div class="metric-val"><span id="metricWater">3.6</span> <small>ML</small></div>
-                    <div class="metric-footer">Building clusters posted below-average demand after optimization changes.</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div>
-                            <h3>Emissions Data</h3>
-                            <p>Calculated emissions feed using current validated factors.</p>
-                        </div>
-                    </div>
-                    <div class="metric-val"><span id="metricEmissions">214</span> <small>tCO₂e</small></div>
-                    <div class="metric-footer">Emission factor tables were verified during the latest reporting rules sync.</div>
-                </div>
+        <!-- METRICS ROW -->
+        <section class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-header">
+              <div>
+                <h3>Energy Consumption</h3>
+                <p>Current electricity and gas usage across all monitors.</p>
+              </div>
+            </div>
+            <div class="metric-val">
+              <span id="metricEnergy">812</span> <small>MWh</small>
+            </div>
+            <div class="metric-footer">
+              Upstream feeds completed for 24 of 24 monitored meters in current
+              cycle.
+            </div>
+          </div>
 
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div>
-                            <h3>Food Wastage</h3>
-                            <p>Consolidated food discard data from kitchens, canteens, and event service points.</p>
-                        </div>
-                    </div>
-                    <div class="metric-val"><span id="metricFood">742</span> <small>kg</small></div>
-                    <div class="metric-footer">Collection logs were reconciled with waste handling records for this cycle.</div>
-                </div>
-            </section>
+          <div class="metric-card">
+            <div class="metric-header">
+              <div>
+                <h3>Water Usage</h3>
+                <p>
+                  Aggregated water intake from facilities and process lines.
+                </p>
+              </div>
+            </div>
+            <div class="metric-val">
+              <span id="metricWater">3.6</span> <small>ML</small>
+            </div>
+            <div class="metric-footer">
+              Building clusters posted below-average demand after optimization
+              changes.
+            </div>
+          </div>
 
-            <!-- DATA PIPELINE -->
-            <section class="pipeline-panel">
-                <div class="pipeline-header">
-                    <h2>Data pipeline</h2>
-                    <p>Live visibility into the environmental monitoring workflow from raw collection through dashboard refresh.</p>
-                </div>
-                
-                <div class="pipeline-steps" id="monitoringPipeline">
-                    <div class="pipeline-progress">
-                        <div class="pipeline-line"></div>
-                        <div class="pipeline-line-fill" id="pipelineFill"></div>
-                    </div>
-                    
-                    <div class="step" data-step="1">
-                        <div class="step-icon">
-                            <span data-icon="collect"></span>
-                        </div>
-                        <h4>Collect</h4>
-                    </div>
-                    <div class="step" data-step="2">
-                        <div class="step-icon">
-                            <span data-icon="modeling"></span>
-                        </div>
-                        <h4>Aggregate</h4>
-                    </div>
-                    <div class="step" data-step="3">
-                        <div class="step-icon">
-                            <span data-icon="calculation"></span>
-                        </div>
-                        <h4>Calculate Metrics</h4>
-                    </div>
-                    <div class="step" data-step="4">
-                        <div class="step-icon">
-                            <span data-icon="search"></span>
-                        </div>
-                        <h4>Trend Analysis</h4>
-                    </div>
-                    <div class="step" data-step="5">
-                        <div class="step-icon">
-                            <span data-icon="sync"></span>
-                        </div>
-                        <h4>Update Dashboard</h4>
-                    </div>
-                </div>
-            </section>
+          <div class="metric-card">
+            <div class="metric-header">
+              <div>
+                <h3>Emissions Data</h3>
+                <p>
+                  Calculated emissions feed using current validated factors.
+                </p>
+              </div>
+            </div>
+            <div class="metric-val">
+              <span id="metricEmissions">214</span> <small>tCO₂e</small>
+            </div>
+            <div class="metric-footer">
+              Emission factor tables were verified during the latest reporting
+              rules sync.
+            </div>
+          </div>
 
-            <!-- VIEW METRICS & TRENDS -->
-            <section class="dashboard-panel full-width">
-                <h2>View Metrics & Trends</h2>
-                <p class="sub">Filter chart views by date range and inspect time-based changes across all core indicators.</p>
-                
-                <div class="pill-nav" id="trendPeriodSelector">
-                    <div class="pill-item active" data-period="30 Days">30 Days</div>
-                    <div class="pill-item" data-period="Quarter">Quarter</div>
-                    <div class="pill-item" data-period="Year">Year</div>
-                </div>
-                
-                <div class="chart-container" id="trendsChart">
-                    <div class="chart-group">
-                        <div class="bar energy" style="height: 60%;"></div>
-                        <div class="bar water" style="height: 42%;"></div>
-                        <div class="bar emissions" style="height: 50%;"></div>
-                        <div class="bar food" style="height: 36%;"></div>
-                    </div>
-                    <div class="chart-group">
-                        <div class="bar energy" style="height: 70%;"></div>
-                        <div class="bar water" style="height: 46%;"></div>
-                        <div class="bar emissions" style="height: 45%;"></div>
-                        <div class="bar food" style="height: 40%;"></div>
-                    </div>
-                    <div class="chart-group">
-                        <div class="bar energy" style="height: 55%;"></div>
-                        <div class="bar water" style="height: 39%;"></div>
-                        <div class="bar emissions" style="height: 42%;"></div>
-                        <div class="bar food" style="height: 35%;"></div>
-                    </div>
-                    <div class="chart-group">
-                        <div class="bar energy" style="height: 50%;"></div>
-                        <div class="bar water" style="height: 35%;"></div>
-                        <div class="bar emissions" style="height: 40%;"></div>
-                        <div class="bar food" style="height: 33%;"></div>
-                    </div>
-                </div>
-                <div class="chart-labels">
-                    <span>Week 1</span>
-                    <span>Week 2</span>
-                    <span>Week 3</span>
-                    <span>Week 4</span>
-                </div>
-                
-                <div class="chart-legend">
-                    <div class="legend-item"><div class="legend-dot energy"></div>Energy</div>
-                    <div class="legend-item"><div class="legend-dot water"></div>Water</div>
-                    <div class="legend-item"><div class="legend-dot emissions"></div>Emissions</div>
-                    <div class="legend-item"><div class="legend-dot food"></div>Food</div>
-                </div>
-            </section>
+          <div class="metric-card">
+            <div class="metric-header">
+              <div>
+                <h3>Food Wastage</h3>
+                <p>
+                  Consolidated food discard data from kitchens, canteens, and
+                  event service points.
+                </p>
+              </div>
+            </div>
+            <div class="metric-val">
+              <span id="metricFood">742</span> <small>kg</small>
+            </div>
+            <div class="metric-footer">
+              Collection logs were reconciled with waste handling records for
+              this cycle.
+            </div>
+          </div>
+        </section>
 
-            <!-- BOTTOM ACTION BAR -->
-            <section class="action-bar">
-                <div class="action-bar-text">
-                    <h4>More data to be collected?</h4>
-                    <p>The system will automatically trigger the next collection cycle when new meter or utility data is detected.</p>
-                </div>
-                <div class="action-btns">
-                    <button class="btn-green" id="btnForceRun">
-                        <span style="display:inline-flex;width:14px;height:14px;margin-right:6px;" data-icon="sync"></span>
-                        Run Sync Cycle
-                    </button>
-                </div>
-            </section>
+        <!-- DATA PIPELINE -->
+        <section class="pipeline-panel">
+          <div class="pipeline-header">
+            <h2>Data pipeline</h2>
+            <p>
+              Live visibility into the environmental monitoring workflow from
+              raw collection through dashboard refresh.
+            </p>
+          </div>
 
-        </main>
+          <div class="pipeline-steps" id="monitoringPipeline">
+            <div class="pipeline-progress">
+              <div class="pipeline-line"></div>
+              <div class="pipeline-line-fill" id="pipelineFill"></div>
+            </div>
+
+            <div class="step" data-step="1">
+              <div class="step-icon">
+                <span data-icon="collect"></span>
+              </div>
+              <h4>Collect</h4>
+            </div>
+            <div class="step" data-step="2">
+              <div class="step-icon">
+                <span data-icon="modeling"></span>
+              </div>
+              <h4>Aggregate</h4>
+            </div>
+            <div class="step" data-step="3">
+              <div class="step-icon">
+                <span data-icon="calculation"></span>
+              </div>
+              <h4>Calculate Metrics</h4>
+            </div>
+            <div class="step" data-step="4">
+              <div class="step-icon">
+                <span data-icon="search"></span>
+              </div>
+              <h4>Trend Analysis</h4>
+            </div>
+            <div class="step" data-step="5">
+              <div class="step-icon">
+                <span data-icon="sync"></span>
+              </div>
+              <h4>Update Dashboard</h4>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW METRICS & TRENDS -->
+        <section class="dashboard-panel full-width">
+          <h2>View Metrics & Trends</h2>
+          <p class="sub">
+            Filter chart views by date range and inspect time-based changes
+            across all core indicators.
+          </p>
+
+          <div class="pill-nav" id="trendPeriodSelector">
+            <div class="pill-item active" data-period="30 Days">30 Days</div>
+            <div class="pill-item" data-period="Quarter">Quarter</div>
+            <div class="pill-item" data-period="Year">Year</div>
+          </div>
+
+          <div class="chart-container" id="trendsChart">
+            <div class="chart-group">
+              <div class="bar energy" style="height: 60%"></div>
+              <div class="bar water" style="height: 42%"></div>
+              <div class="bar emissions" style="height: 50%"></div>
+              <div class="bar food" style="height: 36%"></div>
+            </div>
+            <div class="chart-group">
+              <div class="bar energy" style="height: 70%"></div>
+              <div class="bar water" style="height: 46%"></div>
+              <div class="bar emissions" style="height: 45%"></div>
+              <div class="bar food" style="height: 40%"></div>
+            </div>
+            <div class="chart-group">
+              <div class="bar energy" style="height: 55%"></div>
+              <div class="bar water" style="height: 39%"></div>
+              <div class="bar emissions" style="height: 42%"></div>
+              <div class="bar food" style="height: 35%"></div>
+            </div>
+            <div class="chart-group">
+              <div class="bar energy" style="height: 50%"></div>
+              <div class="bar water" style="height: 35%"></div>
+              <div class="bar emissions" style="height: 40%"></div>
+              <div class="bar food" style="height: 33%"></div>
+            </div>
+          </div>
+          <div class="chart-labels">
+            <span>Week 1</span>
+            <span>Week 2</span>
+            <span>Week 3</span>
+            <span>Week 4</span>
+          </div>
+
+          <div class="chart-legend">
+            <div class="legend-item">
+              <div class="legend-dot energy"></div>
+              Energy
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot water"></div>
+              Water
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot emissions"></div>
+              Emissions
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot food"></div>
+              Food
+            </div>
+          </div>
+        </section>
+
+        <!-- BOTTOM ACTION BAR -->
+        <section class="action-bar">
+          <div class="action-bar-text">
+            <h4>More data to be collected?</h4>
+            <p>
+              The system will automatically trigger the next collection cycle
+              when new meter or utility data is detected.
+            </p>
+          </div>
+          <div class="action-btns">
+            <button class="btn-green" id="btnForceRun">
+              <span
+                style="
+                  display: inline-flex;
+                  width: 14px;
+                  height: 14px;
+                  margin-right: 6px;
+                "
+                data-icon="sync"
+              ></span>
+              Run Sync Cycle
+            </button>
+          </div>
+        </section>
+      </main>
     </div>
-    <script type="module" src="../../js/sustainability_officer/monitoringPage.js"></script>
+    <script
+      type="module"
+      src="../../js/sustainability_officer/monitoringPage.js"
+    ></script>
     <script src="../../js/shared/dashboardProfileMenu.js"></script>
-</body>
+  </body>
 </html>

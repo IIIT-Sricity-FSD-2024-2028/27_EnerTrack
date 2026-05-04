@@ -5,7 +5,18 @@
  */
 
 import FinanceDB, { persistData } from "../data/mockData.js";
-import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, formatDate } from "../utils/utils.js";
+import universalDB from "../../shared/universalDB.js";
+import {
+  showToast,
+  openModal,
+  badgeHTML,
+  formatCurrency,
+  generateId,
+  validateForm,
+  showFieldError,
+  clearAllErrors,
+  formatDate,
+} from "../utils/utils.js";
 import { can } from "../utils/utils.js";
 import { logActivity } from "./activity.js";
 
@@ -19,21 +30,23 @@ export function renderInvoiceList(filter = {}) {
 
   // Filter by status
   if (filter.status && filter.status !== "all") {
-    records = records.filter(r => r.status === filter.status);
+    records = records.filter((r) => r.status === filter.status);
   }
   // Filter by department
   if (filter.department && filter.department !== "all") {
-    records = records.filter(r => r.department === filter.department);
+    records = records.filter((r) => r.department === filter.department);
   }
   // Exclude archived
-  records = records.filter(r => !r.archived);
+  records = records.filter((r) => !r.archived);
 
   if (records.length === 0) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:32px">No invoices found.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = records.map(inv => `
+  tbody.innerHTML = records
+    .map(
+      (inv) => `
     <tr data-id="${inv.id}">
       <td>${inv.invoiceNumber}</td>
       <td>${inv.vendor}</td>
@@ -45,20 +58,22 @@ export function renderInvoiceList(filter = {}) {
       <td class="action-cell">
         <div class="action-row">
           <button class="action-btn btn-view"   onclick="InvoiceModule.viewInvoice('${inv.id}')">View</button>
-          ${can("edit")   ? `<button class="action-btn btn-edit"    onclick="InvoiceModule.editInvoice('${inv.id}')">Edit</button>` : ""}
+          ${can("edit") ? `<button class="action-btn btn-edit"    onclick="InvoiceModule.editInvoice('${inv.id}')">Edit</button>` : ""}
           ${can("approve") && inv.status === "pending" ? `<button class="action-btn btn-approve" onclick="InvoiceModule.approveInvoice('${inv.id}')">Approve</button>` : ""}
           ${inv.status === "approved" ? `<button class="action-btn btn-export" onclick="InvoiceModule.archiveInvoice('${inv.id}')">Archive</button>` : ""}
         </div>
         ${can("delete") ? `<button class="action-btn btn-delete"  onclick="InvoiceModule.deleteInvoice('${inv.id}')">Delete</button>` : ""}
       </td>
     </tr>
-  `).join("");
+  `,
+    )
+    .join("");
 }
 
 /* ── VIEW ─────────────────────────────────────────── */
 
 export function viewInvoice(id) {
-  const inv = FinanceDB.invoices.find(i => i.id === id);
+  const inv = FinanceDB.invoices.find((i) => i.id === id);
   if (!inv) return;
 
   openModal({
@@ -76,16 +91,21 @@ export function viewInvoice(id) {
       </div>`,
     confirmLabel: "Close",
     cancelLabel: "",
-    onConfirm: () => {}
+    onConfirm: () => {},
   });
 }
 
 /* ── ADD ──────────────────────────────────────────── */
 
 export function openAddInvoiceModal() {
-  if (!can("create")) { showToast("You don't have permission to add invoices.", "error"); return; }
+  if (!can("create")) {
+    showToast("You don't have permission to add invoices.", "error");
+    return;
+  }
 
-  const deptOptions = FinanceDB.departments.map(d => `<option value="${d.id}">${d.name}</option>`).join("");
+  const deptOptions = FinanceDB.departments
+    .map((d) => `<option value="${d.id}">${d.name}</option>`)
+    .join("");
 
   openModal({
     title: "Add Invoice",
@@ -136,7 +156,7 @@ export function openAddInvoiceModal() {
         </div>
       </form>`,
     confirmLabel: "Add Invoice",
-    onConfirm: () => _submitAddInvoice()
+    onConfirm: () => _submitAddInvoice(),
   });
 }
 
@@ -145,26 +165,30 @@ function _submitAddInvoice() {
   if (!form) return;
 
   const fields = {
-    number:  document.getElementById("fi-number"),
-    vendor:  document.getElementById("fi-vendor"),
-    amount:  document.getElementById("fi-amount"),
-    type:    document.getElementById("fi-type"),
-    dept:    document.getElementById("fi-dept"),
-    issued:  document.getElementById("fi-issued"),
-    due:     document.getElementById("fi-due")
+    number: document.getElementById("fi-number"),
+    vendor: document.getElementById("fi-vendor"),
+    amount: document.getElementById("fi-amount"),
+    type: document.getElementById("fi-type"),
+    dept: document.getElementById("fi-dept"),
+    issued: document.getElementById("fi-issued"),
+    due: document.getElementById("fi-due"),
   };
 
   clearAllErrors(form);
   let valid = true;
 
   const rules = {
-    number: { required: true, pattern: /^INV-\d{4,5}$/, patternMsg: "Invalid invoice number format. Use INV-XXXX or INV-XXXXX." },
+    number: {
+      required: true,
+      pattern: /^INV-\d{4,5}$/,
+      patternMsg: "Invalid invoice number format. Use INV-XXXX or INV-XXXXX.",
+    },
     vendor: { required: true, minLength: 2 },
     amount: { required: true, positiveNumber: true },
-    type:   { required: true },
-    dept:   { required: true },
+    type: { required: true },
+    dept: { required: true },
     issued: { required: true },
-    due:    { required: true }
+    due: { required: true },
   };
 
   const data = {};
@@ -186,7 +210,7 @@ function _submitAddInvoice() {
   }
 
   // Duplicate invoice number check
-  if (FinanceDB.invoices.some(i => i.invoiceNumber === data.number)) {
+  if (FinanceDB.invoices.some((i) => i.invoiceNumber === data.number)) {
     showFieldError(fields.number, "Invoice number already exists.");
     errors.number = "Invoice number already exists.";
     valid = false;
@@ -196,9 +220,8 @@ function _submitAddInvoice() {
     return false;
   }
 
-  const dept = FinanceDB.departments.find(d => d.id === data.dept);
+  const dept = FinanceDB.departments.find((d) => d.id === data.dept);
   const newInv = {
-    id: generateId("inv"),
     invoiceNumber: data.number.trim(),
     vendor: data.vendor.trim(),
     amount: Number(data.amount),
@@ -206,29 +229,59 @@ function _submitAddInvoice() {
     departmentLabel: dept?.name ?? data.dept,
     dueDate: data.due,
     issuedDate: data.issued,
+    type: data.type,
     status: "pending",
-    approvedBy: null,
-    type: data.type
   };
 
-  FinanceDB.invoices.push(newInv);
-  persistData();
-  logActivity("invoice", `Invoice ${newInv.invoiceNumber} added`, `Vendor: ${newInv.vendor}`);
-  renderInvoiceList();
-  updateInvoiceSummary();
-  showToast(`Invoice ${newInv.invoiceNumber} added.`, "success");
+  if (window.api) {
+    window.api
+      .post("/invoices", newInv)
+      .then((res) => {
+        if (res) {
+          const invWithId = {
+            ...newInv,
+            id: res.invoice_id || generateId("inv"),
+          };
+          FinanceDB.invoices.push(invWithId);
+          _finishAdd(invWithId);
+        }
+      })
+      .catch(console.warn);
+  } else {
+    const invWithId = { ...newInv, id: generateId("inv") };
+    FinanceDB.invoices.push(invWithId);
+    _finishAdd(invWithId);
+  }
+
+  function _finishAdd(inv) {
+    persistData();
+    logActivity(
+      "invoice",
+      `Invoice ${inv.invoiceNumber} added`,
+      `Vendor: ${inv.vendor}`,
+    );
+    renderInvoiceList();
+    updateInvoiceSummary();
+    showToast(`Invoice ${inv.invoiceNumber} added.`, "success");
+  }
 }
 
 /* ── EDIT ─────────────────────────────────────────── */
 
 export function editInvoice(id) {
-  if (!can("edit")) { showToast("Permission denied.", "error"); return; }
-  const inv = FinanceDB.invoices.find(i => i.id === id);
+  if (!can("edit")) {
+    showToast("Permission denied.", "error");
+    return;
+  }
+  const inv = FinanceDB.invoices.find((i) => i.id === id);
   if (!inv) return;
 
-  const deptOptions = FinanceDB.departments.map(d =>
-    `<option value="${d.id}" ${d.id === inv.department ? "selected" : ""}>${d.name}</option>`
-  ).join("");
+  const deptOptions = FinanceDB.departments
+    .map(
+      (d) =>
+        `<option value="${d.id}" ${d.id === inv.department ? "selected" : ""}>${d.name}</option>`,
+    )
+    .join("");
 
   openModal({
     title: `Edit Invoice ${inv.invoiceNumber}`,
@@ -252,9 +305,12 @@ export function editInvoice(id) {
           <div class="fm-group">
             <label>Type *</label>
             <select id="ei-type">
-              ${["electricity","gas","water","demand"].map(t =>
-                `<option value="${t}" ${t === inv.type ? "selected" : ""}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`
-              ).join("")}
+              ${["electricity", "gas", "water", "demand"]
+                .map(
+                  (t) =>
+                    `<option value="${t}" ${t === inv.type ? "selected" : ""}>${t.charAt(0).toUpperCase() + t.slice(1)}</option>`,
+                )
+                .join("")}
             </select>
           </div>
         </div>
@@ -271,14 +327,17 @@ export function editInvoice(id) {
         <div class="fm-group">
           <label>Status</label>
           <select id="ei-status">
-            ${["pending","approved","overdue"].map(s =>
-              `<option value="${s}" ${s === inv.status ? "selected" : ""}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`
-            ).join("")}
+            ${["pending", "approved", "overdue"]
+              .map(
+                (s) =>
+                  `<option value="${s}" ${s === inv.status ? "selected" : ""}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`,
+              )
+              .join("")}
           </select>
         </div>
       </form>`,
     confirmLabel: "Save Changes",
-    onConfirm: () => _submitEditInvoice(id)
+    onConfirm: () => _submitEditInvoice(id),
   });
 }
 
@@ -290,22 +349,26 @@ function _submitEditInvoice(id) {
     number: document.getElementById("ei-number"),
     vendor: document.getElementById("ei-vendor"),
     amount: document.getElementById("ei-amount"),
-    type:   document.getElementById("ei-type"),
-    dept:   document.getElementById("ei-dept"),
-    due:    document.getElementById("ei-due"),
-    status: document.getElementById("ei-status")
+    type: document.getElementById("ei-type"),
+    dept: document.getElementById("ei-dept"),
+    due: document.getElementById("ei-due"),
+    status: document.getElementById("ei-status"),
   };
 
   clearAllErrors(form);
   let valid = true;
 
   const rules = {
-    number: { required: true, pattern: /^INV-\d{4,5}$/, patternMsg: "Invalid invoice number format. Use INV-XXXX or INV-XXXXX." },
+    number: {
+      required: true,
+      pattern: /^INV-\d{4,5}$/,
+      patternMsg: "Invalid invoice number format. Use INV-XXXX or INV-XXXXX.",
+    },
     vendor: { required: true, minLength: 2 },
     amount: { required: true, positiveNumber: true },
-    type:   { required: true },
-    dept:   { required: true },
-    due:    { required: true }
+    type: { required: true },
+    dept: { required: true },
+    due: { required: true },
   };
 
   const data = {};
@@ -313,11 +376,18 @@ function _submitEditInvoice(id) {
 
   const { errors } = validateForm(data, rules);
   for (const [key, msg] of Object.entries(errors)) {
-    if (fields[key]) { showFieldError(fields[key], msg); valid = false; }
+    if (fields[key]) {
+      showFieldError(fields[key], msg);
+      valid = false;
+    }
   }
 
   // Duplicate check (excluding self)
-  if (FinanceDB.invoices.some(i => i.invoiceNumber === data.number && i.id !== id)) {
+  if (
+    FinanceDB.invoices.some(
+      (i) => i.invoiceNumber === data.number && i.id !== id,
+    )
+  ) {
     showFieldError(fields.number, "Invoice number already exists.");
     errors.number = "Invoice number already exists.";
     valid = false;
@@ -327,32 +397,55 @@ function _submitEditInvoice(id) {
     return false;
   }
 
-  const idx = FinanceDB.invoices.findIndex(i => i.id === id);
-  const dept = FinanceDB.departments.find(d => d.id === data.dept);
-  FinanceDB.invoices[idx] = {
-    ...FinanceDB.invoices[idx],
-    invoiceNumber:   data.number.trim(),
-    vendor:          data.vendor.trim(),
-    amount:          Number(data.amount),
-    department:      data.dept,
+  const idx = FinanceDB.invoices.findIndex((i) => i.id === id);
+  if (idx < 0) return;
+  const dept = FinanceDB.departments.find((d) => d.id === data.dept);
+
+  const payload = {
+    invoiceNumber: data.number.trim(),
+    vendor: data.vendor.trim(),
+    amount: Number(data.amount),
+    department: data.dept,
     departmentLabel: dept?.name ?? data.dept,
-    dueDate:         data.due,
-    type:            data.type,
-    status:          data.status
+    dueDate: data.due,
+    type: data.type,
+    status: data.status,
   };
 
-  persistData();
-  logActivity("invoice", `Invoice ${data.number} updated`, `Status: ${data.status}`);
-  renderInvoiceList();
-  updateInvoiceSummary();
-  showToast("Invoice updated.", "success");
+  if (window.api) {
+    window.api
+      .patch(`/invoices/${id}`, payload)
+      .then(() => {
+        Object.assign(FinanceDB.invoices[idx], payload);
+        _finishEdit();
+      })
+      .catch(console.warn);
+  } else {
+    Object.assign(FinanceDB.invoices[idx], payload);
+    _finishEdit();
+  }
+
+  function _finishEdit() {
+    persistData();
+    logActivity(
+      "invoice",
+      `Invoice ${data.number} updated`,
+      `Status: ${data.status}`,
+    );
+    renderInvoiceList();
+    updateInvoiceSummary();
+    showToast("Invoice updated.", "success");
+  }
 }
 
 /* ── APPROVE ──────────────────────────────────────── */
 
 export function approveInvoice(id) {
-  if (!can("approve")) { showToast("Permission denied.", "error"); return; }
-  const inv = FinanceDB.invoices.find(i => i.id === id);
+  if (!can("approve")) {
+    showToast("Permission denied.", "error");
+    return;
+  }
+  const inv = FinanceDB.invoices.find((i) => i.id === id);
   if (!inv) return;
 
   openModal({
@@ -360,21 +453,42 @@ export function approveInvoice(id) {
     bodyHTML: `<p>Approve <strong>${inv.invoiceNumber}</strong> from <strong>${inv.vendor}</strong> for <strong>${formatCurrency(inv.amount)}</strong>?</p>`,
     confirmLabel: "Approve",
     onConfirm: () => {
-      inv.status = "approved";
-      inv.approvedBy = window.FinanceDB?.session?.user?.name ?? "Analyst";
-      persistData();
-      logActivity("invoice", `Invoice ${inv.invoiceNumber} approved`, `Amount: ${formatCurrency(inv.amount)}`);
-      renderInvoiceList();
-      updateInvoiceSummary();
-      showToast(`Invoice ${inv.invoiceNumber} approved.`, "success");
-    }
+      const payload = {
+        status: "approved",
+        approvedBy: window.FinanceDB?.session?.user?.name ?? "Analyst",
+      };
+      if (window.api) {
+        window.api
+          .patch(`/invoices/${id}`, payload)
+          .then(() => {
+            Object.assign(inv, payload);
+            _finishApprove();
+          })
+          .catch(console.warn);
+      } else {
+        Object.assign(inv, payload);
+        _finishApprove();
+      }
+
+      function _finishApprove() {
+        persistData();
+        logActivity(
+          "invoice",
+          `Invoice ${inv.invoiceNumber} approved`,
+          `Amount: ${formatCurrency(inv.amount)}`,
+        );
+        renderInvoiceList();
+        updateInvoiceSummary();
+        showToast(`Invoice ${inv.invoiceNumber} approved.`, "success");
+      }
+    },
   });
 }
 
 /* ── ARCHIVE ──────────────────────────────────────── */
 
 export function archiveInvoice(id) {
-  const inv = FinanceDB.invoices.find(i => i.id === id);
+  const inv = FinanceDB.invoices.find((i) => i.id === id);
   if (!inv) return;
 
   openModal({
@@ -382,21 +496,42 @@ export function archiveInvoice(id) {
     bodyHTML: `<p>Archive invoice <strong>${inv.invoiceNumber}</strong>? It will be moved to the Archives section.</p>`,
     confirmLabel: "Archive",
     onConfirm: () => {
-      inv.archived = true;
-      persistData();
-      logActivity("invoice", `Invoice ${inv.invoiceNumber} archived`, `Vendor: ${inv.vendor}`);
-      renderInvoiceList();
-      updateInvoiceSummary();
-      showToast(`Invoice ${inv.invoiceNumber} archived.`, "success");
-    }
+      if (window.api) {
+        window.api
+          .patch(`/invoices/${id}`, { archived: true })
+          .then(() => {
+            inv.archived = true;
+            _finishArchive();
+          })
+          .catch(console.warn);
+      } else {
+        inv.archived = true;
+        _finishArchive();
+      }
+
+      function _finishArchive() {
+        persistData();
+        logActivity(
+          "invoice",
+          `Invoice ${inv.invoiceNumber} archived`,
+          `Vendor: ${inv.vendor}`,
+        );
+        renderInvoiceList();
+        updateInvoiceSummary();
+        showToast(`Invoice ${inv.invoiceNumber} archived.`, "success");
+      }
+    },
   });
 }
 
 /* ── DELETE ───────────────────────────────────────── */
 
 export function deleteInvoice(id) {
-  if (!can("delete")) { showToast("Permission denied.", "error"); return; }
-  const inv = FinanceDB.invoices.find(i => i.id === id);
+  if (!can("delete")) {
+    showToast("Permission denied.", "error");
+    return;
+  }
+  const inv = FinanceDB.invoices.find((i) => i.id === id);
   if (!inv) return;
 
   openModal({
@@ -405,25 +540,47 @@ export function deleteInvoice(id) {
     confirmLabel: "Delete",
     danger: true,
     onConfirm: () => {
-      FinanceDB.invoices = FinanceDB.invoices.filter(i => i.id !== id);
-      persistData();
-      logActivity("invoice", `Invoice ${inv.invoiceNumber} deleted`, `Vendor: ${inv.vendor}`);
-      renderInvoiceList();
-      updateInvoiceSummary();
-      showToast(`Invoice ${inv.invoiceNumber} deleted.`, "success");
-    }
+      if (window.api) {
+        window.api
+          .delete(`/invoices/${id}`)
+          .then(() => {
+            universalDB.data.finance.invoices = FinanceDB.invoices.filter(
+              (i) => i.id !== id,
+            );
+            _finishDelete();
+          })
+          .catch(console.warn);
+      } else {
+        universalDB.data.finance.invoices = FinanceDB.invoices.filter(
+          (i) => i.id !== id,
+        );
+        _finishDelete();
+      }
+
+      function _finishDelete() {
+        persistData();
+        logActivity(
+          "invoice",
+          `Invoice ${inv.invoiceNumber} deleted`,
+          `Vendor: ${inv.vendor}`,
+        );
+        renderInvoiceList();
+        updateInvoiceSummary();
+        showToast(`Invoice ${inv.invoiceNumber} deleted.`, "success");
+      }
+    },
   });
 }
 
 /* ── SUMMARY STATS ────────────────────────────────── */
 
 export function updateInvoiceSummary() {
-  const all = FinanceDB.invoices.filter(i => !i.archived);
-  const total   = all.reduce((s, i) => s + i.amount, 0);
-  const pending = all.filter(i => i.status === "pending").length;
-  const overdue = all.filter(i => i.status === "overdue").length;
+  const all = FinanceDB.invoices.filter((i) => !i.archived);
+  const total = all.reduce((s, i) => s + i.amount, 0);
+  const pending = all.filter((i) => i.status === "pending").length;
+  const overdue = all.filter((i) => i.status === "overdue").length;
 
-  _setText("inv-total",   formatCurrency(total));
+  _setText("inv-total", formatCurrency(total));
   _setText("inv-pending", pending);
   _setText("inv-overdue", overdue);
 }
@@ -434,6 +591,15 @@ function _setText(id, val) {
 }
 
 /* ── EXPORT NAMESPACE ─────────────────────────────── */
-const InvoiceModule = { renderInvoiceList, viewInvoice, openAddInvoiceModal, editInvoice, approveInvoice, deleteInvoice, archiveInvoice, updateInvoiceSummary };
+const InvoiceModule = {
+  renderInvoiceList,
+  viewInvoice,
+  openAddInvoiceModal,
+  editInvoice,
+  approveInvoice,
+  deleteInvoice,
+  archiveInvoice,
+  updateInvoiceSummary,
+};
 window.InvoiceModule = InvoiceModule;
 export default InvoiceModule;

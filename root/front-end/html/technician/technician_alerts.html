@@ -1,196 +1,274 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>EnerTrack Dashboard</title>
+    <link rel="stylesheet" href="../../css/technician/tech_shared.css" />
+    <link rel="stylesheet" href="../../css/technician/tech_alerts.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <title>EnerTrack Dashboard</title>
-  <link rel="stylesheet" href="../../css/technician/tech_shared.css">
-  <link rel="stylesheet" href="../../css/technician/tech_alerts.css">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
-
-</head>
-
-<body>
-  <div class="layout">
-
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <div>
-        <a href="../landing/landing.html" class="logo">
-          <img src="../../assets/logo_technician.png" alt="EnerTrack Logo" class="logo-icon">
-          <img src="../../assets/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
-        </a>
-        <div class="nav-title">Navigation</div>
-        <ul class="nav">
-          <a href="technician_overview.html">
-            <li>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
-              </svg>
-              Overview
-            </li>
-          </a>
-          <a href="technician_alerts.html">
-            <li class="active">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                <path d="M2 8c0-1.1.9-2 2-2" opacity="0.5" />
-                <path d="M22 8a2 2 0 0 0-2-2" opacity="0.5" />
-              </svg>
-              Real-Time Anomaly Alerts
-            </li>
-          </a>
-          <a href="technician_maintenance.html">
-            <li>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg>
-              Fault Detection &amp; Diagnostics
-            </li>
-          </a>
-          <a href="technician_work_orders.html">
-            <li>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                <rect x="8" y="2" width="8" height="4" rx="1" />
-                <line x1="9" y1="12" x2="15" y2="12" />
-                <line x1="9" y1="16" x2="13" y2="16" />
-              </svg>
-              Maintenance Work Orders
-            </li>
-          </a>
-        </ul>
-      </div>
-      <div class="profile" id="sidebarProfile">
-        <img src="https://i.pravatar.cc/100" alt="Profile" id="sidebarUserImg">
+  <body>
+    <div class="layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
         <div>
-          <div class="profile-name" id="sidebarUserName">Loading...</div>
-          <div class="profile-role" id="sidebarUserRole">Technician</div>
+          <a href="../landing/landing.html" class="logo">
+            <img
+              src="../../assets/logo_technician.png"
+              alt="EnerTrack Logo"
+              class="logo-icon"
+            />
+            <img
+              src="../../assets/EnerTrack_text.png"
+              alt="EnerTrack"
+              class="logo-text"
+            />
+          </a>
+          <div class="nav-title">Navigation</div>
+          <ul class="nav">
+            <a href="technician_overview.html">
+              <li>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                </svg>
+                Overview
+              </li>
+            </a>
+            <a href="technician_alerts.html">
+              <li class="active">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                  <path d="M2 8c0-1.1.9-2 2-2" opacity="0.5" />
+                  <path d="M22 8a2 2 0 0 0-2-2" opacity="0.5" />
+                </svg>
+                Real-Time Anomaly Alerts
+              </li>
+            </a>
+            <a href="technician_maintenance.html">
+              <li>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                Fault Detection &amp; Diagnostics
+              </li>
+            </a>
+            <a href="technician_work_orders.html">
+              <li>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+                  />
+                  <rect x="8" y="2" width="8" height="4" rx="1" />
+                  <line x1="9" y1="12" x2="15" y2="12" />
+                  <line x1="9" y1="16" x2="13" y2="16" />
+                </svg>
+                Maintenance Work Orders
+              </li>
+            </a>
+          </ul>
         </div>
-      </div>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="main">
-
-      <div class="page-header">
-        <h1>Real-Time Anomaly Alerts</h1>
-        <p>Monitor the live priority queue, review diagnostics, and escalate or acknowledge alerts.</p>
-      </div>
-
-      <!-- STATUS BAR -->
-      <div class="status-bar">
-        <div class="status-left">
-          <div class="green-dot"></div>
-          Monitoring Active
-        </div>
-        <div class="subtitle">Systems are connected and reporting continuous streams.</div>
-      </div>
-
-      <!-- TOP GRID: Queue + Detail -->
-      <div class="alerts-grid">
-
-        <!-- Priority Alert Queue -->
-        <div class="card">
-          <h2>Priority Alert Queue</h2>
-          <small>Incoming anomalies requiring immediate review. Click a row to inspect.</small>
-          <table style="margin-top:16px;">
-            <thead>
-              <tr>
-                <th>Alert ID</th>
-                <th>Severity</th>
-                <th>Timestamp</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="alertQueueBody">
-              <!-- Populated by JS -->
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Alert Detail Panel -->
-        <div class="card detail-card">
+        <div class="profile" id="sidebarProfile">
+          <img
+            src="https://i.pravatar.cc/100"
+            alt="Profile"
+            id="sidebarUserImg"
+          />
           <div>
-            <div class="detail-header">
-              <div class="detail-header-left">
-                <h2 id="detailAlertId">Select an alert</h2>
-                <span id="detailSeverityBadge"></span>
-              </div>
-            </div>
-            
-            <div class="detail-meta">
-              <span class="zone-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                <span id="detailZone">—</span>
-              </span>
-            </div>
-
-            <div class="detail-description-box" id="detailDescription">
-              Click a row on the left to view details.
-            </div>
-
-            <div class="section-label">Alert Resolution</div>
-            <div class="action-boxes">
-              <div class="action-box emergency-box">
-                <div>
-                  <h4>Emergency Protocol</h4>
-                  <p>Escalate alert and deploy field response immediately.</p>
-                </div>
-                <button class="btn btn-red btn-full" id="btnInitiateEmergency">Initiate Response</button>
-              </div>
-              <div class="action-box routine-box">
-                <div>
-                  <h4>Routine Inspection</h4>
-                  <p>Acknowledge and plan follow-up inspection later.</p>
-                </div>
-                <button class="btn btn-light btn-full" id="btnScheduleInspection">Schedule Inspection</button>
-              </div>
-            </div>
+            <div class="profile-name" id="sidebarUserName">Loading...</div>
+            <div class="profile-role" id="sidebarUserRole">Technician</div>
           </div>
+        </div>
+      </aside>
 
-          <div class="footer-action">
-            <small>Once action is taken, resolve this alert.</small>
-            <button class="btn btn-dark" id="btnAcknowledge">Resolve Alert</button>
+      <!-- MAIN -->
+      <main class="main">
+        <div class="page-header">
+          <h1>Real-Time Anomaly Alerts</h1>
+          <p>
+            Monitor the live priority queue, review diagnostics, and escalate or
+            acknowledge alerts.
+          </p>
+        </div>
+
+        <!-- STATUS BAR -->
+        <div class="status-bar">
+          <div class="status-left">
+            <div class="green-dot"></div>
+            Monitoring Active
+          </div>
+          <div class="subtitle">
+            Systems are connected and reporting continuous streams.
           </div>
         </div>
 
-        <!-- Alert Log (full width) -->
-        <div class="card full-width">
-          <h2>Alert Log</h2>
-          <small>Recently acknowledged alerts and their final resolution status.</small>
-          <table style="margin-top:16px;">
-            <thead>
-              <tr>
-                <th>Alert ID</th>
-                <th>Description</th>
-                <th>Severity</th>
-                <th>Time</th>
-                <th>Action Taken</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="historyLogBody">
-              <!-- Populated by JS -->
-            </tbody>
-          </table>
+        <!-- TOP GRID: Queue + Detail -->
+        <div class="alerts-grid">
+          <!-- Priority Alert Queue -->
+          <div class="card">
+            <h2>Priority Alert Queue</h2>
+            <small
+              >Incoming anomalies requiring immediate review. Click a row to
+              inspect.</small
+            >
+            <table style="margin-top: 16px">
+              <thead>
+                <tr>
+                  <th>Alert ID</th>
+                  <th>Severity</th>
+                  <th>Timestamp</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="alertQueueBody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Alert Detail Panel -->
+          <div class="card detail-card">
+            <div>
+              <div class="detail-header">
+                <div class="detail-header-left">
+                  <h2 id="detailAlertId">Select an alert</h2>
+                  <span id="detailSeverityBadge"></span>
+                </div>
+              </div>
+
+              <div class="detail-meta">
+                <span class="zone-badge">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                    ></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  <span id="detailZone">—</span>
+                </span>
+              </div>
+
+              <div class="detail-description-box" id="detailDescription">
+                Click a row on the left to view details.
+              </div>
+
+              <div class="section-label">Alert Resolution</div>
+              <div class="action-boxes">
+                <div class="action-box emergency-box">
+                  <div>
+                    <h4>Emergency Protocol</h4>
+                    <p>Escalate alert and deploy field response immediately.</p>
+                  </div>
+                  <button
+                    class="btn btn-red btn-full"
+                    id="btnInitiateEmergency"
+                  >
+                    Initiate Response
+                  </button>
+                </div>
+                <div class="action-box routine-box">
+                  <div>
+                    <h4>Routine Inspection</h4>
+                    <p>Acknowledge and plan follow-up inspection later.</p>
+                  </div>
+                  <button
+                    class="btn btn-light btn-full"
+                    id="btnScheduleInspection"
+                  >
+                    Schedule Inspection
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-action">
+              <small>Once action is taken, resolve this alert.</small>
+              <button class="btn btn-dark" id="btnAcknowledge">
+                Resolve Alert
+              </button>
+            </div>
+          </div>
+
+          <!-- Alert Log (full width) -->
+          <div class="card full-width">
+            <h2>Alert Log</h2>
+            <small
+              >Recently acknowledged alerts and their final resolution
+              status.</small
+            >
+            <table style="margin-top: 16px">
+              <thead>
+                <tr>
+                  <th>Alert ID</th>
+                  <th>Description</th>
+                  <th>Severity</th>
+                  <th>Time</th>
+                  <th>Action Taken</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="historyLogBody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
         </div>
+      </main>
+    </div>
 
-      </div>
-    </main>
-  </div>
-
-  <script type="module" src="../../js/technician/alertsPage.js"></script>
-  <script src="../../js/shared/dashboardProfileMenu.js"></script>
-</body>
-
+    <script type="module" src="../../js/technician/alertsPage.js"></script>
+    <script src="../../js/shared/dashboardProfileMenu.js"></script>
+  </body>
 </html>
