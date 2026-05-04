@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsNumber } from "class-validator";
 
 export class CreateCampusDto {
   @IsString() name: string;

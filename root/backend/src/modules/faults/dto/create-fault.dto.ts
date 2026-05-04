@@ -1,5 +1,8 @@
-import { IsString, IsUUID, IsOptional, IsEnum } from 'class-validator';
-import { FaultSeverity, FaultStatus } from '../../../core/database/database.service';
+import { IsString, IsUUID, IsOptional, IsEnum } from "class-validator";
+import {
+  FaultSeverity,
+  FaultStatus,
+} from "../../../core/database/database.service";
 
 export class CreateFaultDto {
   @IsOptional() @IsUUID() alert_id?: string;

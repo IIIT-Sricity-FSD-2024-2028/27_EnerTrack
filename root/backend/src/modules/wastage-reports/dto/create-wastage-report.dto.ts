@@ -1,5 +1,11 @@
-import { IsString, IsUUID, IsOptional, IsEnum, IsObject } from 'class-validator';
-import { WastageType } from '../../../core/database/database.service';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsEnum,
+  IsObject,
+} from "class-validator";
+import { WastageType } from "../../../core/database/database.service";
 
 export class CreateWastageReportDto {
   @IsUUID() reporter_id: string;

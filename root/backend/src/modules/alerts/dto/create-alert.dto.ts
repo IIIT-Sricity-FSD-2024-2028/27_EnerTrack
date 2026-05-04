@@ -1,5 +1,5 @@
-import { IsString, IsUUID, IsOptional, IsEnum, IsArray } from 'class-validator';
-import { AlertStatus } from '../../../core/database/database.service';
+import { IsString, IsUUID, IsOptional, IsEnum, IsArray } from "class-validator";
+import { AlertStatus } from "../../../core/database/database.service";
 
 export class CreateAlertDto {
   @IsUUID() meter_id: string;

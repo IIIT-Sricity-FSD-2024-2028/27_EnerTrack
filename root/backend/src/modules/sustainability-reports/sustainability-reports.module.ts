@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { SustainabilityReportsService } from './sustainability-reports.service';
-import { SustainabilityReportsController } from './sustainability-reports.controller';
-import { DatabaseModule } from '../../core/database/database.module';
+import { Module } from "@nestjs/common";
+import { SustainabilityReportsService } from "./sustainability-reports.service";
+import { SustainabilityReportsController } from "./sustainability-reports.controller";
+import { DatabaseModule } from "../../core/database/database.module";
 
 @Module({
   imports: [DatabaseModule],

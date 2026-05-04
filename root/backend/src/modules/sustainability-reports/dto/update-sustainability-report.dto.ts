@@ -1,4 +1,6 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateSustainabilityReportDto } from './create-sustainability-report.dto';
+import { PartialType } from "@nestjs/mapped-types";
+import { CreateSustainabilityReportDto } from "./create-sustainability-report.dto";
 
-export class UpdateSustainabilityReportDto extends PartialType(CreateSustainabilityReportDto) {}
+export class UpdateSustainabilityReportDto extends PartialType(
+  CreateSustainabilityReportDto,
+) {}

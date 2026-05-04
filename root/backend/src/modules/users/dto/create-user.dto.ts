@@ -1,5 +1,11 @@
-import { IsString, IsEmail, IsOptional, MinLength, IsEnum } from 'class-validator';
-import { UserRole } from '../../../core/database/database.service';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  MinLength,
+  IsEnum,
+} from "class-validator";
+import { UserRole } from "../../../core/database/database.service";
 
 export class CreateUserDto {
   @IsString() @MinLength(2) name: string;

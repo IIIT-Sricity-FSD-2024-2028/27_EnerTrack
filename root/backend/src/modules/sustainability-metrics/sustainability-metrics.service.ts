@@ -1,8 +1,14 @@
-import * as crypto from 'crypto';
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { DatabaseService } from '../../core/database/database.service';
-import { CreateSustainabilityMetricDto } from './dto/create-sustainability-metric.dto';
-import { UpdateSustainabilityMetricDto } from './dto/update-sustainability-metric.dto';
+import * as crypto from "crypto";
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
+import { DatabaseService } from "../../core/database/database.service";
+import { CreateSustainabilityMetricDto } from "./dto/create-sustainability-metric.dto";
+import { PutSustainabilityMetricDto } from "./dto/put-sustainability-metric.dto";
+
+import { UpdateSustainabilityMetricDto } from "./dto/update-sustainability-metric.dto";
 
 @Injectable()
 export class SustainabilityMetricsService {
@@ -20,21 +26,53 @@ export class SustainabilityMetricsService {
   }
 
   findOne(id: string) {
-    const record = this.database.sustainabilityMetrics.find(item => item.sustainability_metric_id === id);
-    if (!record) throw new NotFoundException(`SustainabilityMetric with ID ${id} not found`);
+    const record = this.database.sustainabilityMetrics.find(
+      (item) => item.sustainability_metric_id === id,
+    );
+    if (!record)
+      throw new NotFoundException(
+        `SustainabilityMetric with ID ${id} not found`,
+      );
     return record;
   }
 
+  put(id: string, putDto: PutSustainabilityMetricDto) {
+    const index = this.database.sustainabilityMetrics.findIndex(
+      (item) => item.sustainability_metric_id === id,
+    );
+    if (index === -1)
+      throw new NotFoundException(
+        `Sustainability Metric with ID ${id} not found`,
+      );
+    this.database.sustainabilityMetrics[index] = {
+      sustainability_metric_id: id,
+      ...putDto,
+    } as any;
+    return this.database.sustainabilityMetrics[index];
+  }
   update(id: string, updateDto: UpdateSustainabilityMetricDto) {
-    const index = this.database.sustainabilityMetrics.findIndex(item => item.sustainability_metric_id === id);
-    if (index === -1) throw new NotFoundException(`SustainabilityMetric with ID ${id} not found`);
-    this.database.sustainabilityMetrics[index] = { ...this.database.sustainabilityMetrics[index], ...updateDto };
+    const index = this.database.sustainabilityMetrics.findIndex(
+      (item) => item.sustainability_metric_id === id,
+    );
+    if (index === -1)
+      throw new NotFoundException(
+        `SustainabilityMetric with ID ${id} not found`,
+      );
+    this.database.sustainabilityMetrics[index] = {
+      ...this.database.sustainabilityMetrics[index],
+      ...updateDto,
+    };
     return this.database.sustainabilityMetrics[index];
   }
 
   remove(id: string) {
-    const index = this.database.sustainabilityMetrics.findIndex(item => item.sustainability_metric_id === id);
-    if (index === -1) throw new NotFoundException(`SustainabilityMetric with ID ${id} not found`);
+    const index = this.database.sustainabilityMetrics.findIndex(
+      (item) => item.sustainability_metric_id === id,
+    );
+    if (index === -1)
+      throw new NotFoundException(
+        `SustainabilityMetric with ID ${id} not found`,
+      );
     const removed = this.database.sustainabilityMetrics.splice(index, 1);
     return removed[0];
   }

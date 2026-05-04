@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class AppService {
   getHello(): string {
-    return 'EnerTrack API Running!';
+    return "EnerTrack API Running!";
   }
 }

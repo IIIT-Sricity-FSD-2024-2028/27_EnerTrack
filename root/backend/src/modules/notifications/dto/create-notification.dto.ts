@@ -1,5 +1,11 @@
-import { IsString, IsUUID, IsEnum, IsBoolean, IsOptional } from 'class-validator';
-import { NotificationTargetType } from '../../../core/database/database.service';
+import {
+  IsString,
+  IsUUID,
+  IsEnum,
+  IsBoolean,
+  IsOptional,
+} from "class-validator";
+import { NotificationTargetType } from "../../../core/database/database.service";
 
 export class CreateNotificationDto {
   @IsUUID() user_id: string;
