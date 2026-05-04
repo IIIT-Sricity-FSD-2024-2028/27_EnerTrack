@@ -6,8 +6,9 @@ import universalDB from '../../shared/universalDB.js';
 
 const FinanceDB = {
   get session() { return universalDB.data.session; },
-  get departments() { return universalDB.data.finance.departments; },
-  get buildings() { return universalDB.data.finance.buildings; },
+  get departments() { return universalDB.data.departments; },
+  get buildings() { return universalDB.data.buildings; },
+  get campuses() { return universalDB.data.campuses; },
   get energyCosts() { return universalDB.data.finance.energyCosts; },
   get financialReports() { return universalDB.data.finance.financialReports; },
   get invoices() { return universalDB.data.finance.invoices; },

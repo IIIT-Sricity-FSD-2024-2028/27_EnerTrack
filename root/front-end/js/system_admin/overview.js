@@ -17,11 +17,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const app = {
     state: getAdminState(),
-    activeTab: "users",
-    selectedBuildingId: null,
+    activeTab: localStorage.getItem("admin_activeTab") || "users",
+    selectedCampusId: localStorage.getItem("admin_selectedCampus") || null,
+    selectedBuildingId: localStorage.getItem("admin_selectedBuilding") || null,
 
     render(nextTab = this.activeTab) {
       this.activeTab = nextTab;
+      localStorage.setItem("admin_activeTab", nextTab);
+      if (this.selectedCampusId) localStorage.setItem("admin_selectedCampus", this.selectedCampusId);
+      if (this.selectedBuildingId) localStorage.setItem("admin_selectedBuilding", this.selectedBuildingId);
       renderAdminLayout(root, this);
     },
 
@@ -37,13 +41,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     reset() {
       this.state = resetAdminState();
+      this.selectedCampusId = this.state.campuses[0]?.campus_id || null;
       this.selectedBuildingId = this.state.buildings[0]?.building_id || null;
       this.render();
       showToast("Demo data reset.", "info");
     }
   };
 
-  app.selectedBuildingId = app.state.buildings[0]?.building_id || null;
+  // Only default if nothing was persisted
+  if (!app.selectedCampusId || !app.state.campuses.some(c => c.campus_id === app.selectedCampusId)) {
+    app.selectedCampusId = app.state.campuses[0]?.campus_id || null;
+  }
+  if (!app.selectedBuildingId || !app.state.buildings.some(b => b.building_id === app.selectedBuildingId)) {
+    app.selectedBuildingId = app.state.buildings[0]?.building_id || null;
+  }
   window.AdminDashboard = app;
 
   document.getElementById("resetDemoData")?.addEventListener("click", () => app.reset());

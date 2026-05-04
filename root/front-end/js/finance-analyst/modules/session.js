@@ -19,8 +19,31 @@ export function initSession() {
   } else {
     localStorage.setItem(SESSION_KEY, JSON.stringify(FinanceDB.session.user));
   }
+
+  // Map currentUser display role → internal permission key
+  const currentUserData = localStorage.getItem("currentUser");
+  if (currentUserData) {
+    try {
+      const cu = JSON.parse(currentUserData);
+      const mappedRole = mapRoleToPermissionKey(cu.role);
+      FinanceDB.session.user.role = mappedRole;
+      localStorage.setItem(SESSION_KEY, JSON.stringify(FinanceDB.session.user));
+    } catch (_) {}
+  }
+
   window.FinanceDB = FinanceDB; // expose globally for can() helper
   renderSessionUI();
+}
+
+function mapRoleToPermissionKey(displayRole) {
+  const roleMap = {
+    "System Administrator": "superuser",
+    "Financial Analyst": "finance_analyst",
+    "Technician": "enduser",
+    "Sustainability Officer": "enduser",
+    "Campus Visitor": "enduser"
+  };
+  return roleMap[displayRole] || "finance_analyst";
 }
 
 export function getCurrentUser() {

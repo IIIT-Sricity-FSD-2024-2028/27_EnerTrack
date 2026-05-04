@@ -31,6 +31,7 @@ export function getAdminState() {
     users: userActions.getAllUsers(),
     campuses: universalDB.data.campuses,
     buildings: universalDB.data.buildings,
+    departments: universalDB.data.departments,
     meters: universalDB.data.meters
   };
 }
@@ -39,6 +40,7 @@ export function saveAdminState(state) {
   universalDB.data.session = state.session;
   universalDB.data.campuses = state.campuses;
   universalDB.data.buildings = state.buildings;
+  universalDB.data.departments = state.departments;
   universalDB.data.meters = state.meters;
   universalDB.save();
 }
@@ -51,7 +53,21 @@ export function resetAdminState() {
 }
 
 export function createId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const registry = {
+    campus:   { arr: universalDB.data.campuses,    field: "campus_id" },
+    building: { arr: universalDB.data.buildings,   field: "building_id" },
+    dept:     { arr: universalDB.data.departments, field: "department_id" },
+    meter:    { arr: universalDB.data.meters,      field: "meter_id" },
+    user:     { arr: universalDB.data.users,       field: "user_id" },
+  };
+  const entry = registry[prefix];
+  if (!entry) return `${prefix}-001`;
+  let maxNum = 0;
+  for (const item of entry.arr) {
+    const m = (item[entry.field] || "").match(/-(\d+)$/);
+    if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+  }
+  return `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
 }
 
 function clone(value) {

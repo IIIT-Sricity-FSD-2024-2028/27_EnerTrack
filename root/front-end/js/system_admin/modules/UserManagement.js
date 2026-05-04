@@ -47,6 +47,14 @@ export function renderUserManagement(container, app) {
 }
 
 function renderUserRow(user) {
+  let isCurrentUser = false;
+  try {
+    const current = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    if (current.user_id === user.user_id || current.id === user.user_id) {
+      isCurrentUser = true;
+    }
+  } catch (_) {}
+
   return `
     <tr>
       <td><strong>${escapeHtml(user.name)}</strong><div class="muted-cell">${escapeHtml(user.user_id)}</div></td>
@@ -57,7 +65,7 @@ function renderUserRow(user) {
       <td>
         <div class="row-actions">
           <button class="btn-outline" type="button" data-edit-user="${escapeHtml(user.user_id)}">Edit</button>
-          <button class="btn-outline btn-danger" type="button" data-delete-user="${escapeHtml(user.user_id)}">Delete</button>
+          <button class="btn-outline btn-danger" type="button" data-delete-user="${escapeHtml(user.user_id)}" ${isCurrentUser ? 'disabled title="You cannot delete your own account"' : ''}>Delete</button>
         </div>
       </td>
     </tr>
@@ -234,6 +242,14 @@ function deleteUser(userId, app) {
     showToast("User not found.", "error");
     return;
   }
+
+  try {
+    const current = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    if (current.user_id === userId || current.id === userId) {
+      showToast("You cannot delete your own account.", "error");
+      return;
+    }
+  } catch (_) {}
 
   openModal({
     title: "Delete User",

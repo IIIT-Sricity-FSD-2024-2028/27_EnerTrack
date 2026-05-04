@@ -15,7 +15,14 @@ function syncUsers(nextUsers) {
 }
 
 function createUserId() {
-    return "user-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+    var maxNum = 0;
+    for (var i = 0; i < users.length; i++) {
+        var m = (users[i].user_id || "").match(/-(\d+)$/);
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+    }
+    var next = String(maxNum + 1);
+    while (next.length < 3) next = "0" + next;
+    return "user-" + next;
 }
 
 function normalizeEmail(email) {

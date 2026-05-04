@@ -220,7 +220,7 @@ button {
 
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 20px;
 }
@@ -281,7 +281,7 @@ button {
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 18px;
+    margin-bottom: 24px;
 }
 
 .section-toolbar h2,
@@ -474,31 +474,62 @@ tbody tr:last-child td {
 
 .infrastructure-grid {
     display: grid;
-    grid-template-columns: minmax(280px, 0.9fr) minmax(420px, 1.5fr);
-    gap: 18px;
+    grid-template-columns: 1fr;
+    gap: 24px;
+}
+
+/* ── Stacked infrastructure layout ── */
+.infra-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.campus-panel {
+    width: 100%;
+}
+
+.campus-row {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.campus-row .building-card {
+    min-width: 260px;
+    max-width: 340px;
+    flex-shrink: 0;
+}
+
+.infra-bottom {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 24px;
 }
 
 .panel {
-    padding: 20px;
+    padding: 24px;
     min-width: 0;
 }
 
 .building-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
 }
 
 .building-card {
     width: 100%;
     border: 1px solid var(--line);
     background: #ffffff;
-    border-radius: 8px;
-    padding: 14px;
+    border-radius: 10px;
+    padding: 18px;
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 12px;
+    gap: 16px;
     text-align: left;
+    transition: var(--transit);
 }
 
 .building-card.active {
@@ -541,6 +572,46 @@ tbody tr:last-child td {
     margin-top: 14px;
 }
 
+.dept-list {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line);
+    margin-top: 10px;
+}
+
+.dept-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--panel-soft);
+    border-radius: 8px;
+    border: 1px solid var(--line);
+}
+
+.dept-item small {
+    margin-left: 6px;
+}
+
+.dept-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.dept-actions .icon-btn {
+    min-height: 28px;
+    min-width: auto;
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
 .delete-note {
     color: #667085;
     margin-top: 10px;
@@ -548,8 +619,8 @@ tbody tr:last-child td {
 
 .meter-list {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 16px;
 }
 
 .meter-card {
@@ -704,14 +775,23 @@ tbody tr:last-child td {
     background: var(--red);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
     .summary-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .infrastructure-grid,
-    .meter-list {
+    .infra-bottom {
         grid-template-columns: 1fr;
+    }
+
+    .campus-row {
+        flex-wrap: wrap;
+    }
+
+    .campus-row .building-card {
+        min-width: 220px;
+        max-width: none;
+        flex: 1 1 220px;
     }
 }
 

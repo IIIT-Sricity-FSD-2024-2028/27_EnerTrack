@@ -4,10 +4,10 @@ import { userActions } from "../shared/mockData.js";
     "use strict";
 
     /* ───────── DOM references ───────── */
-    var form         = document.getElementById("signInForm");
-    var emailInput   = document.getElementById("email");
+    var form = document.getElementById("signInForm");
+    var emailInput = document.getElementById("email");
     var passwordInput = document.getElementById("password");
-    var emailError   = document.getElementById("emailError");
+    var emailError = document.getElementById("emailError");
     var passwordError = document.getElementById("passwordError");
 
     /* ───────── Error helpers ───────── */
@@ -25,7 +25,7 @@ import { userActions } from "../shared/mockData.js";
 
     /* ───────── Password toggle ───────── */
     window.togglePass = function () {
-        var pw   = document.getElementById("password");
+        var pw = document.getElementById("password");
         var open = document.getElementById("eyeOpen");
         var shut = document.getElementById("eyeClosed");
         if (pw.type === "password") {
@@ -45,7 +45,7 @@ import { userActions } from "../shared/mockData.js";
         clearError(emailError);
         clearError(passwordError);
 
-        var email    = emailInput.value.trim().toLowerCase();
+        var email = emailInput.value.trim().toLowerCase();
         var password = passwordInput.value;
 
         /* Basic empty checks */
@@ -72,6 +72,12 @@ import { userActions } from "../shared/mockData.js";
 
         /* Save current user to localStorage for persistence */
         localStorage.setItem("currentUser", JSON.stringify(user));
+
+        var db = JSON.parse(localStorage.getItem("enertrack_universal_v1") || "{}");
+        if (db && db.session !== undefined) {
+            db.session = { user: { id: user.user_id, name: user.name, role: user.role } };
+            localStorage.setItem("enertrack_universal_v1", JSON.stringify(db));
+        }
 
         /* Smart redirect based on role */
         if (user.role === "System Administrator" || user.role === "System Admin") {

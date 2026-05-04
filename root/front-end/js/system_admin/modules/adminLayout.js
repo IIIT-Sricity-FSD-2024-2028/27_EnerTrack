@@ -5,38 +5,7 @@ import { formatLabel } from "../utils/ui.js";
 export function renderAdminLayout(root, app) {
   syncChrome(app);
 
-  const totals = getTotals(app.state);
-  root.innerHTML = `
-    <div class="summary-grid" aria-label="Admin summary">
-      <article class="summary-card">
-        <span>Total Users</span>
-        <strong>${totals.users}</strong>
-      </article>
-      <article class="summary-card">
-        <span>Campuses</span>
-        <strong>${totals.campuses}</strong>
-      </article>
-      <article class="summary-card">
-        <span>Buildings</span>
-        <strong>${totals.buildings}</strong>
-      </article>
-      <article class="summary-card">
-        <span>Meters</span>
-        <strong>${totals.meters}</strong>
-      </article>
-    </div>
-
-    <div class="content-tabs" role="tablist" aria-label="Admin dashboard sections">
-      <button class="tab-btn ${app.activeTab === "users" ? "active" : ""}" type="button" data-admin-tab="users">
-        User Management
-      </button>
-      <button class="tab-btn ${app.activeTab === "infrastructure" ? "active" : ""}" type="button" data-admin-tab="infrastructure">
-        Infrastructure
-      </button>
-    </div>
-
-    <div id="adminView"></div>
-  `;
+  root.innerHTML = `<div id="adminView"></div>`;
 
   wireTabs(app);
 
@@ -49,7 +18,14 @@ export function renderAdminLayout(root, app) {
 }
 
 function syncChrome(app) {
-  const user = app.state.session.user;
+  let user = app.state.session.user;
+  const currentUserData = localStorage.getItem("currentUser");
+  if (currentUserData) {
+    try {
+      user = JSON.parse(currentUserData);
+    } catch (_) {}
+  }
+
   const firstName = user.name.split(" ")[0] || "Admin";
 
   setText("sidebarUserName", user.name);
@@ -58,7 +34,7 @@ function syncChrome(app) {
   setText(
     "pageSubheading",
     app.activeTab === "infrastructure"
-      ? "Maintain campus buildings and meter inventory."
+      ? "Maintain campuses, buildings, departments, and meter inventory."
       : "Manage campus users, roles, and login access."
   );
 
@@ -78,11 +54,3 @@ function setText(id, value) {
   if (node) node.textContent = value;
 }
 
-function getTotals(state) {
-  return {
-    users: state.users?.length || 0,
-    campuses: state.campuses?.length || 0,
-    buildings: state.buildings?.length || 0,
-    meters: state.meters?.length || 0
-  };
-}

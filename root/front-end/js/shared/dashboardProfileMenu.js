@@ -60,7 +60,7 @@
     document.head.appendChild(style);
 
     /* ───── Build popup HTML ───── */
-    var isAdmin = user.role === "System Admin";
+    var isAdmin = user.role === "System Admin" || user.role === "System Administrator";
 
     var linksHTML = "";
     if (isAdmin) {
