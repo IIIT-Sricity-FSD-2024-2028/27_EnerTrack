@@ -12,6 +12,48 @@ const defaultData = {
         user: { id: "u-000", name: "Guest", role: "none" }
     },
 
+    // ── GLOBAL DB TABLES (Aligned with ERD) ─────────────────
+    users: [
+        { user_id: "user-001", name: "Aadithya Mouli", email: "aadithya@enertrack.edu", phone: "+1 555-0100", password: "hashed_password_mock", role: "System Administrator", specialization: null },
+        { user_id: "user-002", name: "Teja Rao", email: "teja@enertrack.edu", phone: "+1 555-0101", password: "hashed_password_mock", role: "Technician", specialization: "HVAC Systems" },
+        { user_id: "user-003", name: "Chirag", email: "chirag@enertrack.edu", phone: "+1 555-0102", password: "hashed_password_mock", role: "Technician", specialization: "Electrical Engineering" },
+        { user_id: "user-004", name: "Husaam", email: "husaam@enertrack.edu", phone: "+1 555-0103", password: "hashed_password_mock", role: "Financial Analyst", specialization: null },
+        { user_id: "user-005", name: "Viksa", email: "viksa@enertrack.edu", phone: "+1 555-0104", password: "hashed_password_mock", role: "Sustainability Officer", specialization: null }
+    ],
+    campuses: [
+        { campus_id: "campus-001", name: "Main University Campus", location: "City Center", total_budget: 1500000.00 }
+    ],
+    buildings: [
+        { building_id: "building-001", campus_id: "campus-001", name: "Block A - Main Building", budget: 500000.00 },
+        { building_id: "building-002", campus_id: "campus-001", name: "Block B - Research Wing", budget: 350000.00 },
+        { building_id: "building-003", campus_id: "campus-001", name: "Admin Tower", budget: 200000.00 }
+    ],
+    departments: [
+        { department_id: "dept-001", building_id: "building-001", name: "Computer Science", budget: 80000.00 },
+        { department_id: "dept-002", building_id: "building-002", name: "Electronics", budget: 45000.00 }
+    ],
+    meters: [
+        { meter_id: "meter-001", building_id: "building-001", meter_code: "ET-A-1001", meter_type: "electricity", zone: "Main LT Panel", status: "active" },
+        { meter_id: "meter-002", building_id: "building-001", meter_code: "ET-A-1002", meter_type: "water", zone: "HVAC Feed Meter", status: "active" },
+        { meter_id: "meter-003", building_id: "building-002", meter_code: "ET-B-2101", meter_type: "electricity", zone: "Lab Equipment Meter", status: "calibrating" },
+        { meter_id: "meter-004", building_id: "building-003", meter_code: "ET-ADM-3101", meter_type: "electricity", zone: "Admin Floor Stack", status: "active" }
+    ],
+    notifications: [],
+    wastage_reports: [],
+    meter_readings: [],
+    alerts: [],
+    faults: [],
+    service_requests: [],
+    work_orders: [],
+    energy_costs: [],
+    invoices: [],
+    financial_reports: [],
+    sustainability_metrics: [],
+    initiatives: [],
+    activity_logs: [],
+    sustainability_reports: [],
+
+
     // ── WORKFLOW-1 SHARED DATA ──────────────────────────────
     workflow: {
         serviceRequests: [],
