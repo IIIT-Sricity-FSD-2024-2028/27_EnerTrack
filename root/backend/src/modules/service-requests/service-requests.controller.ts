@@ -1,128 +1,86 @@
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Put,
-} from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put } from "@nestjs/common";
 import { ServiceRequestsService } from "./service-requests.service";
 import { CreateServiceRequestDto } from "./dto/create-service-request.dto";
 import { PutServiceRequestDto } from "./dto/put-service-request.dto";
-
 import { UpdateServiceRequestDto } from "./dto/update-service-request.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
 
 @ApiTags("service-requests")
 @Controller("service-requests")
 export class ServiceRequestsController {
-  constructor(
-    private readonly serviceRequestsService: ServiceRequestsService,
-  ) {}
+  constructor(private readonly serviceRequestsService: ServiceRequestsService) {}
 
   @Post()
-  @ApiOperation({ summary: "Create record" })
-  @ApiResponse({ status: 201, description: "Successful response" })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({
-    name: "x-role",
-    description:
-      "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
-    required: false,
-  })
+  @ApiOperation({ summary: "Create Service Request", description: "Submits a new service request. Any authenticated user (including Campus Visitor) can create service requests." })
+  @ApiResponse({ status: 201, description: "Service request created successfully." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   create(@Body() createDto: CreateServiceRequestDto) {
     return this.serviceRequestsService.create(createDto);
   }
 
   @Get()
-  @ApiOperation({ summary: "Retrieve record(s)" })
-  @ApiResponse({ status: 200, description: "Successful response" })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({
-    name: "x-role",
-    description:
-      "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
-    required: false,
-  })
+  @ApiOperation({ summary: "List All Service Requests", description: "Retrieves all service requests. System Administrator and Technician can view them." })
+  @ApiResponse({ status: 200, description: "Array of service request records returned." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("System Administrator", "Technician")
   findAll() {
     return this.serviceRequestsService.findAll();
   }
 
   @Get(":id")
-  @ApiOperation({ summary: "Retrieve record(s)" })
-  @ApiResponse({ status: 200, description: "Successful response" })
-  @ApiResponse({ status: 404, description: "Not Found" })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({
-    name: "x-role",
-    description:
-      "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
-    required: false,
-  })
+  @ApiOperation({ summary: "Get Service Request by ID", description: "Retrieves a single service request by UUID. System Administrator and Technician can look up requests." })
+  @ApiResponse({ status: 200, description: "Service request record returned." })
+  @ApiResponse({ status: 404, description: "Not found." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("System Administrator", "Technician")
   findOne(@Param("id") id: string) {
     return this.serviceRequestsService.findOne(id);
   }
 
   @Put(":id")
-  @ApiOperation({ summary: "Replace record completely" })
-  @ApiResponse({ status: 200, description: "Successful response" })
-  @ApiResponse({ status: 404, description: "Not Found" })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({
-    name: "x-role",
-    description:
-      "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
-    required: false,
-  })
+  @ApiOperation({ summary: "Replace Service Request", description: "Completely replaces a service request. Only System Administrator can perform full replacements." })
+  @ApiResponse({ status: 200, description: "Replaced successfully." })
+  @ApiResponse({ status: 404, description: "Not found." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("System Administrator")
   put(@Param("id") id: string, @Body() putDto: PutServiceRequestDto) {
     return this.serviceRequestsService.put(id, putDto);
   }
+
   @Patch(":id")
-  @ApiOperation({ summary: "Update record" })
-  @ApiResponse({ status: 200, description: "Successful response" })
-  @ApiResponse({ status: 404, description: "Not Found" })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({
-    name: "x-role",
-    description:
-      "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
-    required: false,
-  })
+  @ApiOperation({ summary: "Update Service Request", description: "Partially updates a service request (e.g., assigning Technician, changing status). System Administrator and Technician can update." })
+  @ApiResponse({ status: 200, description: "Updated successfully." })
+  @ApiResponse({ status: 404, description: "Not found." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician")
   update(@Param("id") id: string, @Body() updateDto: UpdateServiceRequestDto) {
     return this.serviceRequestsService.update(id, updateDto);
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "Delete record" })
-  @ApiResponse({ status: 200, description: "Successful response" })
-  @ApiResponse({ status: 404, description: "Not Found" })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({
-    name: "x-role",
-    description:
-      "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
-    required: false,
-  })
+  @ApiOperation({ summary: "Delete Service Request", description: "Permanently removes a service request. Only System Administrator can delete." })
+  @ApiResponse({ status: 200, description: "Deleted successfully." })
+  @ApiResponse({ status: 404, description: "Not found." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("System Administrator")
   remove(@Param("id") id: string) {
     return this.serviceRequestsService.remove(id);
   }
 
   @Get(":id/work-orders")
-  @ApiOperation({ summary: "Retrieve record(s)" })
-  @ApiResponse({ status: 200, description: "Successful response" })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({
-    name: "x-role",
-    description:
-      "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
-    required: false,
-  })
+  @ApiOperation({ summary: "Get Work Orders for Service Request", description: "Retrieves all work orders from a service request. System Administrator and Technician can view." })
+  @ApiResponse({ status: 200, description: "Array of work order records returned." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("System Administrator", "Technician")
   getWorkOrders(@Param("id") id: string) {
     return this.serviceRequestsService.getWorkOrders(id);
   }
