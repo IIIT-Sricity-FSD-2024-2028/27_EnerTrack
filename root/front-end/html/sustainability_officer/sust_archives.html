@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sustainability Dashboard - Archives</title>
+    <link rel="stylesheet" href="../../css/sustainability_officer/sust_overview.css">
+    <link rel="stylesheet" href="../../css/sustainability_officer/sust_shared.css">
+    <style>
+        .ticket-card {
+            background: white;
+            padding: 18px 20px;
+            border-radius: 12px;
+            border: 1.5px solid #e5e7eb;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            transition: box-shadow .2s;
+        }
+        .ticket-card:hover { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08); }
+        .ticket-location {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #374151;
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 6px;
+        }
+        .ticket-priority {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .p-Low { background: #f0fdf4; color: #166534; }
+        .p-Medium { background: #fffbeb; color: #92400e; }
+        .p-High { background: #fef2f2; color: #991b1b; }
+        .ticket-status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .status-finalized { background: #d1fae5; color: #065f46; }
+        .status-target-set { background: #dbeafe; color: #1e40af; }
+        .status-dismissed { background: #fee2e2; color: #991b1b; }
+        .ticket-expanded-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed #e5e7eb;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .ticket-expanded-section .exp-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+        .ticket-expanded-section .exp-box h5 {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #6b7280;
+            margin: 0 0 6px 0;
+        }
+        .ticket-expanded-section .exp-val {
+            font-size: 15px;
+            font-weight: 700;
+            color: #111827;
+        }
+        .ticket-expanded-section .exp-sub {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 2px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            background: white;
+            border-radius: 12px;
+            border: 2px dashed #e5e7eb;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <a href="../landing/landing.html" class="sidebar-logo">
+                <img src="../../assets/logo_sustainability_officer.png" alt="EnerTrack Logo" class="logo-icon">
+                <img src="../../assets/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
+            </a>
+            <nav class="sidebar-nav">
+                <a href="sust_overview.html" class="nav-item">
+                    <span class="nav-icon" data-icon="overview"></span>
+                    Overview
+                </a>
+                <a href="sust_monitoring.html" class="nav-item">
+                    <span class="nav-icon" data-icon="monitoring"></span>
+                    Environmental Impact Monitoring
+                </a>
+                <a href="sust_report.html" class="nav-item">
+                    <span class="nav-icon" data-icon="reporting"></span>
+                    Sustainability Reporting
+                </a>
+                <a href="sust_initiatives.html" class="nav-item">
+                    <span class="nav-icon" data-icon="initiatives"></span>
+                    Sustainable Conservation Initiatives
+                </a>
+                <a href="sust_archives.html" class="nav-item active">
+                    <span class="nav-icon" data-icon="overview"></span>
+                    Archives
+                </a>
+            </nav>
+            <div class="sidebar-bottom">
+                <div class="profile-card">
+                    <img src="../../assets/maya_patel.png" alt="User Profile" class="avatar">
+                    <div class="profile-info">
+                        <h4 id="sidebarUserName">Maya Patel</h4>
+                        <p id="sidebarUserRole">Sustainability Officer</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="page-header">
+                <h1>Archives</h1>
+                <p>Reports that have been fully resolved and delivered to the campus visitor are automatically archived here.</p>
+            </header>
+
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                <h3 style="margin:0;font-size:16px;color:#111827;">Initiative Archives</h3>
+                <span id="initArchiveCount" style="background:#2563eb;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
+            </div>
+            <div id="initiativeArchiveContainer"></div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:20px 0 16px;">
+                <h3 style="margin:0;font-size:16px;color:#111827;">Sustainability Report Archives</h3>
+                <span id="reportArchiveCount" style="background:#059669;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
+            </div>
+            <div id="reportArchiveContainer"></div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:20px 0 16px;">
+                <h3 style="margin:0;font-size:16px;color:#111827;">End User Wastage Archives</h3>
+                <span id="wastageArchiveCount" style="background:#7c3aed;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
+            </div>
+            <div id="wastageArchiveContainer"></div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { injectIcons } from '../../js/sustainability_officer/utils/icons.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            injectIcons();
+
+            const stored = localStorage.getItem('currentUser');
+            if (stored) {
+                const user = JSON.parse(stored);
+                document.getElementById('sidebarUserName').textContent = user.name;
+                document.getElementById('sidebarUserRole').textContent = user.role;
+            }
+
+            const STATUS_MAP = {
+                'Finalized':  { label: 'Resolved',          cssClass: 'status-finalized' },
+                'Target Set': { label: 'Target Set',        cssClass: 'status-target-set' },
+                'Delivered':  { label: 'Report Delivered',  cssClass: 'status-finalized' },
+                'Dismissed':  { label: 'Dismissed',         cssClass: 'status-dismissed' }
+            };
+
+            window.removeFromArchive = function(type, id) {
+                const raw = localStorage.getItem('enertrack_universal_v1');
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                
+                if (type === 'initiative') {
+                    if (data.sust && data.sust.initiativeArchives) {
+                        data.sust.initiativeArchives = data.sust.initiativeArchives.filter(i => i.id !== id);
+                    }
+                } else if (type === 'report') {
+                    if (data.sust && data.sust.reportArchives) {
+                        data.sust.reportArchives = data.sust.reportArchives.filter(r => r.id !== id);
+                    }
+                } else if (type === 'wastage') {
+                    if (data.workflow && data.workflow.wastageReports) {
+                        const idx = data.workflow.wastageReports.findIndex(r => r.id === id);
+                        if (idx !== -1) {
+                            data.workflow.wastageReports[idx].soArchived = false;
+                            data.workflow.wastageReports[idx].archived = false;
+                        }
+                    }
+                }
+                
+                localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
+                window.renderArchives();
+            };
+
+            function render() {
+                const raw = localStorage.getItem('enertrack_universal_v1');
+                const data = raw ? JSON.parse(raw) : null;
+                const reports = data?.workflow?.wastageReports || [];
+                const archived = reports
+                    .filter(r => r.soArchived || r.archived)
+                    .sort((a, b) => new Date(b.soArchivedAt || b.archivedAt || b.timestamp) - new Date(a.soArchivedAt || a.archivedAt || a.timestamp));
+                
+                const initiativeArchives = (data?.sust?.initiativeArchives || [])
+                    .slice()
+                    .sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
+
+                const reportArchives = (data?.sust?.reportArchives || [])
+                    .slice()
+                    .sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
+
+                document.getElementById('initArchiveCount').textContent = initiativeArchives.length;
+                document.getElementById('reportArchiveCount').textContent = reportArchives.length;
+                document.getElementById('wastageArchiveCount').textContent = archived.length;
+
+                const initContainer = document.getElementById('initiativeArchiveContainer');
+                const reportContainer = document.getElementById('reportArchiveContainer');
+                const wastageContainer = document.getElementById('wastageArchiveContainer');
+
+                if (initiativeArchives.length === 0) {
+                    initContainer.innerHTML = '<div class="empty-state"><p>No archived initiatives yet.</p></div>';
+                } else {
+                    initContainer.innerHTML = initiativeArchives.map(i => `
+                        <div class="ticket-card">
+                            <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;">
+                                <div>
+                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                        <strong style="font-size:15px;color:#111827;">${i.title}</strong>
+                                        <span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:999px;font-size:11px;">Initiative</span>
+                                    </div>
+                                    <p style="font-size:13px;color:#4b5563;margin:0 0 8px 0;">Status at archive: ${i.status || 'completed'} • Timeline: ${i.timeline || 'N/A'}</p>
+                                    <p style="font-size:13px;color:#6b7280;margin:0;">Target ${i.target || 'N/A'} • Cost ${i.cost || 'N/A'}</p>
+                                </div>
+                                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+                                    <span class="ticket-status status-finalized">Archived</span>
+                                    <button onclick="removeFromArchive('initiative', '${i.id}')" style="background:none;border:1px solid #ef4444;color:#ef4444;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove from Archive</button>
+                                </div>
+                            </div>
+                            ${Array.isArray(i.outcomes) && i.outcomes.length ? `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">${i.outcomes.map(o => `<span style="background:#eef2f7;border:1px solid #d8dde2;border-radius:20px;padding:4px 10px;font-size:12px;">${o}</span>`).join('')}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+
+                if (reportArchives.length === 0) {
+                    reportContainer.innerHTML = '<div class="empty-state"><p>No sustainability report archives yet.</p></div>';
+                } else {
+                    reportContainer.innerHTML = reportArchives.map(r => `
+                        <div class="ticket-card">
+                            <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;">
+                                <div style="flex:1;">
+                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                        <strong style="font-size:15px;color:#111827;">${r.title}</strong>
+                                        <span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:999px;font-size:11px;">Sustainability Report</span>
+                                    </div>
+                                    <p style="font-size:13px;color:#4b5563;margin:0 0 8px 0;">Period: ${r.period}</p>
+                                    <p style="font-size:11px;color:#9ca3af;margin:0;">Archived ${new Date(r.archivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                </div>
+                                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+                                    <span class="ticket-status status-finalized">Archived</span>
+                                    <button onclick="removeFromArchive('report', '${r.id}')" style="background:none;border:1px solid #ef4444;color:#ef4444;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove from Archive</button>
+                                </div>
+                            </div>
+                            <div class="ticket-expanded-section" style="margin-top:12px;">
+                                <div class="exp-box"><h5>Energy Reduction</h5><div class="exp-val" style="color:#059669;">${r.energyReduction}</div></div>
+                                <div class="exp-box"><h5>Waste Diverted</h5><div class="exp-val" style="color:#059669;">${r.wasteDiverted}</div></div>
+                                <div class="exp-box"><h5>Carbon Offset</h5><div class="exp-val" style="color:#059669;">${r.carbonOffset}</div></div>
+                                <div class="exp-box"><h5>Water Saved</h5><div class="exp-val" style="color:#059669;">${r.waterSaved}</div></div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                const buildReportCards = (items, emptyText) => {
+                    if (items.length === 0) return `<div class="empty-state"><p>${emptyText}</p></div>`;
+                    return items.map(t => {
+                    const cfg = STATUS_MAP[t.status] || { label: t.status, cssClass: 'status-finalized' };
+                    const formatCurr = (v) => '₹' + Number(v).toLocaleString('en-IN');
+                    const ci = t.costImpact;
+                    const mt = t.metricTarget;
+                    const sd = t.systemData || {};
+
+                    let summaryText = '';
+                    let locationText = '';
+                    if (t.type === 'Energy') { summaryText = t.specificData?.observation || ''; locationText = t.specificData?.building || ''; }
+                    else if (t.type === 'Water') { summaryText = t.specificData?.nature || ''; locationText = t.specificData?.location || ''; }
+                    else if (t.type === 'Emissions') { summaryText = t.specificData?.observation || ''; locationText = t.specificData?.location || ''; }
+                    else if (t.type === 'Food') { summaryText = (t.specificData?.typeOfWastage || '') + ' (' + (t.specificData?.estimatedAmount || '?') + 'kg)'; locationText = t.specificData?.cafeteria || ''; }
+
+                    let narrativeParts = [];
+                    narrativeParts.push(`This ${t.type.toLowerCase()} wastage report was reviewed and processed through the Sustainability workflow.`);
+                    if (ci) {
+                        narrativeParts.push(`Finance impact estimated: loss <strong style="color:#dc2626;">${formatCurr(ci.estimatedLoss)}</strong>, remediation <strong>${formatCurr(ci.remediationCost)}</strong>, projected savings <strong style="color:#059669;">${formatCurr(ci.projectedSavings)}</strong>.`);
+                    }
+                    if (mt) {
+                        narrativeParts.push(`Target set at <strong style="color:#1e40af;">${mt.value} ${mt.unit}</strong> with deadline <strong>${new Date(mt.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>.`);
+                    }
+                    if (t.status === 'Dismissed') {
+                        narrativeParts.push(`Dismissed with reason: <strong>${t.dismissReason || 'Not specified'}</strong>.`);
+                    } else {
+                        narrativeParts.push('Report is now archived for audit trail and compliance reference.');
+                    }
+
+                    let dataHTML = '';
+                    if (ci) {
+                        dataHTML += `<div class="exp-box"><h5>Financial Impact Assessment</h5><div style="display:flex;gap:12px;flex-wrap:wrap;"><div><div class="exp-sub">Est. Loss</div><div class="exp-val" style="color:#dc2626;">${formatCurr(ci.estimatedLoss)}</div></div><div><div class="exp-sub">Remediation</div><div class="exp-val">${formatCurr(ci.remediationCost)}</div></div><div><div class="exp-sub">Savings</div><div class="exp-val" style="color:#059669;">${formatCurr(ci.projectedSavings)}</div></div></div></div>`;
+                    }
+                    if (mt) {
+                        dataHTML += `<div class="exp-box"><h5>Sustainability Target</h5><div class="exp-val" style="color:#1e40af;">${mt.value} <small style="font-size:11px;font-weight:400;">${mt.unit}</small></div><div class="exp-sub">Deadline: ${new Date(mt.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>`;
+                    }
+                    if (sd.sensorId) {
+                        dataHTML += `<div class="exp-box"><h5>${t.type === 'Food' ? 'Wastage Assessment' : t.type === 'Water' ? 'Flow Monitoring' : t.type === 'Emissions' ? 'Emissions Monitoring' : 'Energy Meter Reading'} (${sd.sensorId})</h5><div style="display:flex;gap:12px;"><div><div class="exp-sub">Current</div><div class="exp-val">${sd.readingValue || '—'} <small style="font-size:11px;">${sd.readingUnit || ''}</small></div></div><div><div class="exp-sub">Baseline</div><div class="exp-val" style="color:#6b7280;">${sd.baselineValue || '—'} <small style="font-size:11px;">${sd.readingUnit || ''}</small></div></div></div></div>`;
+                    }
+
+                    let comparisonHTML = '';
+                    if (sd.baselineValue && sd.readingValue && mt) {
+                        const maxVal = Math.max(sd.readingValue, sd.baselineValue, parseFloat(mt.value) || 0) * 1.1;
+                        const baselineW = (sd.baselineValue / maxVal * 100).toFixed(1);
+                        const currentW = (sd.readingValue / maxVal * 100).toFixed(1);
+                        const targetW = ((parseFloat(mt.value) || 0) / maxVal * 100).toFixed(1);
+                        const unit = sd.readingUnit || '';
+                        comparisonHTML = `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-top:12px;"><h5 style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#374151;margin:0 0 10px 0;">Before / After Comparison</h5><div style="display:flex;flex-direction:column;gap:8px;"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#6b7280;width:60px;">Baseline</span><div style="flex:1;background:#e5e7eb;border-radius:4px;height:18px;overflow:hidden;"><div style="width:${baselineW}%;background:#9ca3af;height:100%;border-radius:4px;"></div></div><span style="font-size:12px;font-weight:600;color:#6b7280;min-width:60px;text-align:right;">${sd.baselineValue} ${unit}</span></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#6b7280;width:60px;">Current</span><div style="flex:1;background:#fecaca;border-radius:4px;height:18px;overflow:hidden;"><div style="width:${currentW}%;background:#dc2626;height:100%;border-radius:4px;"></div></div><span style="font-size:12px;font-weight:600;color:#dc2626;min-width:60px;text-align:right;">${sd.readingValue} ${unit}</span></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#6b7280;width:60px;">Target</span><div style="flex:1;background:#bbf7d0;border-radius:4px;height:18px;overflow:hidden;"><div style="width:${targetW}%;background:#059669;height:100%;border-radius:4px;"></div></div><span style="font-size:12px;font-weight:600;color:#059669;min-width:60px;text-align:right;">${mt.value} ${unit}</span></div></div></div>`;
+                    }
+
+                    const archivedAt = t.soArchivedAt || t.archivedAt;
+                    return `<div class="ticket-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;gap:16px;"><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px;"><strong style="font-size:14px;color:#111827;">#${t.id}</strong><span style="background:#059669;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px;">${t.type} Wastage</span></div><p style="font-size:13px;color:#374151;margin:0 0 6px 0;line-height:1.5;">${summaryText}</p><div class="ticket-location"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${locationText}</div><div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span class="ticket-priority p-${t.priority || 'Low'}">${t.priority || 'Low'} Priority</span><span style="font-size:11px;color:#9ca3af;">Archived ${archivedAt ? new Date(archivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;"><span class="ticket-status ${cfg.cssClass}">${cfg.label}</span><button onclick="removeFromArchive('wastage', '${t.id}')" style="background:none;border:1px solid #ef4444;color:#ef4444;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove from Archive</button></div></div>${dataHTML ? `<div class="ticket-expanded-section">${dataHTML}</div>` : ''}<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-top:12px;"><h5 style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#065f46;margin:0 0 8px 0;">Decision Summary</h5><div style="font-size:12px;color:#374151;line-height:1.7;">${narrativeParts.map(p => '<p style="margin:0 0 6px 0;">' + p + '</p>').join('')}</div></div>${comparisonHTML}</div>`;
+                    }).join('');
+                };
+
+                wastageContainer.innerHTML = buildReportCards(archived, 'No end-user wastage archives yet.');
+            }
+
+            window.renderArchives = render;
+            render();
+            window.addEventListener('storage', e => { if (e.key === 'enertrack_universal_v1') render(); });
+        });
+    </script>
+    <script src="../../js/shared/dashboardProfileMenu.js"></script>
+</body>
+</html>

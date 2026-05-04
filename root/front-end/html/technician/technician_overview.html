@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EnerTrack – Technician Overview</title>
+  <link rel="stylesheet" href="../../css/technician/tech_shared.css">
+  <link rel="stylesheet" href="../../css/technician/tech_overview.css">
+
+</head>
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+        <a href="../landing/landing.html" class="logo">
+          <img src="../../assets/logo_technician.png" alt="EnerTrack Logo" class="logo-icon">
+          <img src="../../assets/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
+        </a>
+      <div class="nav-title">Navigation</div>
+      <ul class="nav">
+        <a href="technician_overview.html"><li class="active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Overview
+        </li></a>
+        <a href="technician_alerts.html"><li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M2 8c0-1.1.9-2 2-2" opacity="0.5"/><path d="M22 8a2 2 0 0 0-2-2" opacity="0.5"/></svg>
+          Real-Time Anomaly Alerts
+        </li></a>
+        <a href="technician_maintenance.html"><li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Fault Detection &amp; Diagnostics
+        </li></a>
+        <a href="technician_work_orders.html"><li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          Maintenance Work Orders
+        </li></a>
+      </ul>
+    </div>
+    <div class="profile" id="sidebarProfile">
+      <img src="https://i.pravatar.cc/100" alt="Profile" id="sidebarUserImg">
+      <div>
+        <div class="profile-name" id="sidebarUserName">Loading...</div>
+        <div class="profile-role" id="sidebarUserRole">Technician</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <div class="header-row">
+      <div class="page-header">
+        <h1 id="welcomeHeading">Welcome back, Marcus</h1>
+        <p>Monitor active field conditions, review the latest anomalies and faults, and jump directly into technician workflows that need action.</p>
+      </div>
+      <div class="header-actions">
+        <div class="header-badge">Shift updated 5 min ago</div>
+        <button class="btn btn-dark" id="btnOpenQueue">Open queue →</button>
+      </div>
+    </div>
+
+    <!-- WORKFLOW PANELS -->
+    <div id="techAdminWorkflow" style="margin-bottom:24px;">
+
+      
+      <div class="card" style="margin-top:24px;">
+        <div class="feed-header">
+          <div>
+            <h2>Final Verification</h2>
+            <small>Confirm completed jobs before authorizing financial processing.</small>
+          </div>
+        </div>
+        <div id="verifyFeed"></div>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon yellow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="stat-label">Active Alerts</div>
+        <div class="stat-value" id="statActiveAlerts">18</div>
+        <div class="stat-note">6 new in the last hour</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="stat-label">Open Faults</div>
+        <div class="stat-value" id="statOpenFaults">9</div>
+        <div class="stat-note">3 require immediate diagnosis</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+        </div>
+        <div class="stat-label">Pending Work Orders</div>
+        <div class="stat-value" id="statPendingWorkOrders">14</div>
+        <div class="stat-note">5 scheduled for this shift</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="stat-label">Resolved Today</div>
+        <div class="stat-value" id="statResolvedToday">27</div>
+        <div class="stat-note">Up 12% from yesterday</div>
+      </div>
+    </div>
+
+    <!-- LIVE ACTIVITY FEED -->
+    <div class="card">
+      <div class="feed-header">
+        <div>
+          <h2>Live activity feed</h2>
+          <small>Most recent anomalies, faults, and work order updates from the field.</small>
+        </div>
+        <div class="live-badge"><span class="dot pulse"></span> Live updates</div>
+      </div>
+      <div id="activityFeed">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module" src="../../js/technician/overviewPage.js"></script>
+<script src="../../js/shared/dashboardProfileMenu.js"></script>
+</body>
+</html>
