@@ -1,29 +1,36 @@
 /**
  * maintenancePage.js
  * Handles interactivity for the Fault Detection & Diagnostics page.
- * CRUD: select acknowledged alert, run diagnostic, log result, flag repair.
+ * Data source: backend /faults endpoint (via window.api).
  */
-import TechDB from './data/mockData.js';
 import { showToast, openModal } from './utils/utils.js';
 
 let selectedFaultId = null;
+let _faults = [];
+let _users = [];
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     try {
-        initMaintenance();
+        await initMaintenance();
         console.log("TechMaintenance: Initialized.");
     } catch (err) {
         console.error("TechMaintenance: Init error:", err);
     }
 });
 
-function initMaintenance() {
-    renderAlertSelector();
-
-    // Select first active fault by default
-    if (TechDB.faults.length) {
-        selectFault(TechDB.faults[0].id);
+async function initMaintenance() {
+    try {
+        if (window.api) {
+            [_faults, _users] = await Promise.all([
+                window.api.get('/faults').catch(() => []),
+                window.api.get('/users').catch(() => [])
+            ]);
+        }
+    } catch (err) {
+        console.warn('[TechMaintenance] Backend unavailable:', err.message);
     }
+    renderAlertSelector();
+    if (_faults.length) selectFault(_faults[0].fault_id || _faults[0].id);
 }
 
 /* ─── Render acknowledged alert selector tiles ─────── */
@@ -31,15 +38,20 @@ function renderAlertSelector() {
     const grid = document.getElementById('alertSelectorGrid');
     if (!grid) return;
 
-    const activeFaults = TechDB.faults.filter(f => f.status === 'active' || f.status === 'pending');
-    grid.innerHTML = activeFaults.map(f => `
-        <div class="alert-tile ${f.id === selectedFaultId ? 'active' : ''}" data-fault-id="${f.id}">
+    const activeFaults = _faults.filter(f => {
+        const s = (f.status || '').toLowerCase();
+        return s === 'active' || s === 'pending' || s === 'open';
+    });
+    grid.innerHTML = activeFaults.map(f => {
+        const id = f.fault_id || f.id;
+        return `
+        <div class="alert-tile ${id === selectedFaultId ? 'active' : ''}" data-fault-id="${id}">
             <span class="badge ${severityClass(f.severity)}">${cap(f.severity)}</span>
-            <div class="alert-tile-id">${f.alertId} / ${f.id}</div>
-            <div class="alert-tile-desc">${f.type} — ${f.asset}</div>
-            <div class="alert-tile-meta">Assigned to ${f.assignedTo}</div>
-        </div>
-    `).join('');
+            <div class="alert-tile-id">${f.alert_id || '—'} / ${id}</div>
+            <div class="alert-tile-desc">${f.fault_type || f.type || '—'} — ${f.asset || f.description || '—'}</div>
+            <div class="alert-tile-meta">Assigned to ${f.assigned_to || f.assignedTo || 'Unassigned'}</div>
+        </div>`;
+    }).join('');
 
     grid.querySelectorAll('.alert-tile').forEach(tile => {
         tile.addEventListener('click', () => selectFault(tile.dataset.faultId));
@@ -49,40 +61,39 @@ function renderAlertSelector() {
 /* ─── Select a fault and load the workspace ─────────── */
 function selectFault(faultId) {
     selectedFaultId = faultId;
-    const fault = TechDB.getFault(faultId);
+    const fault = _faults.find(f => (f.fault_id || f.id) === faultId);
     if (!fault) return;
 
-    // Highlight active tile
     document.querySelectorAll('.alert-tile').forEach(t => t.classList.remove('active'));
     document.querySelector(`.alert-tile[data-fault-id="${faultId}"]`)?.classList.add('active');
 
-    // Update workspace header
-    setEl('workspaceTitle',    `Active Diagnostics · ${fault.alertId}`);
-    setEl('workspaceAsset',    fault.asset);
-    setEl('diagnosticFaultTypeBadge',  fault.type);
+    setEl('workspaceTitle',    `Active Diagnostics — ${fault.alert_id || faultId}`);
+    setEl('workspaceAsset',    fault.asset || fault.description || '—');
+    setEl('diagnosticFaultTypeBadge', fault.fault_type || fault.type || '—');
     
     const severityEl = document.getElementById('diagnosticSeverityBadge');
     if (severityEl) {
-        severityEl.textContent = fault.severity;
+        severityEl.textContent = fault.severity || '—';
         severityEl.className = `badge ${severityClass(fault.severity)}`;
     }
 
-    // Update Prelim Notes UI
-    if (fault.prelimNotes) {
+    const prelimNotes = fault.prelim_notes || fault.prelimNotes || '';
+    const quickfixNotes = fault.quickfix_notes || fault.quickfixNotes || '';
+
+    if (prelimNotes) {
         document.getElementById('prelimViewMode').style.display = 'block';
         document.getElementById('prelimEditMode').style.display = 'none';
-        setEl('prelimSavedText', fault.prelimNotes);
+        setEl('prelimSavedText', prelimNotes);
     } else {
         document.getElementById('prelimViewMode').style.display = 'none';
         document.getElementById('prelimEditMode').style.display = 'block';
         document.getElementById('prelimTextarea').value = '';
     }
 
-    // Update Quickfix Notes UI
-    if (fault.quickfixNotes) {
+    if (quickfixNotes) {
         document.getElementById('quickfixViewMode').style.display = 'block';
         document.getElementById('quickfixEditMode').style.display = 'none';
-        setEl('quickfixSavedText', fault.quickfixNotes);
+        setEl('quickfixSavedText', quickfixNotes);
     } else {
         document.getElementById('quickfixViewMode').style.display = 'none';
         document.getElementById('quickfixEditMode').style.display = 'block';
@@ -91,12 +102,21 @@ function selectFault(faultId) {
 }
 
 /* ─── Log Resolution & Close ──────────────────────── */
-document.addEventListener('click', e => {
-    // Note Management - Preliminary
+document.addEventListener('click', async e => {
+    const fault = selectedFaultId ? _faults.find(f => (f.fault_id || f.id) === selectedFaultId) : null;
+
+    async function patchFault(id, data) {
+        try {
+            if (window.api) await window.api.patch(`/faults/${id}`, data);
+            const f = _faults.find(x => (x.fault_id || x.id) === id);
+            if (f) Object.assign(f, data);
+        } catch(err) { console.warn(err); }
+    }
+
     if (e.target.id === 'btnSavePrelim') {
         const val = document.getElementById('prelimTextarea').value.trim();
         if (val && selectedFaultId) {
-            TechDB.updateFault(selectedFaultId, { prelimNotes: val });
+            await patchFault(selectedFaultId, { prelim_notes: val });
             showToast('Preliminary inspection notes saved.', 'success');
             selectFault(selectedFaultId);
         }
@@ -104,21 +124,20 @@ document.addEventListener('click', e => {
     if (e.target.id === 'btnEditPrelim') {
         document.getElementById('prelimViewMode').style.display = 'none';
         document.getElementById('prelimEditMode').style.display = 'block';
-        document.getElementById('prelimTextarea').value = TechDB.getFault(selectedFaultId).prelimNotes;
+        document.getElementById('prelimTextarea').value = fault?.prelim_notes || fault?.prelimNotes || '';
     }
     if (e.target.id === 'btnDeletePrelim') {
         if (selectedFaultId) {
-            TechDB.updateFault(selectedFaultId, { prelimNotes: '' });
+            await patchFault(selectedFaultId, { prelim_notes: '' });
             showToast('Notes deleted.', 'info');
             selectFault(selectedFaultId);
         }
     }
 
-    // Note Management - Quick Fix
     if (e.target.id === 'btnSaveQuickfix') {
         const val = document.getElementById('quickfixTextarea').value.trim();
         if (val && selectedFaultId) {
-            TechDB.updateFault(selectedFaultId, { quickfixNotes: val });
+            await patchFault(selectedFaultId, { quickfix_notes: val });
             showToast('Quick fix logic saved.', 'success');
             selectFault(selectedFaultId);
         }
@@ -126,45 +145,37 @@ document.addEventListener('click', e => {
     if (e.target.id === 'btnEditQuickfix') {
         document.getElementById('quickfixViewMode').style.display = 'none';
         document.getElementById('quickfixEditMode').style.display = 'block';
-        document.getElementById('quickfixTextarea').value = TechDB.getFault(selectedFaultId).quickfixNotes;
+        document.getElementById('quickfixTextarea').value = fault?.quickfix_notes || fault?.quickfixNotes || '';
     }
     if (e.target.id === 'btnDeleteQuickfix') {
         if (selectedFaultId) {
-            TechDB.updateFault(selectedFaultId, { quickfixNotes: '' });
+            await patchFault(selectedFaultId, { quickfix_notes: '' });
             showToast('Quick fix logic deleted.', 'info');
             selectFault(selectedFaultId);
         }
     }
 
-    // Log Resolution
     if (e.target.id === 'btnLogResolution') {
         if (!selectedFaultId) return;
         openModal({
             title: 'Close Fault',
             bodyHTML: `<p>Confirm quick fix was successful and close fault <strong>${selectedFaultId}</strong>?</p>`,
             confirmLabel: 'Close Fault',
-            onConfirm: () => {
-                const faultToResolve = TechDB.getFault(selectedFaultId);
-                
-                TechDB.updateFault(selectedFaultId, { status: 'resolved' });
+            onConfirm: async () => {
+                await patchFault(selectedFaultId, { status: 'resolved' });
+                if (fault?.alert_id && window.api) {
+                    window.api.patch(`/alerts/${fault.alert_id}`, { status: 'resolved' }).catch(() => {});
+                }
                 showToast(`Fault ${selectedFaultId} resolved and logged.`, 'success');
                 renderAlertSelector();
-                
-                // Also resolve the underlying alert if it's still open or acknowledged
-                if (faultToResolve && faultToResolve.alertId) {
-                    TechDB.resolveAlert(faultToResolve.alertId);
-                }
-
                 selectedFaultId = null;
                 setEl('workspaceTitle', 'Select an alert to begin diagnostics.');
             }
         });
     }
 
-    // Flag Scheduled Maintenance
     if (e.target.id === 'btnFlagScheduled') {
-        if (!selectedFaultId) return;
-        const fault = TechDB.getFault(selectedFaultId);
+        if (!selectedFaultId || !fault) return;
         openModal({
             title: 'Setup Scheduled Work Order',
             bodyHTML: getWOModalHTML(fault, 'scheduled'),
@@ -173,10 +184,8 @@ document.addEventListener('click', e => {
         });
     }
 
-    // Flag Immediate Repair
     if (e.target.id === 'btnFlagImmediate') {
-        if (!selectedFaultId) return;
-        const fault = TechDB.getFault(selectedFaultId);
+        if (!selectedFaultId || !fault) return;
         openModal({
             title: 'Setup Immediate Repair Work Order',
             bodyHTML: getWOModalHTML(fault, 'immediate'),
@@ -202,13 +211,13 @@ function severityClass(s) {
 }
 
 function getWOModalHTML(fault, type) {
-    const techs = TechDB.getRegisteredUsers().filter(u => u.role === 'Technician' || u.role === 'Technician Administrator');
-    const techOptions = techs.map(t => 
-        `<option value="${t.name}" ${fault.assignedTo === t.name ? 'selected' : ''}>${t.name}</option>`
+    const techs = _users.filter(u => u.role === 'Technician' || u.role === 'Technician Administrator');
+    const assignedTo = fault.assigned_to || fault.assignedTo || '';
+    const techOptions = techs.map(t =>
+        `<option value="${t.name}" ${assignedTo === t.name ? 'selected' : ''}>${t.name}</option>`
     ).join('');
-    
-    // Add default fallback if no techs are registered
-    const finalTechOptions = techOptions || `<option value="Marcus Reed">Marcus Reed</option>`;
+    const finalTechOptions = techOptions || `<option value="Unassigned">Unassigned</option>`;
+    const asset = fault.asset || fault.description || 'Unknown Asset';
 
     let priorityOptions = `<option value="high" selected>High (Emergency)</option>`;
     if (type !== 'immediate') {
@@ -223,7 +232,7 @@ function getWOModalHTML(fault, type) {
       <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
          <div>
            <label style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.04em; text-transform:uppercase;">Asset</label>
-           <input type="text" id="modalWOAsset" value="${fault.asset}" readonly style="width:100%; box-sizing: border-box; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; margin-top:6px; font-family:inherit; font-size:14px; color:#475569;">
+           <input type="text" id="modalWOAsset" value="${asset}" readonly style="width:100%; box-sizing: border-box; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; margin-top:6px; font-family:inherit; font-size:14px; color:#475569;">
          </div>
          <div style="display: flex; gap: 16px;">
              <div style="flex: 1;">
@@ -247,29 +256,32 @@ function getWOModalHTML(fault, type) {
     `;
 }
 
-function handleWOCreation(faultId, type) {
-    const fault = TechDB.getFault(faultId);
+async function handleWOCreation(faultId, type) {
+    const fault = _faults.find(f => (f.fault_id || f.id) === faultId);
     if (!fault) return;
     
     const priority = document.getElementById('modalWOPriority').value;
     const assignee = document.getElementById('modalWOAssignee').value;
     const notes = document.getElementById('modalWONotes').value;
 
-    const wo = {
-        id: "WO-" + Math.floor(Math.random() * 9000 + 1000),
-        title: `${type === 'immediate' ? 'Urgent Repair' : 'Scheduled Maintenance'}: ${fault.asset}`,
-        status: "new",
+    const payload = {
+        title: `${type === 'immediate' ? 'Urgent Repair' : 'Scheduled Maintenance'}: ${fault.asset || fault.description}`,
+        status: 'open',
         type: type === 'immediate' ? 'emergency' : 'scheduled',
-        priority: priority,
-        technician: assignee,
-        parts: false,
-        asset: fault.asset,
-        linkedFault: faultId,
-        completionNotes: notes
+        priority,
+        assigned_to_id: _users.find(u => u.name === assignee)?.user_id || null,
+        description: notes,
+        fault_id: fault.fault_id || fault.id
     };
     
-    TechDB.addWorkOrder(wo);
-    TechDB.updateFault(faultId, { status: 'flagged', repairType: type });
+    try {
+        if (window.api) {
+            await window.api.post('/work-orders', payload);
+            await window.api.patch(`/faults/${faultId}`, { status: 'flagged' });
+            const f = _faults.find(x => (x.fault_id || x.id) === faultId);
+            if (f) f.status = 'flagged';
+        }
+    } catch(err) { console.warn(err); }
     
     showToast(`Flagged for ${type} repair. Work order created.`, type === 'immediate' ? 'warning' : 'info');
     renderAlertSelector();

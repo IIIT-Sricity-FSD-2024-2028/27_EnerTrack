@@ -208,15 +208,28 @@ function openCampusModal(app, campusId = null) {
       if (vals.total_budget === "" || isNaN(vals.total_budget) || Number(vals.total_budget) < 0) errors.total_budget = "Enter a valid positive number.";
       if (Object.keys(errors).length) { showFormErrors(modal, errors); return false; }
 
-      app.update(state => {
-        if (campusId) {
-          const t = state.campuses.find(c => c.campus_id === campusId);
-          Object.assign(t, { name: vals.name, location: vals.location || null, total_budget: Number(vals.total_budget) });
-        } else {
-          const nc = { campus_id: createId("campus"), name: vals.name, location: vals.location || null, total_budget: Number(vals.total_budget) };
-          state.campuses.push(nc);
-          app.selectedCampusId = nc.campus_id;
-        }
+      app.update(async state => {
+        const payload = { name: vals.name, location: vals.location || null, total_budget: Number(vals.total_budget) };
+        try {
+          if (window.api) {
+            if (campusId) {
+              await window.api.patch('/campus/' + campusId, payload);
+            } else {
+              const res = await window.api.post('/campus', payload);
+              if (res && res.campus_id) app.selectedCampusId = res.campus_id;
+            }
+            state.campuses = await window.api.get('/campus').catch(() => state.campuses);
+          } else {
+            if (campusId) {
+              const t = state.campuses.find(c => c.campus_id === campusId);
+              Object.assign(t, payload);
+            } else {
+              const nc = { campus_id: createId("campus"), ...payload };
+              state.campuses.push(nc);
+              app.selectedCampusId = nc.campus_id;
+            }
+          }
+        } catch(e) { console.error(e); }
       }, campusId ? "Campus updated." : "Campus added.");
       return true;
     }
@@ -235,11 +248,21 @@ function deleteCampus(app, campusId) {
     bodyHtml: `<p>Delete <strong>${escapeHtml(campus.name)}</strong>?</p>
       <p class="delete-note">${bIds.length} building(s), ${dCount} department(s), ${mCount} meter(s) will also be removed.</p>`,
     onConfirm: () => {
-      app.update(state => {
-        state.meters = state.meters.filter(m => !bIds.includes(m.building_id));
-        state.departments = state.departments.filter(d => !bIds.includes(d.building_id));
-        state.buildings = state.buildings.filter(b => b.campus_id !== campusId);
-        state.campuses = state.campuses.filter(c => c.campus_id !== campusId);
+      app.update(async state => {
+        try {
+          if (window.api) {
+            await window.api.delete('/campus/' + campusId);
+            state.campuses = await window.api.get('/campus').catch(() => state.campuses);
+            state.buildings = await window.api.get('/buildings').catch(() => state.buildings);
+            state.departments = await window.api.get('/departments').catch(() => state.departments);
+            state.meters = await window.api.get('/meters').catch(() => state.meters);
+          } else {
+            state.meters = state.meters.filter(m => !bIds.includes(m.building_id));
+            state.departments = state.departments.filter(d => !bIds.includes(d.building_id));
+            state.buildings = state.buildings.filter(b => b.campus_id !== campusId);
+            state.campuses = state.campuses.filter(c => c.campus_id !== campusId);
+          }
+        } catch(e) { console.error(e); }
       }, "Campus deleted.");
       app.selectedCampusId = app.state.campuses[0]?.campus_id || null;
       app.selectedBuildingId = null;
@@ -285,15 +308,28 @@ function openBuildingModal(app, buildingId = null) {
       if (vals.budget === "" || isNaN(vals.budget) || Number(vals.budget) < 0) errors.budget = "Enter a valid positive number.";
       if (Object.keys(errors).length) { showFormErrors(modal, errors); return false; }
 
-      app.update(state => {
-        if (buildingId) {
-          const t = state.buildings.find(b => b.building_id === buildingId);
-          Object.assign(t, { name: vals.name, campus_id: vals.campus_id, budget: Number(vals.budget) });
-        } else {
-          const nb = { building_id: createId("building"), campus_id: vals.campus_id, name: vals.name, budget: Number(vals.budget) };
-          state.buildings.push(nb);
-          app.selectedBuildingId = nb.building_id;
-        }
+      app.update(async state => {
+        const payload = { name: vals.name, campus_id: vals.campus_id, budget: Number(vals.budget) };
+        try {
+          if (window.api) {
+            if (buildingId) {
+              await window.api.patch('/buildings/' + buildingId, payload);
+            } else {
+              const res = await window.api.post('/buildings', payload);
+              if (res && res.building_id) app.selectedBuildingId = res.building_id;
+            }
+            state.buildings = await window.api.get('/buildings').catch(() => state.buildings);
+          } else {
+            if (buildingId) {
+              const t = state.buildings.find(b => b.building_id === buildingId);
+              Object.assign(t, payload);
+            } else {
+              const nb = { building_id: createId("building"), ...payload };
+              state.buildings.push(nb);
+              app.selectedBuildingId = nb.building_id;
+            }
+          }
+        } catch(e) { console.error(e); }
       }, buildingId ? "Building updated." : "Building added.");
       return true;
     }
@@ -313,10 +349,19 @@ function deleteBuilding(app, buildingId) {
     onConfirm: () => {
       const remaining = app.state.buildings.filter(b => b.building_id !== buildingId);
       app.selectedBuildingId = remaining.filter(b => b.campus_id === app.selectedCampusId)[0]?.building_id || null;
-      app.update(state => {
-        state.departments = state.departments.filter(d => d.building_id !== buildingId);
-        state.meters = state.meters.filter(m => m.building_id !== buildingId);
-        state.buildings = state.buildings.filter(b => b.building_id !== buildingId);
+      app.update(async state => {
+        try {
+          if (window.api) {
+            await window.api.delete('/buildings/' + buildingId);
+            state.buildings = await window.api.get('/buildings').catch(() => state.buildings);
+            state.departments = await window.api.get('/departments').catch(() => state.departments);
+            state.meters = await window.api.get('/meters').catch(() => state.meters);
+          } else {
+            state.departments = state.departments.filter(d => d.building_id !== buildingId);
+            state.meters = state.meters.filter(m => m.building_id !== buildingId);
+            state.buildings = state.buildings.filter(b => b.building_id !== buildingId);
+          }
+        } catch(e) { console.error(e); }
       }, "Building deleted.");
       return true;
     }
@@ -361,13 +406,25 @@ function openDeptModal(app, deptId = null) {
       if (vals.budget === "" || isNaN(vals.budget) || Number(vals.budget) < 0) errors.budget = "Enter a valid positive number.";
       if (Object.keys(errors).length) { showFormErrors(modal, errors); return false; }
 
-      app.update(state => {
-        if (deptId) {
-          const t = state.departments.find(d => d.department_id === deptId);
-          Object.assign(t, { name: vals.name, building_id: vals.building_id, budget: Number(vals.budget) });
-        } else {
-          state.departments.push({ department_id: createId("dept"), building_id: vals.building_id, name: vals.name, budget: Number(vals.budget) });
-        }
+      app.update(async state => {
+        const payload = { name: vals.name, building_id: vals.building_id, budget: Number(vals.budget) };
+        try {
+          if (window.api) {
+            if (deptId) {
+              await window.api.patch('/departments/' + deptId, payload);
+            } else {
+              await window.api.post('/departments', payload);
+            }
+            state.departments = await window.api.get('/departments').catch(() => state.departments);
+          } else {
+            if (deptId) {
+              const t = state.departments.find(d => d.department_id === deptId);
+              Object.assign(t, payload);
+            } else {
+              state.departments.push({ department_id: createId("dept"), ...payload });
+            }
+          }
+        } catch(e) { console.error(e); }
       }, deptId ? "Department updated." : "Department added.");
       return true;
     }
@@ -381,7 +438,16 @@ function deleteDept(app, deptId) {
     title: "Delete Department", confirmLabel: "Delete", danger: true,
     bodyHtml: `<p>Delete department <strong>${escapeHtml(dept.name)}</strong>?</p>`,
     onConfirm: () => {
-      app.update(state => { state.departments = state.departments.filter(d => d.department_id !== deptId); }, "Department deleted.");
+      app.update(async state => {
+        try {
+          if (window.api) {
+            await window.api.delete('/departments/' + deptId);
+            state.departments = await window.api.get('/departments').catch(() => state.departments);
+          } else {
+            state.departments = state.departments.filter(d => d.department_id !== deptId);
+          }
+        } catch(e) { console.error(e); }
+      }, "Department deleted.");
       return true;
     }
   });
@@ -431,13 +497,25 @@ function openMeterModal(app, buildingId, meterId = null) {
       if (!METER_STATUSES.includes(vals.status)) errors.status = "Select a valid status.";
       if (Object.keys(errors).length) { showFormErrors(modal, errors); return false; }
 
-      app.update(state => {
-        if (meterId) {
-          const t = state.meters.find(m => m.meter_id === meterId);
-          Object.assign(t, { building_id: buildingId, meter_code: vals.meter_code.toUpperCase(), meter_type: vals.meter_type, zone: vals.zone || null, status: vals.status });
-        } else {
-          state.meters.push({ meter_id: createId("meter"), building_id: buildingId, meter_code: vals.meter_code.toUpperCase(), meter_type: vals.meter_type, zone: vals.zone || null, status: vals.status });
-        }
+      app.update(async state => {
+        const payload = { building_id: buildingId, meter_code: vals.meter_code.toUpperCase(), meter_type: vals.meter_type, zone: vals.zone || null, status: vals.status };
+        try {
+          if (window.api) {
+            if (meterId) {
+              await window.api.patch('/meters/' + meterId, payload);
+            } else {
+              await window.api.post('/meters', payload);
+            }
+            state.meters = await window.api.get('/meters').catch(() => state.meters);
+          } else {
+            if (meterId) {
+              const t = state.meters.find(m => m.meter_id === meterId);
+              Object.assign(t, payload);
+            } else {
+              state.meters.push({ meter_id: createId("meter"), ...payload });
+            }
+          }
+        } catch(e) { console.error(e); }
       }, meterId ? "Meter updated." : "Meter added.");
       return true;
     }
@@ -451,7 +529,16 @@ function deleteMeter(app, meterId) {
     title: "Delete Meter", confirmLabel: "Delete", danger: true,
     bodyHtml: `<p>Delete <strong>${escapeHtml(meter.meter_code)}</strong>?</p>`,
     onConfirm: () => {
-      app.update(state => { state.meters = state.meters.filter(m => m.meter_id !== meterId); }, "Meter deleted.");
+      app.update(async state => {
+        try {
+          if (window.api) {
+            await window.api.delete('/meters/' + meterId);
+            state.meters = await window.api.get('/meters').catch(() => state.meters);
+          } else {
+            state.meters = state.meters.filter(m => m.meter_id !== meterId);
+          }
+        } catch(e) { console.error(e); }
+      }, "Meter deleted.");
       return true;
     }
   });

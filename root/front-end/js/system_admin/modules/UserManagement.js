@@ -128,16 +128,24 @@ function openAddUserModal(app) {
         return false;
       }
 
-      app.update((state) => {
-        userActions.addUser({
+      app.update(async (state) => {
+        const payload = {
           name: values.name,
           email: values.email.toLowerCase(),
           phone: values.phone.trim(),
           password: values.password,
           role: values.role,
           specialization: values.role === "Technician" ? values.specialization : null
-        });
-        state.users = userActions.getAllUsers();
+        };
+        try {
+          if (window.api) {
+            await window.api.post('/users', payload);
+            state.users = await window.api.get('/users').catch(() => state.users);
+          } else {
+            userActions.addUser(payload);
+            state.users = userActions.getAllUsers();
+          }
+        } catch(e) { console.error(e); }
       }, `Added ${values.name}.`);
       return true;
     }
@@ -208,28 +216,30 @@ function openEditUserModal(userId, app) {
         return false;
       }
 
-      app.update((state) => {
-        const updatedUser = state.users.find((item) => item.user_id === userId);
-        if (updatedUser) {
-          updatedUser.name = values.name;
-          updatedUser.email = values.email.toLowerCase();
-          updatedUser.phone = values.phone.trim();
-          updatedUser.password = values.password;
-          updatedUser.role = values.role;
-          updatedUser.specialization = values.role === "Technician" ? values.specialization : null;
-        }
-
-        const globalUser = universalDB.data.users.find((item) => item.user_id === userId);
-        if (globalUser) {
-          globalUser.name = values.name;
-          globalUser.email = values.email.toLowerCase();
-          globalUser.phone = values.phone.trim();
-          globalUser.password = values.password;
-          globalUser.role = values.role;
-          globalUser.specialization = values.role === "Technician" ? values.specialization : null;
-        }
+      app.update(async (state) => {
+        const payload = {
+          name: values.name,
+          email: values.email.toLowerCase(),
+          phone: values.phone.trim(),
+          password: values.password,
+          role: values.role,
+          specialization: values.role === "Technician" ? values.specialization : null
+        };
+        try {
+          if (window.api) {
+            await window.api.patch('/users/' + userId, payload);
+            state.users = await window.api.get('/users').catch(() => state.users);
+          } else {
+            const updatedUser = state.users.find((item) => item.user_id === userId);
+            if (updatedUser) Object.assign(updatedUser, payload);
+            
+            const globalUser = universalDB.data.users.find((item) => item.user_id === userId);
+            if (globalUser) Object.assign(globalUser, payload);
+            
+            state.users = userActions.getAllUsers();
+          }
+        } catch(e) { console.error(e); }
         updateCurrentUserSession(userId, values);
-        state.users = userActions.getAllUsers();
       }, `Updated ${values.name}.`);
       return true;
     }
@@ -257,9 +267,16 @@ function deleteUser(userId, app) {
     danger: true,
     bodyHtml: `<p>Delete <strong>${escapeHtml(user.name)}</strong> from the User mock table?</p>`,
     onConfirm: () => {
-      app.update((state) => {
-        userActions.deleteUser(userId);
-        state.users = userActions.getAllUsers();
+      app.update(async (state) => {
+        try {
+          if (window.api) {
+            await window.api.delete('/users/' + userId);
+            state.users = await window.api.get('/users').catch(() => state.users);
+          } else {
+            userActions.deleteUser(userId);
+            state.users = userActions.getAllUsers();
+          }
+        } catch(e) { console.error(e); }
       }, `Deleted ${user.name}.`);
       return true;
     }

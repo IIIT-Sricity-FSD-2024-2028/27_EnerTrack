@@ -5,6 +5,7 @@
  */
 
 import FinanceDB, { persistData } from "../data/mockData.js";
+import universalDB from "../../shared/universalDB.js";
 import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, formatDate } from "../utils/utils.js";
 import { can } from "../utils/utils.js";
 import { logActivity } from "./activity.js";
@@ -198,25 +199,38 @@ function _submitAddInvoice() {
 
   const dept = FinanceDB.departments.find(d => d.id === data.dept);
   const newInv = {
-    id: generateId("inv"),
-    invoiceNumber: data.number.trim(),
-    vendor: data.vendor.trim(),
-    amount: Number(data.amount),
-    department: data.dept,
+    invoiceNumber:   data.number.trim(),
+    vendor:          data.vendor.trim(),
+    amount:          Number(data.amount),
+    department:      data.dept,
     departmentLabel: dept?.name ?? data.dept,
-    dueDate: data.due,
-    issuedDate: data.issued,
-    status: "pending",
-    approvedBy: null,
-    type: data.type
+    dueDate:         data.due,
+    issuedDate:      data.issued,
+    type:            data.type,
+    status:          "pending"
   };
 
-  FinanceDB.invoices.push(newInv);
-  persistData();
-  logActivity("invoice", `Invoice ${newInv.invoiceNumber} added`, `Vendor: ${newInv.vendor}`);
-  renderInvoiceList();
-  updateInvoiceSummary();
-  showToast(`Invoice ${newInv.invoiceNumber} added.`, "success");
+  if (window.api) {
+      window.api.post('/invoices', newInv).then(res => {
+          if (res) {
+              const invWithId = { ...newInv, id: res.invoice_id || generateId("inv") };
+              FinanceDB.invoices.push(invWithId);
+              _finishAdd(invWithId);
+          }
+      }).catch(console.warn);
+  } else {
+      const invWithId = { ...newInv, id: generateId("inv") };
+      FinanceDB.invoices.push(invWithId);
+      _finishAdd(invWithId);
+  }
+
+  function _finishAdd(inv) {
+      persistData();
+      logActivity("invoice", `Invoice ${inv.invoiceNumber} added`, `Vendor: ${inv.vendor}`);
+      renderInvoiceList();
+      updateInvoiceSummary();
+      showToast(`Invoice ${inv.invoiceNumber} added.`, "success");
+  }
 }
 
 /* ── EDIT ─────────────────────────────────────────── */
@@ -328,9 +342,10 @@ function _submitEditInvoice(id) {
   }
 
   const idx = FinanceDB.invoices.findIndex(i => i.id === id);
+  if (idx < 0) return;
   const dept = FinanceDB.departments.find(d => d.id === data.dept);
-  FinanceDB.invoices[idx] = {
-    ...FinanceDB.invoices[idx],
+
+  const payload = {
     invoiceNumber:   data.number.trim(),
     vendor:          data.vendor.trim(),
     amount:          Number(data.amount),
@@ -341,11 +356,23 @@ function _submitEditInvoice(id) {
     status:          data.status
   };
 
-  persistData();
-  logActivity("invoice", `Invoice ${data.number} updated`, `Status: ${data.status}`);
-  renderInvoiceList();
-  updateInvoiceSummary();
-  showToast("Invoice updated.", "success");
+  if (window.api) {
+      window.api.patch(`/invoices/${id}`, payload).then(() => {
+          Object.assign(FinanceDB.invoices[idx], payload);
+          _finishEdit();
+      }).catch(console.warn);
+  } else {
+      Object.assign(FinanceDB.invoices[idx], payload);
+      _finishEdit();
+  }
+
+  function _finishEdit() {
+      persistData();
+      logActivity("invoice", `Invoice ${data.number} updated`, `Status: ${data.status}`);
+      renderInvoiceList();
+      updateInvoiceSummary();
+      showToast("Invoice updated.", "success");
+  }
 }
 
 /* ── APPROVE ──────────────────────────────────────── */
@@ -360,13 +387,24 @@ export function approveInvoice(id) {
     bodyHTML: `<p>Approve <strong>${inv.invoiceNumber}</strong> from <strong>${inv.vendor}</strong> for <strong>${formatCurrency(inv.amount)}</strong>?</p>`,
     confirmLabel: "Approve",
     onConfirm: () => {
-      inv.status = "approved";
-      inv.approvedBy = window.FinanceDB?.session?.user?.name ?? "Analyst";
-      persistData();
-      logActivity("invoice", `Invoice ${inv.invoiceNumber} approved`, `Amount: ${formatCurrency(inv.amount)}`);
-      renderInvoiceList();
-      updateInvoiceSummary();
-      showToast(`Invoice ${inv.invoiceNumber} approved.`, "success");
+      const payload = { status: "approved", approvedBy: window.FinanceDB?.session?.user?.name ?? "Analyst" };
+      if (window.api) {
+          window.api.patch(`/invoices/${id}`, payload).then(() => {
+              Object.assign(inv, payload);
+              _finishApprove();
+          }).catch(console.warn);
+      } else {
+          Object.assign(inv, payload);
+          _finishApprove();
+      }
+
+      function _finishApprove() {
+          persistData();
+          logActivity("invoice", `Invoice ${inv.invoiceNumber} approved`, `Amount: ${formatCurrency(inv.amount)}`);
+          renderInvoiceList();
+          updateInvoiceSummary();
+          showToast(`Invoice ${inv.invoiceNumber} approved.`, "success");
+      }
     }
   });
 }
@@ -382,12 +420,23 @@ export function archiveInvoice(id) {
     bodyHTML: `<p>Archive invoice <strong>${inv.invoiceNumber}</strong>? It will be moved to the Archives section.</p>`,
     confirmLabel: "Archive",
     onConfirm: () => {
-      inv.archived = true;
-      persistData();
-      logActivity("invoice", `Invoice ${inv.invoiceNumber} archived`, `Vendor: ${inv.vendor}`);
-      renderInvoiceList();
-      updateInvoiceSummary();
-      showToast(`Invoice ${inv.invoiceNumber} archived.`, "success");
+      if (window.api) {
+          window.api.patch(`/invoices/${id}`, { archived: true }).then(() => {
+              inv.archived = true;
+              _finishArchive();
+          }).catch(console.warn);
+      } else {
+          inv.archived = true;
+          _finishArchive();
+      }
+
+      function _finishArchive() {
+          persistData();
+          logActivity("invoice", `Invoice ${inv.invoiceNumber} archived`, `Vendor: ${inv.vendor}`);
+          renderInvoiceList();
+          updateInvoiceSummary();
+          showToast(`Invoice ${inv.invoiceNumber} archived.`, "success");
+      }
     }
   });
 }
@@ -405,12 +454,23 @@ export function deleteInvoice(id) {
     confirmLabel: "Delete",
     danger: true,
     onConfirm: () => {
-      FinanceDB.invoices = FinanceDB.invoices.filter(i => i.id !== id);
-      persistData();
-      logActivity("invoice", `Invoice ${inv.invoiceNumber} deleted`, `Vendor: ${inv.vendor}`);
-      renderInvoiceList();
-      updateInvoiceSummary();
-      showToast(`Invoice ${inv.invoiceNumber} deleted.`, "success");
+      if (window.api) {
+          window.api.delete(`/invoices/${id}`).then(() => {
+              universalDB.data.finance.invoices = FinanceDB.invoices.filter(i => i.id !== id);
+              _finishDelete();
+          }).catch(console.warn);
+      } else {
+          universalDB.data.finance.invoices = FinanceDB.invoices.filter(i => i.id !== id);
+          _finishDelete();
+      }
+
+      function _finishDelete() {
+          persistData();
+          logActivity("invoice", `Invoice ${inv.invoiceNumber} deleted`, `Vendor: ${inv.vendor}`);
+          renderInvoiceList();
+          updateInvoiceSummary();
+          showToast(`Invoice ${inv.invoiceNumber} deleted.`, "success");
+      }
     }
   });
 }

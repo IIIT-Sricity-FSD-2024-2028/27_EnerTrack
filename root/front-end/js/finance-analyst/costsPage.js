@@ -1,14 +1,30 @@
 /**
  * costsPage.js
- * Entry-point for the Utility Costs page (finaniance3.html).
+ * Entry-point for the Utility Costs page.
+ * Data: fetched from backend /energy-costs (DTO), hydrated into universalDB.data.finance
  */
 
 import FinanceDB     from "./data/mockData.js";
 import SessionModule from "./modules/session.js";
 import CostModule    from "./modules/energyCosts.js";
+import universalDB   from "../shared/universalDB.js";
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   window.FinanceDB = FinanceDB;
+
+  // Hydrate from backend before rendering
+  if (window.api) {
+    try {
+      const [energyCosts, invoices] = await Promise.all([
+        window.api.get('/energy-costs').catch(() => null),
+        window.api.get('/invoices').catch(() => null)
+      ]);
+      if (Array.isArray(energyCosts)) universalDB.data.finance.energyCosts = energyCosts;
+      if (Array.isArray(invoices))    universalDB.data.finance.invoices    = invoices;
+    } catch (err) {
+      console.warn('[Finance] Backend fetch failed, using local data:', err.message);
+    }
+  }
 
   SessionModule.initSession();
   CostModule.renderCostTable();
@@ -20,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   wireNavigation();
   populateScopeDropdown();
 });
+
 
 /* ── SCOPE DROPDOWN ───────────────────────────────── */
 

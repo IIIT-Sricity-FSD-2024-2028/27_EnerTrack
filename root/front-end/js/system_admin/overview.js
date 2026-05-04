@@ -2,12 +2,13 @@
  * overview.js
  * Admin Dashboard entrypoint.
  *
- * Backend handoff:
- * - A future React useEffect or plain fetch() boot call should replace getAdminState().
- * - Module CRUD handlers already flow through app.update(), which is the single sync point.
+ * Data strategy:
+ * - Users, campuses, buildings, departments, meters come ONLY from the backend API (DTOs).
+ * - localStorage is used only for UI state (active tab, selected campus/building).
+ * - The local universalDB / mockData is NOT used as a data source for these entities.
  */
 
-import { getAdminState, resetAdminState, saveAdminState } from "./data/mockData.js";
+import { resetAdminState, saveAdminState } from "./data/mockData.js";
 import { renderAdminLayout } from "./modules/adminLayout.js";
 import { cloneState, showToast } from "./utils/ui.js";
 
@@ -16,12 +17,21 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!root) return;
 
   const app = {
-    state: getAdminState(),
+    // Start with empty arrays — data comes exclusively from the backend
+    state: {
+      session: null,
+      users: [],
+      campuses: [],
+      buildings: [],
+      departments: [],
+      meters: []
+    },
+    loading: true,
     activeTab: localStorage.getItem("admin_activeTab") || "users",
     selectedCampusId: localStorage.getItem("admin_selectedCampus") || null,
     selectedBuildingId: localStorage.getItem("admin_selectedBuilding") || null,
 
-    render(nextTab = this.activeTab) {
+    async render(nextTab = this.activeTab) {
       this.activeTab = nextTab;
       localStorage.setItem("admin_activeTab", nextTab);
       if (this.selectedCampusId) localStorage.setItem("admin_selectedCampus", this.selectedCampusId);
@@ -29,14 +39,57 @@ document.addEventListener("DOMContentLoaded", () => {
       renderAdminLayout(root, this);
     },
 
-    update(mutator, message) {
+    async update(mutator, message) {
       const nextState = cloneState(this.state);
-      mutator(nextState);
+      const result = mutator(nextState);
+      if (result instanceof Promise) {
+        await result;
+      }
       this.state = nextState;
-      saveAdminState(this.state);
-      this.state = getAdminState();
       this.render();
       if (message) showToast(message, "success");
+    },
+
+    async loadFromBackend() {
+      if (!window.api) {
+        showToast("Backend API unavailable — no data loaded.", "error");
+        this.loading = false;
+        this.render();
+        return;
+      }
+
+      try {
+        this.loading = true;
+        this.render(); // render loading skeleton
+
+        const [users, campuses, buildings, departments, meters] = await Promise.all([
+          window.api.get('/users'),
+          window.api.get('/campus'),
+          window.api.get('/buildings'),
+          window.api.get('/departments'),
+          window.api.get('/meters')
+        ]);
+
+        this.state.users       = Array.isArray(users)       ? users       : [];
+        this.state.campuses    = Array.isArray(campuses)    ? campuses    : [];
+        this.state.buildings   = Array.isArray(buildings)   ? buildings   : [];
+        this.state.departments = Array.isArray(departments) ? departments : [];
+        this.state.meters      = Array.isArray(meters)      ? meters      : [];
+
+        // Restore or default selected campus/building from persisted UI prefs
+        if (!this.selectedCampusId || !this.state.campuses.some(c => c.campus_id === this.selectedCampusId)) {
+          this.selectedCampusId = this.state.campuses[0]?.campus_id || null;
+        }
+        if (!this.selectedBuildingId || !this.state.buildings.some(b => b.building_id === this.selectedBuildingId)) {
+          this.selectedBuildingId = this.state.buildings[0]?.building_id || null;
+        }
+      } catch (err) {
+        console.error("Failed to load from backend:", err);
+        showToast("Failed to load data from backend.", "error");
+      } finally {
+        this.loading = false;
+        this.render();
+      }
     },
 
     reset() {
@@ -48,15 +101,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Only default if nothing was persisted
-  if (!app.selectedCampusId || !app.state.campuses.some(c => c.campus_id === app.selectedCampusId)) {
-    app.selectedCampusId = app.state.campuses[0]?.campus_id || null;
-  }
-  if (!app.selectedBuildingId || !app.state.buildings.some(b => b.building_id === app.selectedBuildingId)) {
-    app.selectedBuildingId = app.state.buildings[0]?.building_id || null;
-  }
   window.AdminDashboard = app;
-
   document.getElementById("resetDemoData")?.addEventListener("click", () => app.reset());
-  app.render();
+
+  // Boot: fetch everything from the backend. No localStorage seed for data.
+  app.render(); // show loading state immediately
+  app.loadFromBackend();
 });
+

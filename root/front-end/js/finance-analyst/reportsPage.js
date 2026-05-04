@@ -1,6 +1,7 @@
 /**
  * reportsPage.js
- * Entry-point for the Financial Reports page (finaniance2.html).
+ * Entry-point for the Financial Reports page.
+ * Data: fetched from backend /financial-reports and /invoices (DTO), hydrated into universalDB.data.finance
  */
 
 import FinanceDB     from "./data/mockData.js";
@@ -8,9 +9,24 @@ import SessionModule from "./modules/session.js";
 import ReportModule  from "./modules/reports.js";
 import InvoiceModule from "./modules/invoices.js";
 import { formatCurrency, can } from "./utils/utils.js";
+import universalDB   from "../shared/universalDB.js";
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   window.FinanceDB = FinanceDB;
+
+  // Hydrate from backend before rendering
+  if (window.api) {
+    try {
+      const [reports, invoices] = await Promise.all([
+        window.api.get('/financial-reports').catch(() => null),
+        window.api.get('/invoices').catch(() => null)
+      ]);
+      if (Array.isArray(reports))  universalDB.data.finance.financialReports = reports;
+      if (Array.isArray(invoices)) universalDB.data.finance.invoices         = invoices;
+    } catch (err) {
+      console.warn('[Finance] Backend fetch failed, using local data:', err.message);
+    }
+  }
 
   SessionModule.initSession();
   ReportModule.renderReportList();
@@ -23,6 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
   wireNavigation();
   renderViabilityResult();
 });
+
 
 /* ── METRIC CARDS ─────────────────────────────────── */
 

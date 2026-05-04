@@ -4,6 +4,7 @@
  */
 
 import FinanceDB, { persistData } from "../data/mockData.js";
+import universalDB from "../../shared/universalDB.js";
 import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, can } from "../utils/utils.js";
 import { logActivity } from "./activity.js";
 
@@ -226,7 +227,6 @@ function _submitAddCost() {
   const variance = budget - total;
 
   const newRec = {
-    id: generateId("ec"),
     period: periodVal,
     scope: scopeType,
     scopeRef: scopeId,
@@ -235,12 +235,27 @@ function _submitAddCost() {
     status: variance > 0 ? "under-budget" : variance === 0 ? "on-budget" : "over-budget"
   };
 
-  FinanceDB.energyCosts.push(newRec);
-  persistData();
-  logActivity("energy", `Cost record added for ${scopeLabel}`, `Period: ${periodVal}, Total: ${formatCurrency(total)}`);
-  renderCostTable();
-  updateCostSummary();
-  showToast("Energy cost record added.", "success");
+  if (window.api) {
+      window.api.post('/energy-costs', newRec).then(res => {
+          if (res) {
+              const recWithId = { ...newRec, id: res.energy_cost_id || generateId("ec") };
+              FinanceDB.energyCosts.push(recWithId);
+              _finishAdd(recWithId);
+          }
+      }).catch(console.warn);
+  } else {
+      const recWithId = { ...newRec, id: generateId("ec") };
+      FinanceDB.energyCosts.push(recWithId);
+      _finishAdd(recWithId);
+  }
+
+  function _finishAdd(rec) {
+      persistData();
+      logActivity("energy", `Cost record added for ${scopeLabel}`, `Period: ${periodVal}, Total: ${formatCurrency(total)}`);
+      renderCostTable();
+      updateCostSummary();
+      showToast("Energy cost record added.", "success");
+  }
 }
 
 /* ── EDIT ─────────────────────────────────────────── */
@@ -329,6 +344,7 @@ function _submitEditCost(id) {
   }
 
   const idx = FinanceDB.energyCosts.findIndex(r => r.id === id);
+  if (idx < 0) return;
   const elec       = Number(fields.elec.value);
   const gas        = Number(fields.gas.value);
   const water      = Number(fields.water.value);
@@ -338,17 +354,28 @@ function _submitEditCost(id) {
   const budget     = Number(fields.budget.value);
   const variance = budget - total;
 
-  FinanceDB.energyCosts[idx] = {
-    ...FinanceDB.energyCosts[idx],
-    electricity: elec, gas, water, wastewater, demand, total, budget, variance,
-    status: variance > 0 ? "under-budget" : variance === 0 ? "on-budget" : "over-budget"
+  const payload = {
+      electricity: elec, gas, water, wastewater, demand, total, budget, variance,
+      status: variance > 0 ? "under-budget" : variance === 0 ? "on-budget" : "over-budget"
   };
 
-  persistData();
-  logActivity("energy", `Cost record updated for ${FinanceDB.energyCosts[idx].scopeLabel}`, `Total: ${formatCurrency(total)}`);
-  renderCostTable();
-  updateCostSummary();
-  showToast("Cost record updated.", "success");
+  if (window.api) {
+      window.api.patch(`/energy-costs/${id}`, payload).then(() => {
+          Object.assign(FinanceDB.energyCosts[idx], payload);
+          _finishEdit();
+      }).catch(console.warn);
+  } else {
+      Object.assign(FinanceDB.energyCosts[idx], payload);
+      _finishEdit();
+  }
+
+  function _finishEdit() {
+      persistData();
+      logActivity("energy", `Cost record updated for ${FinanceDB.energyCosts[idx].scopeLabel}`, `Total: ${formatCurrency(total)}`);
+      renderCostTable();
+      updateCostSummary();
+      showToast("Cost record updated.", "success");
+  }
 }
 
 /* ── DELETE ───────────────────────────────────────── */
@@ -360,16 +387,27 @@ export function deleteCostRecord(id) {
 
   openModal({
     title: "Delete Cost Record",
-    bodyHTML: `<p>Delete the <strong>${rec.scopeLabel}</strong> record for <strong>${rec.period}</strong>? This cannot be undone.</p>`,
+    bodyHTML: `<p>Are you sure you want to delete the cost record for <strong>${rec.scopeLabel}</strong> (${rec.period})?</p>`,
     confirmLabel: "Delete",
     danger: true,
     onConfirm: () => {
-      FinanceDB.energyCosts = FinanceDB.energyCosts.filter(r => r.id !== id);
-      persistData();
-      logActivity("energy", `Cost record deleted for ${rec.scopeLabel}`, `Period: ${rec.period}`);
-      renderCostTable();
-      updateCostSummary();
-      showToast("Cost record deleted.", "success");
+      if (window.api) {
+          window.api.delete(`/energy-costs/${id}`).then(() => {
+              universalDB.data.finance.energyCosts = FinanceDB.energyCosts.filter(r => r.id !== id);
+              _finishDelete();
+          }).catch(console.warn);
+      } else {
+          universalDB.data.finance.energyCosts = FinanceDB.energyCosts.filter(r => r.id !== id);
+          _finishDelete();
+      }
+
+      function _finishDelete() {
+          persistData();
+          logActivity("energy", `Cost record deleted for ${rec.scopeLabel}`, `Period: ${rec.period}`);
+          renderCostTable();
+          updateCostSummary();
+          showToast("Cost record deleted.", "success");
+      }
     }
   });
 }

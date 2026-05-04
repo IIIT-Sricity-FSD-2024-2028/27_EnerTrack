@@ -5,6 +5,7 @@
  */
 
 import FinanceDB, { persistData } from "../data/mockData.js";
+import universalDB from "../../shared/universalDB.js";
 import { showToast, openModal, badgeHTML, formatCurrency, generateId, validateForm, showFieldError, clearAllErrors, formatDate, can } from "../utils/utils.js";
 import { logActivity } from "./activity.js";
 
@@ -208,7 +209,6 @@ function _submitAddReport() {
   }
 
   const newRep = {
-    id: generateId("rep"),
     title:        data.title.trim(),
     period:       data.period.trim(),
     category:     data.category,
@@ -224,11 +224,26 @@ function _submitAddReport() {
     notes:        data.notes.trim()
   };
 
-  FinanceDB.financialReports.unshift(newRep);
-  persistData();
-  logActivity("report", `Report "${newRep.title}" generated`, `Period: ${newRep.period}`);
-  renderReportList();
-  showToast(`Report "${newRep.title}" created.`, "success");
+  if (window.api) {
+      window.api.post('/financial-reports', newRep).then(res => {
+          if (res) {
+              const repWithId = { ...newRep, id: res.report_id || generateId("rep") };
+              FinanceDB.financialReports.unshift(repWithId);
+              _finishAdd(repWithId);
+          }
+      }).catch(console.warn);
+  } else {
+      const repWithId = { ...newRep, id: generateId("rep") };
+      FinanceDB.financialReports.unshift(repWithId);
+      _finishAdd(repWithId);
+  }
+
+  function _finishAdd(rep) {
+      persistData();
+      logActivity("report", `Report "${rep.title}" generated`, `Period: ${rep.period}`);
+      renderReportList();
+      showToast(`Report "${rep.title}" created.`, "success");
+  }
 }
 
 /* ── EDIT ─────────────────────────────────────────── */
@@ -316,8 +331,9 @@ function _submitEditReport(id) {
   }
 
   const idx = FinanceDB.financialReports.findIndex(r => r.id === id);
-  FinanceDB.financialReports[idx] = {
-    ...FinanceDB.financialReports[idx],
+  if (idx < 0) return;
+
+  const payload = {
     title:        data.title.trim(),
     roi:          data.roi !== "" ? Number(data.roi) : null,
     npv:          data.npv !== "" ? Number(data.npv) : null,
@@ -326,10 +342,22 @@ function _submitEditReport(id) {
     notes:        data.notes.trim()
   };
 
-  persistData();
-  logActivity("report", `Report "${data.title}" updated`, `Status: ${data.status}`);
-  renderReportList();
-  showToast("Report updated.", "success");
+  if (window.api) {
+      window.api.patch(`/financial-reports/${id}`, payload).then(() => {
+          Object.assign(FinanceDB.financialReports[idx], payload);
+          _finishEdit();
+      }).catch(console.warn);
+  } else {
+      Object.assign(FinanceDB.financialReports[idx], payload);
+      _finishEdit();
+  }
+
+  function _finishEdit() {
+      persistData();
+      logActivity("report", `Report "${data.title}" updated`, `Status: ${data.status}`);
+      renderReportList();
+      showToast("Report updated.", "success");
+  }
 }
 
 /* ── DELETE ───────────────────────────────────────── */
@@ -345,11 +373,22 @@ export function deleteReport(id) {
     confirmLabel: "Delete",
     danger: true,
     onConfirm: () => {
-      FinanceDB.financialReports = FinanceDB.financialReports.filter(r => r.id !== id);
-      persistData();
-      logActivity("report", `Report "${rep.title}" deleted`, "");
-      renderReportList();
-      showToast("Report deleted.", "success");
+      if (window.api) {
+          window.api.delete(`/financial-reports/${id}`).then(() => {
+              universalDB.data.finance.financialReports = FinanceDB.financialReports.filter(r => r.id !== id);
+              _finishDelete();
+          }).catch(console.warn);
+      } else {
+          universalDB.data.finance.financialReports = FinanceDB.financialReports.filter(r => r.id !== id);
+          _finishDelete();
+      }
+
+      function _finishDelete() {
+          persistData();
+          logActivity("report", `Report "${rep.title}" deleted`, "");
+          renderReportList();
+          showToast("Report deleted.", "success");
+      }
     }
   });
 }
@@ -366,11 +405,22 @@ export function archiveReport(id) {
     bodyHTML: `<p>Archive <strong>"${rep.title}"</strong>? It will be moved to the Archives section.</p>`,
     confirmLabel: "Archive",
     onConfirm: () => {
-      rep.archived = true;
-      persistData();
-      logActivity("report", `Report "${rep.title}" archived`, "");
-      renderReportList();
-      showToast(`"${rep.title}" archived successfully.`, "success");
+      if (window.api) {
+          window.api.patch(`/financial-reports/${id}`, { archived: true }).then(() => {
+              rep.archived = true;
+              _finishArchive();
+          }).catch(console.warn);
+      } else {
+          rep.archived = true;
+          _finishArchive();
+      }
+
+      function _finishArchive() {
+          persistData();
+          logActivity("report", `Report "${rep.title}" archived`, "");
+          renderReportList();
+          showToast(`"${rep.title}" archived successfully.`, "success");
+      }
     }
   });
 }
