@@ -113,7 +113,7 @@ function wireButtons() {
     const payback = (budget / saving).toFixed(1);
 
     _setText("metric-roi",     roi + "%");
-    _setText("metric-npv",     "$" + Number(npv).toLocaleString());
+    _setText("metric-npv",     "₹" + Number(npv).toLocaleString());
     _setText("metric-payback", payback + " yrs");
 
     const status = roi >= 15 ? "viable" : roi >= 8 ? "marginal" : "not-viable";

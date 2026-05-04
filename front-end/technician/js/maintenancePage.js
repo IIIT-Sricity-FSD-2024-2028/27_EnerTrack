@@ -19,7 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initMaintenance() {
     renderAlertSelector();
-    wireRunDiagnostics();
 
     // Select first active fault by default
     if (TechDB.faults.length) {
@@ -60,48 +59,102 @@ function selectFault(faultId) {
     // Update workspace header
     setEl('workspaceTitle',    `Active Diagnostics · ${fault.alertId}`);
     setEl('workspaceAsset',    fault.asset);
-    setEl('diagnosticFaultType',  fault.type);
-    setEl('diagnosticSeverity',   fault.severity);
-}
+    setEl('diagnosticFaultTypeBadge',  fault.type);
+    
+    const severityEl = document.getElementById('diagnosticSeverityBadge');
+    if (severityEl) {
+        severityEl.textContent = fault.severity;
+        severityEl.className = `badge ${severityClass(fault.severity)}`;
+    }
 
-/* ─── Run diagnostic test button ──────────────────── */
-function wireRunDiagnostics() {
-    const btn = document.getElementById('btnRunDiagnostic');
-    if (!btn) return;
+    // Update Prelim Notes UI
+    if (fault.prelimNotes) {
+        document.getElementById('prelimViewMode').style.display = 'block';
+        document.getElementById('prelimEditMode').style.display = 'none';
+        setEl('prelimSavedText', fault.prelimNotes);
+    } else {
+        document.getElementById('prelimViewMode').style.display = 'none';
+        document.getElementById('prelimEditMode').style.display = 'block';
+        document.getElementById('prelimTextarea').value = '';
+    }
 
-    btn.addEventListener('click', () => {
-        if (!selectedFaultId) {
-            showToast('Select an alert first.', 'warning');
-            return;
-        }
-
-        const loadingSvg = `<svg class="spin" width="14" height="14" style="vertical-align:middle; margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>`;
-        const playSvg = `<svg width="14" height="14" style="vertical-align:middle; margin-right:6px;" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
-
-        btn.innerHTML = `${loadingSvg} Running...`;
-        btn.disabled = true;
-
-        setTimeout(() => {
-            btn.innerHTML = `${playSvg} Run Diagnostic Test`;
-            btn.disabled = false;
-            showToast('Diagnostic test completed. Review results below.', 'success');
-        }, 2000);
-    });
+    // Update Quickfix Notes UI
+    if (fault.quickfixNotes) {
+        document.getElementById('quickfixViewMode').style.display = 'block';
+        document.getElementById('quickfixEditMode').style.display = 'none';
+        setEl('quickfixSavedText', fault.quickfixNotes);
+    } else {
+        document.getElementById('quickfixViewMode').style.display = 'none';
+        document.getElementById('quickfixEditMode').style.display = 'block';
+        document.getElementById('quickfixTextarea').value = '';
+    }
 }
 
 /* ─── Log Resolution & Close ──────────────────────── */
 document.addEventListener('click', e => {
+    // Note Management - Preliminary
+    if (e.target.id === 'btnSavePrelim') {
+        const val = document.getElementById('prelimTextarea').value.trim();
+        if (val && selectedFaultId) {
+            TechDB.updateFault(selectedFaultId, { prelimNotes: val });
+            showToast('Preliminary inspection notes saved.', 'success');
+            selectFault(selectedFaultId);
+        }
+    }
+    if (e.target.id === 'btnEditPrelim') {
+        document.getElementById('prelimViewMode').style.display = 'none';
+        document.getElementById('prelimEditMode').style.display = 'block';
+        document.getElementById('prelimTextarea').value = TechDB.getFault(selectedFaultId).prelimNotes;
+    }
+    if (e.target.id === 'btnDeletePrelim') {
+        if (selectedFaultId) {
+            TechDB.updateFault(selectedFaultId, { prelimNotes: '' });
+            showToast('Notes deleted.', 'info');
+            selectFault(selectedFaultId);
+        }
+    }
+
+    // Note Management - Quick Fix
+    if (e.target.id === 'btnSaveQuickfix') {
+        const val = document.getElementById('quickfixTextarea').value.trim();
+        if (val && selectedFaultId) {
+            TechDB.updateFault(selectedFaultId, { quickfixNotes: val });
+            showToast('Quick fix logic saved.', 'success');
+            selectFault(selectedFaultId);
+        }
+    }
+    if (e.target.id === 'btnEditQuickfix') {
+        document.getElementById('quickfixViewMode').style.display = 'none';
+        document.getElementById('quickfixEditMode').style.display = 'block';
+        document.getElementById('quickfixTextarea').value = TechDB.getFault(selectedFaultId).quickfixNotes;
+    }
+    if (e.target.id === 'btnDeleteQuickfix') {
+        if (selectedFaultId) {
+            TechDB.updateFault(selectedFaultId, { quickfixNotes: '' });
+            showToast('Quick fix logic deleted.', 'info');
+            selectFault(selectedFaultId);
+        }
+    }
+
     // Log Resolution
     if (e.target.id === 'btnLogResolution') {
         if (!selectedFaultId) return;
         openModal({
-            title: 'Log Resolution',
-            bodyHTML: `<p>Confirm fault <strong>${selectedFaultId}</strong> has been resolved and close the diagnostic workspace?</p>`,
-            confirmLabel: 'Log & Close',
+            title: 'Close Fault',
+            bodyHTML: `<p>Confirm quick fix was successful and close fault <strong>${selectedFaultId}</strong>?</p>`,
+            confirmLabel: 'Close Fault',
             onConfirm: () => {
+                const faultToResolve = TechDB.getFault(selectedFaultId);
+                
                 TechDB.updateFault(selectedFaultId, { status: 'resolved' });
                 showToast(`Fault ${selectedFaultId} resolved and logged.`, 'success');
                 renderAlertSelector();
+                
+                // Also resolve the underlying alert if it's still open or acknowledged
+                if (faultToResolve && faultToResolve.alertId) {
+                    TechDB.resolveAlert(faultToResolve.alertId);
+                }
+
                 selectedFaultId = null;
                 setEl('workspaceTitle', 'Select an alert to begin diagnostics.');
             }
@@ -111,20 +164,26 @@ document.addEventListener('click', e => {
     // Flag Scheduled Maintenance
     if (e.target.id === 'btnFlagScheduled') {
         if (!selectedFaultId) return;
-        TechDB.updateFault(selectedFaultId, { repairType: 'scheduled' });
-        showToast('Flagged for scheduled maintenance window.', 'info');
+        const fault = TechDB.getFault(selectedFaultId);
+        openModal({
+            title: 'Setup Scheduled Work Order',
+            bodyHTML: getWOModalHTML(fault, 'scheduled'),
+            confirmLabel: 'Create Work Order',
+            onConfirm: () => handleWOCreation(selectedFaultId, 'scheduled')
+        });
     }
 
     // Flag Immediate Repair
     if (e.target.id === 'btnFlagImmediate') {
         if (!selectedFaultId) return;
-        TechDB.updateFault(selectedFaultId, { repairType: 'immediate' });
-        showToast('Flagged for immediate field repair.', 'warning');
-    }
-
-    // Continue Diagnostics
-    if (e.target.id === 'btnContinueDiagnostics') {
-        showToast('Full diagnostic workflow loaded.', 'info');
+        const fault = TechDB.getFault(selectedFaultId);
+        openModal({
+            title: 'Setup Immediate Repair Work Order',
+            bodyHTML: getWOModalHTML(fault, 'immediate'),
+            confirmLabel: 'Create Urgent Work Order',
+            danger: true,
+            onConfirm: () => handleWOCreation(selectedFaultId, 'immediate')
+        });
     }
 });
 
@@ -137,7 +196,83 @@ function setEl(id, val) {
     else el.textContent = val;
 }
 function severityClass(s) {
-    if (s === 'high') return 'critical';
+    if (s === 'high' || s === 'critical') return 'critical';
     if (s === 'moderate') return 'moderate';
     return 'low';
+}
+
+function getWOModalHTML(fault, type) {
+    const techs = TechDB.getRegisteredUsers().filter(u => u.role === 'Technician' || u.role === 'Technician Administrator');
+    const techOptions = techs.map(t => 
+        `<option value="${t.name}" ${fault.assignedTo === t.name ? 'selected' : ''}>${t.name}</option>`
+    ).join('');
+    
+    // Add default fallback if no techs are registered
+    const finalTechOptions = techOptions || `<option value="Marcus Reed">Marcus Reed</option>`;
+
+    let priorityOptions = `<option value="high" selected>High (Emergency)</option>`;
+    if (type !== 'immediate') {
+        priorityOptions = `
+            <option value="high" ${(fault.severity === 'high' || fault.severity === 'critical') ? 'selected' : ''}>High</option>
+            <option value="medium" ${fault.severity === 'moderate' ? 'selected' : ''}>Medium</option>
+            <option value="low" ${fault.severity === 'low' ? 'selected' : ''}>Low</option>
+        `;
+    }
+
+    return `
+      <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+         <div>
+           <label style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.04em; text-transform:uppercase;">Asset</label>
+           <input type="text" id="modalWOAsset" value="${fault.asset}" readonly style="width:100%; box-sizing: border-box; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; margin-top:6px; font-family:inherit; font-size:14px; color:#475569;">
+         </div>
+         <div style="display: flex; gap: 16px;">
+             <div style="flex: 1;">
+               <label style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.04em; text-transform:uppercase;">Priority</label>
+               <select id="modalWOPriority" style="width:100%; box-sizing: border-box; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; margin-top:6px; font-family:inherit; font-size:14px; color:#0f172a;">
+                 ${priorityOptions}
+               </select>
+             </div>
+             <div style="flex: 1;">
+               <label style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.04em; text-transform:uppercase;">Assignee</label>
+               <select id="modalWOAssignee" style="width:100%; box-sizing: border-box; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; margin-top:6px; font-family:inherit; font-size:14px; color:#0f172a;">
+                 ${finalTechOptions}
+               </select>
+             </div>
+         </div>
+         <div>
+           <label style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.04em; text-transform:uppercase;">Diagnostic Notes to Transfer</label>
+           <textarea id="modalWONotes" style="width:100%; box-sizing: border-box; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; margin-top:6px; font-family:inherit; font-size:14px; min-height: 80px; resize:vertical; color:#0f172a;">${fault.quickfixNotes || fault.prelimNotes || "Diagnostics flagged this fault."}</textarea>
+         </div>
+      </div>
+    `;
+}
+
+function handleWOCreation(faultId, type) {
+    const fault = TechDB.getFault(faultId);
+    if (!fault) return;
+    
+    const priority = document.getElementById('modalWOPriority').value;
+    const assignee = document.getElementById('modalWOAssignee').value;
+    const notes = document.getElementById('modalWONotes').value;
+
+    const wo = {
+        id: "WO-" + Math.floor(Math.random() * 9000 + 1000),
+        title: `${type === 'immediate' ? 'Urgent Repair' : 'Scheduled Maintenance'}: ${fault.asset}`,
+        status: "new",
+        type: type === 'immediate' ? 'emergency' : 'scheduled',
+        priority: priority,
+        technician: assignee,
+        parts: false,
+        asset: fault.asset,
+        linkedFault: faultId,
+        completionNotes: notes
+    };
+    
+    TechDB.addWorkOrder(wo);
+    TechDB.updateFault(faultId, { status: 'flagged', repairType: type });
+    
+    showToast(`Flagged for ${type} repair. Work order created.`, type === 'immediate' ? 'warning' : 'info');
+    renderAlertSelector();
+    selectedFaultId = null;
+    setEl('workspaceTitle', 'Select an alert to begin diagnostics.');
 }

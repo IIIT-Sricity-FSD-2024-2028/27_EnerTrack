@@ -75,47 +75,62 @@
           <h2 id="workspaceTitle">Select an alert to begin diagnostics</h2>
           <small id="workspaceAsset" class="sub"></small>
         </div>
-        <button class="btn btn-dark" id="btnRunDiagnostic">▶ Run Diagnostic Test</button>
       </div>
 
       <div class="main-grid">
 
         <!-- LEFT: Checklist + Quick fix -->
         <div>
-          <div class="card">
-            <b>1. Preliminary inspection checklist</b>
-            <ul class="checklist">
-              <li><span class="check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Verified alert source and matched timestamp to telemetry burst.</li>
-              <li><span class="check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Confirmed no planned maintenance was active during the anomaly window.</li>
-              <li><span class="check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Inspected cooling intake and exhaust path for obstructions.</li>
-              <li><span class="check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Compared operator notes with current warning pattern and runtime load.</li>
-            </ul>
+          <div class="card detail-card">
+            <h3 class="section-title">1. Preliminary Inspection Notes</h3>
+            <p class="section-desc">Document initial findings, environmental factors, and baseline checks before attempting repairs.</p>
+            
+            <div id="prelimViewMode" style="display: none; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+               <div style="font-size: 14px; color: #1e293b; white-space: pre-wrap; margin-bottom: 12px;" id="prelimSavedText"></div>
+               <div style="display: flex; gap: 8px;">
+                 <button class="btn btn-light" id="btnEditPrelim" style="padding: 6px 12px; font-size: 12px;">Edit</button>
+                 <button class="btn btn-red" id="btnDeletePrelim" style="padding: 6px 12px; font-size: 12px; border: none;">Delete</button>
+               </div>
+            </div>
+
+            <div id="prelimEditMode">
+              <textarea class="diag-textarea" id="prelimTextarea" placeholder="e.g., Confirmed no planned maintenance was active. Inspected cooling intake and exhaust path for obstructions..."></textarea>
+              <div class="action-bar mt-16">
+                 <button class="btn btn-dark" id="btnSavePrelim">Save Notes</button>
+              </div>
+            </div>
           </div>
 
-          <div class="card">
-            <b>2. Quick fix attempt</b>
-            <div class="greenbox">
-              Executed cooling line purge and controller reset. System temperature dropped briefly, then returned above operating range after 3 minutes.
+          <div class="card detail-card">
+            <h3 class="section-title">2. Quick Fix Attempt</h3>
+            <p class="section-desc">Record any immediate actions taken and their specific outcome logic.</p>
+            
+            <div id="quickfixViewMode" style="display: none; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+               <div style="font-size: 14px; color: #1e293b; white-space: pre-wrap; margin-bottom: 12px;" id="quickfixSavedText"></div>
+               <div style="display: flex; gap: 8px;">
+                 <button class="btn btn-light" id="btnEditQuickfix" style="padding: 6px 12px; font-size: 12px;">Edit</button>
+                 <button class="btn btn-red" id="btnDeleteQuickfix" style="padding: 6px 12px; font-size: 12px; border: none;">Delete</button>
+               </div>
             </div>
 
-            <div class="card sub-card">
-              <b>If issue resolves</b>
-              <div class="note-small">Log the quick fix, close the alert, and return equipment to monitored status.</div>
-              <button class="btn btn-light btn-full" id="btnLogResolution">Log Resolution & Close</button>
+            <div id="quickfixEditMode">
+              <textarea class="diag-textarea" id="quickfixTextarea" placeholder="e.g., Executed cooling line purge and controller reset. Temperature dropped briefly, then returned above operating range after 3 minutes, indicating persistent mechanical friction."></textarea>
+              <div class="action-bar mt-16" style="margin-bottom: 24px;">
+                 <button class="btn btn-dark" id="btnSaveQuickfix">Save Quick Fix Logic</button>
+              </div>
             </div>
-
-            <div class="card sub-card">
-              <b>If issue remains</b>
-              <div class="note-small">Continue into the full diagnostics workflow and run the formal test sequence.</div>
-              <button class="btn btn-dark btn-full" id="btnContinueDiagnostics">Continue Diagnostics</button>
+            
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 24px;">
+              <button class="btn btn-light btn-full" id="btnLogResolution">Quick Fix Successful — Close Fault</button>
             </div>
           </div>
         </div>
 
         <!-- RIGHT: Data review + Result -->
         <div>
-          <div class="card">
-            <b>3. Review supporting data</b>
+          <div class="card detail-card">
+            <h3 class="section-title">3. Review Supporting Data</h3>
+            <p class="section-desc">Historical and real-time telemetry from the asset.</p>
             <div class="small-grid">
               <div class="small-card">
                 <b>Performance Metrics</b>
@@ -142,23 +157,23 @@
           </div>
 
           <!-- Diagnostic Result -->
-          <div class="card">
-            <b>4. Diagnostic result</b>
+          <div class="card detail-card">
+            <h3 class="section-title">4. Fault Classification</h3>
             <div class="result-box">
               <div class="result-header">
-                <b>Fault Confirmed</b>
-                <span class="badge critical">Selected path</span>
+                <b>Classification Result</b>
+                <span class="badge critical">Requires Action</span>
               </div>
-              <div class="note-small" style="margin-bottom:12px;">Diagnostic output indicates a real mechanical issue. Classify the fault and route the repair correctly.</div>
+              <div class="note-small" style="margin-bottom:12px;">Classify the fault based on findings and route the repair correctly.</div>
 
               <div class="fault-grid">
                 <div class="fault-card">
                   <b>Fault Type</b>
-                  <div class="fault-tag" id="diagnosticFaultType">Cooling system failure</div>
+                  <span class="badge low" id="diagnosticFaultTypeBadge" style="background:#f1f5f9; color:#475569; border: 1px solid #e2e8f0;">Cooling system failure</span>
                 </div>
                 <div class="fault-card">
                   <b>Severity</b>
-                  <div class="fault-tag" id="diagnosticSeverity">high</div>
+                  <span class="badge" id="diagnosticSeverityBadge">high</span>
                 </div>
               </div>
 

@@ -21,6 +21,13 @@ function initAlerts() {
     renderQueue();
     renderHistoryLog();
 
+    window.resolveAlertFn = function(id) {
+        TechDB.resolveAlert(id);
+        showToast(`Alert ${id} resolved.`, 'success');
+        renderQueue();
+        renderHistoryLog();
+    };
+
     // Select first open alert by default
     const firstOpen = TechDB.alerts.find(a => a.status === 'open');
     if (firstOpen) selectAlert(firstOpen.id);
@@ -57,15 +64,25 @@ function renderHistoryLog() {
     const tbody = document.getElementById('historyLogBody');
     if (!tbody) return;
 
-    const resolved = TechDB.alerts.filter(a => a.status === 'resolved');
-    tbody.innerHTML = resolved.map(a => `
+    const historyAlerts = TechDB.alerts.filter(a => a.status === 'acknowledged' || a.status === 'resolved');
+    
+    // Sort by severity (critical > moderate > low) then by original array order (which represents time loosely here)
+    const sevScore = { 'critical': 3, 'moderate': 2, 'low': 1 };
+    historyAlerts.sort((a, b) => sevScore[b.severity] - sevScore[a.severity]);
+
+    tbody.innerHTML = historyAlerts.map(a => `
         <tr>
             <td>${a.id}</td>
             <td>${a.description}</td>
             <td><span class="badge ${a.severity}">${cap(a.severity)}</span></td>
             <td>${a.timestamp}</td>
             <td>${a.actionTaken || '—'}</td>
-            <td><span class="badge resolved">Resolved</span></td>
+            <td>
+                ${a.status === 'resolved' 
+                    ? `<span class="badge resolved">Resolved</span>`
+                    : `<button class="btn btn-dark" style="padding: 4px 10px; font-size: 11px;" onclick="window.resolveAlertFn('${a.id}')">Resolve</button>`
+                }
+            </td>
         </tr>
     `).join('');
 }
@@ -100,11 +117,21 @@ function selectAlert(id) {
     if (btnAcknowledge) {
         btnAcknowledge.onclick = () => {
             openModal({
-                title: 'Acknowledge Alert',
-                bodyHTML: `<p>Are you sure you want to acknowledge <strong>${id}</strong> without further escalation?</p>`,
-                confirmLabel: 'Acknowledge',
+                title: 'Resolve Alert',
+                bodyHTML: `<p>Are you sure you want to resolve <strong>${id}</strong>?</p>`,
+                confirmLabel: 'Resolve',
                 cancelLabel: 'Cancel',
-                onConfirm: () => acknowledgeAlert(id, 'Acknowledged — No further action')
+                onConfirm: () => {
+                    window.resolveAlertFn(id);
+                    
+                    const next = TechDB.alerts.find(a => a.status === 'open');
+                    if (next) selectAlert(next.id);
+                    else {
+                        setEl('detailAlertId', 'No open alerts');
+                        setEl('detailSeverityBadge', '');
+                        setEl('detailDescription', 'All alerts have been resolved or acknowledged.');
+                    }
+                }
             });
         };
     }

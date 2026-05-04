@@ -25,6 +25,8 @@ export function renderInvoiceList(filter = {}) {
   if (filter.department && filter.department !== "all") {
     records = records.filter(r => r.department === filter.department);
   }
+  // Exclude archived
+  records = records.filter(r => !r.archived);
 
   if (records.length === 0) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:32px">No invoices found.</td></tr>`;
@@ -45,6 +47,7 @@ export function renderInvoiceList(filter = {}) {
           <button class="action-btn btn-view"   onclick="InvoiceModule.viewInvoice('${inv.id}')">View</button>
           ${can("edit")   ? `<button class="action-btn btn-edit"    onclick="InvoiceModule.editInvoice('${inv.id}')">Edit</button>` : ""}
           ${can("approve") && inv.status === "pending" ? `<button class="action-btn btn-approve" onclick="InvoiceModule.approveInvoice('${inv.id}')">Approve</button>` : ""}
+          ${inv.status === "approved" ? `<button class="action-btn btn-export" onclick="InvoiceModule.archiveInvoice('${inv.id}')">Archive</button>` : ""}
         </div>
         ${can("delete") ? `<button class="action-btn btn-delete"  onclick="InvoiceModule.deleteInvoice('${inv.id}')">Delete</button>` : ""}
       </td>
@@ -100,7 +103,7 @@ export function openAddInvoiceModal() {
         </div>
         <div class="fm-row">
           <div class="fm-group">
-            <label>Amount ($) *</label>
+            <label>Amount (₹) *</label>
             <input id="fi-amount" type="number" placeholder="0" min="1">
           </div>
           <div class="fm-group">
@@ -243,7 +246,7 @@ export function editInvoice(id) {
         </div>
         <div class="fm-row">
           <div class="fm-group">
-            <label>Amount ($) *</label>
+            <label>Amount (₹) *</label>
             <input id="ei-amount" type="number" value="${inv.amount}" min="1">
           </div>
           <div class="fm-group">
@@ -368,6 +371,27 @@ export function approveInvoice(id) {
   });
 }
 
+/* ── ARCHIVE ──────────────────────────────────────── */
+
+export function archiveInvoice(id) {
+  const inv = FinanceDB.invoices.find(i => i.id === id);
+  if (!inv) return;
+
+  openModal({
+    title: "Archive Invoice",
+    bodyHTML: `<p>Archive invoice <strong>${inv.invoiceNumber}</strong>? It will be moved to the Archives section.</p>`,
+    confirmLabel: "Archive",
+    onConfirm: () => {
+      inv.archived = true;
+      persistData();
+      logActivity("invoice", `Invoice ${inv.invoiceNumber} archived`, `Vendor: ${inv.vendor}`);
+      renderInvoiceList();
+      updateInvoiceSummary();
+      showToast(`Invoice ${inv.invoiceNumber} archived.`, "success");
+    }
+  });
+}
+
 /* ── DELETE ───────────────────────────────────────── */
 
 export function deleteInvoice(id) {
@@ -394,7 +418,7 @@ export function deleteInvoice(id) {
 /* ── SUMMARY STATS ────────────────────────────────── */
 
 export function updateInvoiceSummary() {
-  const all = FinanceDB.invoices;
+  const all = FinanceDB.invoices.filter(i => !i.archived);
   const total   = all.reduce((s, i) => s + i.amount, 0);
   const pending = all.filter(i => i.status === "pending").length;
   const overdue = all.filter(i => i.status === "overdue").length;
@@ -410,6 +434,6 @@ function _setText(id, val) {
 }
 
 /* ── EXPORT NAMESPACE ─────────────────────────────── */
-const InvoiceModule = { renderInvoiceList, viewInvoice, openAddInvoiceModal, editInvoice, approveInvoice, deleteInvoice, updateInvoiceSummary };
+const InvoiceModule = { renderInvoiceList, viewInvoice, openAddInvoiceModal, editInvoice, approveInvoice, deleteInvoice, archiveInvoice, updateInvoiceSummary };
 window.InvoiceModule = InvoiceModule;
 export default InvoiceModule;
