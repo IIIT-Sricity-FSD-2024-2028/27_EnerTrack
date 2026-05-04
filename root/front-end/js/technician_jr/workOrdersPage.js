@@ -131,8 +131,7 @@ function selectWorkOrder(id) {
             actionPanelTitle.textContent = "Work Order Assignment";
             
             let techOptions = '<option value="">-- Return to System Admin --</option>';
-            const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-            registeredUsers.forEach(u => {
+            TechDB.getRegisteredUsers().forEach(u => {
                 if ((u.role === 'Technician' || u.role === 'Technician Administrator') && u.name !== currentUser.name) {
                     techOptions += `<option value="${u.name}">${u.name}</option>`;
                 }

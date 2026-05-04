@@ -1,117 +1,179 @@
 /*
- * mockData.js — Pre-defined users for each role.
- * Used by both sign_in.js and sign_up.js for authentication.
- *
- * Structure: array of user objects with email, password, name, phone, and role.
- * On sign-up, new users are saved to localStorage under "registeredUsers".
- * On sign-in, the system checks both this mock data AND localStorage.
+ * mockData.js - universal user source for EnerTrack authentication.
+ * Admin, sign-up, and sign-in all read and write this same localStorage-backed
+ * UniversalDB user list.
  */
 
-var MOCK_USERS = [
-    {
-        name: "Aadithya",
-        email: "aadi@gmail.com",
-        phone: "9876543210",
-        password: "Aadi@123",
-        role: "System Admin"
-    },
-    {
-        name: "Husaam",
-        email: "husaam@gmail.com",
-        phone: "9876543211",
-        password: "Husaam@123",
-        role: "Financial Analyst"
-    },
-    {
-        name: "Chirag",
-        email: "chirag@gmail.com",
-        phone: "9876543212",
-        password: "Chirag@123",
-        role: "Technician Administrator"
-    },
-    {
-        name: "Teja",
-        email: "Teja@gmail.com",
-        phone: "9876543214",
-        password: "Teja@123",
-        role: "Technician"
-    },
-    {
-        name: "Trishank",
-        email: "Trishank@gmail.com",
-        phone: "9876543215",
-        password: "Trishank@123",
-        role: "Campus Visitor"
-    },
-    {
-        name: "Viksa",
-        email: "viksa@gmail.com",
-        phone: "9876543213",
-        password: "Viksa@123",
-        role: "Sustainability Officer"
-    }
-];
+import universalDB from "./universalDB.js";
 
-/*
- * getRegisteredUsers — Retrieves users saved via sign-up from sessionStorage.
- */
-function getRegisteredUsers() {
-    var stored = localStorage.getItem("registeredUsers");
-    if (stored) {
-        try { return JSON.parse(stored); }
-        catch (e) { return []; }
-    }
-    return [];
+export let users = universalDB.data.users;
+
+function syncUsers(nextUsers) {
+    users = nextUsers;
+    universalDB.data.users = users;
+    universalDB.save();
 }
 
-/*
- * saveRegisteredUser — Adds a new user to sessionStorage.
- */
-function saveRegisteredUser(user) {
-    var users = getRegisteredUsers();
-    users.push(user);
-    localStorage.setItem("registeredUsers", JSON.stringify(users));
+function createUserId() {
+    return "user-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
 }
 
-/*
- * findUser — Looks up a user by email and password across
- * both mock data and sessionStorage.
- * Returns the matching user object or null.
- */
-function findUser(email, password) {
-    var allUsers = MOCK_USERS.concat(getRegisteredUsers());
-    for (var i = 0; i < allUsers.length; i++) {
-        if (allUsers[i].email.toLowerCase() === email.toLowerCase() &&
-            allUsers[i].password === password) {
-            return allUsers[i];
+function normalizeEmail(email) {
+    return String(email || "").trim().toLowerCase();
+}
+
+function mockHashPassword(password) {
+    return "hashed_" + btoa(password).substring(0, 10);
+}
+
+function cloneUser(user) {
+    return JSON.parse(JSON.stringify(user));
+}
+
+function repairDemoPasswords() {
+    const demoPasswords = {
+        "user-001": "Aadi@123",
+        "user-002": "Teja@123",
+        "user-003": "Chirag@123",
+        "user-004": "Husaam@123",
+        "user-005": "Viksa@123"
+    };
+
+    let changed = false;
+    users.forEach((user) => {
+        if (user.password === "hashed_password_mock" && demoPasswords[user.user_id]) {
+            user.password = demoPasswords[user.user_id];
+            changed = true;
         }
-    }
-    return null;
+    });
+
+    if (changed) syncUsers(users);
 }
 
-/*
- * isEmailTaken — Checks if an email is already registered
- * in mock data or sessionStorage.
- */
-function isEmailTaken(email) {
-    var allUsers = MOCK_USERS.concat(getRegisteredUsers());
-    for (var i = 0; i < allUsers.length; i++) {
-        if (allUsers[i].email.toLowerCase() === email.toLowerCase()) {
-            return true;
+function repairDemoEmails() {
+    const demoEmails = {
+        "user-001": "aadithya@gmail.com",
+        "user-002": "teja@gmail.com",
+        "user-003": "chirag@gmail.com",
+        "user-004": "husaam@gmail.com",
+        "user-005": "viksa@gmail.com"
+    };
+
+    let changed = false;
+    users.forEach((user) => {
+        if (demoEmails[user.user_id] && /@enertrack\.edu$/i.test(user.email || "")) {
+            user.email = demoEmails[user.user_id];
+            changed = true;
         }
-    }
-    return false;
+    });
+
+    if (changed) syncUsers(users);
 }
 
-/*
- * isPhoneTaken — Checks if a phone number is already registered.
- */
-function isPhoneTaken(phone) {
-    var allUsers = MOCK_USERS.concat(getRegisteredUsers());
-    for (var i = 0; i < allUsers.length; i++) {
-        if (allUsers[i].phone === phone) {
-            return true;
-        }
+function migrateRegisteredUsers() {
+    const stored = localStorage.getItem("registeredUsers");
+    if (!stored) return;
+
+    try {
+        const registeredUsers = JSON.parse(stored);
+        if (!Array.isArray(registeredUsers)) return;
+
+        let changed = false;
+        registeredUsers.forEach((user) => {
+            const email = normalizeEmail(user.email);
+            if (!email || users.some((existing) => normalizeEmail(existing.email) === email)) return;
+
+            users.push({
+                user_id: user.user_id || createUserId(),
+                name: user.name,
+                email,
+                phone: user.phone || null,
+                password: user.password,
+                role: user.role,
+                specialization: user.specialization || null
+            });
+            changed = true;
+        });
+
+        if (changed) syncUsers(users);
+        localStorage.removeItem("registeredUsers");
+    } catch (e) {
+        console.error("mockData: Failed to migrate registered users", e);
     }
-    return false;
 }
+
+repairDemoPasswords();
+repairDemoEmails();
+migrateRegisteredUsers();
+
+export const userActions = {
+    getAllUsers() {
+        users = universalDB.data.users;
+        return users.map(cloneUser);
+    },
+
+    addUser(userData) {
+        const user = {
+            user_id: userData.user_id || userData.id || createUserId(),
+            name: userData.name,
+            email: normalizeEmail(userData.email),
+            phone: userData.phone || null,
+            password: userData.password,
+            role: userData.role,
+            specialization: userData.specialization || null
+        };
+
+        users = universalDB.data.users;
+        users.push(user);
+        syncUsers(users);
+        return cloneUser(user);
+    },
+
+    deleteUser(id) {
+        users = universalDB.data.users;
+        const beforeCount = users.length;
+        syncUsers(users.filter((user) => user.user_id !== id && user.id !== id));
+        return users.length !== beforeCount;
+    },
+
+    authenticate(username, password) {
+        const normalizedUsername = normalizeEmail(username);
+        users = universalDB.data.users;
+
+        const found = users.find((user) => {
+            const emailMatches = normalizeEmail(user.email) === normalizedUsername;
+            const passwordMatches = user.password === password || user.password === mockHashPassword(password);
+            return emailMatches && passwordMatches;
+        });
+
+        return found ? cloneUser(found) : null;
+    }
+};
+
+export function getRegisteredUsers() {
+    return userActions.getAllUsers();
+}
+
+export function saveRegisteredUser(user) {
+    return userActions.addUser(user);
+}
+
+export function findUser(email, password) {
+    return userActions.authenticate(email, password);
+}
+
+export function isEmailTaken(email) {
+    const normalizedEmail = normalizeEmail(email);
+    return userActions.getAllUsers().some((user) => normalizeEmail(user.email) === normalizedEmail);
+}
+
+export function isPhoneTaken(phone) {
+    return userActions.getAllUsers().some((user) => user.phone && user.phone === phone);
+}
+
+window.userActions = userActions;
+window.getRegisteredUsers = getRegisteredUsers;
+window.saveRegisteredUser = saveRegisteredUser;
+window.findUser = findUser;
+window.isEmailTaken = isEmailTaken;
+window.isPhoneTaken = isPhoneTaken;

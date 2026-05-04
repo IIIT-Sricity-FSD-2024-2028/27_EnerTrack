@@ -1,3 +1,5 @@
+import { isEmailTaken, isPhoneTaken, saveRegisteredUser } from "../shared/mockData.js";
+
 (function () {
     "use strict";
 
@@ -473,10 +475,10 @@
             password: passwordInput.value,
             role:     roleSelect.value
         };
-        saveRegisteredUser(newUser);
+        var savedUser = saveRegisteredUser(newUser);
 
         /* Save current user to localStorage for persistence */
-        localStorage.setItem("currentUser", JSON.stringify(newUser));
+        localStorage.setItem("currentUser", JSON.stringify(savedUser));
 
         /* Redirect to landing page */
         window.location.href = "../landing/landing.html";

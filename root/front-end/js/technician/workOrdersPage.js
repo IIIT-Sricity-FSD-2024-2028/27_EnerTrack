@@ -24,24 +24,7 @@ function populateTechnicianDropdown() {
     const select = document.getElementById('inputTechnician');
     const reassignSelect = document.getElementById('reassignTechSelect');
 
-    // Seed known technicians into registeredUsers if not already present
-    const KNOWN_TECHNICIANS = [
-        { name: 'Teja', email: 'teja@gmail.com', phone: '9876543214', password: 'Teja@123', role: 'Technician' }
-    ];
-
-    let registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    let dirty = false;
-    KNOWN_TECHNICIANS.forEach(kt => {
-        if (!registeredUsers.some(u => u.email.toLowerCase() === kt.email.toLowerCase())) {
-            registeredUsers.push(kt);
-            dirty = true;
-        }
-    });
-    if (dirty) {
-        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-    }
-
-    const techs = registeredUsers.filter(u =>
+    const techs = TechDB.getRegisteredUsers().filter(u =>
         u.role === 'Technician' || u.role === 'Technician Administrator'
     );
 

@@ -14,11 +14,11 @@ const defaultData = {
 
     // ── GLOBAL DB TABLES (Aligned with ERD) ─────────────────
     users: [
-        { user_id: "user-001", name: "Aadithya Mouli", email: "aadithya@enertrack.edu", phone: "+1 555-0100", password: "hashed_password_mock", role: "System Administrator", specialization: null },
-        { user_id: "user-002", name: "Teja Rao", email: "teja@enertrack.edu", phone: "+1 555-0101", password: "hashed_password_mock", role: "Technician", specialization: "HVAC Systems" },
-        { user_id: "user-003", name: "Chirag", email: "chirag@enertrack.edu", phone: "+1 555-0102", password: "hashed_password_mock", role: "Technician", specialization: "Electrical Engineering" },
-        { user_id: "user-004", name: "Husaam", email: "husaam@enertrack.edu", phone: "+1 555-0103", password: "hashed_password_mock", role: "Financial Analyst", specialization: null },
-        { user_id: "user-005", name: "Viksa", email: "viksa@enertrack.edu", phone: "+1 555-0104", password: "hashed_password_mock", role: "Sustainability Officer", specialization: null }
+        { user_id: "user-001", name: "Aadithya Mouli", email: "aadithya@gmail.com", phone: "+1 555-0100", password: "Aadi@123", role: "System Administrator", specialization: null },
+        { user_id: "user-002", name: "Teja ", email: "teja@gmail.com", phone: "+1 555-0101", password: "Teja@123", role: "Technician", specialization: "HVAC Systems" },
+        { user_id: "user-003", name: "Chirag", email: "chirag@gmail.com", phone: "+1 555-0102", password: "Chirag@123", role: "Technician", specialization: "Electrical Engineering" },
+        { user_id: "user-004", name: "Husaam", email: "husaam@gmail.com", phone: "+1 555-0103", password: "Husaam@123", role: "Financial Analyst", specialization: null },
+        { user_id: "user-005", name: "Viksa", email: "viksa@gmail.com", phone: "+1 555-0104", password: "Viksa@123", role: "Sustainability Officer", specialization: null }
     ],
     campuses: [
         { campus_id: "campus-001", name: "Main University Campus", location: "City Center", total_budget: 1500000.00 }

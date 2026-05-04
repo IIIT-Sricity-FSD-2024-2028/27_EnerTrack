@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
       mutator(nextState);
       this.state = nextState;
       saveAdminState(this.state);
+      this.state = getAdminState();
       this.render();
       if (message) showToast(message, "success");
     },

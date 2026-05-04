@@ -1,3 +1,5 @@
+import { userActions } from "../shared/mockData.js";
+
 (function () {
     "use strict";
 
@@ -16,6 +18,9 @@
     function clearError(el) {
         el.textContent = "";
         el.style.display = "none";
+    }
+    function isGmailAddress(email) {
+        return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(String(email || "").trim());
     }
 
     /* ───────── Password toggle ───────── */
@@ -48,13 +53,17 @@
             showError(emailError, "Email is required.");
             return;
         }
+        if (!isGmailAddress(email)) {
+            showError(emailError, "Only gmail.com email addresses are allowed.");
+            return;
+        }
         if (password.length === 0) {
             showError(passwordError, "Password is required.");
             return;
         }
 
-        /* Look up user in mockData + sessionStorage */
-        var user = findUser(email, password);
+        /* Look up user in the universal user store. */
+        var user = userActions.authenticate(email, password);
 
         if (!user) {
             showError(passwordError, "Invalid email or password.");
@@ -65,7 +74,9 @@
         localStorage.setItem("currentUser", JSON.stringify(user));
 
         /* Smart redirect based on role */
-        if (user.role === "Campus Visitor") {
+        if (user.role === "System Administrator" || user.role === "System Admin") {
+            window.location.href = "../system_admin/system_admin_overview.html";
+        } else if (user.role === "Campus Visitor") {
             window.location.href = "../enduser/enduser_dashboard.html";
         } else if (user.role === "Technician") {
             window.location.href = "../technician_jr/technician_jr_work_orders.html";

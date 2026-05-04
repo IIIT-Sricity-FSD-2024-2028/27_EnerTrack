@@ -142,6 +142,7 @@ button {
     color: #ffffff;
 }
 
+.profile,
 .profile-card {
     display: flex;
     align-items: center;
@@ -150,8 +151,17 @@ button {
     border: 1px solid rgba(17, 24, 39, 0.08);
     border-radius: 10px;
     padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
+.profile:hover,
+.profile-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.profile img,
 .profile-img {
     width: 36px;
     height: 36px;
@@ -160,21 +170,17 @@ button {
     background: #e5e7eb;
 }
 
-.profile-info {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
+.profile-name,
 .profile-info strong {
     font-size: 14px;
     line-height: 1.25;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
+.profile-role,
 .profile-info span {
     color: var(--muted);
     font-size: 12px;

@@ -14,7 +14,7 @@ class TechDB {
   get technicians() { return universalDB.data.workflow.technicians; }
   
   getRegisteredUsers() {
-    return JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    return universalDB.data.users;
   }
 
   save() {

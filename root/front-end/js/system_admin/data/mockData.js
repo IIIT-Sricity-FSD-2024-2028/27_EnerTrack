@@ -23,11 +23,12 @@ const EnerTrackDB = {
 export default EnerTrackDB;*/
 
 import universalDB from '../../shared/universalDB.js';
+import { userActions } from '../../shared/mockData.js';
 
 export function getAdminState() {
   return {
     session: universalDB.data.session,
-    users: universalDB.data.users,
+    users: userActions.getAllUsers(),
     campuses: universalDB.data.campuses,
     buildings: universalDB.data.buildings,
     meters: universalDB.data.meters
@@ -36,12 +37,13 @@ export function getAdminState() {
 
 export function saveAdminState(state) {
   universalDB.data.session = state.session;
-  universalDB.data.users = state.users;
   universalDB.data.campuses = state.campuses;
   universalDB.data.buildings = state.buildings;
   universalDB.data.meters = state.meters;
   universalDB.save();
 }
+
+export { userActions };
 
 export function resetAdminState() {
   universalDB.reset();
