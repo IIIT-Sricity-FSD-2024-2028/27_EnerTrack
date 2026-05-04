@@ -1,1 +1,0 @@
-{"version":3,"file":"current-role.decorator.js","sourceRoot":"","sources":["../../../src/core/decorators/current-role.decorator.ts"],"names":[],"mappings":";;;AAAA,2CAAwE;AAC3D,QAAA,WAAW,GAAG,IAAA,6BAAoB,EAC7C,CAAC,IAAa,EAAE,GAAqB,EAAE,EAAE;IACvC,MAAM,OAAO,GAAG,GAAG,CAAC,YAAY,EAAE,CAAC,UAAU,EAAE,CAAC;IAChD,OAAO,OAAO,CAAC,OAAO,CAAC,aAAa,CAAC,IAAI,sBAAsB,CAAC;AAClE,CAAC,CACF,CAAC"}
