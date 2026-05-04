@@ -36,7 +36,7 @@ export function formatLabel(value) {
     gas: "Gas",
     emissions: "Emissions",
     food: "Food",
-    smartMeter: "Smart Meter"
+    smartMeter: "Smart Meter",
   };
 
   return labels[value] || value;
@@ -66,7 +66,14 @@ export function showToast(message, type = "info", duration = 3000) {
   }, duration);
 }
 
-export function openModal({ title, bodyHtml, confirmLabel = "Save", cancelLabel = "Cancel", danger = false, onConfirm }) {
+export function openModal({
+  title,
+  bodyHtml,
+  confirmLabel = "Save",
+  cancelLabel = "Cancel",
+  danger = false,
+  onConfirm,
+}) {
   closeModal();
 
   const overlay = document.createElement("div");
@@ -97,11 +104,15 @@ export function openModal({ title, bodyHtml, confirmLabel = "Save", cancelLabel 
   overlay.addEventListener("click", (event) => {
     if (event.target === overlay) closeModal();
   });
-  overlay.querySelector("[data-modal-cancel]")?.addEventListener("click", closeModal);
-  overlay.querySelector("[data-modal-confirm]")?.addEventListener("click", () => {
-    const shouldClose = onConfirm ? onConfirm(overlay) : true;
-    if (shouldClose !== false) closeModal();
-  });
+  overlay
+    .querySelector("[data-modal-cancel]")
+    ?.addEventListener("click", closeModal);
+  overlay
+    .querySelector("[data-modal-confirm]")
+    ?.addEventListener("click", () => {
+      const shouldClose = onConfirm ? onConfirm(overlay) : true;
+      if (shouldClose !== false) closeModal();
+    });
 
   document.addEventListener("keydown", handleKeydown, { once: true });
 }
@@ -114,8 +125,8 @@ export function formValues(modal, selectors) {
   return Object.fromEntries(
     Object.entries(selectors).map(([key, selector]) => [
       key,
-      modal.querySelector(selector)?.value?.trim() ?? ""
-    ])
+      modal.querySelector(selector)?.value?.trim() ?? "",
+    ]),
   );
 }
 
@@ -133,6 +144,6 @@ export function formatCurrency(value) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(Number(value || 0));
 }

@@ -33,7 +33,9 @@ function syncChrome(app) {
   let user = app.state.session?.user || null;
   const currentUserData = localStorage.getItem("currentUser");
   if (currentUserData) {
-    try { user = JSON.parse(currentUserData); } catch (_) {}
+    try {
+      user = JSON.parse(currentUserData);
+    } catch (_) {}
   }
   if (!user) return; // nothing to render yet
 
@@ -46,11 +48,14 @@ function syncChrome(app) {
     "pageSubheading",
     app.activeTab === "infrastructure"
       ? "Maintain campuses, buildings, departments, and meter inventory."
-      : "Manage campus users, roles, and login access."
+      : "Manage campus users, roles, and login access.",
   );
 
   document.querySelectorAll("[data-admin-tab]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.adminTab === app.activeTab);
+    button.classList.toggle(
+      "active",
+      button.dataset.adminTab === app.activeTab,
+    );
   });
 }
 
@@ -64,4 +69,3 @@ function setText(id, value) {
   const node = document.getElementById(id);
   if (node) node.textContent = value;
 }
-

@@ -4,10 +4,10 @@
  * Data: fetched from backend /energy-costs (DTO), hydrated into universalDB.data.finance
  */
 
-import FinanceDB     from "./data/mockData.js";
+import FinanceDB from "./data/mockData.js";
 import SessionModule from "./modules/session.js";
-import CostModule    from "./modules/energyCosts.js";
-import universalDB   from "../shared/universalDB.js";
+import CostModule from "./modules/energyCosts.js";
+import universalDB from "../shared/universalDB.js";
 
 document.addEventListener("DOMContentLoaded", async () => {
   window.FinanceDB = FinanceDB;
@@ -16,13 +16,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (window.api) {
     try {
       const [energyCosts, invoices] = await Promise.all([
-        window.api.get('/energy-costs').catch(() => null),
-        window.api.get('/invoices').catch(() => null)
+        window.api.get("/energy-costs").catch(() => null),
+        window.api.get("/invoices").catch(() => null),
       ]);
-      if (Array.isArray(energyCosts)) universalDB.data.finance.energyCosts = energyCosts;
-      if (Array.isArray(invoices))    universalDB.data.finance.invoices    = invoices;
+      if (Array.isArray(energyCosts))
+        universalDB.data.finance.energyCosts = energyCosts;
+      if (Array.isArray(invoices)) universalDB.data.finance.invoices = invoices;
     } catch (err) {
-      console.warn('[Finance] Backend fetch failed, using local data:', err.message);
+      console.warn(
+        "[Finance] Backend fetch failed, using local data:",
+        err.message,
+      );
     }
   }
 
@@ -37,7 +41,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   populateScopeDropdown();
 });
 
-
 /* ── SCOPE DROPDOWN ───────────────────────────────── */
 
 function populateScopeDropdown() {
@@ -46,20 +49,27 @@ function populateScopeDropdown() {
   if (!scopeSel || !periodSel) return;
 
   // Unique periods
-  const periods = [...new Set(FinanceDB.energyCosts.map(c => c.period))].sort().reverse();
-  periodSel.innerHTML = `<option value="">All Periods</option>` +
-    periods.map(p => `<option value="${p}">${p}</option>`).join("");
+  const periods = [...new Set(FinanceDB.energyCosts.map((c) => c.period))]
+    .sort()
+    .reverse();
+  periodSel.innerHTML =
+    `<option value="">All Periods</option>` +
+    periods.map((p) => `<option value="${p}">${p}</option>`).join("");
 }
 
 /* ── FILTERS ──────────────────────────────────────── */
 
 function wireFilters() {
-  document.getElementById("filter-scope")?.addEventListener("change",  applyFilters);
-  document.getElementById("filter-period")?.addEventListener("change", applyFilters);
+  document
+    .getElementById("filter-scope")
+    ?.addEventListener("change", applyFilters);
+  document
+    .getElementById("filter-period")
+    ?.addEventListener("change", applyFilters);
 }
 
 function applyFilters() {
-  const scope  = document.getElementById("filter-scope")?.value  ?? "all";
+  const scope = document.getElementById("filter-scope")?.value ?? "all";
   const period = document.getElementById("filter-period")?.value ?? "";
   CostModule.renderCostTable({ scope, period });
 }
@@ -83,8 +93,12 @@ function wireButtons() {
       showToast("Triggering campus consumption sweep...", "info", 1500);
 
       setTimeout(() => {
-        showToast("Synchronizing with Building Management Systems...", "info", 1500);
-        
+        showToast(
+          "Synchronizing with Building Management Systems...",
+          "info",
+          1500,
+        );
+
         setTimeout(() => {
           // Perform the ±2% variance simulation
           _runSimulation();
@@ -93,7 +107,10 @@ function wireButtons() {
           DashboardState.isPending = false;
           CostModule.updateCostSummary();
 
-          showToast("Financial calculation complete. Charts updated.", "success");
+          showToast(
+            "Financial calculation complete. Charts updated.",
+            "success",
+          );
           btn.disabled = false;
           btn.innerText = "Retrieve & Calculate";
         }, 1800);
@@ -104,20 +121,26 @@ function wireButtons() {
 
 function _runSimulation() {
   // Apply ±2% variance to every cost in FinanceDB
-  FinanceDB.energyCosts.forEach(rec => {
+  FinanceDB.energyCosts.forEach((rec) => {
     const factor = 1 + (Math.random() * 0.04 - 0.02); // 0.98 to 1.02
-    
+
     rec.electricity = Math.round(rec.electricity * factor);
-    rec.gas         = Math.round(rec.gas * factor);
-    rec.water       = Math.round(rec.water * factor);
-    rec.wastewater  = Math.round((rec.wastewater || 0) * factor);
-    rec.demand      = Math.round(rec.demand * factor);
-    
-    rec.total = rec.electricity + rec.gas + rec.water + rec.wastewater + rec.demand;
+    rec.gas = Math.round(rec.gas * factor);
+    rec.water = Math.round(rec.water * factor);
+    rec.wastewater = Math.round((rec.wastewater || 0) * factor);
+    rec.demand = Math.round(rec.demand * factor);
+
+    rec.total =
+      rec.electricity + rec.gas + rec.water + rec.wastewater + rec.demand;
     rec.variance = rec.budget - rec.total;
-    rec.status = rec.variance > 0 ? "under-budget" : rec.variance === 0 ? "on-budget" : "over-budget";
+    rec.status =
+      rec.variance > 0
+        ? "under-budget"
+        : rec.variance === 0
+          ? "on-budget"
+          : "over-budget";
   });
-  
+
   CostModule.renderCostTable();
 }
 
@@ -132,7 +155,7 @@ function wireTabs() {
   tabs.forEach((tab, idx) => {
     tab.addEventListener("click", () => {
       // Logic for active class
-      tabs.forEach(t => t.classList.remove("active"));
+      tabs.forEach((t) => t.classList.remove("active"));
       tab.classList.add("active");
 
       const { DashboardState } = CostModule;
@@ -150,7 +173,7 @@ function wireTabs() {
 function wireRoleSwitcher() {
   const switcher = document.getElementById("role-switcher");
   if (!switcher) return;
-  switcher.addEventListener("change", e => {
+  switcher.addEventListener("change", (e) => {
     SessionModule.switchRole(e.target.value);
     CostModule.renderCostTable();
   });
@@ -159,7 +182,9 @@ function wireRoleSwitcher() {
 /* ── NAVIGATION ───────────────────────────────────── */
 
 function wireNavigation() {
-  document.querySelectorAll(".menu-item[data-page]").forEach(item => {
-    item.addEventListener("click", () => { window.location.href = item.dataset.page; });
+  document.querySelectorAll(".menu-item[data-page]").forEach((item) => {
+    item.addEventListener("click", () => {
+      window.location.href = item.dataset.page;
+    });
   });
 }

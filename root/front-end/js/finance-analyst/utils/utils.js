@@ -10,7 +10,7 @@ export function timeAgo(isoString) {
   if (!isoString) return "—";
   const diff = Date.now() - new Date(isoString).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1)  return "Just now";
+  if (m < 1) return "Just now";
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
@@ -19,12 +19,16 @@ export function timeAgo(isoString) {
 
 export function formatDate(isoString) {
   if (!isoString) return "—";
-  return new Date(isoString).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  return new Date(isoString).toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export function formatCurrency(value) {
   if (value == null || isNaN(value)) return "—";
-  return "₹" + Number(value).toLocaleString('en-IN');
+  return "₹" + Number(value).toLocaleString("en-IN");
 }
 
 /* ── VALIDATION ───────────────────────────────────── */
@@ -43,10 +47,16 @@ export function validateField(value, rules = {}) {
   if (v === "") return { valid: true, message: "" }; // empty optional field → skip rest
 
   if (rules.minLength && v.length < rules.minLength) {
-    return { valid: false, message: `Minimum ${rules.minLength} characters required.` };
+    return {
+      valid: false,
+      message: `Minimum ${rules.minLength} characters required.`,
+    };
   }
   if (rules.maxLength && v.length > rules.maxLength) {
-    return { valid: false, message: `Maximum ${rules.maxLength} characters allowed.` };
+    return {
+      valid: false,
+      message: `Maximum ${rules.maxLength} characters allowed.`,
+    };
   }
   if (rules.pattern && !rules.pattern.test(v)) {
     return { valid: false, message: rules.patternMsg || "Invalid format." };
@@ -100,8 +110,10 @@ export function clearFieldError(inputEl) {
 }
 
 export function clearAllErrors(containerEl) {
-  containerEl.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
-  containerEl.querySelectorAll(".field-error-msg").forEach(el => el.remove());
+  containerEl
+    .querySelectorAll(".input-error")
+    .forEach((el) => el.classList.remove("input-error"));
+  containerEl.querySelectorAll(".field-error-msg").forEach((el) => el.remove());
 }
 
 /* ── TOAST NOTIFICATIONS ──────────────────────────── */
@@ -126,9 +138,9 @@ export function showToast(message, type = "info", duration = 3500) {
   const container = ensureToastContainer();
   const colors = {
     success: { bg: "#166534", border: "#14532d", icon: "✓" },
-    error:   { bg: "#dc2626", border: "#b91c1c", icon: "✕" },
+    error: { bg: "#dc2626", border: "#b91c1c", icon: "✕" },
     warning: { bg: "#ea580c", border: "#c2410c", icon: "⚠" },
-    info:    { bg: "#1f2937", border: "#111827", icon: "ℹ" }
+    info: { bg: "#1f2937", border: "#111827", icon: "ℹ" },
   };
   const c = colors[type] || colors.info;
   const toast = document.createElement("div");
@@ -144,16 +156,28 @@ export function showToast(message, type = "info", duration = 3500) {
   `;
   toast.innerHTML = `<span style="font-weight:700;font-size:16px">${c.icon}</span><span>${message}</span>`;
   container.appendChild(toast);
-  requestAnimationFrame(() => { toast.style.opacity = "1"; toast.style.transform = "translateY(0)"; });
+  requestAnimationFrame(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+  });
   setTimeout(() => {
-    toast.style.opacity = "0"; toast.style.transform = "translateY(8px)";
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(8px)";
     setTimeout(() => toast.remove(), 300);
   }, duration);
 }
 
 /* ── MODAL HELPER ─────────────────────────────────── */
 
-export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLabel = "Cancel", onConfirm, onCancel, danger = false }) {
+export function openModal({
+  title,
+  bodyHTML,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+  onConfirm,
+  onCancel,
+  danger = false,
+}) {
   closeModal();
   injectModalStyles();
 
@@ -190,18 +214,28 @@ export function openModal({ title, bodyHTML, confirmLabel = "Confirm", cancelLab
   document.body.appendChild(overlay);
 
   document.body.appendChild(overlay);
- 
+
   const cnl = document.getElementById("fm-cancel");
-  if (cnl) cnl.onclick = () => { closeModal(); if (onCancel) onCancel(); };
+  if (cnl)
+    cnl.onclick = () => {
+      closeModal();
+      if (onCancel) onCancel();
+    };
 
   const cfm = document.getElementById("fm-confirm");
-  if (cfm) cfm.onclick = () => { 
-    if (onConfirm) {
-      if (onConfirm() === false) return;
+  if (cfm)
+    cfm.onclick = () => {
+      if (onConfirm) {
+        if (onConfirm() === false) return;
+      }
+      closeModal();
+    };
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) {
+      closeModal();
+      if (onCancel) onCancel();
     }
-    closeModal(); 
-  };
-  overlay.addEventListener("click", e => { if (e.target === overlay) { closeModal(); if (onCancel) onCancel(); } });
+  });
 
   return overlay;
 }
@@ -241,15 +275,15 @@ export function generateId(prefix = "id") {
 /* ── BADGE HTML ───────────────────────────────────── */
 
 const BADGE_MAP = {
-  "viable":        { cls: "badge-success", label: "Viable" },
-  "approved":      { cls: "badge-success", label: "Approved" },
-  "under-budget":  { cls: "badge-success", label: "Under Budget" },
-  "on-budget":     { cls: "badge-gray",    label: "On Budget" },
-  "marginal":      { cls: "badge-warning", label: "Marginal" },
-  "pending":       { cls: "badge-warning", label: "Pending" },
-  "over-budget":   { cls: "badge-danger",  label: "Over Budget" },
-  "overdue":       { cls: "badge-danger",  label: "Overdue" },
-  "not-viable":    { cls: "badge-danger",  label: "Not Viable" }
+  viable: { cls: "badge-success", label: "Viable" },
+  approved: { cls: "badge-success", label: "Approved" },
+  "under-budget": { cls: "badge-success", label: "Under Budget" },
+  "on-budget": { cls: "badge-gray", label: "On Budget" },
+  marginal: { cls: "badge-warning", label: "Marginal" },
+  pending: { cls: "badge-warning", label: "Pending" },
+  "over-budget": { cls: "badge-danger", label: "Over Budget" },
+  overdue: { cls: "badge-danger", label: "Overdue" },
+  "not-viable": { cls: "badge-danger", label: "Not Viable" },
 };
 
 export function badgeHTML(status) {

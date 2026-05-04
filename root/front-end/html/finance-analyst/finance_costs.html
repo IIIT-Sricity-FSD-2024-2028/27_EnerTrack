@@ -1,264 +1,353 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>EnerTrack – Utility Costs</title>
+    <link rel="stylesheet" href="../../css/finance-analyst/finance_costs.css" />
+    <link
+      rel="stylesheet"
+      href="../../css/finance-analyst/finance_shared.css"
+    />
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <title>EnerTrack – Utility Costs</title>
-  <link rel="stylesheet" href="../../css/finance-analyst/finance_costs.css">
-  <link rel="stylesheet" href="../../css/finance-analyst/finance_shared.css">
-</head>
-
-<body>
-
-  <div style="display:flex;width:100%;height:100vh">
-
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-      <div>
-        <a href="../landing/landing.html" class="logo">
-          <img src="../../assets/logo_finance-analyst.png" alt="EnerTrack Logo" class="logo-icon">
-          <img src="../../assets/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
-        </a>
-        <div class="menu">
-          <div class="menu-item" data-page="finance_overview.html">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-            </svg>
-            Overview
-          </div>
-          <div class="menu-item" data-page="finance_reports.html">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
-              <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="9" y1="17" x2="9" y2="13" />
-              <line x1="12" y1="17" x2="12" y2="11" />
-              <line x1="15" y1="17" x2="15" y2="15" />
-            </svg>
-            Financial Reports & Impact
-          </div>
-          <div class="menu-item active" data-page="finance_costs.html">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
-              <path d="M7 9v3a5 5 0 0 0 10 0V9" />
-              <line x1="10" y1="4" x2="10" y2="8" />
-              <line x1="14" y1="4" x2="14" y2="8" />
-              <path d="M12 17v3" />
-            </svg>
-            Utility Costs
-          </div>
-          <div class="menu-item" data-page="finance_archives.html">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
-              <polyline points="21 8 21 21 3 21 3 8"></polyline>
-              <rect x="1" y="3" width="22" height="5"></rect>
-              <line x1="10" y1="12" x2="14" y2="12"></line>
-            </svg>
-            Archives
+  <body>
+    <div style="display: flex; width: 100%; height: 100vh">
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+        <div>
+          <a href="../landing/landing.html" class="logo">
+            <img
+              src="../../assets/logo_finance-analyst.png"
+              alt="EnerTrack Logo"
+              class="logo-icon"
+            />
+            <img
+              src="../../assets/EnerTrack_text.png"
+              alt="EnerTrack"
+              class="logo-text"
+            />
+          </a>
+          <div class="menu">
+            <div class="menu-item" data-page="finance_overview.html">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+              </svg>
+              Overview
+            </div>
+            <div class="menu-item" data-page="finance_reports.html">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"
+                />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="9" y1="17" x2="9" y2="13" />
+                <line x1="12" y1="17" x2="12" y2="11" />
+                <line x1="15" y1="17" x2="15" y2="15" />
+              </svg>
+              Financial Reports & Impact
+            </div>
+            <div class="menu-item active" data-page="finance_costs.html">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M7 9v3a5 5 0 0 0 10 0V9" />
+                <line x1="10" y1="4" x2="10" y2="8" />
+                <line x1="14" y1="4" x2="14" y2="8" />
+                <path d="M12 17v3" />
+              </svg>
+              Utility Costs
+            </div>
+            <div class="menu-item" data-page="finance_archives.html">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                <rect x="1" y="3" width="22" height="5"></rect>
+                <line x1="10" y1="12" x2="14" y2="12"></line>
+              </svg>
+              Archives
+            </div>
           </div>
         </div>
-      </div>
-      <div class="profile">
-        <div class="profile-left">
-          <img src="https://i.pravatar.cc/40?img=12">
-          <div>
-            <div class="profile-name" id="sidebarUserName">Aadithya Mouli</div>
-            <div class="profile-role" id="sidebarUserRole">Finance Analyst</div>
-          </div>
-        </div>⋮
-      </div>
-    </div>
-
-    <!-- CONTENT -->
-    <div class="content">
-      <div class="container">
-        <div class="page-title">Utility Costs</div>
-        <div class="page-sub">Retrieve, add, edit and delete utility consumption records. Compare against budget with
-          automatic variance calculation.</div>
-
-        <!-- SUMMARY TILES -->
-        <div class="tiles">
-          <div class="tile">
-            <div class="tile-label">Total Cost (all records)</div>
-            <div class="tile-value" id="cost-total">—</div>
-          </div>
-          <div class="tile">
-            <div class="tile-label">Total Budget</div>
-            <div class="tile-value" id="cost-budget">—</div>
-          </div>
-          <div class="tile">
-            <div class="tile-label">Over-Budget Records</div>
-            <div class="tile-value" id="cost-over-count" style="color:#dc2626">—</div>
-          </div>
-        </div>
-
-        <!-- COST RECORDS TABLE -->
-        <div class="card">
-          <div class="card-title">
-            Energy Cost Records
-            <button class="main-btn" id="btn-add-cost" data-perm="create">+ Add Record</button>
-          </div>
-          <div class="card-sub">All utility cost records across departments and buildings. Filter by scope or period.
-          </div>
-
-          <div class="filter-row">
-            <select id="filter-scope">
-              <option value="all">All Scopes</option>
-              <option value="department">Department</option>
-              <option value="building">Building</option>
-            </select>
-            <select id="filter-period">
-              <option value="">All Periods</option>
-            </select>
-          </div>
-
-          <div class="tbl-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Period</th>
-                  <th>Scope</th>
-                  <th>Reference</th>
-                  <th>Electricity</th>
-                  <th>Gas</th>
-                  <th>Water</th>
-                  <th>Wastewater</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="cost-tbody">
-                <tr>
-                  <td colspan="9" style="text-align:center;color:#9ca3af;padding:32px">Loading…</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- RETRIEVE & CALCULATE (original UI preserved) -->
-        <div class="card">
-          <div class="card-title">Retrieve &amp; Calculate</div>
-          <div class="card-sub">Trigger a fresh cost calculation for all active records against current budget
-            allocations.</div>
-          <button class="main-btn" id="btn-retrieve">Retrieve &amp; Calculate</button>
-        </div>
-
-        <!-- COST BREAKDOWN & OUTPUT (Right Panel) -->
-        <div class="card">
-          <div class="top">
+        <div class="profile">
+          <div class="profile-left">
+            <img src="https://i.pravatar.cc/40?img=12" />
             <div>
-              <div class="card-title">Cost Breakdown & Output</div>
-              <div class="card-sub">Generated utility cost view for the selected monthly department scope.</div>
-            </div>
-            <div class="export">
-              <button>Export PDF</button>
-              <button>Export CSV</button>
+              <div class="profile-name" id="sidebarUserName">
+                Aadithya Mouli
+              </div>
+              <div class="profile-role" id="sidebarUserRole">
+                Finance Analyst
+              </div>
             </div>
           </div>
-
-          <div class="metrics">
-            <div class="metric">
-              Consumption retrieved
-              <strong>1.24M kWh</strong>
-              <small>Across electricity, gas, and water</small>
-            </div>
-            <div class="metric">
-              Calculated cost
-              <strong>₹1,86,420</strong>
-              <small>After tariff and demand charges</small>
-            </div>
-            <div class="metric">
-              Budget status
-              <strong>+₹12,580</strong>
-              <small>Over current monthly budget</small>
-            </div>
-          </div>
-
-          <div class="graph">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-              <div>
-                <div style="font-weight:600;font-size:14px;color:#111827;margin-bottom:4px;">Cost breakdown panel</div>
-                <div style="font-size:13px;color:#8a95a2;max-width:280px;line-height:1.4;">Toggle between By Energy
-                  Type, By Building, and By Time. Energy type view is currently shown.</div>
-              </div>
-              <div class="tabs toggle">
-                <div class="pill active">By Energy Type</div>
-                <div class="pill">By Building</div>
-                <div class="pill">By Time</div>
-              </div>
-            </div>
-
-            <div class="bars">
-              <div class="bar-group">
-                <div class="bar bg-green" style="height:78px"></div>
-                <div class="bar bg-yellow" style="height:20px"></div>
-                <div class="bar-label">Electricity</div>
-              </div>
-              <div class="bar-group">
-                <div class="bar bg-green" style="height:52px"></div>
-                <div class="bar bg-yellow" style="height:14px"></div>
-                <div class="bar-label">Gas</div>
-              </div>
-              <div class="bar-group">
-                <div class="bar bg-green" style="height:36px"></div>
-                <div class="bar bg-yellow" style="height:12px"></div>
-                <div class="bar-label">Water</div>
-              </div>
-              <div class="bar-group">
-                <div class="bar bg-gray" style="height:70px"></div>
-                <div class="bar-label">Demand</div>
-              </div>
-              <div class="bar-group">
-                <div class="bar bg-green" style="height:50px"></div>
-                <div class="bar bg-yellow" style="height:14px"></div>
-                <div class="bar-label">Wastewater</div>
-              </div>
-            </div>
-
-            <div class="legend">
-              <div><span class="dot bg-green"></span>Base utility cost</div>
-              <div><span class="dot bg-yellow"></span>Taxes &amp; surcharges</div>
-              <div><span class="dot bg-gray"></span>Demand charge</div>
-            </div>
-          </div>
-
-          <div class="card-title" style="margin-top:32px;">Budget vs Actual Cost</div>
-          <div class="card-sub">Three summary cards show the current budget, actual cost, and variance with savings or
-            loss color coding.</div>
-
-          <div class="budget">
-            <div class="budget-card">
-              Budget Actual
-              <strong>₹1,73,840</strong>
-              Approved monthly utility allocation for the selected department.
-            </div>
-            <div class="budget-card red">
-              Actual Cost
-              <strong>₹1,86,420</strong>
-              Current utility spend after retrieval and calculation.
-            </div>
-            <div class="budget-card red">
-              Budget Variance
-              <strong>-₹12,580</strong>
-              Loss against target due to peak demand and gas rate pressure.
-            </div>
-          </div>
-
-
+          ⋮
         </div>
+      </div>
 
+      <!-- CONTENT -->
+      <div class="content">
+        <div class="container">
+          <div class="page-title">Utility Costs</div>
+          <div class="page-sub">
+            Retrieve, add, edit and delete utility consumption records. Compare
+            against budget with automatic variance calculation.
+          </div>
+
+          <!-- SUMMARY TILES -->
+          <div class="tiles">
+            <div class="tile">
+              <div class="tile-label">Total Cost (all records)</div>
+              <div class="tile-value" id="cost-total">—</div>
+            </div>
+            <div class="tile">
+              <div class="tile-label">Total Budget</div>
+              <div class="tile-value" id="cost-budget">—</div>
+            </div>
+            <div class="tile">
+              <div class="tile-label">Over-Budget Records</div>
+              <div
+                class="tile-value"
+                id="cost-over-count"
+                style="color: #dc2626"
+              >
+                —
+              </div>
+            </div>
+          </div>
+
+          <!-- COST RECORDS TABLE -->
+          <div class="card">
+            <div class="card-title">
+              Energy Cost Records
+              <button class="main-btn" id="btn-add-cost" data-perm="create">
+                + Add Record
+              </button>
+            </div>
+            <div class="card-sub">
+              All utility cost records across departments and buildings. Filter
+              by scope or period.
+            </div>
+
+            <div class="filter-row">
+              <select id="filter-scope">
+                <option value="all">All Scopes</option>
+                <option value="department">Department</option>
+                <option value="building">Building</option>
+              </select>
+              <select id="filter-period">
+                <option value="">All Periods</option>
+              </select>
+            </div>
+
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Period</th>
+                    <th>Scope</th>
+                    <th>Reference</th>
+                    <th>Electricity</th>
+                    <th>Gas</th>
+                    <th>Water</th>
+                    <th>Wastewater</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="cost-tbody">
+                  <tr>
+                    <td
+                      colspan="9"
+                      style="text-align: center; color: #9ca3af; padding: 32px"
+                    >
+                      Loading…
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- RETRIEVE & CALCULATE (original UI preserved) -->
+          <div class="card">
+            <div class="card-title">Retrieve &amp; Calculate</div>
+            <div class="card-sub">
+              Trigger a fresh cost calculation for all active records against
+              current budget allocations.
+            </div>
+            <button class="main-btn" id="btn-retrieve">
+              Retrieve &amp; Calculate
+            </button>
+          </div>
+
+          <!-- COST BREAKDOWN & OUTPUT (Right Panel) -->
+          <div class="card">
+            <div class="top">
+              <div>
+                <div class="card-title">Cost Breakdown & Output</div>
+                <div class="card-sub">
+                  Generated utility cost view for the selected monthly
+                  department scope.
+                </div>
+              </div>
+              <div class="export">
+                <button>Export PDF</button>
+                <button>Export CSV</button>
+              </div>
+            </div>
+
+            <div class="metrics">
+              <div class="metric">
+                Consumption retrieved
+                <strong>1.24M kWh</strong>
+                <small>Across electricity, gas, and water</small>
+              </div>
+              <div class="metric">
+                Calculated cost
+                <strong>₹1,86,420</strong>
+                <small>After tariff and demand charges</small>
+              </div>
+              <div class="metric">
+                Budget status
+                <strong>+₹12,580</strong>
+                <small>Over current monthly budget</small>
+              </div>
+            </div>
+
+            <div class="graph">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: flex-start;
+                "
+              >
+                <div>
+                  <div
+                    style="
+                      font-weight: 600;
+                      font-size: 14px;
+                      color: #111827;
+                      margin-bottom: 4px;
+                    "
+                  >
+                    Cost breakdown panel
+                  </div>
+                  <div
+                    style="
+                      font-size: 13px;
+                      color: #8a95a2;
+                      max-width: 280px;
+                      line-height: 1.4;
+                    "
+                  >
+                    Toggle between By Energy Type, By Building, and By Time.
+                    Energy type view is currently shown.
+                  </div>
+                </div>
+                <div class="tabs toggle">
+                  <div class="pill active">By Energy Type</div>
+                  <div class="pill">By Building</div>
+                  <div class="pill">By Time</div>
+                </div>
+              </div>
+
+              <div class="bars">
+                <div class="bar-group">
+                  <div class="bar bg-green" style="height: 78px"></div>
+                  <div class="bar bg-yellow" style="height: 20px"></div>
+                  <div class="bar-label">Electricity</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar bg-green" style="height: 52px"></div>
+                  <div class="bar bg-yellow" style="height: 14px"></div>
+                  <div class="bar-label">Gas</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar bg-green" style="height: 36px"></div>
+                  <div class="bar bg-yellow" style="height: 12px"></div>
+                  <div class="bar-label">Water</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar bg-gray" style="height: 70px"></div>
+                  <div class="bar-label">Demand</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar bg-green" style="height: 50px"></div>
+                  <div class="bar bg-yellow" style="height: 14px"></div>
+                  <div class="bar-label">Wastewater</div>
+                </div>
+              </div>
+
+              <div class="legend">
+                <div><span class="dot bg-green"></span>Base utility cost</div>
+                <div>
+                  <span class="dot bg-yellow"></span>Taxes &amp; surcharges
+                </div>
+                <div><span class="dot bg-gray"></span>Demand charge</div>
+              </div>
+            </div>
+
+            <div class="card-title" style="margin-top: 32px">
+              Budget vs Actual Cost
+            </div>
+            <div class="card-sub">
+              Three summary cards show the current budget, actual cost, and
+              variance with savings or loss color coding.
+            </div>
+
+            <div class="budget">
+              <div class="budget-card">
+                Budget Actual
+                <strong>₹1,73,840</strong>
+                Approved monthly utility allocation for the selected department.
+              </div>
+              <div class="budget-card red">
+                Actual Cost
+                <strong>₹1,86,420</strong>
+                Current utility spend after retrieval and calculation.
+              </div>
+              <div class="budget-card red">
+                Budget Variance
+                <strong>-₹12,580</strong>
+                Loss against target due to peak demand and gas rate pressure.
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script type="module" src="../../js/finance-analyst/costsPage.js"></script>
-  <script src="../../js/shared/dashboardProfileMenu.js"></script>
-</body>
-
+    <script type="module" src="../../js/finance-analyst/costsPage.js"></script>
+    <script src="../../js/shared/dashboardProfileMenu.js"></script>
+  </body>
 </html>

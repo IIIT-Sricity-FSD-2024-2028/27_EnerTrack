@@ -9,7 +9,13 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Arial,
+    sans-serif;
 }
 
 :root {
@@ -18,7 +24,7 @@
   --border: #e5e7eb;
   --muted: #6b7280;
   --dark: #111827;
-  --sidebar-bg: #D9E9CF;
+  --sidebar-bg: #d9e9cf;
   --sidebar-active: #111111;
   --green-soft: #e6f4ea;
   --green-border: #c7e7cf;
@@ -380,7 +386,6 @@ td {
 }
 
 @keyframes pulse-dot {
-
   0%,
   100% {
     opacity: 1;
@@ -542,7 +547,6 @@ textarea {
 }
 
 @media (max-width: 900px) {
-
   .grid2,
   .grid3,
   .grid4 {
@@ -559,7 +563,6 @@ textarea {
     display: none;
   }
 }
-
 
 /* Lock the whole layout to viewport height */
 html,

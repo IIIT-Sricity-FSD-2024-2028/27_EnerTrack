@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
       campuses: [],
       buildings: [],
       departments: [],
-      meters: []
+      meters: [],
     },
     loading: true,
     activeTab: localStorage.getItem("admin_activeTab") || "users",
@@ -34,8 +34,10 @@ document.addEventListener("DOMContentLoaded", () => {
     async render(nextTab = this.activeTab) {
       this.activeTab = nextTab;
       localStorage.setItem("admin_activeTab", nextTab);
-      if (this.selectedCampusId) localStorage.setItem("admin_selectedCampus", this.selectedCampusId);
-      if (this.selectedBuildingId) localStorage.setItem("admin_selectedBuilding", this.selectedBuildingId);
+      if (this.selectedCampusId)
+        localStorage.setItem("admin_selectedCampus", this.selectedCampusId);
+      if (this.selectedBuildingId)
+        localStorage.setItem("admin_selectedBuilding", this.selectedBuildingId);
       renderAdminLayout(root, this);
     },
 
@@ -62,26 +64,38 @@ document.addEventListener("DOMContentLoaded", () => {
         this.loading = true;
         this.render(); // render loading skeleton
 
-        const [users, campuses, buildings, departments, meters] = await Promise.all([
-          window.api.get('/users'),
-          window.api.get('/campus'),
-          window.api.get('/buildings'),
-          window.api.get('/departments'),
-          window.api.get('/meters')
-        ]);
+        const [users, campuses, buildings, departments, meters] =
+          await Promise.all([
+            window.api.get("/users"),
+            window.api.get("/campus"),
+            window.api.get("/buildings"),
+            window.api.get("/departments"),
+            window.api.get("/meters"),
+          ]);
 
-        this.state.users       = Array.isArray(users)       ? users       : [];
-        this.state.campuses    = Array.isArray(campuses)    ? campuses    : [];
-        this.state.buildings   = Array.isArray(buildings)   ? buildings   : [];
+        this.state.users = Array.isArray(users) ? users : [];
+        this.state.campuses = Array.isArray(campuses) ? campuses : [];
+        this.state.buildings = Array.isArray(buildings) ? buildings : [];
         this.state.departments = Array.isArray(departments) ? departments : [];
-        this.state.meters      = Array.isArray(meters)      ? meters      : [];
+        this.state.meters = Array.isArray(meters) ? meters : [];
 
         // Restore or default selected campus/building from persisted UI prefs
-        if (!this.selectedCampusId || !this.state.campuses.some(c => c.campus_id === this.selectedCampusId)) {
+        if (
+          !this.selectedCampusId ||
+          !this.state.campuses.some(
+            (c) => c.campus_id === this.selectedCampusId,
+          )
+        ) {
           this.selectedCampusId = this.state.campuses[0]?.campus_id || null;
         }
-        if (!this.selectedBuildingId || !this.state.buildings.some(b => b.building_id === this.selectedBuildingId)) {
-          this.selectedBuildingId = this.state.buildings[0]?.building_id || null;
+        if (
+          !this.selectedBuildingId ||
+          !this.state.buildings.some(
+            (b) => b.building_id === this.selectedBuildingId,
+          )
+        ) {
+          this.selectedBuildingId =
+            this.state.buildings[0]?.building_id || null;
         }
       } catch (err) {
         console.error("Failed to load from backend:", err);
@@ -98,14 +112,15 @@ document.addEventListener("DOMContentLoaded", () => {
       this.selectedBuildingId = this.state.buildings[0]?.building_id || null;
       this.render();
       showToast("Demo data reset.", "info");
-    }
+    },
   };
 
   window.AdminDashboard = app;
-  document.getElementById("resetDemoData")?.addEventListener("click", () => app.reset());
+  document
+    .getElementById("resetDemoData")
+    ?.addEventListener("click", () => app.reset());
 
   // Boot: fetch everything from the backend. No localStorage seed for data.
   app.render(); // show loading state immediately
   app.loadFromBackend();
 });
-

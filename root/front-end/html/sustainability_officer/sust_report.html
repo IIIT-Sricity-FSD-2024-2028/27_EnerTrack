@@ -1,211 +1,456 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sustainability Dashboard - Reporting</title>
-    <link rel="stylesheet" href="../../css/sustainability_officer/sust_report.css">
-    <link rel="stylesheet" href="../../css/sustainability_officer/sust_shared.css">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="../../css/sustainability_officer/sust_report.css"
+    />
+    <link
+      rel="stylesheet"
+      href="../../css/sustainability_officer/sust_shared.css"
+    />
+  </head>
+  <body>
     <div class="dashboard">
-        <!-- SIDEBAR -->
-        <aside class="sidebar">
-            <a href="../landing/landing.html" class="sidebar-logo">
-                <img src="../../assets/logo_sustainability_officer.png" alt="EnerTrack Logo" class="logo-icon">
-                <img src="../../assets/EnerTrack_text.png" alt="EnerTrack" class="logo-text">
-            </a>
-            
-            <nav class="sidebar-nav">
-                <a href="sust_overview.html" class="nav-item">
-                    <span class="nav-icon" data-icon="overview"></span>
-                    Overview
-                </a>
-                <a href="sust_monitoring.html" class="nav-item">
-                    <span class="nav-icon" data-icon="monitoring"></span>
-                    Environmental Impact Monitoring
-                </a>
-                <a href="sust_report.html" class="nav-item active">
-                    <span class="nav-icon" data-icon="reporting"></span>
-                    Sustainability Reporting
-                </a>
-                <a href="sust_initiatives.html" class="nav-item">
-                    <span class="nav-icon" data-icon="initiatives"></span>
-                    Sustainable Conservation Initiatives
-                </a>
-                <a href="sust_archives.html" class="nav-item">
-                    <span class="nav-icon" data-icon="overview"></span>
-                    Archives
-                </a>
-            </nav>
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <a href="../landing/landing.html" class="sidebar-logo">
+          <img
+            src="../../assets/logo_sustainability_officer.png"
+            alt="EnerTrack Logo"
+            class="logo-icon"
+          />
+          <img
+            src="../../assets/EnerTrack_text.png"
+            alt="EnerTrack"
+            class="logo-text"
+          />
+        </a>
 
-            <div class="sidebar-bottom">
-                <div class="profile-card">
-                    <img src="../../assets/maya_patel.png" alt="Maya Patel" class="avatar">
-                    <div class="profile-info">
-                        <h4 id="sidebarUserName">Maya Patel</h4>
-                        <p id="sidebarUserRole">Sustainability Officer</p>
-                    </div>
-                </div>
+        <nav class="sidebar-nav">
+          <a href="sust_overview.html" class="nav-item">
+            <span class="nav-icon" data-icon="overview"></span>
+            Overview
+          </a>
+          <a href="sust_monitoring.html" class="nav-item">
+            <span class="nav-icon" data-icon="monitoring"></span>
+            Environmental Impact Monitoring
+          </a>
+          <a href="sust_report.html" class="nav-item active">
+            <span class="nav-icon" data-icon="reporting"></span>
+            Sustainability Reporting
+          </a>
+          <a href="sust_initiatives.html" class="nav-item">
+            <span class="nav-icon" data-icon="initiatives"></span>
+            Sustainable Conservation Initiatives
+          </a>
+          <a href="sust_archives.html" class="nav-item">
+            <span class="nav-icon" data-icon="overview"></span>
+            Archives
+          </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="profile-card">
+            <img
+              src="../../assets/maya_patel.png"
+              alt="Maya Patel"
+              class="avatar"
+            />
+            <div class="profile-info">
+              <h4 id="sidebarUserName">Maya Patel</h4>
+              <p id="sidebarUserRole">Sustainability Officer</p>
             </div>
-        </aside>
+          </div>
+        </div>
+      </aside>
 
-        <!-- MAIN CONTENT -->
-        <main class="main-content">
-            <header class="page-header">
-                <h1>Sustainability Reporting</h1>
-                <p>Choose a reporting period, run the reporting pipeline, review the compiled output, handle exceptions, and export approved sustainability reports for stakeholders.</p>
-            </header>
+      <!-- MAIN CONTENT -->
+      <main class="main-content">
+        <header class="page-header">
+          <h1>Sustainability Reporting</h1>
+          <p>
+            Choose a reporting period, run the reporting pipeline, review the
+            compiled output, handle exceptions, and export approved
+            sustainability reports for stakeholders.
+          </p>
+        </header>
 
-            <section class="report-panel">
-                <!-- Configuration -->
-                <h3 class="section-title">Report configuration</h3>
-                <p class="section-desc">Define the report type and date window before generating the compiled sustainability report.</p>
+        <section class="report-panel">
+          <!-- Configuration -->
+          <h3 class="section-title">Report configuration</h3>
+          <p class="section-desc">
+            Define the report type and date window before generating the
+            compiled sustainability report.
+          </p>
 
-                <label class="form-label">Report type</label>
-                <div class="type-pills" id="reportTypePills">
-                    <div class="type-pill active" data-report-type="yearly">Yearly</div>
-                    <div class="type-pill" data-report-type="quarterly">Quarterly</div>
-                    <div class="type-pill" data-report-type="monthly">Monthly</div>
-                    <div class="type-pill" data-report-type="custom">Custom</div>
+          <label class="form-label">Report type</label>
+          <div class="type-pills" id="reportTypePills">
+            <div class="type-pill active" data-report-type="yearly">Yearly</div>
+            <div class="type-pill" data-report-type="quarterly">Quarterly</div>
+            <div class="type-pill" data-report-type="monthly">Monthly</div>
+            <div class="type-pill" data-report-type="custom">Custom</div>
+          </div>
+
+          <div class="form-grid">
+            <div class="input-group" id="groupYear">
+              <label class="form-label" for="yearSelect">Year</label>
+              <div class="custom-select" data-select>
+                <button
+                  type="button"
+                  class="select-trigger"
+                  id="yearSelect"
+                  aria-expanded="false"
+                >
+                  <span class="select-value">2026</span>
+                  <span class="select-chevron" aria-hidden="true">⌄</span>
+                </button>
+                <div class="select-menu">
+                  <button
+                    type="button"
+                    class="select-option selected"
+                    data-value="2026"
+                  >
+                    <span>2026</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
+                  <button type="button" class="select-option" data-value="2025">
+                    <span>2025</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
+                  <button type="button" class="select-option" data-value="2024">
+                    <span>2024</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
                 </div>
-
-                <div class="form-grid">
-                    <div class="input-group" id="groupYear">
-                        <label class="form-label" for="yearSelect">Year</label>
-                        <div class="custom-select" data-select>
-                            <button type="button" class="select-trigger" id="yearSelect" aria-expanded="false">
-                                <span class="select-value">2026</span>
-                                <span class="select-chevron" aria-hidden="true">⌄</span>
-                            </button>
-                            <div class="select-menu">
-                                <button type="button" class="select-option selected" data-value="2026">
-                                    <span>2026</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                                <button type="button" class="select-option" data-value="2025">
-                                    <span>2025</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                                <button type="button" class="select-option" data-value="2024">
-                                    <span>2024</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="input-group" id="groupQuarter">
-                        <label class="form-label" for="quarterSelect">Quarter</label>
-                        <div class="custom-select" data-select>
-                            <button type="button" class="select-trigger" id="quarterSelect" aria-expanded="false">
-                                <span class="select-value">Q3</span>
-                                <span class="select-chevron" aria-hidden="true">⌄</span>
-                            </button>
-                            <div class="select-menu">
-                                <button type="button" class="select-option selected" data-value="Q3">
-                                    <span>Q3</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                                <button type="button" class="select-option" data-value="Q2">
-                                    <span>Q2</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                                <button type="button" class="select-option" data-value="Q1">
-                                    <span>Q1</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                                <button type="button" class="select-option" data-value="Q4">
-                                    <span>Q4</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="input-group" id="groupMonth">
-                        <label class="form-label" for="monthSelect">Month</label>
-                        <div class="custom-select" data-select>
-                            <button type="button" class="select-trigger" id="monthSelect" aria-expanded="false">
-                                <span class="select-value">September</span>
-                                <span class="select-chevron" aria-hidden="true">⌄</span>
-                            </button>
-                            <div class="select-menu">
-                                <button type="button" class="select-option selected" data-value="September">
-                                    <span>September</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                                <button type="button" class="select-option" data-value="August">
-                                    <span>August</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                                <button type="button" class="select-option" data-value="July">
-                                    <span>July</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                                <button type="button" class="select-option" data-value="June">
-                                    <span>June</span><span class="checkmark"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="input-group" id="groupCustomFrom">
-                        <label class="form-label">From</label>
-                        <input type="date" id="customDateFrom" class="form-input" value="2025-05-01">
-                    </div>
-                    <div class="input-group" id="groupCustomTo">
-                        <label class="form-label">To</label>
-                        <input type="date" id="customDateTo" class="form-input" value="2025-05-31">
-                    </div>
+              </div>
+            </div>
+            <div class="input-group" id="groupQuarter">
+              <label class="form-label" for="quarterSelect">Quarter</label>
+              <div class="custom-select" data-select>
+                <button
+                  type="button"
+                  class="select-trigger"
+                  id="quarterSelect"
+                  aria-expanded="false"
+                >
+                  <span class="select-value">Q3</span>
+                  <span class="select-chevron" aria-hidden="true">⌄</span>
+                </button>
+                <div class="select-menu">
+                  <button
+                    type="button"
+                    class="select-option selected"
+                    data-value="Q3"
+                  >
+                    <span>Q3</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
+                  <button type="button" class="select-option" data-value="Q2">
+                    <span>Q2</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
+                  <button type="button" class="select-option" data-value="Q1">
+                    <span>Q1</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
+                  <button type="button" class="select-option" data-value="Q4">
+                    <span>Q4</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
                 </div>
-
-                <div class="divider"></div>
-
-                <!-- Pipeline -->
-                <h3 class="section-title">Reporting pipeline</h3>
-                <p class="section-desc">Progress from source retrieval to final report compilation.</p>
-
-                <div class="pipeline-section">
-                    <div class="pipeline-progress">
-                        <div class="pipeline-line"></div>
-                        <div class="pipeline-line-fill"></div>
-                    </div>
-
-                    <div class="pipeline-track">
-                        <div class="pipeline-step">
-                            <div class="pipeline-circle" data-icon="collect"></div>
-                            <h4>Retrieve Data</h4>
-                        </div>
-                        <div class="pipeline-step">
-                            <div class="pipeline-circle" data-icon="charts"></div>
-                            <h4>Generate Charts & Graphs</h4>
-                        </div>
-                        <div class="pipeline-step">
-                            <div class="pipeline-circle" data-icon="summary"></div>
-                            <h4>Generate Summary Text</h4>
-                        </div>
-                        <div class="pipeline-step">
-                            <div class="pipeline-circle" data-icon="kpi"></div>
-                            <h4>Generate KPIs & Outlines</h4>
-                        </div>
-                        <div class="pipeline-step">
-                            <div class="pipeline-circle" data-icon="compile"></div>
-                            <h4>Compile Report</h4>
-                        </div>
-                    </div>
+              </div>
+            </div>
+            <div class="input-group" id="groupMonth">
+              <label class="form-label" for="monthSelect">Month</label>
+              <div class="custom-select" data-select>
+                <button
+                  type="button"
+                  class="select-trigger"
+                  id="monthSelect"
+                  aria-expanded="false"
+                >
+                  <span class="select-value">September</span>
+                  <span class="select-chevron" aria-hidden="true">⌄</span>
+                </button>
+                <div class="select-menu">
+                  <button
+                    type="button"
+                    class="select-option selected"
+                    data-value="September"
+                  >
+                    <span>September</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
+                  <button
+                    type="button"
+                    class="select-option"
+                    data-value="August"
+                  >
+                    <span>August</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
+                  <button type="button" class="select-option" data-value="July">
+                    <span>July</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
+                  <button type="button" class="select-option" data-value="June">
+                    <span>June</span
+                    ><span class="checkmark"
+                      ><svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" /></svg
+                    ></span>
+                  </button>
                 </div>
-            </section>
+              </div>
+            </div>
+            <div class="input-group" id="groupCustomFrom">
+              <label class="form-label">From</label>
+              <input
+                type="date"
+                id="customDateFrom"
+                class="form-input"
+                value="2025-05-01"
+              />
+            </div>
+            <div class="input-group" id="groupCustomTo">
+              <label class="form-label">To</label>
+              <input
+                type="date"
+                id="customDateTo"
+                class="form-input"
+                value="2025-05-31"
+              />
+            </div>
+          </div>
 
-            <!-- Generate Button -->
-            <section class="report-panel" style="margin-top:24px; display:flex; justify-content:center; padding: 24px;">
-                <button class="btn-block-dark" style="max-width: 400px; width: 100%;">Generate Report</button>
-            </section>
+          <div class="divider"></div>
 
-            <!-- Report Archive -->
-            <section class="report-panel" style="margin-top:24px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <div>
-                        <h3 class="section-title" style="margin:0 0 4px 0;">Archived Reports</h3>
-                        <p class="section-desc" style="margin:0;">Previously generated and archived sustainability reports from the backend.</p>
-                    </div>
-                </div>
-                <div id="reportArchiveList">
-                    <p style="color:#9ca3af;font-size:13px;text-align:center;padding:16px;">Loading reports...</p>
-                </div>
-            </section>
-        </main>
+          <!-- Pipeline -->
+          <h3 class="section-title">Reporting pipeline</h3>
+          <p class="section-desc">
+            Progress from source retrieval to final report compilation.
+          </p>
+
+          <div class="pipeline-section">
+            <div class="pipeline-progress">
+              <div class="pipeline-line"></div>
+              <div class="pipeline-line-fill"></div>
+            </div>
+
+            <div class="pipeline-track">
+              <div class="pipeline-step">
+                <div class="pipeline-circle" data-icon="collect"></div>
+                <h4>Retrieve Data</h4>
+              </div>
+              <div class="pipeline-step">
+                <div class="pipeline-circle" data-icon="charts"></div>
+                <h4>Generate Charts & Graphs</h4>
+              </div>
+              <div class="pipeline-step">
+                <div class="pipeline-circle" data-icon="summary"></div>
+                <h4>Generate Summary Text</h4>
+              </div>
+              <div class="pipeline-step">
+                <div class="pipeline-circle" data-icon="kpi"></div>
+                <h4>Generate KPIs & Outlines</h4>
+              </div>
+              <div class="pipeline-step">
+                <div class="pipeline-circle" data-icon="compile"></div>
+                <h4>Compile Report</h4>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Generate Button -->
+        <section
+          class="report-panel"
+          style="
+            margin-top: 24px;
+            display: flex;
+            justify-content: center;
+            padding: 24px;
+          "
+        >
+          <button class="btn-block-dark" style="max-width: 400px; width: 100%">
+            Generate Report
+          </button>
+        </section>
+
+        <!-- Report Archive -->
+        <section class="report-panel" style="margin-top: 24px">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 12px;
+            "
+          >
+            <div>
+              <h3 class="section-title" style="margin: 0 0 4px 0">
+                Archived Reports
+              </h3>
+              <p class="section-desc" style="margin: 0">
+                Previously generated and archived sustainability reports from
+                the backend.
+              </p>
+            </div>
+          </div>
+          <div id="reportArchiveList">
+            <p
+              style="
+                color: #9ca3af;
+                font-size: 13px;
+                text-align: center;
+                padding: 16px;
+              "
+            >
+              Loading reports...
+            </p>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="../../js/shared/api.js"></script>
-    <script type="module" src="../../js/sustainability_officer/reportingPage.js"></script>
+    <script
+      type="module"
+      src="../../js/sustainability_officer/reportingPage.js"
+    ></script>
     <script src="../../js/shared/dashboardProfileMenu.js"></script>
-</body>
+  </body>
 </html>

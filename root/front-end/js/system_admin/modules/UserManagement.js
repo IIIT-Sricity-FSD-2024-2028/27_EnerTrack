@@ -1,5 +1,13 @@
 import { userActions, USER_ROLES } from "../data/mockData.js";
-import { escapeHtml, formValues, formatLabel, isEmail, openModal, showFormErrors, showToast } from "../utils/ui.js";
+import {
+  escapeHtml,
+  formValues,
+  formatLabel,
+  isEmail,
+  openModal,
+  showFormErrors,
+  showToast,
+} from "../utils/ui.js";
 import universalDB from "../../shared/universalDB.js";
 
 export function renderUserManagement(container, app) {
@@ -37,12 +45,18 @@ export function renderUserManagement(container, app) {
     </section>
   `;
 
-  container.querySelector('[data-action="add-user"]')?.addEventListener("click", () => openAddUserModal(app));
+  container
+    .querySelector('[data-action="add-user"]')
+    ?.addEventListener("click", () => openAddUserModal(app));
   container.querySelectorAll("[data-edit-user]").forEach((button) => {
-    button.addEventListener("click", () => openEditUserModal(button.dataset.editUser, app));
+    button.addEventListener("click", () =>
+      openEditUserModal(button.dataset.editUser, app),
+    );
   });
   container.querySelectorAll("[data-delete-user]").forEach((button) => {
-    button.addEventListener("click", () => deleteUser(button.dataset.deleteUser, app));
+    button.addEventListener("click", () =>
+      deleteUser(button.dataset.deleteUser, app),
+    );
   });
 }
 
@@ -65,7 +79,7 @@ function renderUserRow(user) {
       <td>
         <div class="row-actions">
           <button class="btn-outline" type="button" data-edit-user="${escapeHtml(user.user_id)}">Edit</button>
-          <button class="btn-outline btn-danger" type="button" data-delete-user="${escapeHtml(user.user_id)}" ${isCurrentUser ? 'disabled title="You cannot delete your own account"' : ''}>Delete</button>
+          <button class="btn-outline btn-danger" type="button" data-delete-user="${escapeHtml(user.user_id)}" ${isCurrentUser ? 'disabled title="You cannot delete your own account"' : ""}>Delete</button>
         </div>
       </td>
     </tr>
@@ -119,7 +133,7 @@ function openAddUserModal(app) {
         phone: "#userPhone",
         role: "#userRole",
         specialization: "#specialization",
-        password: "#tempPassword"
+        password: "#tempPassword",
       });
       const errors = validateUser(values, app.state.users);
 
@@ -135,20 +149,25 @@ function openAddUserModal(app) {
           phone: values.phone.trim(),
           password: values.password,
           role: values.role,
-          specialization: values.role === "Technician" ? values.specialization : null
+          specialization:
+            values.role === "Technician" ? values.specialization : null,
         };
         try {
           if (window.api) {
-            await window.api.post('/users', payload);
-            state.users = await window.api.get('/users').catch(() => state.users);
+            await window.api.post("/users", payload);
+            state.users = await window.api
+              .get("/users")
+              .catch(() => state.users);
           } else {
             userActions.addUser(payload);
             state.users = userActions.getAllUsers();
           }
-        } catch(e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
       }, `Added ${values.name}.`);
       return true;
-    }
+    },
   });
 }
 
@@ -182,9 +201,11 @@ function openEditUserModal(userId, app) {
         <div class="form-field">
           <label for="editUserRole">Role</label>
           <select id="editUserRole">
-            ${USER_ROLES.map((role) => `
+            ${USER_ROLES.map(
+              (role) => `
               <option value="${escapeHtml(role)}" ${role === user.role ? "selected" : ""}>${escapeHtml(role)}</option>
-            `).join("")}
+            `,
+            ).join("")}
           </select>
           <span class="field-error" data-error-for="role"></span>
         </div>
@@ -207,7 +228,7 @@ function openEditUserModal(userId, app) {
         phone: "#editUserPhone",
         role: "#editUserRole",
         specialization: "#editSpecialization",
-        password: "#editPassword"
+        password: "#editPassword",
       });
       const errors = validateUserEdit(values, app.state.users, userId);
 
@@ -223,26 +244,35 @@ function openEditUserModal(userId, app) {
           phone: values.phone.trim(),
           password: values.password,
           role: values.role,
-          specialization: values.role === "Technician" ? values.specialization : null
+          specialization:
+            values.role === "Technician" ? values.specialization : null,
         };
         try {
           if (window.api) {
-            await window.api.patch('/users/' + userId, payload);
-            state.users = await window.api.get('/users').catch(() => state.users);
+            await window.api.patch("/users/" + userId, payload);
+            state.users = await window.api
+              .get("/users")
+              .catch(() => state.users);
           } else {
-            const updatedUser = state.users.find((item) => item.user_id === userId);
+            const updatedUser = state.users.find(
+              (item) => item.user_id === userId,
+            );
             if (updatedUser) Object.assign(updatedUser, payload);
-            
-            const globalUser = universalDB.data.users.find((item) => item.user_id === userId);
+
+            const globalUser = universalDB.data.users.find(
+              (item) => item.user_id === userId,
+            );
             if (globalUser) Object.assign(globalUser, payload);
-            
+
             state.users = userActions.getAllUsers();
           }
-        } catch(e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
         updateCurrentUserSession(userId, values);
       }, `Updated ${values.name}.`);
       return true;
-    }
+    },
   });
 }
 
@@ -270,39 +300,57 @@ function deleteUser(userId, app) {
       app.update(async (state) => {
         try {
           if (window.api) {
-            await window.api.delete('/users/' + userId);
-            state.users = await window.api.get('/users').catch(() => state.users);
+            await window.api.delete("/users/" + userId);
+            state.users = await window.api
+              .get("/users")
+              .catch(() => state.users);
           } else {
             userActions.deleteUser(userId);
             state.users = userActions.getAllUsers();
           }
-        } catch(e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
       }, `Deleted ${user.name}.`);
       return true;
-    }
+    },
   });
 }
 
 function validateUser(values, existingUsers) {
   const errors = {};
 
-  if (!values.name || values.name.length < 2) errors.name = "Enter a name with at least 2 characters.";
+  if (!values.name || values.name.length < 2)
+    errors.name = "Enter a name with at least 2 characters.";
   if (!values.email) errors.email = "Email is required.";
-  else if (!isEmail(values.email)) errors.email = "Enter a valid email address.";
-  else if (!isGmailAddress(values.email)) errors.email = "Only gmail.com email addresses are allowed.";
-  else if (existingUsers.some((user) => user.email.toLowerCase() === values.email.toLowerCase())) {
+  else if (!isEmail(values.email))
+    errors.email = "Enter a valid email address.";
+  else if (!isGmailAddress(values.email))
+    errors.email = "Only gmail.com email addresses are allowed.";
+  else if (
+    existingUsers.some(
+      (user) => user.email.toLowerCase() === values.email.toLowerCase(),
+    )
+  ) {
     errors.email = "A user with this email already exists.";
   }
   const phoneError = getPhoneValidationError(values.phone);
   if (phoneError) errors.phone = phoneError;
-  if (!errors.phone && existingUsers.some((user) => user.phone && user.phone === values.phone.trim())) {
+  if (
+    !errors.phone &&
+    existingUsers.some(
+      (user) => user.phone && user.phone === values.phone.trim(),
+    )
+  ) {
     errors.phone = "A user with this phone number already exists.";
   }
-  if (!USER_ROLES.includes(values.role)) errors.role = "Select a valid DB role.";
+  if (!USER_ROLES.includes(values.role))
+    errors.role = "Select a valid DB role.";
   if (values.role === "Technician" && values.specialization.length < 2) {
     errors.specialization = "Technician specialization is required.";
   }
-  if (!values.password || values.password.length < 8) errors.password = "Temporary password must be at least 8 characters.";
+  if (!values.password || values.password.length < 8)
+    errors.password = "Temporary password must be at least 8 characters.";
 
   return errors;
 }
@@ -310,23 +358,42 @@ function validateUser(values, existingUsers) {
 function validateUserEdit(values, existingUsers, userId) {
   const errors = {};
 
-  if (!values.name || values.name.length < 2) errors.name = "Enter a name with at least 2 characters.";
+  if (!values.name || values.name.length < 2)
+    errors.name = "Enter a name with at least 2 characters.";
   if (!values.email) errors.email = "Email is required.";
-  else if (!isEmail(values.email)) errors.email = "Enter a valid email address.";
-  else if (!isGmailAddress(values.email)) errors.email = "Only gmail.com email addresses are allowed.";
-  else if (existingUsers.some((user) => user.user_id !== userId && user.email.toLowerCase() === values.email.toLowerCase())) {
+  else if (!isEmail(values.email))
+    errors.email = "Enter a valid email address.";
+  else if (!isGmailAddress(values.email))
+    errors.email = "Only gmail.com email addresses are allowed.";
+  else if (
+    existingUsers.some(
+      (user) =>
+        user.user_id !== userId &&
+        user.email.toLowerCase() === values.email.toLowerCase(),
+    )
+  ) {
     errors.email = "A user with this email already exists.";
   }
   const phoneError = getPhoneValidationError(values.phone);
   if (phoneError) errors.phone = phoneError;
-  if (!errors.phone && existingUsers.some((user) => user.user_id !== userId && user.phone && user.phone === values.phone.trim())) {
+  if (
+    !errors.phone &&
+    existingUsers.some(
+      (user) =>
+        user.user_id !== userId &&
+        user.phone &&
+        user.phone === values.phone.trim(),
+    )
+  ) {
     errors.phone = "A user with this phone number already exists.";
   }
-  if (!USER_ROLES.includes(values.role)) errors.role = "Select a valid DB role.";
+  if (!USER_ROLES.includes(values.role))
+    errors.role = "Select a valid DB role.";
   if (values.role === "Technician" && values.specialization.length < 2) {
     errors.specialization = "Technician specialization is required.";
   }
-  if (!values.password || values.password.length < 8) errors.password = "Password must be at least 8 characters.";
+  if (!values.password || values.password.length < 8)
+    errors.password = "Password must be at least 8 characters.";
 
   return errors;
 }
@@ -340,9 +407,12 @@ function getPhoneValidationError(phone) {
 
   if (normalizedPhone.length === 0) return "Phone number is required.";
   if (!/^[0-9]+$/.test(normalizedPhone)) return "Only digits are allowed.";
-  if (normalizedPhone.length !== 10) return "Phone number must be exactly 10 digits.";
-  if (normalizedPhone === "0000000000") return "Phone number cannot be all zeros.";
-  if (/^(\d)\1{9}$/.test(normalizedPhone)) return "Phone number cannot repeat the same digit.";
+  if (normalizedPhone.length !== 10)
+    return "Phone number must be exactly 10 digits.";
+  if (normalizedPhone === "0000000000")
+    return "Phone number cannot be all zeros.";
+  if (/^(\d)\1{9}$/.test(normalizedPhone))
+    return "Phone number cannot repeat the same digit.";
 
   return "";
 }
@@ -355,15 +425,19 @@ function updateCurrentUserSession(userId, values) {
     const currentUser = JSON.parse(stored);
     if (currentUser.user_id !== userId && currentUser.id !== userId) return;
 
-    localStorage.setItem("currentUser", JSON.stringify({
-      ...currentUser,
-      name: values.name,
-      email: values.email.toLowerCase(),
-      phone: values.phone.trim(),
-      password: values.password,
-      role: values.role,
-      specialization: values.role === "Technician" ? values.specialization : null
-    }));
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify({
+        ...currentUser,
+        name: values.name,
+        email: values.email.toLowerCase(),
+        phone: values.phone.trim(),
+        password: values.password,
+        role: values.role,
+        specialization:
+          values.role === "Technician" ? values.specialization : null,
+      }),
+    );
   } catch (e) {
     console.error("Failed to update current user session", e);
   }

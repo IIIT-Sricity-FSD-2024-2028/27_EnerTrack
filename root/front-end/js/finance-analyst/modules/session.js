@@ -14,8 +14,11 @@ const SESSION_KEY = "enertrack_finance_session";
 export function initSession() {
   const stored = localStorage.getItem(SESSION_KEY);
   if (stored) {
-    try { FinanceDB.session.user = JSON.parse(stored); }
-    catch (_) { localStorage.removeItem(SESSION_KEY); }
+    try {
+      FinanceDB.session.user = JSON.parse(stored);
+    } catch (_) {
+      localStorage.removeItem(SESSION_KEY);
+    }
   } else {
     localStorage.setItem(SESSION_KEY, JSON.stringify(FinanceDB.session.user));
   }
@@ -39,9 +42,9 @@ function mapRoleToPermissionKey(displayRole) {
   const roleMap = {
     "System Administrator": "superuser",
     "Financial Analyst": "finance_analyst",
-    "Technician": "enduser",
+    Technician: "enduser",
     "Sustainability Officer": "enduser",
-    "Campus Visitor": "enduser"
+    "Campus Visitor": "enduser",
   };
   return roleMap[displayRole] || "finance_analyst";
 }
@@ -72,20 +75,25 @@ export function renderSessionUI() {
     } catch (_) {}
   }
 
-  document.querySelectorAll(".profile-name").forEach(el => el.textContent = displayName);
-  document.querySelectorAll(".profile-role").forEach(el => el.textContent = displayRole);
+  document
+    .querySelectorAll(".profile-name")
+    .forEach((el) => (el.textContent = displayName));
+  document
+    .querySelectorAll(".profile-role")
+    .forEach((el) => (el.textContent = displayRole));
 
   const welcome = document.querySelector("h1.welcome");
-  if (welcome) welcome.textContent = `Welcome back, ${displayName.split(" ")[0]}`;
+  if (welcome)
+    welcome.textContent = `Welcome back, ${displayName.split(" ")[0]}`;
 
   // Role-gated elements: data-roles="superuser,finance_analyst"
-  document.querySelectorAll("[data-roles]").forEach(el => {
-    const allowed = el.dataset.roles.split(",").map(r => r.trim());
+  document.querySelectorAll("[data-roles]").forEach((el) => {
+    const allowed = el.dataset.roles.split(",").map((r) => r.trim());
     el.style.display = allowed.includes(user.role) ? "" : "none";
   });
 
   // Permission-gated elements: data-perm="delete"
-  document.querySelectorAll("[data-perm]").forEach(el => {
+  document.querySelectorAll("[data-perm]").forEach((el) => {
     const perm = el.dataset.perm;
     const perms = FinanceDB.rolePermissions[user.role] ?? [];
     el.style.display = perms.includes(perm) ? "" : "none";
@@ -93,18 +101,23 @@ export function renderSessionUI() {
 }
 
 function roleLabel(role) {
-  return {
-    superuser:       "Super User",
-    finance_analyst: "Finance Analyst",
-    enduser:         "End User"
-  }[role] ?? role;
+  return (
+    {
+      superuser: "Super User",
+      finance_analyst: "Finance Analyst",
+      enduser: "End User",
+    }[role] ?? role
+  );
 }
 
 /* ── ROLE SWITCHER (dev/demo) ─────────────────────── */
 
 export function switchRole(role) {
   const allowed = ["superuser", "finance_analyst", "enduser"];
-  if (!allowed.includes(role)) { showToast(`Unknown role: ${role}`, "error"); return; }
+  if (!allowed.includes(role)) {
+    showToast(`Unknown role: ${role}`, "error");
+    return;
+  }
   FinanceDB.session.user.role = role;
   localStorage.setItem(SESSION_KEY, JSON.stringify(FinanceDB.session.user));
   renderSessionUI();
@@ -112,6 +125,12 @@ export function switchRole(role) {
 }
 
 /* ── EXPORT NAMESPACE ─────────────────────────────── */
-const SessionModule = { initSession, getCurrentUser, getRole, renderSessionUI, switchRole };
+const SessionModule = {
+  initSession,
+  getCurrentUser,
+  getRole,
+  renderSessionUI,
+  switchRole,
+};
 window.SessionModule = SessionModule;
 export default SessionModule;

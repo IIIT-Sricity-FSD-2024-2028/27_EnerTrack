@@ -1,5 +1,14 @@
 import { createId, METER_STATUSES, METER_TYPES } from "../data/mockData.js";
-import { badge, escapeHtml, formValues, formatCurrency, formatLabel, openModal, showFormErrors, showToast } from "../utils/ui.js";
+import {
+  badge,
+  escapeHtml,
+  formValues,
+  formatCurrency,
+  formatLabel,
+  openModal,
+  showFormErrors,
+  showToast,
+} from "../utils/ui.js";
 
 /* ══════════════════════════════════════════════════════
    Infrastructure Manager — Campus → Building → Department → Meter
@@ -8,12 +17,24 @@ import { badge, escapeHtml, formValues, formatCurrency, formatLabel, openModal, 
 export function renderInfrastructureManager(container, app) {
   ensureSelections(app);
 
-  const selCampus = app.state.campuses.find(c => c.campus_id === app.selectedCampusId) || null;
-  const selBuilding = app.state.buildings.find(b => b.building_id === app.selectedBuildingId) || null;
+  const selCampus =
+    app.state.campuses.find((c) => c.campus_id === app.selectedCampusId) ||
+    null;
+  const selBuilding =
+    app.state.buildings.find((b) => b.building_id === app.selectedBuildingId) ||
+    null;
 
-  const campusBuildings = selCampus ? app.state.buildings.filter(b => b.campus_id === selCampus.campus_id) : [];
-  const buildingDepts = selBuilding ? app.state.departments.filter(d => d.building_id === selBuilding.building_id) : [];
-  const buildingMeters = selBuilding ? app.state.meters.filter(m => m.building_id === selBuilding.building_id) : [];
+  const campusBuildings = selCampus
+    ? app.state.buildings.filter((b) => b.campus_id === selCampus.campus_id)
+    : [];
+  const buildingDepts = selBuilding
+    ? app.state.departments.filter(
+        (d) => d.building_id === selBuilding.building_id,
+      )
+    : [];
+  const buildingMeters = selBuilding
+    ? app.state.meters.filter((m) => m.building_id === selBuilding.building_id)
+    : [];
 
   container.innerHTML = `
     <section class="infra-layout">
@@ -24,7 +45,7 @@ export function renderInfrastructureManager(container, app) {
           <button class="btn-dark" type="button" data-action="add-campus">+ Add Campus</button>
         </div>
         <div class="campus-row">
-          ${app.state.campuses.map(c => renderCampusCard(c, app)).join("") || `<div class="empty-state">No campuses yet.</div>`}
+          ${app.state.campuses.map((c) => renderCampusCard(c, app)).join("") || `<div class="empty-state">No campuses yet.</div>`}
         </div>
       </div>
 
@@ -65,7 +86,9 @@ export function renderInfrastructureManager(container, app) {
 
 /* ── CAMPUS CARD ──────────────────────────────── */
 function renderCampusCard(campus, app) {
-  const bCount = app.state.buildings.filter(b => b.campus_id === campus.campus_id).length;
+  const bCount = app.state.buildings.filter(
+    (b) => b.campus_id === campus.campus_id,
+  ).length;
   const isActive = app.selectedCampusId === campus.campus_id;
   return `
     <article class="building-card ${isActive ? "active" : ""}" data-campus-card="${escapeHtml(campus.campus_id)}">
@@ -83,24 +106,35 @@ function renderCampusCard(campus, app) {
 
 /* ── BUILDING + DEPT LIST ─────────────────────── */
 function renderBuildingDeptList(buildings, depts, app) {
-  if (buildings.length === 0) return `<div class="empty-state">No buildings in this campus.</div>`;
+  if (buildings.length === 0)
+    return `<div class="empty-state">No buildings in this campus.</div>`;
 
-  return `<div class="building-list">${buildings.map(b => {
-    const isActive = app.selectedBuildingId === b.building_id;
-    const mCount = app.state.meters.filter(m => m.building_id === b.building_id).length;
-    const bDepts = app.state.departments.filter(d => d.building_id === b.building_id);
-    const deptsHtml = bDepts.length > 0
-      ? `<div class="dept-list">${bDepts.map(d => `
+  return `<div class="building-list">${buildings
+    .map((b) => {
+      const isActive = app.selectedBuildingId === b.building_id;
+      const mCount = app.state.meters.filter(
+        (m) => m.building_id === b.building_id,
+      ).length;
+      const bDepts = app.state.departments.filter(
+        (d) => d.building_id === b.building_id,
+      );
+      const deptsHtml =
+        bDepts.length > 0
+          ? `<div class="dept-list">${bDepts
+              .map(
+                (d) => `
           <div class="dept-item">
             <span>↳ ${escapeHtml(d.name)} <small class="muted-cell">${formatCurrency(d.budget)}</small></span>
             <span class="dept-actions">
               <button class="icon-btn" type="button" data-edit-dept="${escapeHtml(d.department_id)}">Edit</button>
               <button class="icon-btn btn-danger" type="button" data-delete-dept="${escapeHtml(d.department_id)}">Delete</button>
             </span>
-          </div>`).join("")}</div>`
-      : "";
+          </div>`,
+              )
+              .join("")}</div>`
+          : "";
 
-    return `
+      return `
     <article class="building-card ${isActive ? "active" : ""}">
       <button class="building-select" type="button" data-select-building="${escapeHtml(b.building_id)}">
         <h3>${escapeHtml(b.name)}</h3>
@@ -113,13 +147,16 @@ function renderBuildingDeptList(buildings, depts, app) {
       </div>
       ${deptsHtml}
     </article>`;
-  }).join("")}</div>`;
+    })
+    .join("")}</div>`;
 }
 
 /* ── METER LIST ───────────────────────────────── */
 function renderMeterList(meters, selBuilding) {
-  if (!selBuilding) return `<div class="empty-state">Select a building to see its meters.</div>`;
-  if (meters.length === 0) return `<div class="empty-state">No meters linked to this building.</div>`;
+  if (!selBuilding)
+    return `<div class="empty-state">Select a building to see its meters.</div>`;
+  if (meters.length === 0)
+    return `<div class="empty-state">No meters linked to this building.</div>`;
   return `<div class="meter-list">${meters.map(renderMeterCard).join("")}</div>`;
 }
 
@@ -149,37 +186,107 @@ function renderMeterCard(meter) {
    ══════════════════════════════════════════════════════ */
 function wireAllEvents(container, app, selCampus, selBuilding) {
   // Campus
-  container.querySelector('[data-action="add-campus"]')?.addEventListener("click", () => openCampusModal(app));
-  container.querySelectorAll("[data-select-campus]").forEach(btn => {
-    btn.addEventListener("click", () => { app.selectedCampusId = btn.dataset.selectCampus; app.selectedBuildingId = null; app.render("infrastructure"); });
+  container
+    .querySelector('[data-action="add-campus"]')
+    ?.addEventListener("click", () => openCampusModal(app));
+  container.querySelectorAll("[data-select-campus]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      app.selectedCampusId = btn.dataset.selectCampus;
+      app.selectedBuildingId = null;
+      app.render("infrastructure");
+    });
   });
-  container.querySelectorAll("[data-edit-campus]").forEach(btn => btn.addEventListener("click", () => openCampusModal(app, btn.dataset.editCampus)));
-  container.querySelectorAll("[data-delete-campus]").forEach(btn => btn.addEventListener("click", () => deleteCampus(app, btn.dataset.deleteCampus)));
+  container
+    .querySelectorAll("[data-edit-campus]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () =>
+        openCampusModal(app, btn.dataset.editCampus),
+      ),
+    );
+  container
+    .querySelectorAll("[data-delete-campus]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () =>
+        deleteCampus(app, btn.dataset.deleteCampus),
+      ),
+    );
 
   // Building
-  container.querySelector('[data-action="add-building"]')?.addEventListener("click", () => { if (selCampus) openBuildingModal(app); });
-  container.querySelectorAll("[data-select-building]").forEach(btn => {
-    btn.addEventListener("click", () => { app.selectedBuildingId = btn.dataset.selectBuilding; app.render("infrastructure"); });
+  container
+    .querySelector('[data-action="add-building"]')
+    ?.addEventListener("click", () => {
+      if (selCampus) openBuildingModal(app);
+    });
+  container.querySelectorAll("[data-select-building]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      app.selectedBuildingId = btn.dataset.selectBuilding;
+      app.render("infrastructure");
+    });
   });
-  container.querySelectorAll("[data-edit-building]").forEach(btn => btn.addEventListener("click", () => openBuildingModal(app, btn.dataset.editBuilding)));
-  container.querySelectorAll("[data-delete-building]").forEach(btn => btn.addEventListener("click", () => deleteBuilding(app, btn.dataset.deleteBuilding)));
+  container
+    .querySelectorAll("[data-edit-building]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () =>
+        openBuildingModal(app, btn.dataset.editBuilding),
+      ),
+    );
+  container
+    .querySelectorAll("[data-delete-building]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () =>
+        deleteBuilding(app, btn.dataset.deleteBuilding),
+      ),
+    );
 
   // Department
-  container.querySelector('[data-action="add-dept"]')?.addEventListener("click", () => { if (selBuilding) openDeptModal(app); });
-  container.querySelectorAll("[data-edit-dept]").forEach(btn => btn.addEventListener("click", () => openDeptModal(app, btn.dataset.editDept)));
-  container.querySelectorAll("[data-delete-dept]").forEach(btn => btn.addEventListener("click", () => deleteDept(app, btn.dataset.deleteDept)));
+  container
+    .querySelector('[data-action="add-dept"]')
+    ?.addEventListener("click", () => {
+      if (selBuilding) openDeptModal(app);
+    });
+  container
+    .querySelectorAll("[data-edit-dept]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () =>
+        openDeptModal(app, btn.dataset.editDept),
+      ),
+    );
+  container
+    .querySelectorAll("[data-delete-dept]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () =>
+        deleteDept(app, btn.dataset.deleteDept),
+      ),
+    );
 
   // Meter
-  container.querySelector('[data-action="add-meter"]')?.addEventListener("click", () => { if (selBuilding) openMeterModal(app, selBuilding.building_id); });
-  container.querySelectorAll("[data-edit-meter]").forEach(btn => btn.addEventListener("click", () => openMeterModal(app, selBuilding?.building_id, btn.dataset.editMeter)));
-  container.querySelectorAll("[data-delete-meter]").forEach(btn => btn.addEventListener("click", () => deleteMeter(app, btn.dataset.deleteMeter)));
+  container
+    .querySelector('[data-action="add-meter"]')
+    ?.addEventListener("click", () => {
+      if (selBuilding) openMeterModal(app, selBuilding.building_id);
+    });
+  container
+    .querySelectorAll("[data-edit-meter]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () =>
+        openMeterModal(app, selBuilding?.building_id, btn.dataset.editMeter),
+      ),
+    );
+  container
+    .querySelectorAll("[data-delete-meter]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () =>
+        deleteMeter(app, btn.dataset.deleteMeter),
+      ),
+    );
 }
 
 /* ══════════════════════════════════════════════════════
    CAMPUS CRUD
    ══════════════════════════════════════════════════════ */
 function openCampusModal(app, campusId = null) {
-  const campus = app.state.campuses.find(c => c.campus_id === campusId) || null;
+  const campus =
+    app.state.campuses.find((c) => c.campus_id === campusId) || null;
   openModal({
     title: campus ? "Edit Campus" : "Add Campus",
     confirmLabel: campus ? "Save Campus" : "Add Campus",
@@ -202,73 +309,126 @@ function openCampusModal(app, campusId = null) {
         </div>
       </form>`,
     onConfirm: (modal) => {
-      const vals = formValues(modal, { name: "#campusName", location: "#campusLocation", total_budget: "#campusBudget" });
+      const vals = formValues(modal, {
+        name: "#campusName",
+        location: "#campusLocation",
+        total_budget: "#campusBudget",
+      });
       const errors = {};
-      if (!vals.name || vals.name.length < 3) errors.name = "Enter a campus name (min 3 chars).";
-      if (vals.total_budget === "" || isNaN(vals.total_budget) || Number(vals.total_budget) < 0) errors.total_budget = "Enter a valid positive number.";
-      if (Object.keys(errors).length) { showFormErrors(modal, errors); return false; }
+      if (!vals.name || vals.name.length < 3)
+        errors.name = "Enter a campus name (min 3 chars).";
+      if (
+        vals.total_budget === "" ||
+        isNaN(vals.total_budget) ||
+        Number(vals.total_budget) < 0
+      )
+        errors.total_budget = "Enter a valid positive number.";
+      if (Object.keys(errors).length) {
+        showFormErrors(modal, errors);
+        return false;
+      }
 
-      app.update(async state => {
-        const payload = { name: vals.name, location: vals.location || null, total_budget: Number(vals.total_budget) };
-        try {
-          if (window.api) {
-            if (campusId) {
-              await window.api.patch('/campus/' + campusId, payload);
+      app.update(
+        async (state) => {
+          const payload = {
+            name: vals.name,
+            location: vals.location || null,
+            total_budget: Number(vals.total_budget),
+          };
+          try {
+            if (window.api) {
+              if (campusId) {
+                await window.api.patch("/campus/" + campusId, payload);
+              } else {
+                const res = await window.api.post("/campus", payload);
+                if (res && res.campus_id) app.selectedCampusId = res.campus_id;
+              }
+              state.campuses = await window.api
+                .get("/campus")
+                .catch(() => state.campuses);
             } else {
-              const res = await window.api.post('/campus', payload);
-              if (res && res.campus_id) app.selectedCampusId = res.campus_id;
+              if (campusId) {
+                const t = state.campuses.find((c) => c.campus_id === campusId);
+                Object.assign(t, payload);
+              } else {
+                const nc = { campus_id: createId("campus"), ...payload };
+                state.campuses.push(nc);
+                app.selectedCampusId = nc.campus_id;
+              }
             }
-            state.campuses = await window.api.get('/campus').catch(() => state.campuses);
-          } else {
-            if (campusId) {
-              const t = state.campuses.find(c => c.campus_id === campusId);
-              Object.assign(t, payload);
-            } else {
-              const nc = { campus_id: createId("campus"), ...payload };
-              state.campuses.push(nc);
-              app.selectedCampusId = nc.campus_id;
-            }
+          } catch (e) {
+            console.error(e);
           }
-        } catch(e) { console.error(e); }
-      }, campusId ? "Campus updated." : "Campus added.");
+        },
+        campusId ? "Campus updated." : "Campus added.",
+      );
       return true;
-    }
+    },
   });
 }
 
 function deleteCampus(app, campusId) {
-  const campus = app.state.campuses.find(c => c.campus_id === campusId);
-  if (!campus) { showToast("Campus not found.", "error"); return; }
-  const bIds = app.state.buildings.filter(b => b.campus_id === campusId).map(b => b.building_id);
-  const dCount = app.state.departments.filter(d => bIds.includes(d.building_id)).length;
-  const mCount = app.state.meters.filter(m => bIds.includes(m.building_id)).length;
+  const campus = app.state.campuses.find((c) => c.campus_id === campusId);
+  if (!campus) {
+    showToast("Campus not found.", "error");
+    return;
+  }
+  const bIds = app.state.buildings
+    .filter((b) => b.campus_id === campusId)
+    .map((b) => b.building_id);
+  const dCount = app.state.departments.filter((d) =>
+    bIds.includes(d.building_id),
+  ).length;
+  const mCount = app.state.meters.filter((m) =>
+    bIds.includes(m.building_id),
+  ).length;
 
   openModal({
-    title: "Delete Campus", confirmLabel: "Delete", danger: true,
+    title: "Delete Campus",
+    confirmLabel: "Delete",
+    danger: true,
     bodyHtml: `<p>Delete <strong>${escapeHtml(campus.name)}</strong>?</p>
       <p class="delete-note">${bIds.length} building(s), ${dCount} department(s), ${mCount} meter(s) will also be removed.</p>`,
     onConfirm: () => {
-      app.update(async state => {
+      app.update(async (state) => {
         try {
           if (window.api) {
-            await window.api.delete('/campus/' + campusId);
-            state.campuses = await window.api.get('/campus').catch(() => state.campuses);
-            state.buildings = await window.api.get('/buildings').catch(() => state.buildings);
-            state.departments = await window.api.get('/departments').catch(() => state.departments);
-            state.meters = await window.api.get('/meters').catch(() => state.meters);
+            await window.api.delete("/campus/" + campusId);
+            state.campuses = await window.api
+              .get("/campus")
+              .catch(() => state.campuses);
+            state.buildings = await window.api
+              .get("/buildings")
+              .catch(() => state.buildings);
+            state.departments = await window.api
+              .get("/departments")
+              .catch(() => state.departments);
+            state.meters = await window.api
+              .get("/meters")
+              .catch(() => state.meters);
           } else {
-            state.meters = state.meters.filter(m => !bIds.includes(m.building_id));
-            state.departments = state.departments.filter(d => !bIds.includes(d.building_id));
-            state.buildings = state.buildings.filter(b => b.campus_id !== campusId);
-            state.campuses = state.campuses.filter(c => c.campus_id !== campusId);
+            state.meters = state.meters.filter(
+              (m) => !bIds.includes(m.building_id),
+            );
+            state.departments = state.departments.filter(
+              (d) => !bIds.includes(d.building_id),
+            );
+            state.buildings = state.buildings.filter(
+              (b) => b.campus_id !== campusId,
+            );
+            state.campuses = state.campuses.filter(
+              (c) => c.campus_id !== campusId,
+            );
           }
-        } catch(e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
       }, "Campus deleted.");
       app.selectedCampusId = app.state.campuses[0]?.campus_id || null;
       app.selectedBuildingId = null;
       app.render("infrastructure");
       return true;
-    }
+    },
   });
 }
 
@@ -276,7 +436,8 @@ function deleteCampus(app, campusId) {
    BUILDING CRUD
    ══════════════════════════════════════════════════════ */
 function openBuildingModal(app, buildingId = null) {
-  const building = app.state.buildings.find(b => b.building_id === buildingId) || null;
+  const building =
+    app.state.buildings.find((b) => b.building_id === buildingId) || null;
   openModal({
     title: building ? "Edit Building" : "Add Building",
     confirmLabel: building ? "Save Building" : "Add Building",
@@ -290,7 +451,7 @@ function openBuildingModal(app, buildingId = null) {
         <div class="form-field">
           <label for="campusId">Campus</label>
           <select id="campusId">
-            ${app.state.campuses.map(c => `<option value="${escapeHtml(c.campus_id)}" ${(building?.campus_id || app.selectedCampusId) === c.campus_id ? "selected" : ""}>${escapeHtml(c.name)}</option>`).join("")}
+            ${app.state.campuses.map((c) => `<option value="${escapeHtml(c.campus_id)}" ${(building?.campus_id || app.selectedCampusId) === c.campus_id ? "selected" : ""}>${escapeHtml(c.name)}</option>`).join("")}
           </select>
           <span class="field-error" data-error-for="campus_id"></span>
         </div>
@@ -301,70 +462,123 @@ function openBuildingModal(app, buildingId = null) {
         </div>
       </form>`,
     onConfirm: (modal) => {
-      const vals = formValues(modal, { name: "#buildingName", campus_id: "#campusId", budget: "#buildingBudget" });
+      const vals = formValues(modal, {
+        name: "#buildingName",
+        campus_id: "#campusId",
+        budget: "#buildingBudget",
+      });
       const errors = {};
-      if (!vals.name || vals.name.length < 3) errors.name = "Enter a building name.";
-      if (!app.state.campuses.some(c => c.campus_id === vals.campus_id)) errors.campus_id = "Select a valid campus.";
-      if (vals.budget === "" || isNaN(vals.budget) || Number(vals.budget) < 0) errors.budget = "Enter a valid positive number.";
-      if (Object.keys(errors).length) { showFormErrors(modal, errors); return false; }
+      if (!vals.name || vals.name.length < 3)
+        errors.name = "Enter a building name.";
+      if (!app.state.campuses.some((c) => c.campus_id === vals.campus_id))
+        errors.campus_id = "Select a valid campus.";
+      if (vals.budget === "" || isNaN(vals.budget) || Number(vals.budget) < 0)
+        errors.budget = "Enter a valid positive number.";
+      if (Object.keys(errors).length) {
+        showFormErrors(modal, errors);
+        return false;
+      }
 
-      app.update(async state => {
-        const payload = { name: vals.name, campus_id: vals.campus_id, budget: Number(vals.budget) };
-        try {
-          if (window.api) {
-            if (buildingId) {
-              await window.api.patch('/buildings/' + buildingId, payload);
+      app.update(
+        async (state) => {
+          const payload = {
+            name: vals.name,
+            campus_id: vals.campus_id,
+            budget: Number(vals.budget),
+          };
+          try {
+            if (window.api) {
+              if (buildingId) {
+                await window.api.patch("/buildings/" + buildingId, payload);
+              } else {
+                const res = await window.api.post("/buildings", payload);
+                if (res && res.building_id)
+                  app.selectedBuildingId = res.building_id;
+              }
+              state.buildings = await window.api
+                .get("/buildings")
+                .catch(() => state.buildings);
             } else {
-              const res = await window.api.post('/buildings', payload);
-              if (res && res.building_id) app.selectedBuildingId = res.building_id;
+              if (buildingId) {
+                const t = state.buildings.find(
+                  (b) => b.building_id === buildingId,
+                );
+                Object.assign(t, payload);
+              } else {
+                const nb = { building_id: createId("building"), ...payload };
+                state.buildings.push(nb);
+                app.selectedBuildingId = nb.building_id;
+              }
             }
-            state.buildings = await window.api.get('/buildings').catch(() => state.buildings);
-          } else {
-            if (buildingId) {
-              const t = state.buildings.find(b => b.building_id === buildingId);
-              Object.assign(t, payload);
-            } else {
-              const nb = { building_id: createId("building"), ...payload };
-              state.buildings.push(nb);
-              app.selectedBuildingId = nb.building_id;
-            }
+          } catch (e) {
+            console.error(e);
           }
-        } catch(e) { console.error(e); }
-      }, buildingId ? "Building updated." : "Building added.");
+        },
+        buildingId ? "Building updated." : "Building added.",
+      );
       return true;
-    }
+    },
   });
 }
 
 function deleteBuilding(app, buildingId) {
-  const building = app.state.buildings.find(b => b.building_id === buildingId);
-  if (!building) { showToast("Building not found.", "error"); return; }
-  const dCount = app.state.departments.filter(d => d.building_id === buildingId).length;
-  const mCount = app.state.meters.filter(m => m.building_id === buildingId).length;
+  const building = app.state.buildings.find(
+    (b) => b.building_id === buildingId,
+  );
+  if (!building) {
+    showToast("Building not found.", "error");
+    return;
+  }
+  const dCount = app.state.departments.filter(
+    (d) => d.building_id === buildingId,
+  ).length;
+  const mCount = app.state.meters.filter(
+    (m) => m.building_id === buildingId,
+  ).length;
 
   openModal({
-    title: "Delete Building", confirmLabel: "Delete", danger: true,
+    title: "Delete Building",
+    confirmLabel: "Delete",
+    danger: true,
     bodyHtml: `<p>Delete <strong>${escapeHtml(building.name)}</strong>?</p>
       <p class="delete-note">${dCount} department(s) and ${mCount} meter(s) will also be removed.</p>`,
     onConfirm: () => {
-      const remaining = app.state.buildings.filter(b => b.building_id !== buildingId);
-      app.selectedBuildingId = remaining.filter(b => b.campus_id === app.selectedCampusId)[0]?.building_id || null;
-      app.update(async state => {
+      const remaining = app.state.buildings.filter(
+        (b) => b.building_id !== buildingId,
+      );
+      app.selectedBuildingId =
+        remaining.filter((b) => b.campus_id === app.selectedCampusId)[0]
+          ?.building_id || null;
+      app.update(async (state) => {
         try {
           if (window.api) {
-            await window.api.delete('/buildings/' + buildingId);
-            state.buildings = await window.api.get('/buildings').catch(() => state.buildings);
-            state.departments = await window.api.get('/departments').catch(() => state.departments);
-            state.meters = await window.api.get('/meters').catch(() => state.meters);
+            await window.api.delete("/buildings/" + buildingId);
+            state.buildings = await window.api
+              .get("/buildings")
+              .catch(() => state.buildings);
+            state.departments = await window.api
+              .get("/departments")
+              .catch(() => state.departments);
+            state.meters = await window.api
+              .get("/meters")
+              .catch(() => state.meters);
           } else {
-            state.departments = state.departments.filter(d => d.building_id !== buildingId);
-            state.meters = state.meters.filter(m => m.building_id !== buildingId);
-            state.buildings = state.buildings.filter(b => b.building_id !== buildingId);
+            state.departments = state.departments.filter(
+              (d) => d.building_id !== buildingId,
+            );
+            state.meters = state.meters.filter(
+              (m) => m.building_id !== buildingId,
+            );
+            state.buildings = state.buildings.filter(
+              (b) => b.building_id !== buildingId,
+            );
           }
-        } catch(e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
       }, "Building deleted.");
       return true;
-    }
+    },
   });
 }
 
@@ -372,8 +586,11 @@ function deleteBuilding(app, buildingId) {
    DEPARTMENT CRUD
    ══════════════════════════════════════════════════════ */
 function openDeptModal(app, deptId = null) {
-  const dept = app.state.departments.find(d => d.department_id === deptId) || null;
-  const campusBuildings = app.state.buildings.filter(b => b.campus_id === app.selectedCampusId);
+  const dept =
+    app.state.departments.find((d) => d.department_id === deptId) || null;
+  const campusBuildings = app.state.buildings.filter(
+    (b) => b.campus_id === app.selectedCampusId,
+  );
 
   openModal({
     title: dept ? "Edit Department" : "Add Department",
@@ -388,7 +605,7 @@ function openDeptModal(app, deptId = null) {
         <div class="form-field">
           <label for="deptBuilding">Building</label>
           <select id="deptBuilding">
-            ${campusBuildings.map(b => `<option value="${escapeHtml(b.building_id)}" ${(dept?.building_id || app.selectedBuildingId) === b.building_id ? "selected" : ""}>${escapeHtml(b.name)}</option>`).join("")}
+            ${campusBuildings.map((b) => `<option value="${escapeHtml(b.building_id)}" ${(dept?.building_id || app.selectedBuildingId) === b.building_id ? "selected" : ""}>${escapeHtml(b.name)}</option>`).join("")}
           </select>
           <span class="field-error" data-error-for="building_id"></span>
         </div>
@@ -399,57 +616,93 @@ function openDeptModal(app, deptId = null) {
         </div>
       </form>`,
     onConfirm: (modal) => {
-      const vals = formValues(modal, { name: "#deptName", building_id: "#deptBuilding", budget: "#deptBudget" });
+      const vals = formValues(modal, {
+        name: "#deptName",
+        building_id: "#deptBuilding",
+        budget: "#deptBudget",
+      });
       const errors = {};
-      if (!vals.name || vals.name.length < 2) errors.name = "Enter a department name.";
+      if (!vals.name || vals.name.length < 2)
+        errors.name = "Enter a department name.";
       if (!vals.building_id) errors.building_id = "Select a building.";
-      if (vals.budget === "" || isNaN(vals.budget) || Number(vals.budget) < 0) errors.budget = "Enter a valid positive number.";
-      if (Object.keys(errors).length) { showFormErrors(modal, errors); return false; }
+      if (vals.budget === "" || isNaN(vals.budget) || Number(vals.budget) < 0)
+        errors.budget = "Enter a valid positive number.";
+      if (Object.keys(errors).length) {
+        showFormErrors(modal, errors);
+        return false;
+      }
 
-      app.update(async state => {
-        const payload = { name: vals.name, building_id: vals.building_id, budget: Number(vals.budget) };
-        try {
-          if (window.api) {
-            if (deptId) {
-              await window.api.patch('/departments/' + deptId, payload);
+      app.update(
+        async (state) => {
+          const payload = {
+            name: vals.name,
+            building_id: vals.building_id,
+            budget: Number(vals.budget),
+          };
+          try {
+            if (window.api) {
+              if (deptId) {
+                await window.api.patch("/departments/" + deptId, payload);
+              } else {
+                await window.api.post("/departments", payload);
+              }
+              state.departments = await window.api
+                .get("/departments")
+                .catch(() => state.departments);
             } else {
-              await window.api.post('/departments', payload);
+              if (deptId) {
+                const t = state.departments.find(
+                  (d) => d.department_id === deptId,
+                );
+                Object.assign(t, payload);
+              } else {
+                state.departments.push({
+                  department_id: createId("dept"),
+                  ...payload,
+                });
+              }
             }
-            state.departments = await window.api.get('/departments').catch(() => state.departments);
-          } else {
-            if (deptId) {
-              const t = state.departments.find(d => d.department_id === deptId);
-              Object.assign(t, payload);
-            } else {
-              state.departments.push({ department_id: createId("dept"), ...payload });
-            }
+          } catch (e) {
+            console.error(e);
           }
-        } catch(e) { console.error(e); }
-      }, deptId ? "Department updated." : "Department added.");
+        },
+        deptId ? "Department updated." : "Department added.",
+      );
       return true;
-    }
+    },
   });
 }
 
 function deleteDept(app, deptId) {
-  const dept = app.state.departments.find(d => d.department_id === deptId);
-  if (!dept) { showToast("Department not found.", "error"); return; }
+  const dept = app.state.departments.find((d) => d.department_id === deptId);
+  if (!dept) {
+    showToast("Department not found.", "error");
+    return;
+  }
   openModal({
-    title: "Delete Department", confirmLabel: "Delete", danger: true,
+    title: "Delete Department",
+    confirmLabel: "Delete",
+    danger: true,
     bodyHtml: `<p>Delete department <strong>${escapeHtml(dept.name)}</strong>?</p>`,
     onConfirm: () => {
-      app.update(async state => {
+      app.update(async (state) => {
         try {
           if (window.api) {
-            await window.api.delete('/departments/' + deptId);
-            state.departments = await window.api.get('/departments').catch(() => state.departments);
+            await window.api.delete("/departments/" + deptId);
+            state.departments = await window.api
+              .get("/departments")
+              .catch(() => state.departments);
           } else {
-            state.departments = state.departments.filter(d => d.department_id !== deptId);
+            state.departments = state.departments.filter(
+              (d) => d.department_id !== deptId,
+            );
           }
-        } catch(e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
       }, "Department deleted.");
       return true;
-    }
+    },
   });
 }
 
@@ -457,7 +710,7 @@ function deleteDept(app, deptId) {
    METER CRUD
    ══════════════════════════════════════════════════════ */
 function openMeterModal(app, buildingId, meterId = null) {
-  const meter = app.state.meters.find(m => m.meter_id === meterId) || null;
+  const meter = app.state.meters.find((m) => m.meter_id === meterId) || null;
   openModal({
     title: meter ? "Edit Meter" : "Add Meter",
     confirmLabel: meter ? "Save Meter" : "Add Meter",
@@ -471,7 +724,7 @@ function openMeterModal(app, buildingId, meterId = null) {
         <div class="form-field">
           <label for="meterType">Meter Type</label>
           <select id="meterType">
-            ${METER_TYPES.map(t => `<option value="${escapeHtml(t)}" ${meter?.meter_type === t ? "selected" : ""}>${escapeHtml(formatLabel(t))}</option>`).join("")}
+            ${METER_TYPES.map((t) => `<option value="${escapeHtml(t)}" ${meter?.meter_type === t ? "selected" : ""}>${escapeHtml(formatLabel(t))}</option>`).join("")}
           </select>
           <span class="field-error" data-error-for="meter_type"></span>
         </div>
@@ -483,75 +736,123 @@ function openMeterModal(app, buildingId, meterId = null) {
         <div class="form-field">
           <label for="meterStatus">Status</label>
           <select id="meterStatus">
-            ${METER_STATUSES.map(s => `<option value="${escapeHtml(s)}" ${meter?.status === s ? "selected" : ""}>${escapeHtml(formatLabel(s))}</option>`).join("")}
+            ${METER_STATUSES.map((s) => `<option value="${escapeHtml(s)}" ${meter?.status === s ? "selected" : ""}>${escapeHtml(formatLabel(s))}</option>`).join("")}
           </select>
           <span class="field-error" data-error-for="status"></span>
         </div>
       </form>`,
     onConfirm: (modal) => {
-      const vals = formValues(modal, { meter_code: "#meterCode", meter_type: "#meterType", zone: "#meterZone", status: "#meterStatus" });
+      const vals = formValues(modal, {
+        meter_code: "#meterCode",
+        meter_type: "#meterType",
+        zone: "#meterZone",
+        status: "#meterStatus",
+      });
       const errors = {};
-      if (!vals.meter_code || vals.meter_code.length < 3) errors.meter_code = "Enter a meter code.";
-      else if (app.state.meters.some(m => m.meter_id !== meterId && m.meter_code.toLowerCase() === vals.meter_code.toLowerCase())) errors.meter_code = "Code already exists.";
-      if (!METER_TYPES.includes(vals.meter_type)) errors.meter_type = "Select a valid type.";
-      if (!METER_STATUSES.includes(vals.status)) errors.status = "Select a valid status.";
-      if (Object.keys(errors).length) { showFormErrors(modal, errors); return false; }
+      if (!vals.meter_code || vals.meter_code.length < 3)
+        errors.meter_code = "Enter a meter code.";
+      else if (
+        app.state.meters.some(
+          (m) =>
+            m.meter_id !== meterId &&
+            m.meter_code.toLowerCase() === vals.meter_code.toLowerCase(),
+        )
+      )
+        errors.meter_code = "Code already exists.";
+      if (!METER_TYPES.includes(vals.meter_type))
+        errors.meter_type = "Select a valid type.";
+      if (!METER_STATUSES.includes(vals.status))
+        errors.status = "Select a valid status.";
+      if (Object.keys(errors).length) {
+        showFormErrors(modal, errors);
+        return false;
+      }
 
-      app.update(async state => {
-        const payload = { building_id: buildingId, meter_code: vals.meter_code.toUpperCase(), meter_type: vals.meter_type, zone: vals.zone || null, status: vals.status };
-        try {
-          if (window.api) {
-            if (meterId) {
-              await window.api.patch('/meters/' + meterId, payload);
+      app.update(
+        async (state) => {
+          const payload = {
+            building_id: buildingId,
+            meter_code: vals.meter_code.toUpperCase(),
+            meter_type: vals.meter_type,
+            zone: vals.zone || null,
+            status: vals.status,
+          };
+          try {
+            if (window.api) {
+              if (meterId) {
+                await window.api.patch("/meters/" + meterId, payload);
+              } else {
+                await window.api.post("/meters", payload);
+              }
+              state.meters = await window.api
+                .get("/meters")
+                .catch(() => state.meters);
             } else {
-              await window.api.post('/meters', payload);
+              if (meterId) {
+                const t = state.meters.find((m) => m.meter_id === meterId);
+                Object.assign(t, payload);
+              } else {
+                state.meters.push({ meter_id: createId("meter"), ...payload });
+              }
             }
-            state.meters = await window.api.get('/meters').catch(() => state.meters);
-          } else {
-            if (meterId) {
-              const t = state.meters.find(m => m.meter_id === meterId);
-              Object.assign(t, payload);
-            } else {
-              state.meters.push({ meter_id: createId("meter"), ...payload });
-            }
+          } catch (e) {
+            console.error(e);
           }
-        } catch(e) { console.error(e); }
-      }, meterId ? "Meter updated." : "Meter added.");
+        },
+        meterId ? "Meter updated." : "Meter added.",
+      );
       return true;
-    }
+    },
   });
 }
 
 function deleteMeter(app, meterId) {
-  const meter = app.state.meters.find(m => m.meter_id === meterId);
-  if (!meter) { showToast("Meter not found.", "error"); return; }
+  const meter = app.state.meters.find((m) => m.meter_id === meterId);
+  if (!meter) {
+    showToast("Meter not found.", "error");
+    return;
+  }
   openModal({
-    title: "Delete Meter", confirmLabel: "Delete", danger: true,
+    title: "Delete Meter",
+    confirmLabel: "Delete",
+    danger: true,
     bodyHtml: `<p>Delete <strong>${escapeHtml(meter.meter_code)}</strong>?</p>`,
     onConfirm: () => {
-      app.update(async state => {
+      app.update(async (state) => {
         try {
           if (window.api) {
-            await window.api.delete('/meters/' + meterId);
-            state.meters = await window.api.get('/meters').catch(() => state.meters);
+            await window.api.delete("/meters/" + meterId);
+            state.meters = await window.api
+              .get("/meters")
+              .catch(() => state.meters);
           } else {
-            state.meters = state.meters.filter(m => m.meter_id !== meterId);
+            state.meters = state.meters.filter((m) => m.meter_id !== meterId);
           }
-        } catch(e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
       }, "Meter deleted.");
       return true;
-    }
+    },
   });
 }
 
 /* ── HELPERS ───────────────────────────────────── */
 function ensureSelections(app) {
-  if (!app.selectedCampusId || !app.state.campuses.some(c => c.campus_id === app.selectedCampusId)) {
+  if (
+    !app.selectedCampusId ||
+    !app.state.campuses.some((c) => c.campus_id === app.selectedCampusId)
+  ) {
     app.selectedCampusId = app.state.campuses[0]?.campus_id || null;
   }
   if (app.selectedCampusId) {
-    const campusBuildings = app.state.buildings.filter(b => b.campus_id === app.selectedCampusId);
-    if (!app.selectedBuildingId || !campusBuildings.some(b => b.building_id === app.selectedBuildingId)) {
+    const campusBuildings = app.state.buildings.filter(
+      (b) => b.campus_id === app.selectedCampusId,
+    );
+    if (
+      !app.selectedBuildingId ||
+      !campusBuildings.some((b) => b.building_id === app.selectedBuildingId)
+    ) {
       app.selectedBuildingId = campusBuildings[0]?.building_id || null;
     }
   } else {

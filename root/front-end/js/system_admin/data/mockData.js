@@ -22,8 +22,8 @@ const EnerTrackDB = {
 
 export default EnerTrackDB;*/
 
-import universalDB from '../../shared/universalDB.js';
-import { userActions } from '../../shared/mockData.js';
+import universalDB from "../../shared/universalDB.js";
+import { userActions } from "../../shared/mockData.js";
 
 export function getAdminState() {
   return {
@@ -32,7 +32,7 @@ export function getAdminState() {
     campuses: universalDB.data.campuses,
     buildings: universalDB.data.buildings,
     departments: universalDB.data.departments,
-    meters: universalDB.data.meters
+    meters: universalDB.data.meters,
   };
 }
 
@@ -54,11 +54,11 @@ export function resetAdminState() {
 
 export function createId(prefix) {
   const registry = {
-    campus:   { arr: universalDB.data.campuses,    field: "campus_id" },
-    building: { arr: universalDB.data.buildings,   field: "building_id" },
-    dept:     { arr: universalDB.data.departments, field: "department_id" },
-    meter:    { arr: universalDB.data.meters,      field: "meter_id" },
-    user:     { arr: universalDB.data.users,       field: "user_id" },
+    campus: { arr: universalDB.data.campuses, field: "campus_id" },
+    building: { arr: universalDB.data.buildings, field: "building_id" },
+    dept: { arr: universalDB.data.departments, field: "department_id" },
+    meter: { arr: universalDB.data.meters, field: "meter_id" },
+    user: { arr: universalDB.data.users, field: "user_id" },
   };
   const entry = registry[prefix];
   if (!entry) return `${prefix}-001`;
@@ -79,22 +79,16 @@ export const USER_ROLES = [
   "Financial Analyst",
   "Technician",
   "Sustainability Officer",
-  "Campus Visitor"
+  "Campus Visitor",
 ];
 
-export const METER_TYPES = [
-  "electricity",
-  "gas",
-  "water",
-  "emissions",
-  "food"
-];
+export const METER_TYPES = ["electricity", "gas", "water", "emissions", "food"];
 
 export const METER_STATUSES = [
   "active",
   "faulty",
   "calibrating",
-  "decommissioned"
+  "decommissioned",
 ];
 
 export function mockHashPassword(password) {

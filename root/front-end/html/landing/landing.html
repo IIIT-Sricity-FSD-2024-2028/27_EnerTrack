@@ -1,488 +1,636 @@
-<!DOCTYPE html>
-<html lang="en" style="scroll-behavior: smooth;">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!doctype html>
+<html lang="en" style="scroll-behavior: smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EnerTrack | Smart Campus Energy Management</title>
-    <meta name="description"
-        content="Empowering educational institutions to monitor, optimize, and reduce energy consumption through data-driven insights.">
-    <link rel="stylesheet" href="../../css/landing/landing.css">
-</head>
+    <meta
+      name="description"
+      content="Empowering educational institutions to monitor, optimize, and reduce energy consumption through data-driven insights."
+    />
+    <link rel="stylesheet" href="../../css/landing/landing.css" />
+  </head>
 
-<body>
-
+  <body>
     <!-- NAVBAR -->
     <nav class="navbar" id="navbar">
-        <div class="left-nav">
-            <a href="#" class="logo">
-                <img src="../../assets/logo3.png" alt="EnerTrack Logo">
-                <span>EnerTrack</span>
-            </a>
-            <div class="nav-links">
-                <a href="#hero">Home</a>
-                <a href="#about">About</a>
-                <a href="#roles">Roles</a>
-            </div>
+      <div class="left-nav">
+        <a href="#" class="logo">
+          <img src="../../assets/logo3.png" alt="EnerTrack Logo" />
+          <span>EnerTrack</span>
+        </a>
+        <div class="nav-links">
+          <a href="#hero">Home</a>
+          <a href="#about">About</a>
+          <a href="#roles">Roles</a>
         </div>
-        <div class="right-nav">
-            <a href="../sign_up/sign_up.html" class="btn-primary" id="navSignUp">Sign Up</a>
+      </div>
+      <div class="right-nav">
+        <a href="../sign_up/sign_up.html" class="btn-primary" id="navSignUp"
+          >Sign Up</a
+        >
 
-            <!-- Profile with dropdown for System Admin -->
-            <div class="profile-wrapper" id="profileWrapper" style="display:none;">
-                <button class="profile-circle" id="navProfile" type="button">
-                    <img src="https://i.pravatar.cc/100" alt="User Profile">
-                </button>
-                <div class="profile-dropdown" id="profileDropdown">
-                    <div class="dropdown-header" id="dropdownUserName">User</div>
-                    <div class="dropdown-role" id="dropdownUserRole">Role</div>
-                    <div class="dropdown-divider"></div>
-                    <div id="dropdownLinks"><!-- dynamically populated --></div>
-                    <div class="dropdown-divider"></div>
-                    <button class="dropdown-item dropdown-logout" id="logoutBtn" type="button">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                        Sign Out
-                    </button>
-                </div>
-            </div>
+        <!-- Profile with dropdown for System Admin -->
+        <div class="profile-wrapper" id="profileWrapper" style="display: none">
+          <button class="profile-circle" id="navProfile" type="button">
+            <img src="https://i.pravatar.cc/100" alt="User Profile" />
+          </button>
+          <div class="profile-dropdown" id="profileDropdown">
+            <div class="dropdown-header" id="dropdownUserName">User</div>
+            <div class="dropdown-role" id="dropdownUserRole">Role</div>
+            <div class="dropdown-divider"></div>
+            <div id="dropdownLinks"><!-- dynamically populated --></div>
+            <div class="dropdown-divider"></div>
+            <button
+              class="dropdown-item dropdown-logout"
+              id="logoutBtn"
+              type="button"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              Sign Out
+            </button>
+          </div>
         </div>
+      </div>
     </nav>
 
     <!-- HERO SECTION -->
     <header class="hero" id="hero">
-        <div class="hero-content">
-            <span class="section-label">Campus Sustainability</span>
-            <h1>Power smarter.<br>Spend less.<br>Breathe easier.</h1>
-            <p>The intelligent energy management platform designed to help modern educational institutions scale
-                sustainability and eliminate waste at every level.</p>
-            <!-- CTA Buttons Removed as per request -->
-        </div>
-        <div class="hero-image">
-            <img src="../../assets/hero.png" alt="Modern Sustainable Campus">
-        </div>
+      <div class="hero-content">
+        <span class="section-label">Campus Sustainability</span>
+        <h1>Power smarter.<br />Spend less.<br />Breathe easier.</h1>
+        <p>
+          The intelligent energy management platform designed to help modern
+          educational institutions scale sustainability and eliminate waste at
+          every level.
+        </p>
+        <!-- CTA Buttons Removed as per request -->
+      </div>
+      <div class="hero-image">
+        <img src="../../assets/hero.png" alt="Modern Sustainable Campus" />
+      </div>
     </header>
 
-    <hr class="section-divider">
+    <hr class="section-divider" />
 
     <!-- ABOUT SECTION -->
     <section class="section about" id="about">
-        <span class="section-label">The Mission</span>
-        <div class="about-grid">
-            <div class="about-text">
-                <h2 class="section-title">Building smarter campuses for a sustainable future.</h2>
-                <p>EnerTrack empowers educational institutions to gain full visibility into their energy consumption.
-                    Through real-time monitoring and data-driven insights, our platform identifies inefficiencies before
-                    they become costs.</p>
-                <p>By connecting administrators, finance teams, and sustainability officers, EnerTrack has helped
-                    institutions cut energy costs by an average of 25% and reduce carbon footprints by 40%.</p>
-            </div>
-            <div class="about-image">
-                <img src="../../assets/logo5.jpeg" alt="Sustainable Campus Architecture">
-            </div>
+      <span class="section-label">The Mission</span>
+      <div class="about-grid">
+        <div class="about-text">
+          <h2 class="section-title">
+            Building smarter campuses for a sustainable future.
+          </h2>
+          <p>
+            EnerTrack empowers educational institutions to gain full visibility
+            into their energy consumption. Through real-time monitoring and
+            data-driven insights, our platform identifies inefficiencies before
+            they become costs.
+          </p>
+          <p>
+            By connecting administrators, finance teams, and sustainability
+            officers, EnerTrack has helped institutions cut energy costs by an
+            average of 25% and reduce carbon footprints by 40%.
+          </p>
         </div>
+        <div class="about-image">
+          <img
+            src="../../assets/logo5.jpeg"
+            alt="Sustainable Campus Architecture"
+          />
+        </div>
+      </div>
     </section>
 
-    <hr class="section-divider">
+    <hr class="section-divider" />
 
     <!-- ROLES SECTION -->
     <section class="section roles" id="roles">
-        <span class="section-label">Stakeholders</span>
-        <h2 class="section-title">Tailored for every project lead.</h2>
-        <div class="roles-grid">
-            <div class="role-card" data-role="System Admin" data-href="../system_admin/system_admin_overview.html">
-                <h3>System Admin</h3>
-                <ul>
-                    <li>Monitors and maintains energy management infrastructure.</li>
-                    <li>Manages system configuration and sensor data setup.</li>
-                    <li>Tracks real-time system performance and analytics.</li>
-                    <li>Ensures 24/7 mission-critical operations.</li>
-                </ul>
-            </div>
-
-            <div class="role-card" data-role="Financial Analyst" data-href="../finance-analyst/finance_overview.html">
-                <h3>Financial Analyst</h3>
-                <ul>
-                    <li>Calculates utility costs and financial ROI metrics.</li>
-                    <li>Generates precise budgetary reports (PDF/CSV).</li>
-                    <li>Evaluates financial impact of energy projects.</li>
-                    <li>Predictive trend analysis for investment decisions.</li>
-                </ul>
-            </div>
-
-            <div class="role-card" data-role="Technician" data-href="../technician/technician_overview.html">
-                <h3>Technician</h3>
-                <ul>
-                    <li>Executes technical maintenance and sensor calibration.</li>
-                    <li>Responds instantly to real-time anomaly alerts.</li>
-                    <li>Diagnoses equipment issues with FDD tools.</li>
-                    <li>Maintains hardware integrity across campus.</li>
-                </ul>
-            </div>
-
-            <div class="role-card" data-role="Sustainability Officer"
-                data-href="../sustainability_officer/sust_overview.html">
-                <h3>Sustainability Officer</h3>
-                <ul>
-                    <li>Strategy lead for campus-wide green initiatives.</li>
-                    <li>Monitors long-term environmental target compliance.</li>
-                    <li>Prepares global sustainability impact reports.</li>
-                    <li>Drives behavioral change through data visibility.</li>
-                </ul>
-            </div>
-
-            <div class="role-card" data-role="Campus Visitor" data-href="../enduser/enduser_dashboard.html">
-                <h3>Campus Visitor</h3>
-                <ul>
-                    <li>Reports energy, water, emissions, and food wastage observations.</li>
-                    <li>Tracks report progress through the sustainability and finance workflow.</li>
-                    <li>Receives validation, dismissal, and delivery notifications in-app.</li>
-                    <li>Views archived outcomes with final impact and target summaries.</li>
-                </ul>
-            </div>
+      <span class="section-label">Stakeholders</span>
+      <h2 class="section-title">Tailored for every project lead.</h2>
+      <div class="roles-grid">
+        <div
+          class="role-card"
+          data-role="System Admin"
+          data-href="../system_admin/system_admin_overview.html"
+        >
+          <h3>System Admin</h3>
+          <ul>
+            <li>Monitors and maintains energy management infrastructure.</li>
+            <li>Manages system configuration and sensor data setup.</li>
+            <li>Tracks real-time system performance and analytics.</li>
+            <li>Ensures 24/7 mission-critical operations.</li>
+          </ul>
         </div>
+
+        <div
+          class="role-card"
+          data-role="Financial Analyst"
+          data-href="../finance-analyst/finance_overview.html"
+        >
+          <h3>Financial Analyst</h3>
+          <ul>
+            <li>Calculates utility costs and financial ROI metrics.</li>
+            <li>Generates precise budgetary reports (PDF/CSV).</li>
+            <li>Evaluates financial impact of energy projects.</li>
+            <li>Predictive trend analysis for investment decisions.</li>
+          </ul>
+        </div>
+
+        <div
+          class="role-card"
+          data-role="Technician"
+          data-href="../technician/technician_overview.html"
+        >
+          <h3>Technician</h3>
+          <ul>
+            <li>Executes technical maintenance and sensor calibration.</li>
+            <li>Responds instantly to real-time anomaly alerts.</li>
+            <li>Diagnoses equipment issues with FDD tools.</li>
+            <li>Maintains hardware integrity across campus.</li>
+          </ul>
+        </div>
+
+        <div
+          class="role-card"
+          data-role="Sustainability Officer"
+          data-href="../sustainability_officer/sust_overview.html"
+        >
+          <h3>Sustainability Officer</h3>
+          <ul>
+            <li>Strategy lead for campus-wide green initiatives.</li>
+            <li>Monitors long-term environmental target compliance.</li>
+            <li>Prepares global sustainability impact reports.</li>
+            <li>Drives behavioral change through data visibility.</li>
+          </ul>
+        </div>
+
+        <div
+          class="role-card"
+          data-role="Campus Visitor"
+          data-href="../enduser/enduser_dashboard.html"
+        >
+          <h3>Campus Visitor</h3>
+          <ul>
+            <li>
+              Reports energy, water, emissions, and food wastage observations.
+            </li>
+            <li>
+              Tracks report progress through the sustainability and finance
+              workflow.
+            </li>
+            <li>
+              Receives validation, dismissal, and delivery notifications in-app.
+            </li>
+            <li>
+              Views archived outcomes with final impact and target summaries.
+            </li>
+          </ul>
+        </div>
+      </div>
     </section>
 
-    <hr class="section-divider">
+    <hr class="section-divider" />
 
     <!-- CAPABILITIES SECTION -->
     <section class="section capabilities" id="capabilities">
-        <div class="cap-header">
-            <span class="section-label">Core Capabilities</span>
-            <h2 class="section-title">Real-time Insights. Automated Alerts. Sustainable Data.</h2>
-            <p>Our modular approach provides complete visibility into energy consumption, renewable generation, and cost
-                impact across all campus buildings.</p>
+      <div class="cap-header">
+        <span class="section-label">Core Capabilities</span>
+        <h2 class="section-title">
+          Real-time Insights. Automated Alerts. Sustainable Data.
+        </h2>
+        <p>
+          Our modular approach provides complete visibility into energy
+          consumption, renewable generation, and cost impact across all campus
+          buildings.
+        </p>
+      </div>
+
+      <div class="cap-grid">
+        <div class="cap-card">
+          <img
+            src="../../assets/monitoring.png"
+            alt="Live Monitoring Dashboard"
+          />
+          <h4>Live Monitoring</h4>
+          <p>
+            Track energy use across campus instantly. See exactly where energy
+            flows and consumption patterns emerge in real-time.
+          </p>
         </div>
 
-        <div class="cap-grid">
-            <div class="cap-card">
-                <img src="../../assets/monitoring.png" alt="Live Monitoring Dashboard">
-                <h4>Live Monitoring</h4>
-                <p>Track energy use across campus instantly. See exactly where energy flows and consumption patterns
-                    emerge in real-time.</p>
-            </div>
-
-            <div class="cap-card">
-                <img src="../../assets/anomaly.png" alt="Anomaly Detection Alert">
-                <h4>Anomaly Detection</h4>
-                <p>Unusual energy patterns are spotted automatically. Alerts notify technicians instantly when systems
-                    deviate from benchmarks.</p>
-            </div>
-
-            <div class="cap-card">
-                <img src="../../assets/reporting.png" alt="Cost Insights Dashboard">
-                <h4>Cost Insights</h4>
-                <p>Detailed utility cost analysis by building, month, and system. Identify where efficiency upgrades
-                    matter most.</p>
-            </div>
+        <div class="cap-card">
+          <img src="../../assets/anomaly.png" alt="Anomaly Detection Alert" />
+          <h4>Anomaly Detection</h4>
+          <p>
+            Unusual energy patterns are spotted automatically. Alerts notify
+            technicians instantly when systems deviate from benchmarks.
+          </p>
         </div>
+
+        <div class="cap-card">
+          <img src="../../assets/reporting.png" alt="Cost Insights Dashboard" />
+          <h4>Cost Insights</h4>
+          <p>
+            Detailed utility cost analysis by building, month, and system.
+            Identify where efficiency upgrades matter most.
+          </p>
+        </div>
+      </div>
     </section>
 
-    <hr class="section-divider">
+    <hr class="section-divider" />
 
     <!-- FEATURE CAROUSEL SECTION -->
     <section class="section feature-carousel-container" id="features">
-        <div class="carousel-header">
-            <span class="section-label">Beyond the Dashboard</span>
-            <h2 class="section-title">Enterprise Features</h2>
-        </div>
+      <div class="carousel-header">
+        <span class="section-label">Beyond the Dashboard</span>
+        <h2 class="section-title">Enterprise Features</h2>
+      </div>
 
-        <div class="carousel-track-wrapper">
-            <div class="carousel-track" id="carouselTrack">
-
-                <div class="carousel-card">
-                    <div class="icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                    </div>
-                    <h4>Multi-Role Access</h4>
-                    <p>Secure, role-based portals for administrators, finance teams, technicians, and sustainability
-                        officers to ensure data integrity.</p>
-                </div>
-
-                <div class="carousel-card">
-                    <div class="icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                    </div>
-                    <h4>Carbon Tracking</h4>
-                    <p>Real-time carbon footprint monitoring with automated emission reporting and sustainability
-                        milestone tracking.</p>
-                </div>
-
-                <div class="carousel-card">
-                    <div class="icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
-                            </path>
-                        </svg>
-                    </div>
-                    <h4>FDD Diagnostics</h4>
-                    <p>Advanced Fault Detection & Diagnostics simulate and simulate equipment issues to prevent downtime
-                        before it occurs.</p>
-                </div>
-
-                <div class="carousel-card">
-                    <div class="icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-                            <line x1="2" y1="10" x2="22" y2="10"></line>
-                        </svg>
-                    </div>
-                    <h4>Automated Billing</h4>
-                    <p>Automated utility cost allocation and billing cycles integrated directly with campus financial
-                        management systems.</p>
-                </div>
-
-                <div class="carousel-card">
-                    <div class="icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                        </svg>
-                    </div>
-                    <h4>Predictive Alerts</h4>
-                    <p>Machine learning algorithms predict energy spikes and potential equipment failure 24 hours in
-                        advance.</p>
-                </div>
-
+      <div class="carousel-track-wrapper">
+        <div class="carousel-track" id="carouselTrack">
+          <div class="carousel-card">
+            <div class="icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
             </div>
-        </div>
+            <h4>Multi-Role Access</h4>
+            <p>
+              Secure, role-based portals for administrators, finance teams,
+              technicians, and sustainability officers to ensure data integrity.
+            </p>
+          </div>
 
-        <div class="carousel-nav" id="carouselNav">
-            <span class="dot active" data-index="0"></span>
-            <span class="dot" data-index="1"></span>
-            <span class="dot" data-index="2"></span>
+          <div class="carousel-card">
+            <div class="icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </div>
+            <h4>Carbon Tracking</h4>
+            <p>
+              Real-time carbon footprint monitoring with automated emission
+              reporting and sustainability milestone tracking.
+            </p>
+          </div>
+
+          <div class="carousel-card">
+            <div class="icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                ></path>
+              </svg>
+            </div>
+            <h4>FDD Diagnostics</h4>
+            <p>
+              Advanced Fault Detection & Diagnostics simulate and simulate
+              equipment issues to prevent downtime before it occurs.
+            </p>
+          </div>
+
+          <div class="carousel-card">
+            <div class="icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                <line x1="2" y1="10" x2="22" y2="10"></line>
+              </svg>
+            </div>
+            <h4>Automated Billing</h4>
+            <p>
+              Automated utility cost allocation and billing cycles integrated
+              directly with campus financial management systems.
+            </p>
+          </div>
+
+          <div class="carousel-card">
+            <div class="icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            </div>
+            <h4>Predictive Alerts</h4>
+            <p>
+              Machine learning algorithms predict energy spikes and potential
+              equipment failure 24 hours in advance.
+            </p>
+          </div>
         </div>
+      </div>
+
+      <div class="carousel-nav" id="carouselNav">
+        <span class="dot active" data-index="0"></span>
+        <span class="dot" data-index="1"></span>
+        <span class="dot" data-index="2"></span>
+      </div>
     </section>
 
-    <hr class="section-divider">
+    <hr class="section-divider" />
 
     <!-- RESULTS SECTION -->
     <section class="section results" id="results">
-        <span class="section-label">Proven Impact</span>
-        <div class="results-grid">
-            <div class="results-text">
-                <h2 class="section-title">Measurable results for smart campuses.</h2>
-                <p>Campuses using EnerTrack achieve measurable reductions in operations costs and carbon emissions while
-                    improving reliability.</p>
-            </div>
-            <div class="stats-container">
-                <div class="stat-box">
-                    <span>25%</span>
-                    <p>Average Cost Reduction</p>
-                </div>
-                <div class="stat-box">
-                    <span>40%</span>
-                    <p>Carbon Emission Cut</p>
-                </div>
-                <div class="stat-box">
-                    <span>15%</span>
-                    <p>Efficiency Gain</p>
-                </div>
-                <div class="stat-box">
-                    <span>2+ Years</span>
-                    <p>Avg. ROI Period</p>
-                </div>
-            </div>
+      <span class="section-label">Proven Impact</span>
+      <div class="results-grid">
+        <div class="results-text">
+          <h2 class="section-title">Measurable results for smart campuses.</h2>
+          <p>
+            Campuses using EnerTrack achieve measurable reductions in operations
+            costs and carbon emissions while improving reliability.
+          </p>
         </div>
+        <div class="stats-container">
+          <div class="stat-box">
+            <span>25%</span>
+            <p>Average Cost Reduction</p>
+          </div>
+          <div class="stat-box">
+            <span>40%</span>
+            <p>Carbon Emission Cut</p>
+          </div>
+          <div class="stat-box">
+            <span>15%</span>
+            <p>Efficiency Gain</p>
+          </div>
+          <div class="stat-box">
+            <span>2+ Years</span>
+            <p>Avg. ROI Period</p>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <hr class="section-divider">
+    <hr class="section-divider" />
 
     <!-- FOOTER -->
     <footer class="footer">
-        <div class="copyright">© 2026 EnerTrack Energy Solutions.</div>
+      <div class="copyright">© 2026 EnerTrack Energy Solutions.</div>
     </footer>
 
     <script src="../../js/shared/mockData.js"></script>
     <script>
-        // Navbar scroll effect
-        window.addEventListener('scroll', () => {
-            const navbar = document.getElementById('navbar');
-            if (window.scrollY > 40) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
-        });
+      // Navbar scroll effect
+      window.addEventListener("scroll", () => {
+        const navbar = document.getElementById("navbar");
+        if (window.scrollY > 40) {
+          navbar.classList.add("scrolled");
+        } else {
+          navbar.classList.remove("scrolled");
+        }
+      });
 
-        // Carousel Scroll/Dot Logic
-        const track = document.getElementById('carouselTrack');
-        const dots = document.querySelectorAll('.dot');
+      // Carousel Scroll/Dot Logic
+      const track = document.getElementById("carouselTrack");
+      const dots = document.querySelectorAll(".dot");
 
-        track.addEventListener('scroll', () => {
-            const index = Math.round(track.scrollLeft / 336);
-            dots.forEach((dot, i) => {
-                dot.classList.toggle('active', i === index);
-            });
-        });
-
+      track.addEventListener("scroll", () => {
+        const index = Math.round(track.scrollLeft / 336);
         dots.forEach((dot, i) => {
-            dot.addEventListener('click', () => {
-                track.scrollTo({ left: i * 336, behavior: 'smooth' });
-            });
+          dot.classList.toggle("active", i === index);
         });
+      });
 
-        // Auth-aware navbar: show Sign Up or Profile
-        (function () {
-            var userData = localStorage.getItem('currentUser');
-            var signUpBtn = document.getElementById('navSignUp');
-            var profileWrapper = document.getElementById('profileWrapper');
-            var profileBtn = document.getElementById('navProfile');
-            var dropdown = document.getElementById('profileDropdown');
+      dots.forEach((dot, i) => {
+        dot.addEventListener("click", () => {
+          track.scrollTo({ left: i * 336, behavior: "smooth" });
+        });
+      });
 
-            if (userData) {
-                var user = JSON.parse(userData);
-                signUpBtn.style.display = 'none';
-                profileWrapper.style.display = '';
+      // Auth-aware navbar: show Sign Up or Profile
+      (function () {
+        var userData = localStorage.getItem("currentUser");
+        var signUpBtn = document.getElementById("navSignUp");
+        var profileWrapper = document.getElementById("profileWrapper");
+        var profileBtn = document.getElementById("navProfile");
+        var dropdown = document.getElementById("profileDropdown");
 
-                // Populate dropdown header
-                document.getElementById('dropdownUserName').textContent = user.name;
-                document.getElementById('dropdownUserRole').textContent = user.role;
+        if (userData) {
+          var user = JSON.parse(userData);
+          signUpBtn.style.display = "none";
+          profileWrapper.style.display = "";
 
-                // Dynamically build dropdown links based on role
-                var allLinks = [
-                    {
-                        role: 'System Admin', label: 'System Administration', href: '../system_admin/system_admin_overview.html',
-                        icon: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>'
-                    },
-                    {
-                        role: 'Sustainability Officer', label: 'Sustainability Dashboard', href: '../sustainability_officer/sust_overview.html',
-                        icon: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 2 8a7 7 0 0 1-7 7c0 1 0 3-2 3z"/>'
-                    },
-                    {
-                        role: 'Technician', label: 'My Work Orders', href: '../technician_jr/technician_jr_work_orders.html',
-                        icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'
-                    },
-                    {
-                        role: 'Technician Administrator', label: 'Technician Admin Dashboard', href: '../technician/technician_overview.html',
-                        icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'
-                    },
+          // Populate dropdown header
+          document.getElementById("dropdownUserName").textContent = user.name;
+          document.getElementById("dropdownUserRole").textContent = user.role;
 
-                    {
-                        role: 'Financial Analyst', label: 'Finance Analyst Dashboard', href: '../finance-analyst/finance_overview.html',
-                        icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'
-                    },
-                    {
-                        role: 'Campus Visitor', label: 'Report an Issue', href: '../enduser/enduser_dashboard.html',
-                        icon: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line>'
-                    }
-                ];
+          // Dynamically build dropdown links based on role
+          var allLinks = [
+            {
+              role: "System Admin",
+              label: "System Administration",
+              href: "../system_admin/system_admin_overview.html",
+              icon: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+            },
+            {
+              role: "Sustainability Officer",
+              label: "Sustainability Dashboard",
+              href: "../sustainability_officer/sust_overview.html",
+              icon: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 2 8a7 7 0 0 1-7 7c0 1 0 3-2 3z"/>',
+            },
+            {
+              role: "Technician",
+              label: "My Work Orders",
+              href: "../technician_jr/technician_jr_work_orders.html",
+              icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+            },
+            {
+              role: "Technician Administrator",
+              label: "Technician Admin Dashboard",
+              href: "../technician/technician_overview.html",
+              icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+            },
 
-                var linksContainer = document.getElementById('dropdownLinks');
-                var linksHTML = '';
-                for (var l = 0; l < allLinks.length; l++) {
-                    var link = allLinks[l];
-                    var isAdmin = user.role === 'System Administrator' || user.role === 'System Admin';
-                    // System Admin sees all links; others see only their own role's link
-                    if (isAdmin || user.role === link.role) {
-                        linksHTML += '<a href="' + link.href + '" class="dropdown-item">' +
-                            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + link.icon + '</svg>' +
-                            link.label + '</a>';
-                    }
-                }
-                linksContainer.innerHTML = linksHTML;
+            {
+              role: "Financial Analyst",
+              label: "Finance Analyst Dashboard",
+              href: "../finance-analyst/finance_overview.html",
+              icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+            },
+            {
+              role: "Campus Visitor",
+              label: "Report an Issue",
+              href: "../enduser/enduser_dashboard.html",
+              icon: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line>',
+            },
+          ];
 
-                // All users — toggle dropdown on profile click
-                profileBtn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    dropdown.classList.toggle('open');
-                });
-
-                // Close dropdown on outside click
-                document.addEventListener('click', function (e) {
-                    if (!profileWrapper.contains(e.target)) {
-                        dropdown.classList.remove('open');
-                    }
-                });
-
-                // Sign Out button → go to landing page
-                document.getElementById('logoutBtn').addEventListener('click', function () {
-                    localStorage.removeItem('currentUser');
-                    window.location.reload();
-                });
-
-                // Role cards: enable based on user role
-                var roleCards = document.querySelectorAll('.role-card');
-                for (var i = 0; i < roleCards.length; i++) {
-                    var card = roleCards[i];
-                    var cardRole = card.getAttribute('data-role');
-                    var cardHref = card.getAttribute('data-href');
-
-                    var effectiveRole = user.role;
-                    if (user.role === 'Technician Administrator') effectiveRole = 'Technician';
-
-                    var isAllowed = (user.role === 'System Administrator' || user.role === 'System Admin') || (effectiveRole === cardRole) || (cardRole === 'System Admin' && user.role === 'System Administrator');
-
-                    var targetHref = cardHref;
-                    if (cardRole === 'Technician') {
-                        if (user.role === 'Technician') {
-                            targetHref = '../technician_jr/technician_jr_work_orders.html';
-                        } else if (user.role === 'Technician Administrator') {
-                            targetHref = '../technician/technician_overview.html';
-                        }
-                    }
-
-                    if (isAllowed) {
-                        // Accessible card — green border + pointer
-                        card.style.cursor = 'pointer';
-                        card.style.border = '2px solid var(--primary-green)';
-                        card.style.position = 'relative';
-                        // Add a small "Go to Dashboard →" badge
-                        var badge = document.createElement('div');
-                        badge.textContent = 'Go to Dashboard →';
-                        badge.style.cssText = 'margin-top:auto;padding-top:12px;font-size:13px;font-weight:600;color:#2f7d4f;';
-                        card.appendChild(badge);
-                        (function (href) {
-                            card.addEventListener('click', function () {
-                                window.location.href = href;
-                            });
-                        })(targetHref);
-                    } else {
-                        // Locked card — greyed out with lock icon
-                        card.style.opacity = '0.5';
-                        card.style.cursor = 'not-allowed';
-                        card.style.filter = 'grayscale(0.6)';
-                        card.style.position = 'relative';
-                        card.style.pointerEvents = 'none';
-                        card.classList.add('role-card-locked');
-                        // Add lock overlay
-                        var lock = document.createElement('div');
-                        lock.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="margin-left:6px;">Locked</span>';
-                        lock.style.cssText = 'display:flex;align-items:center;margin-top:auto;padding-top:12px;font-size:13px;font-weight:600;color:#999;';
-                        card.appendChild(lock);
-                    }
-                }
-
-            } else {
-                signUpBtn.style.display = '';
-                profileWrapper.style.display = 'none';
-                // Not logged in: disable all role cards
-                var roleCards = document.querySelectorAll('.role-card');
-                for (var i = 0; i < roleCards.length; i++) {
-                    roleCards[i].style.cursor = 'default';
-                }
+          var linksContainer = document.getElementById("dropdownLinks");
+          var linksHTML = "";
+          for (var l = 0; l < allLinks.length; l++) {
+            var link = allLinks[l];
+            var isAdmin =
+              user.role === "System Administrator" ||
+              user.role === "System Admin";
+            // System Admin sees all links; others see only their own role's link
+            if (isAdmin || user.role === link.role) {
+              linksHTML +=
+                '<a href="' +
+                link.href +
+                '" class="dropdown-item">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                link.icon +
+                "</svg>" +
+                link.label +
+                "</a>";
             }
-        })();
+          }
+          linksContainer.innerHTML = linksHTML;
 
+          // All users — toggle dropdown on profile click
+          profileBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            dropdown.classList.toggle("open");
+          });
+
+          // Close dropdown on outside click
+          document.addEventListener("click", function (e) {
+            if (!profileWrapper.contains(e.target)) {
+              dropdown.classList.remove("open");
+            }
+          });
+
+          // Sign Out button → go to landing page
+          document
+            .getElementById("logoutBtn")
+            .addEventListener("click", function () {
+              localStorage.removeItem("currentUser");
+              window.location.reload();
+            });
+
+          // Role cards: enable based on user role
+          var roleCards = document.querySelectorAll(".role-card");
+          for (var i = 0; i < roleCards.length; i++) {
+            var card = roleCards[i];
+            var cardRole = card.getAttribute("data-role");
+            var cardHref = card.getAttribute("data-href");
+
+            var effectiveRole = user.role;
+            if (user.role === "Technician Administrator")
+              effectiveRole = "Technician";
+
+            var isAllowed =
+              user.role === "System Administrator" ||
+              user.role === "System Admin" ||
+              effectiveRole === cardRole ||
+              (cardRole === "System Admin" &&
+                user.role === "System Administrator");
+
+            var targetHref = cardHref;
+            if (cardRole === "Technician") {
+              if (user.role === "Technician") {
+                targetHref = "../technician_jr/technician_jr_work_orders.html";
+              } else if (user.role === "Technician Administrator") {
+                targetHref = "../technician/technician_overview.html";
+              }
+            }
+
+            if (isAllowed) {
+              // Accessible card — green border + pointer
+              card.style.cursor = "pointer";
+              card.style.border = "2px solid var(--primary-green)";
+              card.style.position = "relative";
+              // Add a small "Go to Dashboard →" badge
+              var badge = document.createElement("div");
+              badge.textContent = "Go to Dashboard →";
+              badge.style.cssText =
+                "margin-top:auto;padding-top:12px;font-size:13px;font-weight:600;color:#2f7d4f;";
+              card.appendChild(badge);
+              (function (href) {
+                card.addEventListener("click", function () {
+                  window.location.href = href;
+                });
+              })(targetHref);
+            } else {
+              // Locked card — greyed out with lock icon
+              card.style.opacity = "0.5";
+              card.style.cursor = "not-allowed";
+              card.style.filter = "grayscale(0.6)";
+              card.style.position = "relative";
+              card.style.pointerEvents = "none";
+              card.classList.add("role-card-locked");
+              // Add lock overlay
+              var lock = document.createElement("div");
+              lock.innerHTML =
+                '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="margin-left:6px;">Locked</span>';
+              lock.style.cssText =
+                "display:flex;align-items:center;margin-top:auto;padding-top:12px;font-size:13px;font-weight:600;color:#999;";
+              card.appendChild(lock);
+            }
+          }
+        } else {
+          signUpBtn.style.display = "";
+          profileWrapper.style.display = "none";
+          // Not logged in: disable all role cards
+          var roleCards = document.querySelectorAll(".role-card");
+          for (var i = 0; i < roleCards.length; i++) {
+            roleCards[i].style.cursor = "default";
+          }
+        }
+      })();
     </script>
-</body>
-
+  </body>
 </html>
