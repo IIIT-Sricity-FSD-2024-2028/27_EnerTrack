@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
 import { CreateUserDto } from "./dto/create-user.dto";
@@ -73,5 +74,15 @@ export class UsersService {
 
   getNotifications(id: string) {
     return this.database.notifications.filter((item) => item.user_id === id);
+  }
+
+  login(email: string, password: string) {
+    const user = this.database.users.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+    );
+    if (!user) throw new UnauthorizedException('Invalid email or password');
+    // Never send the password back to the client
+    const { password: _pw, ...safeUser } = user;
+    return safeUser;
   }
 }

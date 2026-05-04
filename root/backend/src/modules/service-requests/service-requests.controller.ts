@@ -22,22 +22,22 @@ export class ServiceRequestsController {
   }
 
   @Get()
-  @ApiOperation({ summary: "List All Service Requests", description: "Retrieves all service requests. System Administrator and Technician can view them." })
+  @ApiOperation({ summary: "List All Service Requests", description: "Retrieves all service requests." })
   @ApiResponse({ status: 200, description: "Array of service request records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician")
+  @Roles("System Administrator", "Technician", "Financial Analyst")
   findAll() {
     return this.serviceRequestsService.findAll();
   }
 
   @Get(":id")
-  @ApiOperation({ summary: "Get Service Request by ID", description: "Retrieves a single service request by UUID. System Administrator and Technician can look up requests." })
+  @ApiOperation({ summary: "Get Service Request by ID", description: "Retrieves a single service request by UUID." })
   @ApiResponse({ status: 200, description: "Service request record returned." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician")
+  @Roles("System Administrator", "Technician", "Financial Analyst")
   findOne(@Param("id") id: string) {
     return this.serviceRequestsService.findOne(id);
   }
@@ -54,12 +54,12 @@ export class ServiceRequestsController {
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update Service Request", description: "Partially updates a service request (e.g., assigning Technician, changing status). System Administrator and Technician can update." })
+  @ApiOperation({ summary: "Update Service Request", description: "Partially updates a service request." })
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician")
+  @Roles("System Administrator", "Technician", "Financial Analyst")
   update(@Param("id") id: string, @Body() updateDto: UpdateServiceRequestDto) {
     return this.serviceRequestsService.update(id, updateDto);
   }
