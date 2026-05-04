@@ -158,17 +158,33 @@
         <h1 class="welcome">Archives</h1>
         <div class="sub">Past reports that have been processed and returned to the Sustainability Officer.</div>
 
+        <!-- Archived Financial Reports -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;margin-top:24px;">
-          <h3 style="margin:0;font-size:16px;color:#111827;">Archived Reports</h3>
+          <h3 style="margin:0;font-size:16px;color:#111827;">Archived Financial Reports</h3>
+          <span id="archiveReportCount" style="background:#059669;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
+        </div>
+        <div id="archiveReportContainer"></div>
+
+        <!-- Archived Utility Invoices -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;margin-top:24px;">
+          <h3 style="margin:0;font-size:16px;color:#111827;">Archived Utility Invoices</h3>
+          <span id="archiveInvoiceCount" style="background:#059669;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
+        </div>
+        <div id="archiveInvoiceContainer"></div>
+
+        <!-- Archived Sustainability Reports -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;">
+          <h3 style="margin:0;font-size:16px;color:#111827;">Archived Sustainability Reports</h3>
           <span id="archiveCount" style="background:#059669;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
         </div>
-
         <div id="archiveContainer"></div>
       </div>
     </div>
   </div>
 
   <script type="module">
+    import { openModal, formatCurrency, badgeHTML, formatDate } from './js/utils/utils.js';
+
     document.addEventListener('DOMContentLoaded', () => {
       const stored = localStorage.getItem('currentUser');
       if (stored) {
@@ -249,7 +265,86 @@
           const processedAt = t.returnedAt || t.targetSetAt || t.finalizedAt || t.deliveredAt || t.timestamp;
           return `<div class="ticket-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;gap:16px;"><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px;"><strong style="font-size:14px;color:var(--dark);">#${t.id}</strong><span style="background:#059669;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px;">${t.type} Wastage</span></div><p style="font-size:13px;color:#374151;margin:0 0 6px 0;line-height:1.5;">${summaryText}</p><div class="ticket-location"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${locationText}</div><div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span class="ticket-priority p-${t.priority || 'Low'}">${t.priority || 'Low'} Priority</span><span style="font-size:11px;color:#9ca3af;">Processed ${processedAt ? new Date(processedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;"><span class="ticket-status ${cfg.cssClass}">${cfg.label}</span></div></div>${dataHTML ? `<div class="ticket-expanded-section">${dataHTML}</div>` : ''}<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-top:12px;"><h5 style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#065f46;margin:0 0 8px 0;">Decision Summary</h5><div style="font-size:12px;color:#374151;line-height:1.7;">${narrativeParts.map(p => '<p style="margin:0 0 6px 0;">' + p + '</p>').join('')}</div></div>${comparisonHTML}</div>`;
         }).join('');
+
+        // Archived Financial Reports
+        const finReports = data?.finance?.financialReports || [];
+        const archivedFinReports = finReports.filter(r => r.archived === true);
+        document.getElementById('archiveReportCount').textContent = archivedFinReports.length;
+        const finReportContainer = document.getElementById('archiveReportContainer');
+        if (archivedFinReports.length === 0) {
+          finReportContainer.innerHTML = '<div class="empty-state"><p>No archived financial reports.</p></div>';
+        } else {
+          finReportContainer.innerHTML = archivedFinReports.map(r => {
+            const statusMap = {
+              'viable': { text: 'Viable', bg: '#d1fae5', color: '#065f46' },
+              'marginal': { text: 'Marginal', bg: '#fef3c7', color: '#92400e' },
+              'not-viable': { text: 'Not Viable', bg: '#fee2e2', color: '#b91c1c' }
+            };
+            const s = statusMap[r.status] || statusMap.marginal;
+            return `<div class="ticket-card"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;flex-direction:column;"><strong style="font-size:14px;color:#111827;">${r.title}</strong><div style="font-size:12px;color:#6b7280;margin-top:4px;">Period: ${r.period} &nbsp;|&nbsp; Category: <span style="text-transform:capitalize">${r.category}</span> &nbsp;|&nbsp; Scope: ${r.scopeLabel}</div></div><div style="display:flex;gap:12px;align-items:center;"><span style="background:${s.bg};color:${s.color};padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;">${s.text}</span><button onclick="window.viewArchivedReport('${r.id}')" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:#374151;">View</button></div></div><div class="ticket-expanded-section"><div class="exp-box"><h5>Return on Investment</h5><div class="exp-val">${r.roi != null ? r.roi + '%' : '—'}</div></div><div class="exp-box"><h5>Net Present Value</h5><div class="exp-val">${r.npv != null ? '₹' + Number(r.npv).toLocaleString() : '—'}</div></div></div></div>`;
+          }).join('');
+        }
+
+        // Archived Invoices
+        const invoices = data?.finance?.invoices || [];
+        const archivedInvoices = invoices.filter(i => i.archived === true);
+        document.getElementById('archiveInvoiceCount').textContent = archivedInvoices.length;
+        const invContainer = document.getElementById('archiveInvoiceContainer');
+        if (archivedInvoices.length === 0) {
+          invContainer.innerHTML = '<div class="empty-state"><p>No archived utility invoices.</p></div>';
+        } else {
+          invContainer.innerHTML = archivedInvoices.map(i => {
+            return `<div class="ticket-card"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;flex-direction:column;"><strong style="font-size:14px;color:#111827;">${i.invoiceNumber} — ${i.vendor}</strong><div style="font-size:12px;color:#6b7280;margin-top:4px;">Dept: ${i.departmentLabel} &nbsp;|&nbsp; Type: <span style="text-transform:capitalize">${i.type}</span> &nbsp;|&nbsp; Due: ${new Date(i.dueDate).toLocaleDateString()}</div></div><div style="text-align:right;display:flex;align-items:center;gap:16px;"><div><div style="font-size:16px;font-weight:700;color:#111827;">₹${Number(i.amount).toLocaleString()}</div><span style="color:#059669;font-size:11px;font-weight:600;">Approved by ${i.approvedBy || 'Analyst'}</span></div><button onclick="window.viewArchivedInvoice('${i.id}')" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:#374151;">View</button></div></div></div>`;
+          }).join('');
+        }
       }
+
+      window.viewArchivedReport = function(id) {
+        const raw = localStorage.getItem('enertrack_universal_v1');
+        const data = raw ? JSON.parse(raw) : null;
+        const rep = data?.finance?.financialReports?.find(r => r.id === id);
+        if (!rep) return;
+        openModal({
+          title: rep.title + " (Archived)",
+          bodyHTML: `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;font-size:14px">
+            <div><strong>Period</strong><p>${rep.period}</p></div>
+            <div><strong>Category</strong><p style="text-transform:capitalize">${rep.category}</p></div>
+            <div><strong>Scope</strong><p>${rep.scopeLabel}</p></div>
+            <div><strong>Format</strong><p>${rep.format}</p></div>
+            <div><strong>ROI</strong><p>${rep.roi != null ? rep.roi + "%" : "—"}</p></div>
+            <div><strong>NPV</strong><p>${rep.npv != null ? formatCurrency(rep.npv) : "—"}</p></div>
+            <div><strong>Payback Period</strong><p>${rep.paybackYears != null ? rep.paybackYears + " yrs" : "—"}</p></div>
+            <div><strong>Status</strong><p>${badgeHTML(rep.status)}</p></div>
+          </div>
+          <div style="margin-top:14px;padding:12px;background:#f9fafb;border-radius:8px;font-size:13px;color:#374151">
+            <strong>Notes:</strong> ${rep.notes || "—"}
+          </div>`,
+          confirmLabel: "Close",
+          cancelLabel: ""
+        });
+      };
+
+      window.viewArchivedInvoice = function(id) {
+        const raw = localStorage.getItem('enertrack_universal_v1');
+        const data = raw ? JSON.parse(raw) : null;
+        const inv = data?.finance?.invoices?.find(i => i.id === id);
+        if (!inv) return;
+        openModal({
+          title: `Invoice ${inv.invoiceNumber} (Archived)`,
+          bodyHTML: `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;font-size:14px">
+            <div><strong>Vendor</strong><p>${inv.vendor}</p></div>
+            <div><strong>Amount</strong><p>${formatCurrency(inv.amount)}</p></div>
+            <div><strong>Department</strong><p>${inv.departmentLabel}</p></div>
+            <div><strong>Type</strong><p style="text-transform:capitalize">${inv.type}</p></div>
+            <div><strong>Issued</strong><p>${formatDate(inv.issuedDate)}</p></div>
+            <div><strong>Due Date</strong><p>${formatDate(inv.dueDate)}</p></div>
+            <div><strong>Status</strong><p>${badgeHTML(inv.status)}</p></div>
+            <div><strong>Approved By</strong><p>${inv.approvedBy ?? "—"}</p></div>
+          </div>`,
+          confirmLabel: "Close",
+          cancelLabel: ""
+        });
+      };
 
       render();
       window.addEventListener('storage', e => { if (e.key === 'enertrack_universal_v1') render(); });

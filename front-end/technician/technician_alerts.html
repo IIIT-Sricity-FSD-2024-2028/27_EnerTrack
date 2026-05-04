@@ -119,75 +119,54 @@
         </div>
 
         <!-- Alert Detail Panel -->
-        <div class="card">
-          <div class="detail-header">
-            <h2 id="detailAlertId">Select an alert</h2>
-            <span id="detailSeverityBadge"></span>
-          </div>
-          <small id="detailDescription">Click a row on the left to view details.</small>
-          <div id="detailZoneLabel" class="section-label">Zone: <span id="detailZone">—</span></div>
-
-          <div class="section-label">ANOMALY DESCRIPTION</div>
-          <div class="description-text">
-            Temperature spike exceeded threshold for 3 consecutive cycles. This anomaly profile indicates a potential
-            cooling system failure or excessive bearing friction that could lead to immediate mechanical breakdown.
-          </div>
-
-          <div class="section-label">SEVERITY CLASSIFICATION</div>
-          <div class="text-red" id="detailSeverityText">Select an alert to see severity classification.</div>
-
-          <div class="section-label">ACTIONS TAKEN AUTOMATICALLY</div>
-          <div class="check-row">
-            <span class="check-circle">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </span>
-            Event logged to system database
-          </div>
-          <div class="check-row">
-            <span class="check-circle">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </span>
-            Operations dashboard updated
-          </div>
-          <div class="check-row">
-            <span class="check-circle">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </span>
-            Technician notified (Marcus Reed)
-          </div>
-
-          <div class="section-label">ALERT RESOLUTION</div>
-          <div class="action-boxes">
-            <div class="action-box">
-              <h4>Requires Immediate Action</h4>
-              <p>Escalate this alert and deploy an emergency field response immediately.</p>
-              <button class="btn btn-red btn-full" id="btnInitiateEmergency">Initiate Emergency Response</button>
+        <div class="card detail-card">
+          <div>
+            <div class="detail-header">
+              <div class="detail-header-left">
+                <h2 id="detailAlertId">Select an alert</h2>
+                <span id="detailSeverityBadge"></span>
+              </div>
             </div>
-            <div class="action-box">
-              <h4>No Immediate Action</h4>
-              <p>Acknowledge without escalation. Plan follow-up inspection later.</p>
-              <button class="btn btn-light btn-full" id="btnScheduleInspection">Schedule Inspection</button>
+            
+            <div class="detail-meta">
+              <span class="zone-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                <span id="detailZone">—</span>
+              </span>
+            </div>
+
+            <div class="detail-description-box" id="detailDescription">
+              Click a row on the left to view details.
+            </div>
+
+            <div class="section-label">Alert Resolution</div>
+            <div class="action-boxes">
+              <div class="action-box emergency-box">
+                <div>
+                  <h4>Emergency Protocol</h4>
+                  <p>Escalate alert and deploy field response immediately.</p>
+                </div>
+                <button class="btn btn-red btn-full" id="btnInitiateEmergency">Initiate Response</button>
+              </div>
+              <div class="action-box routine-box">
+                <div>
+                  <h4>Routine Inspection</h4>
+                  <p>Acknowledge and plan follow-up inspection later.</p>
+                </div>
+                <button class="btn btn-light btn-full" id="btnScheduleInspection">Schedule Inspection</button>
+              </div>
             </div>
           </div>
 
           <div class="footer-action">
-            <small>After action is taken, resolve this alert.</small>
-            <button class="btn btn-dark" id="btnAcknowledge">Acknowledge Alert</button>
+            <small>Once action is taken, resolve this alert.</small>
+            <button class="btn btn-dark" id="btnAcknowledge">Resolve Alert</button>
           </div>
         </div>
 
-        <!-- Historical Alert Log (full width) -->
+        <!-- Alert Log (full width) -->
         <div class="card full-width">
-          <h2>Historical Alert Log</h2>
+          <h2>Alert Log</h2>
           <small>Recently acknowledged alerts and their final resolution status.</small>
           <table style="margin-top:16px;">
             <thead>

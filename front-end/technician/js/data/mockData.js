@@ -35,7 +35,23 @@ class TechDB {
     }
   }
   acknowledgeAlert(id, actionTaken) {
-    this.updateAlert(id, { status: "resolved", actionTaken });
+    this.updateAlert(id, { status: "acknowledged", actionTaken });
+    
+    const alert = this.getAlert(id);
+    this.faults.push({
+        id: "FLT-" + Math.floor(Math.random() * 9000 + 1000),
+        alertId: alert.id,
+        status: "active",
+        severity: alert.severity === 'critical' ? 'high' : alert.severity,
+        asset: alert.zone || "Unknown Asset",
+        type: actionTaken.includes('Emergency') ? "Critical Failure" : "Mechanical",
+        assignedTo: "Marcus Reed"
+    });
+    this.save();
+  }
+
+  resolveAlert(id) {
+    this.updateAlert(id, { status: "resolved" });
     this.summary.activeAlerts = Math.max(0, this.summary.activeAlerts - 1);
     this.summary.resolvedToday++;
     this.save();

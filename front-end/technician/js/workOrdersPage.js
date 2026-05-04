@@ -139,9 +139,9 @@ function selectWorkOrder(id) {
     setEl('selectedWOType', cap(wo.type));
     setEl('selectedWOPriority', cap(wo.priority));
     setEl('selectedWOTechnician', wo.technician);
-    const checkSvg = `<svg width="14" height="14" style="vertical-align:middle; margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
-    const crossSvg = `<svg width="14" height="14" style="vertical-align:middle; margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-    setEl('selectedWOParts', wo.parts ? `${checkSvg} Available` : `${crossSvg} Parts Needed`);
+    const checkText = `<span style="color:#10b981; font-weight:600;">Available</span>`;
+    const warningText = `<span style="color:#ef4444; font-weight:600;">Parts Needed</span>`;
+    setEl('selectedWOParts', wo.parts ? checkText : warningText);
 
     // Technician field updates dynamically
     setEl('selectedWOTechnician', wo.technician ? wo.technician : '<span style="color:#ef4444;font-style:italic">Unassigned (Rejected)</span>');
@@ -173,16 +173,7 @@ function selectWorkOrder(id) {
     }
 
     const notesBlock = document.getElementById('woCompletionNotesDisplay');
-    if (wo.completionNotes) {
-        if (!notesBlock) {
-            const div = document.createElement('div');
-            div.id = 'woCompletionNotesDisplay';
-            div.style.cssText = 'margin-top:12px; font-size:13px; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px;';
-            document.querySelector('.summary-grid').parentNode.appendChild(div);
-        }
-        document.getElementById('woCompletionNotesDisplay').innerHTML = `<strong>Completion Notes:</strong><br/>${wo.completionNotes}`;
-        document.getElementById('woCompletionNotesDisplay').style.display = 'block';
-    } else if (notesBlock) {
+    if (notesBlock) {
         notesBlock.style.display = 'none';
     }
 
@@ -203,36 +194,14 @@ function selectWorkOrder(id) {
             if (costEstBlock) costEstBlock.style.display = costEstBlock.style.display === 'none' ? 'block' : 'none';
         };
     }
-    const btnSubmitCostEst = document.getElementById('btnSubmitCostEst');
-    if (btnSubmitCostEst) {
-        btnSubmitCostEst.onclick = () => {
-            const materials = document.getElementById('estMaterials').value;
-            const labor = document.getElementById('estLabor').value;
-            if (!materials || !labor) {
-                showToast("Please enter both materials and labor costs.", "warning");
-                return;
-            }
-            const total = Number(materials) + Number(labor);
-            if (total > 0) {
-                TechDB.updateWorkOrder(id, {
-                    status: 'approval',
-                    estimate: { materials: Number(materials), labor: Number(labor), total, type: 'repair' }
-                });
-                showToast(`Cost estimate of $${total} submitted for approval.`, 'info');
-                if (costEstBlock) costEstBlock.style.display = 'none';
-                renderBoard();
-                selectWorkOrder(id);
-            }
-        };
-    }
 
     // Task execution flow
     updateTaskFlow(wo.status);
 }
 
 function updateTaskFlow(status) {
-    const steps = ['schedule', 'inspect', 'perform', 'test'];
-    const activeIndex = status === 'new' ? 0 : status === 'inprogress' ? 1 : status === 'review' ? 2 : 3;
+    const steps = ['new', 'approval', 'inprogress', 'review'];
+    const activeIndex = status === 'new' ? 0 : status === 'approval' ? 1 : status === 'inprogress' ? 2 : 3;
     steps.forEach((s, i) => {
         const el = document.getElementById(`step-${s}`);
         if (el) {
@@ -248,6 +217,35 @@ function moveWOStatus(id, newStatus) {
     renderBoard();
     selectWorkOrder(id);
 }
+
+window.submitCostEstimate = function(id) {
+    const materials = document.getElementById('estMaterials').value;
+    const labor = document.getElementById('estLabor').value;
+    if (!materials || !labor) {
+        showToast("Please enter both materials and labor costs.", "warning");
+        return;
+    }
+    const total = Number(materials) + Number(labor);
+    if (total > 0) {
+        TechDB.updateWorkOrder(id, { 
+            status: 'approval', 
+            estimate: { materials: Number(materials), labor: Number(labor), total, type: 'repair' } 
+        });
+        showToast('Cost estimate submitted. Waiting for approval.', 'success');
+        document.getElementById('costEstimateBlock').style.display = 'none';
+        renderBoard();
+        selectWorkOrder(id);
+    }
+};
+
+window.addEventListener('load', () => {
+    const btn = document.getElementById('btnSubmitCostEst');
+    if (btn) {
+        btn.addEventListener('click', () => { 
+            if (selectedWOId) window.submitCostEstimate(selectedWOId); 
+        });
+    }
+});
 
 /* ─── Confirm close WO ────────────────────────────── */
 function confirmCloseWO(id) {
@@ -383,7 +381,7 @@ function cap(str) { if (!str) return '—'; return str.charAt(0).toUpperCase() +
 function setEl(id, val) {
     const el = document.getElementById(id);
     if (!el) return;
-    if (String(val).includes('<svg')) el.innerHTML = val;
+    if (String(val).includes('<')) el.innerHTML = val;
     else el.textContent = val;
 }
 

@@ -88,14 +88,14 @@
         <button class="btn btn-dark btn-header" id="btnInitiateMaintenance">+ Initiate Maintenance Action</button>
       </div>
 
-      <!-- ─── CROSS-FUNCTIONAL SERVICE REQUESTS ─────────────────────── -->
+      <!-- ─── USER-REPORTED SERVICE REQUESTS ─────────────────────── -->
       <div class="card" id="triageDispatchPanel" style="display:none;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
           <h2><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align: bottom;">
               <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
               <line x1="4" y1="22" x2="4" y2="15"></line>
-            </svg>Cross-Functional Service Requests</h2>
+            </svg>User-Reported Service Requests</h2>
           <span class="badge badge-warning" id="pendingRequestsCount">0 Pending</span>
         </div>
         <div id="serviceRequestsContainer">
@@ -205,7 +205,14 @@
               <div class="option mt-10">
                 <b>Status: <span id="selectedWOParts">—</span></b>
                 <p class="mt-4">If parts are not available, create a procurement request and keep the WO on hold.</p>
-                <button class="btn btn-light btn-full" id="btnOrderParts">Order Required Parts</button>
+                <button class="btn btn-light btn-full" id="btnOrderParts">Submit Cost Estimate</button>
+
+                <div id="costEstimateBlock" style="margin-top:16px; display:none; padding:12px; background:var(--bg-card); border:1.5px dashed #f59e0b; border-radius:8px;">
+                  <p style="color:#f59e0b; font-size:13px; margin:0 0 8px 0;"><strong>Submit Cost Estimate</strong></p>
+                  <input type="number" id="estMaterials" placeholder="Materials cost ($)" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); font-size:13px; margin-bottom:8px; box-sizing: border-box;">
+                  <input type="number" id="estLabor" placeholder="Labor cost ($)" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); font-size:13px; margin-bottom:8px; box-sizing: border-box;">
+                  <button class="btn btn-dark btn-full" id="btnSubmitCostEst">Send to Finance Analyst</button>
+                </div>
               </div>
             </div>
 
@@ -213,25 +220,25 @@
             <div class="card no-margin">
               <h2 class="section-title-small mb-12">Task Execution Flow</h2>
               <div class="task-execution-flow">
-                <div class="step-box" id="step-schedule">
+                <div class="step-box" id="step-new">
                   <div class="step-num">1</div>
-                  <h3>Schedule</h3>
-                  <p>Window booked and team assigned.</p>
+                  <h3>Assigned</h3>
+                  <p>New task assigned to technician.</p>
                 </div>
-                <div class="step-box" id="step-inspect">
+                <div class="step-box" id="step-approval">
                   <div class="step-num">2</div>
-                  <h3>Inspect</h3>
-                  <p>Technician verifies the fault on-site.</p>
+                  <h3>Approval</h3>
+                  <p>Cost/parts estimate sent to finance.</p>
                 </div>
-                <div class="step-box" id="step-perform">
+                <div class="step-box" id="step-inprogress">
                   <div class="step-num">3</div>
-                  <h3>Perform Task</h3>
-                  <p>Execute the repair or replacement.</p>
+                  <h3>In Progress</h3>
+                  <p>Technician is executing repair.</p>
                 </div>
-                <div class="step-box" id="step-test">
+                <div class="step-box" id="step-review">
                   <div class="step-num">4</div>
-                  <h3>Test System</h3>
-                  <p>Final operational test after repair.</p>
+                  <h3>Review & Close</h3>
+                  <p>QA passed and ready for closure.</p>
                 </div>
               </div>
             </div>
@@ -267,16 +274,6 @@
                 </div>
               </div>
               <button class="btn btn-red btn-full mt-12" id="btnCloseWO">Close & Archive Work Order</button>
-
-              <div id="costEstimateBlock"
-                style="margin-top:16px; display:none; padding:12px; background:var(--bg-card); border:1.5px dashed #f59e0b; border-radius:8px;">
-                <p style="color:#f59e0b; font-size:13px; margin:0 0 8px 0;"><strong>Submit Cost Estimate</strong></p>
-                <input type="number" id="estMaterials" placeholder="Materials cost ($)"
-                  style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); font-size:13px; margin-bottom:8px;">
-                <input type="number" id="estLabor" placeholder="Labor cost ($)"
-                  style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); font-size:13px; margin-bottom:8px;">
-                <button class="btn btn-dark btn-full" id="btnSubmitCostEst">Send to Finance</button>
-              </div>
 
               <div id="reassignBlock"
                 style="margin-top:16px; display:none; padding:12px; background:var(--bg-card); border:1.5px dashed #ef4444; border-radius:8px;">

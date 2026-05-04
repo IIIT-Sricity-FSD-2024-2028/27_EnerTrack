@@ -215,11 +215,11 @@ function wireGeneration() {
 function showReportModal(title, period) {
     import('./utils/utils.js').then(utils => {
         utils.openModal({
-            title: "Report Preview",
+            title: "Report",
             bodyHTML: `
                 <div class="report-preview-container">
                     <div class="report-header">
-                        <h2>${title}</h2>
+                        <h2>Sustainability Report</h2>
                         <p>Period: ${period}</p>
                     </div>
                     
@@ -242,33 +242,35 @@ function showReportModal(title, period) {
                         </div>
                     </div>
                     
-                    <div class="report-visual">
-                        <h4 style="margin:0 0 12px; font-size:12px; color:#6b7280; text-transform:uppercase;">Monthly Resource Trend</h4>
-                        <div class="report-visual-chart">
-                            <div class="report-bar" style="height: 40%"></div>
-                            <div class="report-bar" style="height: 65%"></div>
-                            <div class="report-bar" style="height: 50%"></div>
-                            <div class="report-bar" style="height: 85%"></div>
-                            <div class="report-bar" style="height: 70%"></div>
-                            <div class="report-bar" style="height: 95%"></div>
-                        </div>
-                        <div class="report-visual-labels">
-                            <span>M1</span><span>M2</span><span>M3</span><span>M4</span><span>M5</span><span>M6</span>
-                        </div>
-                    </div>
-                    
-                    <div class="report-footer-actions">
-                        <button class="btn-report-download">Download PDF</button>
-                        <button class="btn-report-share">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
-                        </button>
-                    </div>
                 </div>
             `,
-            confirmLabel: "Close Preview",
+            confirmLabel: "Close and Archive Report",
             cancelLabel: "",
             onConfirm: () => {
+                // Save report to sustainability report archives
+                try {
+                    const raw = localStorage.getItem('enertrack_universal_v1');
+                    const fullData = raw ? JSON.parse(raw) : {};
+                    if (fullData.sust) {
+                        if (!Array.isArray(fullData.sust.reportArchives)) {
+                            fullData.sust.reportArchives = [];
+                        }
+                        fullData.sust.reportArchives.unshift({
+                            id: 'RPT-' + Date.now().toString(36).toUpperCase(),
+                            title: title || 'Sustainability Report',
+                            period: period,
+                            energyReduction: '-4.2%',
+                            wasteDiverted: '68%',
+                            carbonOffset: '124 tCO₂e',
+                            waterSaved: '1.2 ML',
+                            archivedAt: new Date().toISOString()
+                        });
+                        localStorage.setItem('enertrack_universal_v1', JSON.stringify(fullData));
+                    }
+                } catch (e) { console.error('Failed to archive report:', e); }
+
                 resetReportingPipeline();
+                showToast("Report archived successfully.", "success");
             }
         });
     });

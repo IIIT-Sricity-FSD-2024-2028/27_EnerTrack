@@ -15,8 +15,6 @@ document.addEventListener("DOMContentLoaded", () => {
     SessionModule.initSession();
     injectIcons();
     renderOverview();
-    wirePeriodSelector();
-    renderRecentHighlights();
     renderWastageAuditQueue();
 
     // Render notification bell
@@ -87,18 +85,24 @@ function updateOverviewChart(period) {
     const maxE = Math.max(...history.e);
     const maxW = Math.max(...history.w);
     const maxM = Math.max(...history.m);
-    const globalMax = Math.max(maxE, maxW, maxM) || 1;
+    const foodSeries = Array.isArray(history.f) && history.f.length === history.e.length
+        ? history.f
+        : history.e.map(v => Math.round(v * 0.62));
+    const maxF = Math.max(...foodSeries);
+    const globalMax = Math.max(maxE, maxW, maxM, maxF) || 1;
 
     let groupsHTML = '';
     for (let i = 0; i < history.e.length; i++) {
         const eH = Math.round((history.e[i] / globalMax) * 90);
         const wH = Math.round((history.w[i] / globalMax) * 90);
         const mH = Math.round((history.m[i] / globalMax) * 90);
+        const fH = Math.round((foodSeries[i] / globalMax) * 90);
         groupsHTML += `
             <div class="chart-group">
                 <div class="bar energy" style="height: ${eH}%;"></div>
                 <div class="bar water" style="height: ${wH}%;"></div>
                 <div class="bar emissions" style="height: ${mH}%;"></div>
+                <div class="bar food" style="height: ${fH}%;"></div>
             </div>`;
     }
     chartContainer.innerHTML = groupsHTML;

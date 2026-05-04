@@ -22,6 +22,8 @@ export function renderReportList(filter = {}) {
   if (filter.status && filter.status !== "all") {
     records = records.filter(r => r.status === filter.status);
   }
+  // Exclude archived
+  records = records.filter(r => !r.archived);
 
   if (records.length === 0) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:32px">No reports found.</td></tr>`;
@@ -41,7 +43,7 @@ export function renderReportList(filter = {}) {
         <div class="action-row">
           <button class="action-btn btn-view"   onclick="ReportModule.viewReport('${rep.id}')">View</button>
           ${can("edit")   ? `<button class="action-btn btn-edit"   onclick="ReportModule.editReport('${rep.id}')">Edit</button>` : ""}
-          ${can("export") ? `<button class="action-btn btn-export" onclick="ReportModule.exportReport('${rep.id}')">Export</button>` : ""}
+          ${can("export") ? `<button class="action-btn btn-export" onclick="ReportModule.archiveReport('${rep.id}')">Archive</button>` : ""}
         </div>
         ${can("delete") ? `<button class="action-btn btn-delete" onclick="ReportModule.deleteReport('${rep.id}')">Delete</button>` : ""}
       </td>
@@ -134,7 +136,7 @@ export function openAddReportModal() {
             <input id="ar-roi" type="number" placeholder="e.g. 18.5" min="0" max="200">
           </div>
           <div class="fm-group">
-            <label>NPV ($)</label>
+            <label>NPV (₹)</label>
             <input id="ar-npv" type="number" placeholder="e.g. 148000" min="0">
           </div>
         </div>
@@ -250,7 +252,7 @@ export function editReport(id) {
             <input id="er-roi" type="number" value="${rep.roi ?? ""}" min="0">
           </div>
           <div class="fm-group">
-            <label>NPV ($)</label>
+            <label>NPV (₹)</label>
             <input id="er-npv" type="number" value="${rep.npv ?? ""}" min="0">
           </div>
         </div>
@@ -354,15 +356,26 @@ export function deleteReport(id) {
 
 /* ── EXPORT (simulated) ───────────────────────────── */
 
-export function exportReport(id) {
+export function archiveReport(id) {
   if (!can("export")) { showToast("Permission denied.", "error"); return; }
   const rep = FinanceDB.financialReports.find(r => r.id === id);
   if (!rep) return;
-  showToast(`Exporting "${rep.title}" as ${rep.format}…`, "info");
-  setTimeout(() => showToast(`"${rep.title}" exported successfully.`, "success"), 1400);
+  
+  openModal({
+    title: "Archive Report",
+    bodyHTML: `<p>Archive <strong>"${rep.title}"</strong>? It will be moved to the Archives section.</p>`,
+    confirmLabel: "Archive",
+    onConfirm: () => {
+      rep.archived = true;
+      persistData();
+      logActivity("report", `Report "${rep.title}" archived`, "");
+      renderReportList();
+      showToast(`"${rep.title}" archived successfully.`, "success");
+    }
+  });
 }
 
 /* ── EXPORT NAMESPACE ─────────────────────────────── */
-const ReportModule = { renderReportList, viewReport, openAddReportModal, editReport, deleteReport, exportReport };
+const ReportModule = { renderReportList, viewReport, openAddReportModal, editReport, deleteReport, archiveReport };
 window.ReportModule = ReportModule;
 export default ReportModule;

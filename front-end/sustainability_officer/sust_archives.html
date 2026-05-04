@@ -122,13 +122,6 @@
                 </a>
             </nav>
             <div class="sidebar-bottom">
-                <div class="sync-card">
-                    <div class="sync-dot"></div>
-                    <div class="sync-info">
-                        <h4>Data Sync: Active</h4>
-                        <p>Live meter feeds and emissio...</p>
-                    </div>
-                </div>
                 <div class="profile-card">
                     <img src="images/maya_patel.png" alt="User Profile" class="avatar">
                     <div class="profile-info">
@@ -146,16 +139,31 @@
             </header>
 
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-                <h3 style="margin:0;font-size:16px;color:#111827;">Archived Reports</h3>
-                <span id="archiveCount" style="background:#059669;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
+                <h3 style="margin:0;font-size:16px;color:#111827;">Initiative Archives</h3>
+                <span id="initArchiveCount" style="background:#2563eb;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
             </div>
+            <div id="initiativeArchiveContainer"></div>
 
-            <div id="archiveContainer"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin:20px 0 16px;">
+                <h3 style="margin:0;font-size:16px;color:#111827;">Sustainability Report Archives</h3>
+                <span id="reportArchiveCount" style="background:#059669;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
+            </div>
+            <div id="reportArchiveContainer"></div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:20px 0 16px;">
+                <h3 style="margin:0;font-size:16px;color:#111827;">End User Wastage Archives</h3>
+                <span id="wastageArchiveCount" style="background:#7c3aed;color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">0</span>
+            </div>
+            <div id="wastageArchiveContainer"></div>
         </main>
     </div>
 
     <script type="module">
+        import { injectIcons } from './js/utils/icons.js';
+
         document.addEventListener('DOMContentLoaded', () => {
+            injectIcons();
+
             const stored = localStorage.getItem('currentUser');
             if (stored) {
                 const user = JSON.parse(stored);
@@ -170,6 +178,33 @@
                 'Dismissed':  { label: 'Dismissed',         cssClass: 'status-dismissed' }
             };
 
+            window.removeFromArchive = function(type, id) {
+                const raw = localStorage.getItem('enertrack_universal_v1');
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                
+                if (type === 'initiative') {
+                    if (data.sust && data.sust.initiativeArchives) {
+                        data.sust.initiativeArchives = data.sust.initiativeArchives.filter(i => i.id !== id);
+                    }
+                } else if (type === 'report') {
+                    if (data.sust && data.sust.reportArchives) {
+                        data.sust.reportArchives = data.sust.reportArchives.filter(r => r.id !== id);
+                    }
+                } else if (type === 'wastage') {
+                    if (data.workflow && data.workflow.wastageReports) {
+                        const idx = data.workflow.wastageReports.findIndex(r => r.id === id);
+                        if (idx !== -1) {
+                            data.workflow.wastageReports[idx].soArchived = false;
+                            data.workflow.wastageReports[idx].archived = false;
+                        }
+                    }
+                }
+                
+                localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
+                window.renderArchives();
+            };
+
             function render() {
                 const raw = localStorage.getItem('enertrack_universal_v1');
                 const data = raw ? JSON.parse(raw) : null;
@@ -177,16 +212,79 @@
                 const archived = reports
                     .filter(r => r.soArchived || r.archived)
                     .sort((a, b) => new Date(b.soArchivedAt || b.archivedAt || b.timestamp) - new Date(a.soArchivedAt || a.archivedAt || a.timestamp));
+                
+                const initiativeArchives = (data?.sust?.initiativeArchives || [])
+                    .slice()
+                    .sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
 
-                document.getElementById('archiveCount').textContent = archived.length;
-                const container = document.getElementById('archiveContainer');
+                const reportArchives = (data?.sust?.reportArchives || [])
+                    .slice()
+                    .sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
 
-                if (archived.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><p>No archived reports yet.</p></div>';
-                    return;
+                document.getElementById('initArchiveCount').textContent = initiativeArchives.length;
+                document.getElementById('reportArchiveCount').textContent = reportArchives.length;
+                document.getElementById('wastageArchiveCount').textContent = archived.length;
+
+                const initContainer = document.getElementById('initiativeArchiveContainer');
+                const reportContainer = document.getElementById('reportArchiveContainer');
+                const wastageContainer = document.getElementById('wastageArchiveContainer');
+
+                if (initiativeArchives.length === 0) {
+                    initContainer.innerHTML = '<div class="empty-state"><p>No archived initiatives yet.</p></div>';
+                } else {
+                    initContainer.innerHTML = initiativeArchives.map(i => `
+                        <div class="ticket-card">
+                            <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;">
+                                <div>
+                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                        <strong style="font-size:15px;color:#111827;">${i.title}</strong>
+                                        <span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:999px;font-size:11px;">Initiative</span>
+                                    </div>
+                                    <p style="font-size:13px;color:#4b5563;margin:0 0 8px 0;">Status at archive: ${i.status || 'completed'} • Timeline: ${i.timeline || 'N/A'}</p>
+                                    <p style="font-size:13px;color:#6b7280;margin:0;">Target ${i.target || 'N/A'} • Cost ${i.cost || 'N/A'}</p>
+                                </div>
+                                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+                                    <span class="ticket-status status-finalized">Archived</span>
+                                    <button onclick="removeFromArchive('initiative', '${i.id}')" style="background:none;border:1px solid #ef4444;color:#ef4444;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove from Archive</button>
+                                </div>
+                            </div>
+                            ${Array.isArray(i.outcomes) && i.outcomes.length ? `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">${i.outcomes.map(o => `<span style="background:#eef2f7;border:1px solid #d8dde2;border-radius:20px;padding:4px 10px;font-size:12px;">${o}</span>`).join('')}</div>` : ''}
+                        </div>
+                    `).join('');
                 }
 
-                container.innerHTML = archived.map(t => {
+                if (reportArchives.length === 0) {
+                    reportContainer.innerHTML = '<div class="empty-state"><p>No sustainability report archives yet.</p></div>';
+                } else {
+                    reportContainer.innerHTML = reportArchives.map(r => `
+                        <div class="ticket-card">
+                            <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;">
+                                <div style="flex:1;">
+                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                        <strong style="font-size:15px;color:#111827;">${r.title}</strong>
+                                        <span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:999px;font-size:11px;">Sustainability Report</span>
+                                    </div>
+                                    <p style="font-size:13px;color:#4b5563;margin:0 0 8px 0;">Period: ${r.period}</p>
+                                    <p style="font-size:11px;color:#9ca3af;margin:0;">Archived ${new Date(r.archivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                </div>
+                                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+                                    <span class="ticket-status status-finalized">Archived</span>
+                                    <button onclick="removeFromArchive('report', '${r.id}')" style="background:none;border:1px solid #ef4444;color:#ef4444;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove from Archive</button>
+                                </div>
+                            </div>
+                            <div class="ticket-expanded-section" style="margin-top:12px;">
+                                <div class="exp-box"><h5>Energy Reduction</h5><div class="exp-val" style="color:#059669;">${r.energyReduction}</div></div>
+                                <div class="exp-box"><h5>Waste Diverted</h5><div class="exp-val" style="color:#059669;">${r.wasteDiverted}</div></div>
+                                <div class="exp-box"><h5>Carbon Offset</h5><div class="exp-val" style="color:#059669;">${r.carbonOffset}</div></div>
+                                <div class="exp-box"><h5>Water Saved</h5><div class="exp-val" style="color:#059669;">${r.waterSaved}</div></div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                const buildReportCards = (items, emptyText) => {
+                    if (items.length === 0) return `<div class="empty-state"><p>${emptyText}</p></div>`;
+                    return items.map(t => {
                     const cfg = STATUS_MAP[t.status] || { label: t.status, cssClass: 'status-finalized' };
                     const formatCurr = (v) => '₹' + Number(v).toLocaleString('en-IN');
                     const ci = t.costImpact;
@@ -236,10 +334,14 @@
                     }
 
                     const archivedAt = t.soArchivedAt || t.archivedAt;
-                    return `<div class="ticket-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;gap:16px;"><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px;"><strong style="font-size:14px;color:#111827;">#${t.id}</strong><span style="background:#059669;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px;">${t.type} Wastage</span></div><p style="font-size:13px;color:#374151;margin:0 0 6px 0;line-height:1.5;">${summaryText}</p><div class="ticket-location"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${locationText}</div><div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span class="ticket-priority p-${t.priority || 'Low'}">${t.priority || 'Low'} Priority</span><span style="font-size:11px;color:#9ca3af;">Archived ${archivedAt ? new Date(archivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;"><span class="ticket-status ${cfg.cssClass}">${cfg.label}</span></div></div>${dataHTML ? `<div class="ticket-expanded-section">${dataHTML}</div>` : ''}<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-top:12px;"><h5 style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#065f46;margin:0 0 8px 0;">Decision Summary</h5><div style="font-size:12px;color:#374151;line-height:1.7;">${narrativeParts.map(p => '<p style="margin:0 0 6px 0;">' + p + '</p>').join('')}</div></div>${comparisonHTML}</div>`;
-                }).join('');
+                    return `<div class="ticket-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;gap:16px;"><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px;"><strong style="font-size:14px;color:#111827;">#${t.id}</strong><span style="background:#059669;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px;">${t.type} Wastage</span></div><p style="font-size:13px;color:#374151;margin:0 0 6px 0;line-height:1.5;">${summaryText}</p><div class="ticket-location"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${locationText}</div><div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span class="ticket-priority p-${t.priority || 'Low'}">${t.priority || 'Low'} Priority</span><span style="font-size:11px;color:#9ca3af;">Archived ${archivedAt ? new Date(archivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;"><span class="ticket-status ${cfg.cssClass}">${cfg.label}</span><button onclick="removeFromArchive('wastage', '${t.id}')" style="background:none;border:1px solid #ef4444;color:#ef4444;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove from Archive</button></div></div>${dataHTML ? `<div class="ticket-expanded-section">${dataHTML}</div>` : ''}<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-top:12px;"><h5 style="font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#065f46;margin:0 0 8px 0;">Decision Summary</h5><div style="font-size:12px;color:#374151;line-height:1.7;">${narrativeParts.map(p => '<p style="margin:0 0 6px 0;">' + p + '</p>').join('')}</div></div>${comparisonHTML}</div>`;
+                    }).join('');
+                };
+
+                wastageContainer.innerHTML = buildReportCards(archived, 'No end-user wastage archives yet.');
             }
 
+            window.renderArchives = render;
             render();
             window.addEventListener('storage', e => { if (e.key === 'enertrack_universal_v1') render(); });
         });
