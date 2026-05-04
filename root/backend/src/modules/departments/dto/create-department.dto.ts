@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsUUID, IsOptional, IsNumber } from "class-validator";
 
 export class CreateDepartmentDto {
   @IsUUID() building_id: string;

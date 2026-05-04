@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsUUID, IsOptional, IsNumber } from "class-validator";
 
 export class CreateFinancialReportDto {
   @IsUUID() generated_by_id: string;

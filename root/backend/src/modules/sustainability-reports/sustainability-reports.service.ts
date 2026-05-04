@@ -1,8 +1,14 @@
-import * as crypto from 'crypto';
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { DatabaseService } from '../../core/database/database.service';
-import { CreateSustainabilityReportDto } from './dto/create-sustainability-report.dto';
-import { UpdateSustainabilityReportDto } from './dto/update-sustainability-report.dto';
+import * as crypto from "crypto";
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
+import { DatabaseService } from "../../core/database/database.service";
+import { CreateSustainabilityReportDto } from "./dto/create-sustainability-report.dto";
+import { PutSustainabilityReportDto } from "./dto/put-sustainability-report.dto";
+
+import { UpdateSustainabilityReportDto } from "./dto/update-sustainability-report.dto";
 
 @Injectable()
 export class SustainabilityReportsService {
@@ -10,11 +16,20 @@ export class SustainabilityReportsService {
 
   create(createDto: CreateSustainabilityReportDto) {
     if (createDto.generated_by_id) {
-      const exists = this.database.users.find(x => x.user_id === createDto.generated_by_id);
-      if (!exists) throw new NotFoundException(`Target users with id '${createDto.generated_by_id}' not found`);
+      const exists = this.database.users.find(
+        (x) => x.user_id === createDto.generated_by_id,
+      );
+      if (!exists)
+        throw new NotFoundException(
+          `Target users with id '${createDto.generated_by_id}' not found`,
+        );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { report_id: generatedId, ...createDto, generated_at: new Date().toISOString() };
+    const newRecord = {
+      report_id: generatedId,
+      ...createDto,
+      generated_at: new Date().toISOString(),
+    };
     this.database.sustainabilityReports.push(newRecord as any);
     return newRecord;
   }
@@ -24,21 +39,53 @@ export class SustainabilityReportsService {
   }
 
   findOne(id: string) {
-    const record = this.database.sustainabilityReports.find(item => item.report_id === id);
-    if (!record) throw new NotFoundException(`SustainabilityReport with ID ${id} not found`);
+    const record = this.database.sustainabilityReports.find(
+      (item) => item.report_id === id,
+    );
+    if (!record)
+      throw new NotFoundException(
+        `SustainabilityReport with ID ${id} not found`,
+      );
     return record;
   }
 
+  put(id: string, putDto: PutSustainabilityReportDto) {
+    const index = this.database.sustainabilityReports.findIndex(
+      (item) => item.report_id === id,
+    );
+    if (index === -1)
+      throw new NotFoundException(
+        `Sustainability Report with ID ${id} not found`,
+      );
+    this.database.sustainabilityReports[index] = {
+      report_id: id,
+      ...putDto,
+    } as any;
+    return this.database.sustainabilityReports[index];
+  }
   update(id: string, updateDto: UpdateSustainabilityReportDto) {
-    const index = this.database.sustainabilityReports.findIndex(item => item.report_id === id);
-    if (index === -1) throw new NotFoundException(`SustainabilityReport with ID ${id} not found`);
-    this.database.sustainabilityReports[index] = { ...this.database.sustainabilityReports[index], ...updateDto };
+    const index = this.database.sustainabilityReports.findIndex(
+      (item) => item.report_id === id,
+    );
+    if (index === -1)
+      throw new NotFoundException(
+        `SustainabilityReport with ID ${id} not found`,
+      );
+    this.database.sustainabilityReports[index] = {
+      ...this.database.sustainabilityReports[index],
+      ...updateDto,
+    };
     return this.database.sustainabilityReports[index];
   }
 
   remove(id: string) {
-    const index = this.database.sustainabilityReports.findIndex(item => item.report_id === id);
-    if (index === -1) throw new NotFoundException(`SustainabilityReport with ID ${id} not found`);
+    const index = this.database.sustainabilityReports.findIndex(
+      (item) => item.report_id === id,
+    );
+    if (index === -1)
+      throw new NotFoundException(
+        `SustainabilityReport with ID ${id} not found`,
+      );
     const removed = this.database.sustainabilityReports.splice(index, 1);
     return removed[0];
   }

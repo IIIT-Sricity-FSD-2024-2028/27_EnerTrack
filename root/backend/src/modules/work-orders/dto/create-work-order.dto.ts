@@ -1,5 +1,8 @@
-import { IsString, IsUUID, IsOptional, IsEnum } from 'class-validator';
-import { WorkOrderPriority, WorkOrderStatus } from '../../../core/database/database.service';
+import { IsString, IsUUID, IsOptional, IsEnum } from "class-validator";
+import {
+  WorkOrderPriority,
+  WorkOrderStatus,
+} from "../../../core/database/database.service";
 
 export class CreateWorkOrderDto {
   @IsOptional() @IsUUID() assigned_to_id?: string;

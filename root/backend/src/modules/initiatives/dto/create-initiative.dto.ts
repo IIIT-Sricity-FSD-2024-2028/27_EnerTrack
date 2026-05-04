@@ -1,5 +1,12 @@
-import { IsString, IsUUID, IsOptional, IsEnum, IsBoolean, IsArray } from 'class-validator';
-import { InitiativeStatus } from '../../../core/database/database.service';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsEnum,
+  IsBoolean,
+  IsArray,
+} from "class-validator";
+import { InitiativeStatus } from "../../../core/database/database.service";
 
 export class CreateInitiativeDto {
   @IsUUID() created_by_id: string;

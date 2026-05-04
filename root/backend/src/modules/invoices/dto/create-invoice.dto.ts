@@ -1,5 +1,11 @@
-import { IsString, IsUUID, IsOptional, IsNumber, IsEnum } from 'class-validator';
-import { InvoiceStatus } from '../../../core/database/database.service';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsNumber,
+  IsEnum,
+} from "class-validator";
+import { InvoiceStatus } from "../../../core/database/database.service";
 
 export class CreateInvoiceDto {
   @IsUUID() department_id: string;

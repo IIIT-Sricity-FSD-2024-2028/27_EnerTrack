@@ -114,6 +114,53 @@
           "users"
         ]
       },
+      "put": {
+        "operationId": "UsersController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      },
       "patch": {
         "operationId": "UsersController_update",
         "summary": "Update record",
@@ -322,6 +369,53 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "put": {
+        "operationId": "NotificationsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutNotificationDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response"
@@ -560,6 +654,53 @@
           "campus"
         ]
       },
+      "put": {
+        "operationId": "CampusController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutCampusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      },
       "patch": {
         "operationId": "CampusController_update",
         "summary": "Update record",
@@ -768,6 +909,53 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      },
+      "put": {
+        "operationId": "BuildingsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutBuildingDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response"
@@ -1042,6 +1230,53 @@
           "departments"
         ]
       },
+      "put": {
+        "operationId": "DepartmentsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      },
       "patch": {
         "operationId": "DepartmentsController_update",
         "summary": "Update record",
@@ -1250,6 +1485,53 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      },
+      "put": {
+        "operationId": "MetersController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutMeterDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response"
@@ -1524,6 +1806,53 @@
           "meter-readings"
         ]
       },
+      "put": {
+        "operationId": "MeterReadingsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutMeterReadingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      },
       "patch": {
         "operationId": "MeterReadingsController_update",
         "summary": "Update record",
@@ -1711,6 +2040,53 @@
           "wastage-reports"
         ]
       },
+      "put": {
+        "operationId": "WastageReportsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutWastageReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      },
       "patch": {
         "operationId": "WastageReportsController_update",
         "summary": "Update record",
@@ -1883,6 +2259,53 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      },
+      "put": {
+        "operationId": "AlertsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutAlertDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response"
@@ -2167,6 +2590,53 @@
           "faults"
         ]
       },
+      "put": {
+        "operationId": "FaultsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutFaultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      },
       "patch": {
         "operationId": "FaultsController_update",
         "summary": "Update record",
@@ -2375,6 +2845,53 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      },
+      "put": {
+        "operationId": "ServiceRequestsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutServiceRequestDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response"
@@ -2613,6 +3130,53 @@
           "work-orders"
         ]
       },
+      "put": {
+        "operationId": "WorkOrdersController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutWorkOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      },
       "patch": {
         "operationId": "WorkOrdersController_update",
         "summary": "Update record",
@@ -2785,6 +3349,53 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      },
+      "put": {
+        "operationId": "EnergyCostsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutEnergyCostDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response"
@@ -3023,6 +3634,53 @@
           "invoices"
         ]
       },
+      "put": {
+        "operationId": "InvoicesController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      },
       "patch": {
         "operationId": "InvoicesController_update",
         "summary": "Update record",
@@ -3195,6 +3853,53 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      },
+      "put": {
+        "operationId": "FinancialReportsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutFinancialReportDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response"
@@ -3397,6 +4102,53 @@
           "sustainability-metrics"
         ]
       },
+      "put": {
+        "operationId": "SustainabilityMetricsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutSustainabilityMetricDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      },
       "patch": {
         "operationId": "SustainabilityMetricsController_update",
         "summary": "Update record",
@@ -3569,6 +4321,53 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      },
+      "put": {
+        "operationId": "InitiativesController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutInitiativeDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response"
@@ -3771,6 +4570,53 @@
           "activity-logs"
         ]
       },
+      "put": {
+        "operationId": "ActivityLogsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutActivityLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      },
       "patch": {
         "operationId": "ActivityLogsController_update",
         "summary": "Update record",
@@ -3943,6 +4789,53 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      },
+      "put": {
+        "operationId": "SustainabilityReportsController_put",
+        "summary": "Replace record completely",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutSustainabilityReportDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response"
@@ -4140,75 +5033,253 @@
     "schemas": {
       "CreateUserDto": {
         "type": "object",
+        "properties": {},
+        "example": {
+          "name": "User 1",
+          "email": "user1@enertrack.com",
+          "phone": "555-0101",
+          "password": "hashedpassword",
+          "role": "System Administrator",
+          "specialization": null
+        }
+      },
+      "PutUserDto": {
+        "type": "object",
         "properties": {}
       },
       "UpdateUserDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "name": "User 1",
+          "email": "user1@enertrack.com",
+          "phone": "555-0101",
+          "password": "hashedpassword",
+          "role": "System Administrator",
+          "specialization": null
+        }
       },
       "CreateNotificationDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "target_type": "alert",
+          "target_id": "target1",
+          "message": "Notif 1",
+          "is_read": false
+        }
+      },
+      "PutNotificationDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateNotificationDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "target_type": "alert",
+          "target_id": "target1",
+          "message": "Notif 1",
+          "is_read": false
+        }
       },
       "CreateCampusDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "name": "Campus 1",
+          "location": "Location 1",
+          "total_budget": 1000000
+        }
+      },
+      "PutCampusDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateCampusDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "name": "Campus 1",
+          "location": "Location 1",
+          "total_budget": 1000000
+        }
       },
       "CreateBuildingDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "campus_id": "cccc0000-0002-4000-8000-000000000000",
+          "name": "Building 1",
+          "budget": 200000
+        }
+      },
+      "PutBuildingDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateBuildingDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "campus_id": "cccc0000-0002-4000-8000-000000000000",
+          "name": "Building 1",
+          "budget": 200000
+        }
       },
       "CreateDepartmentDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "name": "Department 1",
+          "budget": 50000
+        }
+      },
+      "PutDepartmentDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateDepartmentDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "name": "Department 1",
+          "budget": 50000
+        }
       },
       "CreateMeterDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "meter_code": "M-001",
+          "meter_type": "electricity",
+          "zone": "Zone 2",
+          "status": "active"
+        }
+      },
+      "PutMeterDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateMeterDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "meter_code": "M-001",
+          "meter_type": "electricity",
+          "zone": "Zone 2",
+          "status": "active"
+        }
       },
       "CreateMeterReadingDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "meter_id": "mmmm0000-0002-4000-8000-000000000000",
+          "value": 105.5,
+          "unit": "unit",
+          "timestamp": "2025-01-01T10:00:00.000Z"
+        }
+      },
+      "PutMeterReadingDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateMeterReadingDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "meter_id": "mmmm0000-0002-4000-8000-000000000000",
+          "value": 105.5,
+          "unit": "unit",
+          "timestamp": "2025-01-01T10:00:00.000Z"
+        }
       },
       "CreateWastageReportDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
+          "type": "Water",
+          "status": "reported",
+          "details": {
+            "note": "Wastage 1"
+          },
+          "sensor_reading_id": null
+        }
+      },
+      "PutWastageReportDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateWastageReportDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
+          "type": "Water",
+          "status": "reported",
+          "details": {
+            "note": "Wastage 1"
+          },
+          "sensor_reading_id": null
+        }
       },
       "CreateAlertDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "meter_id": "mmmm0000-0002-4000-8000-000000000000",
+          "triggering_reading_id": "rrrr0000-0002-4000-8000-000000000000",
+          "title": "Alert 1",
+          "severity": "High",
+          "status": "open",
+          "messages": [
+            {
+              "sender_role": "System Administrator",
+              "content": "Checking",
+              "timestamp": "2025-01-01T10:00:00.000Z"
+            },
+            {
+              "sender_role": "Technician",
+              "content": "Fixed",
+              "timestamp": "2025-01-01T11:00:00.000Z"
+            }
+          ]
+        }
+      },
+      "PutAlertDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateAlertDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "meter_id": "mmmm0000-0002-4000-8000-000000000000",
+          "triggering_reading_id": "rrrr0000-0002-4000-8000-000000000000",
+          "title": "Alert 1",
+          "severity": "High",
+          "status": "open",
+          "messages": [
+            {
+              "sender_role": "System Administrator",
+              "content": "Checking",
+              "timestamp": "2025-01-01T10:00:00.000Z"
+            },
+            {
+              "sender_role": "Technician",
+              "content": "Fixed",
+              "timestamp": "2025-01-01T11:00:00.000Z"
+            }
+          ]
+        }
       },
       "AddMessageDto": {
         "type": "object",
@@ -4216,83 +5287,279 @@
       },
       "CreateFaultDto": {
         "type": "object",
+        "properties": {},
+        "example": {
+          "alert_id": null,
+          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
+          "asset_name": "Asset 1",
+          "fault_type": "Electrical",
+          "severity": "moderate",
+          "status": "pending"
+        }
+      },
+      "PutFaultDto": {
+        "type": "object",
         "properties": {}
       },
       "UpdateFaultDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "alert_id": null,
+          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
+          "asset_name": "Asset 1",
+          "fault_type": "Electrical",
+          "severity": "moderate",
+          "status": "pending"
+        }
       },
       "CreateServiceRequestDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
+          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
+          "category": "Maintenance",
+          "issue_type": "Broken part",
+          "status": "pending"
+        }
+      },
+      "PutServiceRequestDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateServiceRequestDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
+          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
+          "category": "Maintenance",
+          "issue_type": "Broken part",
+          "status": "pending"
+        }
       },
       "CreateWorkOrderDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
+          "linked_fault_id": null,
+          "source_request_id": "ssss0000-0002-4000-8000-000000000000",
+          "title": "Work Order 1",
+          "priority": "high",
+          "status": "inprogress"
+        }
+      },
+      "PutWorkOrderDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateWorkOrderDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
+          "linked_fault_id": null,
+          "source_request_id": "ssss0000-0002-4000-8000-000000000000",
+          "title": "Work Order 1",
+          "priority": "high",
+          "status": "inprogress"
+        }
       },
       "CreateEnergyCostDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "period": "2025-02",
+          "electricity": 1000,
+          "gas": 200,
+          "water": 150,
+          "status": "on-budget"
+        }
+      },
+      "PutEnergyCostDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateEnergyCostDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "period": "2025-02",
+          "electricity": 1000,
+          "gas": 200,
+          "water": 150,
+          "status": "on-budget"
+        }
       },
       "CreateInvoiceDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "approved_by_id": "uuuu0000-0002-4000-8000-000000000000",
+          "invoice_number": "INV-0001",
+          "vendor": "Vendor 1",
+          "amount": 500,
+          "status": "approved"
+        }
+      },
+      "PutInvoiceDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateInvoiceDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "approved_by_id": "uuuu0000-0002-4000-8000-000000000000",
+          "invoice_number": "INV-0001",
+          "vendor": "Vendor 1",
+          "amount": 500,
+          "status": "approved"
+        }
       },
       "CreateFinancialReportDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "generated_by_id": "uuuu0000-0002-4000-8000-000000000000",
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "title": "Report 1",
+          "period": "Q1 2025",
+          "roi": "15%",
+          "npv": 10000
+        }
+      },
+      "PutFinancialReportDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateFinancialReportDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "generated_by_id": "uuuu0000-0002-4000-8000-000000000000",
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "title": "Report 1",
+          "period": "Q1 2025",
+          "roi": "15%",
+          "npv": 10000
+        }
       },
       "CreateSustainabilityMetricDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "period": "2024-11",
+          "energy_consumed": 15000,
+          "water_usage": 2000,
+          "emissions": 500
+        }
+      },
+      "PutSustainabilityMetricDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateSustainabilityMetricDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "period": "2024-11",
+          "energy_consumed": 15000,
+          "water_usage": 2000,
+          "emissions": 500
+        }
       },
       "CreateInitiativeDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "created_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "title": "Initiative 1",
+          "status": "proposed",
+          "feasible": true,
+          "target_reduction": "10%",
+          "outcomes": [
+            "Outcome 1"
+          ]
+        }
+      },
+      "PutInitiativeDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateInitiativeDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "created_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "title": "Initiative 1",
+          "status": "proposed",
+          "feasible": true,
+          "target_reduction": "10%",
+          "outcomes": [
+            "Outcome 1"
+          ]
+        }
       },
       "CreateActivityLogDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "action_type": "LOGIN",
+          "title": "User logged in",
+          "timestamp": "2025-01-01T10:00:00.000Z"
+        }
+      },
+      "PutActivityLogDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateActivityLogDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "action_type": "LOGIN",
+          "title": "User logged in",
+          "timestamp": "2025-01-01T10:00:00.000Z"
+        }
       },
       "CreateSustainabilityReportDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "generated_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "title": "Sust. Report 1",
+          "period": "Q1 2025",
+          "metrics": {},
+          "generated_at": "2025-01-01T10:00:00.000Z"
+        }
+      },
+      "PutSustainabilityReportDto": {
         "type": "object",
         "properties": {}
       },
       "UpdateSustainabilityReportDto": {
         "type": "object",
-        "properties": {}
+        "properties": {},
+        "example": {
+          "generated_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "title": "Sust. Report 1",
+          "period": "Q1 2025",
+          "metrics": {},
+          "generated_at": "2025-01-01T10:00:00.000Z"
+        }
       }
     }
   }

@@ -1,5 +1,8 @@
-import { IsString, IsUUID, IsOptional, IsEnum } from 'class-validator';
-import { MeterType, MeterStatus } from '../../../core/database/database.service';
+import { IsString, IsUUID, IsOptional, IsEnum } from "class-validator";
+import {
+  MeterType,
+  MeterStatus,
+} from "../../../core/database/database.service";
 
 export class CreateMeterDto {
   @IsUUID() building_id: string;

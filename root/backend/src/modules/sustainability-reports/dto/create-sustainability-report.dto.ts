@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsObject } from 'class-validator';
+import { IsString, IsUUID, IsObject } from "class-validator";
 
 export class CreateSustainabilityReportDto {
   @IsUUID() generated_by_id: string;
