@@ -28,108 +28,116 @@ const defaultState = {
   session: {
     user: {
       name: "Aadithya Mouli",
-      role: "systemAdministrator"
+      role: "System Administrator"
     }
   },
+  campuses: [
+    {
+      campus_id: "campus-001",
+      name: "Main University Campus",
+      location: "City Center",
+      total_budget: 1500000.00
+    }
+  ],
   users: [
     {
-      id: "user-001",
+      user_id: "user-001",
       name: "Aadithya Mouli",
       email: "aadithya@enertrack.edu",
-      role: "systemAdministrator",
-      loginStatus: "online"
+      phone: "+1 555-0100",
+      password: "hashed_password_mock",
+      role: "System Administrator",
+      specialization: null
     },
     {
-      id: "user-002",
+      user_id: "user-002",
       name: "Teja Rao",
       email: "teja@enertrack.edu",
-      role: "technician",
-      loginStatus: "offline"
+      phone: "+1 555-0101",
+      password: "hashed_password_mock",
+      role: "Technician",
+      specialization: "HVAC Systems"
     },
     {
-      id: "user-003",
+      user_id: "user-003",
       name: "Chirag",
       email: "chirag@enertrack.edu",
-      role: "technicianAdministrator",
-      loginStatus: "online"
+      phone: "+1 555-0102",
+      password: "hashed_password_mock",
+      role: "Technician",
+      specialization: "Electrical Engineering"
     },
     {
-      id: "user-004",
+      user_id: "user-004",
       name: "Husaam",
       email: "husaam@enertrack.edu",
-      role: "financeAnalyst",
-      loginStatus: "invited"
+      phone: "+1 555-0103",
+      password: "hashed_password_mock",
+      role: "Financial Analyst",
+      specialization: null
     },
     {
-      id: "user-005",
+      user_id: "user-005",
       name: "Viksa",
       email: "viksa@enertrack.edu",
-      role: "sustainabilityOfficer",
-      loginStatus: "locked"
+      phone: "+1 555-0104",
+      password: "hashed_password_mock",
+      role: "Sustainability Officer",
+      specialization: null
     }
   ],
   buildings: [
     {
-      id: "building-001",
+      building_id: "building-001",
+      campus_id: "campus-001",
       name: "Block A - Main Building",
-      code: "BLK-A",
-      location: "North Campus",
-      floorCount: 5,
-      status: "operational"
+      budget: 500000.00
     },
     {
-      id: "building-002",
+      building_id: "building-002",
+      campus_id: "campus-001",
       name: "Block B - Research Wing",
-      code: "BLK-B",
-      location: "Innovation Quad",
-      floorCount: 4,
-      status: "maintenance"
+      budget: 350000.00
     },
     {
-      id: "building-003",
+      building_id: "building-003",
+      campus_id: "campus-001",
       name: "Admin Tower",
-      code: "ADM-T",
-      location: "Central Campus",
-      floorCount: 7,
-      status: "operational"
+      budget: 200000.00
     }
   ],
   meters: [
     {
-      id: "meter-001",
-      buildingId: "building-001",
-      name: "Main LT Panel",
-      meterType: "electricity",
-      serialNumber: "ET-A-1001",
-      status: "active",
-      lastReadingKwh: 18420
+      meter_id: "meter-001",
+      building_id: "building-001",
+      meter_code: "ET-A-1001",
+      meter_type: "electricity",
+      zone: "Main LT Panel",
+      status: "active"
     },
     {
-      id: "meter-002",
-      buildingId: "building-001",
-      name: "HVAC Feed Meter",
-      meterType: "smartMeter",
-      serialNumber: "ET-A-1002",
-      status: "active",
-      lastReadingKwh: 9650
+      meter_id: "meter-002",
+      building_id: "building-001",
+      meter_code: "ET-A-1002",
+      meter_type: "water",
+      zone: "HVAC Feed Meter",
+      status: "active"
     },
     {
-      id: "meter-003",
-      buildingId: "building-002",
-      name: "Lab Equipment Meter",
-      meterType: "electricity",
-      serialNumber: "ET-B-2101",
-      status: "maintenance",
-      lastReadingKwh: 12210
+      meter_id: "meter-003",
+      building_id: "building-002",
+      meter_code: "ET-B-2101",
+      meter_type: "electricity",
+      zone: "Lab Equipment Meter",
+      status: "calibrating"
     },
     {
-      id: "meter-004",
-      buildingId: "building-003",
-      name: "Admin Floor Stack",
-      meterType: "smartMeter",
-      serialNumber: "ET-ADM-3101",
-      status: "active",
-      lastReadingKwh: 7820
+      meter_id: "meter-004",
+      building_id: "building-003",
+      meter_code: "ET-ADM-3101",
+      meter_type: "electricity",
+      zone: "Admin Floor Stack",
+      status: "active"
     }
   ]
 };
@@ -178,6 +186,7 @@ function mergeWithDefaults(defaults, source) {
       }
     },
     users: Array.isArray(source.users) ? source.users : defaults.users,
+    campuses: Array.isArray(source.campuses) ? source.campuses : defaults.campuses,
     buildings: Array.isArray(source.buildings) ? source.buildings : defaults.buildings,
     meters: Array.isArray(source.meters) ? source.meters : defaults.meters
   };
@@ -185,4 +194,31 @@ function mergeWithDefaults(defaults, source) {
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+export const USER_ROLES = [
+  "System Administrator",
+  "Financial Analyst",
+  "Technician",
+  "Sustainability Officer",
+  "Campus Visitor"
+];
+
+export const METER_TYPES = [
+  "electricity",
+  "gas",
+  "water",
+  "emissions",
+  "food"
+];
+
+export const METER_STATUSES = [
+  "active",
+  "faulty",
+  "calibrating",
+  "decommissioned"
+];
+
+export function mockHashPassword(password) {
+  return "hashed_" + btoa(password).substring(0, 10);
 }

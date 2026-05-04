@@ -1,5 +1,5 @@
 import { renderInfrastructureManager } from "./infrastructureManager.js";
-import { renderUserManagement } from "./userManagement.js";
+import { renderUserManagement } from "./UserManagement.js";
 import { formatLabel } from "../utils/ui.js";
 
 export function renderAdminLayout(root, app) {
@@ -80,9 +80,9 @@ function setText(id, value) {
 
 function getTotals(state) {
   return {
-    users: state.users.length,
-    campuses: state.campuses.length,
-    buildings: state.buildings.length,
-    meters: state.meters.length
+    users: state.users?.length || 0,
+    campuses: state.campuses?.length || 0,
+    buildings: state.buildings?.length || 0,
+    meters: state.meters?.length || 0
   };
 }
