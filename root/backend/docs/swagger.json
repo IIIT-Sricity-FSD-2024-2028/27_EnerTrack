@@ -1,0 +1,4299 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "post": {
+        "operationId": "UsersController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/{id}/notifications": {
+      "get": {
+        "operationId": "UsersController_getNotifications",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/notifications": {
+      "post": {
+        "operationId": "NotificationsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "get": {
+        "operationId": "NotificationsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/{id}": {
+      "get": {
+        "operationId": "NotificationsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "patch": {
+        "operationId": "NotificationsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "delete": {
+        "operationId": "NotificationsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/{id}/mark-read": {
+      "patch": {
+        "operationId": "NotificationsController_markRead",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/campus": {
+      "post": {
+        "operationId": "CampusController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCampusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      },
+      "get": {
+        "operationId": "CampusController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      }
+    },
+    "/api/campus/{id}": {
+      "get": {
+        "operationId": "CampusController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      },
+      "patch": {
+        "operationId": "CampusController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCampusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      },
+      "delete": {
+        "operationId": "CampusController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      }
+    },
+    "/api/campus/{id}/buildings": {
+      "get": {
+        "operationId": "CampusController_getBuildings",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      }
+    },
+    "/api/buildings": {
+      "post": {
+        "operationId": "BuildingsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBuildingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      },
+      "get": {
+        "operationId": "BuildingsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      }
+    },
+    "/api/buildings/{id}": {
+      "get": {
+        "operationId": "BuildingsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      },
+      "patch": {
+        "operationId": "BuildingsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBuildingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      },
+      "delete": {
+        "operationId": "BuildingsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      }
+    },
+    "/api/buildings/{id}/departments": {
+      "get": {
+        "operationId": "BuildingsController_getDepartments",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      }
+    },
+    "/api/buildings/{id}/meters": {
+      "get": {
+        "operationId": "BuildingsController_getMeters",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      }
+    },
+    "/api/departments": {
+      "post": {
+        "operationId": "DepartmentsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      },
+      "get": {
+        "operationId": "DepartmentsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      }
+    },
+    "/api/departments/{id}": {
+      "get": {
+        "operationId": "DepartmentsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      },
+      "patch": {
+        "operationId": "DepartmentsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      },
+      "delete": {
+        "operationId": "DepartmentsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      }
+    },
+    "/api/departments/{id}/invoices": {
+      "get": {
+        "operationId": "DepartmentsController_getInvoices",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      }
+    },
+    "/api/meters": {
+      "post": {
+        "operationId": "MetersController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      },
+      "get": {
+        "operationId": "MetersController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      }
+    },
+    "/api/meters/{id}": {
+      "get": {
+        "operationId": "MetersController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      },
+      "patch": {
+        "operationId": "MetersController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      },
+      "delete": {
+        "operationId": "MetersController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      }
+    },
+    "/api/meters/{id}/readings": {
+      "get": {
+        "operationId": "MetersController_getReadings",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      }
+    },
+    "/api/meters/{id}/alerts": {
+      "get": {
+        "operationId": "MetersController_getAlerts",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      }
+    },
+    "/api/meter-readings": {
+      "post": {
+        "operationId": "MeterReadingsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterReadingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      },
+      "get": {
+        "operationId": "MeterReadingsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      }
+    },
+    "/api/meter-readings/{id}": {
+      "get": {
+        "operationId": "MeterReadingsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      },
+      "patch": {
+        "operationId": "MeterReadingsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterReadingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      },
+      "delete": {
+        "operationId": "MeterReadingsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      }
+    },
+    "/api/wastage-reports": {
+      "post": {
+        "operationId": "WastageReportsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWastageReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      },
+      "get": {
+        "operationId": "WastageReportsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
+    "/api/wastage-reports/{id}": {
+      "get": {
+        "operationId": "WastageReportsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      },
+      "patch": {
+        "operationId": "WastageReportsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWastageReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      },
+      "delete": {
+        "operationId": "WastageReportsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
+    "/api/alerts": {
+      "post": {
+        "operationId": "AlertsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAlertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      },
+      "get": {
+        "operationId": "AlertsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/alerts/{id}": {
+      "get": {
+        "operationId": "AlertsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      },
+      "patch": {
+        "operationId": "AlertsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAlertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      },
+      "delete": {
+        "operationId": "AlertsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/alerts/{id}/messages": {
+      "post": {
+        "operationId": "AlertsController_addMessage",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/alerts/{id}/faults": {
+      "get": {
+        "operationId": "AlertsController_getFaults",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/faults": {
+      "post": {
+        "operationId": "FaultsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFaultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      },
+      "get": {
+        "operationId": "FaultsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      }
+    },
+    "/api/faults/{id}": {
+      "get": {
+        "operationId": "FaultsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      },
+      "patch": {
+        "operationId": "FaultsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFaultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      },
+      "delete": {
+        "operationId": "FaultsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      }
+    },
+    "/api/faults/{id}/work-orders": {
+      "get": {
+        "operationId": "FaultsController_getWorkOrders",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      }
+    },
+    "/api/service-requests": {
+      "post": {
+        "operationId": "ServiceRequestsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      },
+      "get": {
+        "operationId": "ServiceRequestsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      }
+    },
+    "/api/service-requests/{id}": {
+      "get": {
+        "operationId": "ServiceRequestsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      },
+      "patch": {
+        "operationId": "ServiceRequestsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      },
+      "delete": {
+        "operationId": "ServiceRequestsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      }
+    },
+    "/api/service-requests/{id}/work-orders": {
+      "get": {
+        "operationId": "ServiceRequestsController_getWorkOrders",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      }
+    },
+    "/api/work-orders": {
+      "post": {
+        "operationId": "WorkOrdersController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      },
+      "get": {
+        "operationId": "WorkOrdersController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      }
+    },
+    "/api/work-orders/{id}": {
+      "get": {
+        "operationId": "WorkOrdersController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      },
+      "patch": {
+        "operationId": "WorkOrdersController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      },
+      "delete": {
+        "operationId": "WorkOrdersController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      }
+    },
+    "/api/energy-costs": {
+      "post": {
+        "operationId": "EnergyCostsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnergyCostDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      },
+      "get": {
+        "operationId": "EnergyCostsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      }
+    },
+    "/api/energy-costs/{id}": {
+      "get": {
+        "operationId": "EnergyCostsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      },
+      "patch": {
+        "operationId": "EnergyCostsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEnergyCostDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      },
+      "delete": {
+        "operationId": "EnergyCostsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      }
+    },
+    "/api/energy-costs/by-period/{period}": {
+      "get": {
+        "operationId": "EnergyCostsController_getByPeriod",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "period",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      }
+    },
+    "/api/invoices": {
+      "post": {
+        "operationId": "InvoicesController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      },
+      "get": {
+        "operationId": "InvoicesController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/invoices/{id}": {
+      "get": {
+        "operationId": "InvoicesController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      },
+      "patch": {
+        "operationId": "InvoicesController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      },
+      "delete": {
+        "operationId": "InvoicesController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/financial-reports": {
+      "post": {
+        "operationId": "FinancialReportsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFinancialReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      },
+      "get": {
+        "operationId": "FinancialReportsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      }
+    },
+    "/api/financial-reports/{id}": {
+      "get": {
+        "operationId": "FinancialReportsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      },
+      "patch": {
+        "operationId": "FinancialReportsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFinancialReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      },
+      "delete": {
+        "operationId": "FinancialReportsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      }
+    },
+    "/api/sustainability-metrics": {
+      "post": {
+        "operationId": "SustainabilityMetricsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSustainabilityMetricDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      },
+      "get": {
+        "operationId": "SustainabilityMetricsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      }
+    },
+    "/api/sustainability-metrics/{id}": {
+      "get": {
+        "operationId": "SustainabilityMetricsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      },
+      "patch": {
+        "operationId": "SustainabilityMetricsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSustainabilityMetricDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      },
+      "delete": {
+        "operationId": "SustainabilityMetricsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      }
+    },
+    "/api/initiatives": {
+      "post": {
+        "operationId": "InitiativesController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInitiativeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      },
+      "get": {
+        "operationId": "InitiativesController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      }
+    },
+    "/api/initiatives/{id}": {
+      "get": {
+        "operationId": "InitiativesController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      },
+      "patch": {
+        "operationId": "InitiativesController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInitiativeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      },
+      "delete": {
+        "operationId": "InitiativesController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      }
+    },
+    "/api/activity-logs": {
+      "post": {
+        "operationId": "ActivityLogsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateActivityLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      },
+      "get": {
+        "operationId": "ActivityLogsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      }
+    },
+    "/api/activity-logs/{id}": {
+      "get": {
+        "operationId": "ActivityLogsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      },
+      "patch": {
+        "operationId": "ActivityLogsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateActivityLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      },
+      "delete": {
+        "operationId": "ActivityLogsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      }
+    },
+    "/api/sustainability-reports": {
+      "post": {
+        "operationId": "SustainabilityReportsController_create",
+        "summary": "Create record",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSustainabilityReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      },
+      "get": {
+        "operationId": "SustainabilityReportsController_findAll",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      }
+    },
+    "/api/sustainability-reports/{id}": {
+      "get": {
+        "operationId": "SustainabilityReportsController_findOne",
+        "summary": "Retrieve record(s)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      },
+      "patch": {
+        "operationId": "SustainabilityReportsController_update",
+        "summary": "Update record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSustainabilityReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      },
+      "delete": {
+        "operationId": "SustainabilityReportsController_remove",
+        "summary": "Delete record",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "EnerTrack API",
+    "description": "Backend API for EnerTrack — Facility Management, Sustainability & Finance Platform",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "users",
+      "description": "User management and role assignment"
+    },
+    {
+      "name": "notifications",
+      "description": "Notification delivery and read tracking"
+    },
+    {
+      "name": "campus",
+      "description": "Campus-level location management"
+    },
+    {
+      "name": "buildings",
+      "description": "Building management within campuses"
+    },
+    {
+      "name": "departments",
+      "description": "Department management within buildings"
+    },
+    {
+      "name": "meters",
+      "description": "IoT meter configuration and tracking"
+    },
+    {
+      "name": "meter-readings",
+      "description": "Sensor/meter reading ingestion"
+    },
+    {
+      "name": "wastage-reports",
+      "description": "Wastage report submission and tracking"
+    },
+    {
+      "name": "alerts",
+      "description": "Maintenance alert lifecycle and chat threads"
+    },
+    {
+      "name": "faults",
+      "description": "Fault tracking and technician assignment"
+    },
+    {
+      "name": "service-requests",
+      "description": "Campus visitor and staff service requests"
+    },
+    {
+      "name": "work-orders",
+      "description": "Work order creation and progress tracking"
+    },
+    {
+      "name": "energy-costs",
+      "description": "Energy cost tracking per building/department"
+    },
+    {
+      "name": "invoices",
+      "description": "Invoice management and approval workflow"
+    },
+    {
+      "name": "financial-reports",
+      "description": "Financial report generation and retrieval"
+    },
+    {
+      "name": "sustainability-metrics",
+      "description": "Platform-wide sustainability KPI tracking"
+    },
+    {
+      "name": "initiatives",
+      "description": "Sustainability initiative proposals and lifecycle"
+    },
+    {
+      "name": "activity-logs",
+      "description": "System-wide audit log"
+    },
+    {
+      "name": "sustainability-reports",
+      "description": "Sustainability report generation and archiving"
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "x-role": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-role"
+      }
+    },
+    "schemas": {
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateNotificationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateNotificationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateCampusDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateCampusDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateBuildingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateBuildingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateDepartmentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateDepartmentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateMeterDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMeterDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateMeterReadingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMeterReadingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateWastageReportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateWastageReportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateAlertDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateAlertDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AddMessageDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateFaultDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateFaultDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateServiceRequestDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateServiceRequestDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateWorkOrderDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateWorkOrderDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateEnergyCostDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateEnergyCostDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateInvoiceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateInvoiceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateFinancialReportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateFinancialReportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateSustainabilityMetricDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateSustainabilityMetricDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateInitiativeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateInitiativeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateActivityLogDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateActivityLogDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateSustainabilityReportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateSustainabilityReportDto": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  }
+}
