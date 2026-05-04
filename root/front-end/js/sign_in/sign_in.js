@@ -1,14 +1,13 @@
-import { userActions } from "../shared/mockData.js";
-
 (function () {
     "use strict";
 
     /* ───────── DOM references ───────── */
-    var form = document.getElementById("signInForm");
-    var emailInput = document.getElementById("email");
+    var form          = document.getElementById("signInForm");
+    var emailInput    = document.getElementById("email");
     var passwordInput = document.getElementById("password");
-    var emailError = document.getElementById("emailError");
+    var emailError    = document.getElementById("emailError");
     var passwordError = document.getElementById("passwordError");
+    var signInBtn     = document.getElementById("signInBtn");
 
     /* ───────── Error helpers ───────── */
     function showError(el, msg) {
@@ -19,13 +18,10 @@ import { userActions } from "../shared/mockData.js";
         el.textContent = "";
         el.style.display = "none";
     }
-    function isGmailAddress(email) {
-        return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(String(email || "").trim());
-    }
 
     /* ───────── Password toggle ───────── */
     window.togglePass = function () {
-        var pw = document.getElementById("password");
+        var pw   = document.getElementById("password");
         var open = document.getElementById("eyeOpen");
         var shut = document.getElementById("eyeClosed");
         if (pw.type === "password") {
@@ -39,13 +35,27 @@ import { userActions } from "../shared/mockData.js";
         }
     };
 
+    /* ───────── Role → redirect map ───────── */
+    function redirectByRole(role) {
+        var routes = {
+            "System Administrator":    "../system_admin/system_admin_overview.html",
+            "Financial Analyst":       "../finance-analyst/finance_overview.html",
+            "Technician Administrator":"../technician/technician_overview.html",
+            "Technician":              "../technician_jr/technician_jr_work_orders.html",
+            "Sustainability Officer":  "../sustainability_officer/sustainability_officer_overview.html",
+            "Campus Visitor":          "../enduser/enduser_dashboard.html",
+        };
+        var path = routes[role] || "../landing/landing.html";
+        window.location.href = path;
+    }
+
     /* ───────── Form submission ───────── */
-    form.addEventListener("submit", function (e) {
+    form.addEventListener("submit", async function (e) {
         e.preventDefault();
         clearError(emailError);
         clearError(passwordError);
 
-        var email = emailInput.value.trim().toLowerCase();
+        var email    = emailInput.value.trim().toLowerCase();
         var password = passwordInput.value;
 
         /* Basic empty checks */
@@ -53,43 +63,29 @@ import { userActions } from "../shared/mockData.js";
             showError(emailError, "Email is required.");
             return;
         }
-        if (!isGmailAddress(email)) {
-            showError(emailError, "Only gmail.com email addresses are allowed.");
-            return;
-        }
         if (password.length === 0) {
             showError(passwordError, "Password is required.");
             return;
         }
 
-        /* Look up user in the universal user store. */
-        var user = userActions.authenticate(email, password);
+        /* Disable button while request is in flight */
+        signInBtn.disabled = true;
+        signInBtn.textContent = "Signing in…";
 
-        if (!user) {
-            showError(passwordError, "Invalid email or password.");
-            return;
-        }
+        try {
+            /* Call the real backend login endpoint */
+            var user = await api.post("/users/login", { email: email, password: password });
 
-        /* Save current user to localStorage for persistence */
-        localStorage.setItem("currentUser", JSON.stringify(user));
+            /* Persist session in localStorage for all pages to read */
+            localStorage.setItem("currentUser", JSON.stringify(user));
 
-        var db = JSON.parse(localStorage.getItem("enertrack_universal_v1") || "{}");
-        if (db && db.session !== undefined) {
-            db.session = { user: { id: user.user_id, name: user.name, role: user.role } };
-            localStorage.setItem("enertrack_universal_v1", JSON.stringify(db));
-        }
+            /* Redirect to the correct dashboard by role */
+            redirectByRole(user.role);
 
-        /* Smart redirect based on role */
-        if (user.role === "System Administrator" || user.role === "System Admin") {
-            window.location.href = "../system_admin/system_admin_overview.html";
-        } else if (user.role === "Campus Visitor") {
-            window.location.href = "../enduser/enduser_dashboard.html";
-        } else if (user.role === "Technician") {
-            window.location.href = "../technician_jr/technician_jr_work_orders.html";
-        } else if (user.role === "Technician Administrator") {
-            window.location.href = "../technician/technician_overview.html";
-        } else {
-            window.location.href = "../landing/landing.html";
+        } catch (err) {
+            showError(passwordError, err.message || "Invalid email or password.");
+            signInBtn.disabled = false;
+            signInBtn.textContent = "Sign In";
         }
     });
 

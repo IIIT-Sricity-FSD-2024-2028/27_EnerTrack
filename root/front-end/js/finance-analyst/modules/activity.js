@@ -34,7 +34,21 @@ export function renderActivityList(limit = 8) {
   const container = document.getElementById("activity-list");
   if (!container) return;
 
+  const now = Date.now();
   const items = FinanceDB.activityLog.slice(0, limit);
+
+  let modified = false;
+  // Dynamically rewrite old static mock dates to appear recent
+  items.forEach((item, index) => {
+    const timeDiff = now - new Date(item.timestamp).getTime();
+    if (timeDiff > 30 * 24 * 60 * 60 * 1000) {
+      // Rewrite to 1-4 hours ago
+      item.timestamp = new Date(now - (index + 1) * 3600000).toISOString();
+      modified = true;
+    }
+  });
+
+  if (modified) persistData();
 
   if (items.length === 0) {
     container.innerHTML = `<p style="color:#9ca3af;font-size:14px;padding:16px 0">No recent activity.</p>`;

@@ -1,295 +1,353 @@
 /**
- * workOrdersPage.js
- * Handles interactivity for the Maintenance Work Orders page.
- * CRUD: create new WO, update type/priority/status, close WO, kanban board render.
+ * workOrdersPage.js  —  Technician Jr (Teja) Work Orders
+ * Wired to the real NestJS backend via window.api (api.js).
+ *
+ * Backend field → UI mapping:
+ *   work_order_id  → card id, detail panel title
+ *   assigned_to_id → resolved to user name via /users
+ *   title          → card body text
+ *   priority       → priority-tag colour class
+ *   status         → kanban column (new / inprogress / review / approval / closed)
  */
-import TechDB from '../../technician/js/data/mockData.js';
-import { showToast, openModal, generateId } from '../../technician/js/utils/utils.js';
 
-let currentUser = { role: "Technician", name: "Guest" };
+/* ─── State ─────────────────────────────────────── */
+var currentUser = { user_id: null, name: "—", role: "Technician" };
+var allWorkOrders = [];   // raw array from backend
+var allUsers = [];         // user lookup cache
+var selectedWOId = null;
 
-let selectedWOId = null;
-let selectedType = 'scheduled';
+var actionPanelTitle   = null;
+var actionPanelOptions = null;
 
-document.addEventListener("DOMContentLoaded", () => {
+/* ─── Boot ───────────────────────────────────────── */
+document.addEventListener("DOMContentLoaded", function () {
     try {
-        // Load from localStorage for actual user persistence
-        const stored = localStorage.getItem("currentUser");
+        var stored = localStorage.getItem("currentUser");
         if (stored) {
-            const user = JSON.parse(stored);
-            currentUser.name = user.name;
-        } else {
-            // Fallback for demo
-            currentUser.name = "Elena Park";
+            var u = JSON.parse(stored);
+            currentUser.user_id = u.user_id;
+            currentUser.name    = u.name;
+            currentUser.role    = u.role;
         }
 
-        initWorkOrders();
-        console.log("TechJrWorkOrders: Initialized for", currentUser.name);
+        actionPanelTitle   = document.getElementById("actionPanelTitle");
+        actionPanelOptions = document.getElementById("actionPanelOptions");
+
+        loadPage();
     } catch (err) {
-        console.error("TechWorkOrders: Init error:", err);
+        console.error("WorkOrdersPage init error:", err);
     }
 });
 
-function initWorkOrders() {
-    renderBoard();
-    renderArchive();
-    wireTypeSelector();
-    wireNewWOForm();
-    wireInitiateBtn();
+async function loadPage() {
+    try {
+        // Fetch users (for name lookup) and work orders in parallel
+        var results = await Promise.all([
+            api.get("/users"),
+            api.get("/work-orders"),
+        ]);
+        allUsers      = results[0];
+        allWorkOrders = results[1];
 
-    // Select first WO visible to this user
-    const orders = TechDB.workOrders.filter(w => w.technician === currentUser.name && w.status !== 'closed');
-    if (orders.length > 0) selectWorkOrder(orders[0].id);
+        renderBoard();
+        renderArchive();
+
+        // Auto-select first active WO assigned to this user
+        var mine = allWorkOrders.filter(function (wo) {
+            return wo.assigned_to_id === currentUser.user_id && wo.status !== "closed";
+        });
+        if (mine.length > 0) selectWorkOrder(mine[0].work_order_id);
+
+        console.log("[WorkOrders] Loaded", allWorkOrders.length, "orders from backend.");
+    } catch (err) {
+        console.error("[WorkOrders] Failed to load:", err.message);
+        showToast("Failed to load work orders: " + err.message, "error");
+    }
 }
 
-/* ─── Kanban Board Render ────────────────────────── */
+/* ─── Name lookup helper ─────────────────────────── */
+function getUserName(userId) {
+    if (!userId) return "—";
+    var found = allUsers.find(function (u) { return u.user_id === userId; });
+    return found ? found.name : userId.slice(0, 8) + "…";
+}
+
+/* ─── Kanban Board ───────────────────────────────── */
 function renderBoard() {
-    renderColumn('woColNew',        'new');
-    renderColumn('woColApproval',   'approval');
-    renderColumn('woColInProgress', 'inprogress');
-    renderColumn('woColReview',     'review');
+    renderColumn("woColNew",        "new");
+    renderColumn("woColApproval",   "approval");
+    renderColumn("woColInProgress", "inprogress");
+    renderColumn("woColReview",     "review");
     updateColumnCounts();
 }
 
 function renderColumn(containerId, status) {
-    const container = document.getElementById(containerId);
+    var container = document.getElementById(containerId);
     if (!container) return;
 
-    const orders = TechDB.workOrders.filter(w => w.status === status && w.technician === currentUser.name);
-    container.innerHTML = orders.map(wo => `
-        <div class="task-card ${wo.id === selectedWOId ? 'selected-task' : ''}" data-wo-id="${wo.id}">
-            <div class="task-title">
-                ${wo.id}
-                <span class="priority-tag priority-${wo.priority}">${cap(wo.priority)}</span>
-            </div>
-            <div>${wo.title}</div>
-                <div style="margin-top:6px; font-size:11px; color:var(--muted); display:flex; align-items:center; gap:10px;">
-                    <span style="display:inline-flex;align-items:center;gap:4px;">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        ${wo.technician}
-                    </span>
-                    <span style="display:inline-flex;align-items:center;gap:4px;">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        Estimate: ${wo.estimate ? 'Submitted' : 'Needed'}
-                    </span>
-                </div>
-        </div>
-    `).join('') || `<div style="font-size:12px; color:var(--muted); text-align:center; padding:14px;">No work orders</div>`;
+    // Show all WOs for this status assigned to the logged-in user
+    var orders = allWorkOrders.filter(function (wo) {
+        return wo.status === status && wo.assigned_to_id === currentUser.user_id;
+    });
 
-    container.querySelectorAll('.task-card').forEach(card => {
-        card.addEventListener('click', () => selectWorkOrder(card.dataset.woId));
+    container.innerHTML = orders.map(function (wo) {
+        return (
+            '<div class="task-card ' + (wo.work_order_id === selectedWOId ? "selected-task" : "") +
+            '" data-wo-id="' + wo.work_order_id + '">' +
+                '<div class="task-title">' +
+                    'WO-' + wo.work_order_id.split('-')[1].toUpperCase() +
+                    '<span class="priority-tag priority-' + wo.priority + '">' + cap(wo.priority) + "</span>" +
+                "</div>" +
+                "<div>" + wo.title + "</div>" +
+                '<div style="margin-top:6px; font-size:11px; color:var(--muted); display:flex; align-items:center; gap:10px;">' +
+                    '<span style="display:inline-flex;align-items:center;gap:4px;">' +
+                        '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
+                        getUserName(wo.assigned_to_id) +
+                    "</span>" +
+                "</div>" +
+            "</div>"
+        );
+    }).join("") || '<div style="font-size:12px; color:var(--muted); text-align:center; padding:14px;">No work orders</div>';
+
+    container.querySelectorAll(".task-card").forEach(function (card) {
+        card.addEventListener("click", function () { selectWorkOrder(card.dataset.woId); });
     });
 }
 
 function updateColumnCounts() {
-    const counts = { new: 0, approval: 0, inprogress: 0, review: 0 };
-    TechDB.workOrders.filter(w => w.technician === currentUser.name).forEach(w => { if (counts[w.status] !== undefined) counts[w.status]++; });
-    setEl('countNew', counts.new);
-    setEl('countApproval', counts.approval);
-    setEl('countInProgress', counts.inprogress);
-    setEl('countReview', counts.review);
+    var counts = { new: 0, approval: 0, inprogress: 0, review: 0 };
+    allWorkOrders
+        .filter(function (wo) { return wo.assigned_to_id === currentUser.user_id; })
+        .forEach(function (wo) {
+            if (counts[wo.status] !== undefined) counts[wo.status]++;
+        });
+    setEl("countNew",        counts.new);
+    setEl("countApproval",   counts.approval);
+    setEl("countInProgress", counts.inprogress);
+    setEl("countReview",     counts.review);
 }
 
 /* ─── Select a Work Order ────────────────────────── */
 function selectWorkOrder(id) {
     selectedWOId = id;
-    const wo = TechDB.getWorkOrder(id);
+    var wo = allWorkOrders.find(function (w) { return w.work_order_id === id; });
     if (!wo) return;
 
     // Highlight selected card
-    document.querySelectorAll('.task-card').forEach(c => c.classList.remove('selected-task'));
-    document.querySelector(`.task-card[data-wo-id="${id}"]`)?.classList.add('selected-task');
+    document.querySelectorAll(".task-card").forEach(function (c) { c.classList.remove("selected-task"); });
+    var card = document.querySelector('.task-card[data-wo-id="' + id + '"]');
+    if (card) card.classList.add("selected-task");
 
-    // Update detail panel
-    setEl('selectedWOTitle', `Selected Work Order — ${wo.id}`);
-    setEl('selectedWOStatus', wo.status);
-    setEl('selectedWOType', cap(wo.type));
-    setEl('selectedWOPriority', cap(wo.priority));
-    setEl('selectedWOTechnician', wo.technician);
-    // Update Cost Estimate Display
-    const costStatusEl = document.getElementById('selectedWOCost');
+    // Detail panel
+    setEl("selectedWOTitle", "Selected Work Order — WO-" + wo.work_order_id.split('-')[1].toUpperCase());
+    setEl("selectedWOStatus",     cap(wo.status));
+    setEl("selectedWOType",       wo.linked_fault_id ? "Fault Repair" : "Service Request");
+    setEl("selectedWOPriority",   cap(wo.priority));
+    setEl("selectedWOTechnician", getUserName(wo.assigned_to_id));
+
+    // Cost estimate display — backend doesn't have an estimate field yet, show placeholder
+    var costStatusEl = document.getElementById("selectedWOCost");
     if (costStatusEl) {
-        if (wo.estimate) {
-            costStatusEl.innerHTML = `<span style="color:#10b981; font-weight:600;">Submitted (₹${wo.estimate.total})</span>`;
-        } else {
-            costStatusEl.innerHTML = `<span style="color:#ef4444; font-weight:600;">Required / Not Submitted</span>`;
-        }
+        costStatusEl.innerHTML = '<span style="color:#6b7280; font-weight:500;">Not yet submitted</span>';
     }
 
-    // Toggle Cost Form
-    const btnShowForm = document.getElementById('btnShowCostForm');
-    const costEstBlock = document.getElementById('costEstimateBlock');
+    // Toggle cost form button
+    var btnShowForm   = document.getElementById("btnShowCostForm");
+    var costEstBlock  = document.getElementById("costEstimateBlock");
     if (btnShowForm && costEstBlock) {
-        costEstBlock.style.display = 'none';
-        btnShowForm.onclick = () => {
-            costEstBlock.style.display = costEstBlock.style.display === 'none' ? 'block' : 'none';
+        costEstBlock.style.display = "none";
+        btnShowForm.onclick = function () {
+            costEstBlock.style.display = costEstBlock.style.display === "none" ? "block" : "none";
         };
     }
 
-    if (actionPanelTitle && actionPanelOptions) {
-        if (wo.status === 'new') {
-            actionPanelTitle.textContent = "Work Order Assignment";
-            
-            let techOptions = '<option value="">-- Return to System Admin --</option>';
-            TechDB.getRegisteredUsers().forEach(u => {
-                if ((u.role === 'Technician' || u.role === 'Technician Administrator') && u.name !== currentUser.name) {
-                    techOptions += `<option value="${u.name}">${u.name}</option>`;
-                }
-            });
+    // Action panel
+    renderActionPanel(wo);
 
-            actionPanelOptions.innerHTML = `
-              <div class="option active">
-                <b>Accept Task</b>
-                <p>Begin phase execution.</p>
-                <button class="btn btn-dark btn-full" onclick="acceptWO('${id}')">Accept Task</button>
-              </div>
-              <div class="option">
-                <b>Reject / Re-assign</b>
-                <p>Return or pass to other tech.</p>
-                <select id="reassignSelect" style="width:100%; border:1px solid #d1d5db; border-radius:4px; padding:4px; font-size:12px; margin-bottom:6px;">
-                  ${techOptions}
-                </select>
-                <button class="btn btn-light btn-full" style="color:#ef4444; border-color:#ef4444;" onclick="rejectAndReassign('${id}')">Process</button>
-              </div>
-            `;
-        } else if (wo.status === 'inprogress') {
-            actionPanelTitle.textContent = "System Operational Check";
-            actionPanelOptions.innerHTML = `
-              <div class="option active">
-                <b>Operational</b>
-                <p>Document completion.</p>
-                <textarea id="completionNotes" placeholder="Enter resolution details..." style="width:100%; border:1px solid #d1d5db; border-radius:4px; padding:6px; font-size:12px; margin-bottom:6px; resize:vertical; min-height:40px;"></textarea>
-                <button class="btn btn-dark btn-full" onclick="submitReviewWithNotes('${id}')">Submit for Review</button>
-              </div>
-              <div class="option">
-                <b>Requires Cost Estimate</b>
-                <p>Submit for financial approval.</p>
-                <button class="btn btn-light btn-full" onclick="document.getElementById('costEstimateBlock').style.display='block'">Show Cost Form</button>
-              </div>
-            `;
-        } else if (wo.status === 'approval') {
-            actionPanelTitle.textContent = "Cost Estimate Approval";
-            actionPanelOptions.innerHTML = `
-              <div class="option">
-                <p style="font-size:13px; color:var(--muted);">Waiting for Finance/Sust Analyst to approve the submitted estimate...</p>
-              </div>
-            `;
-        } else {
-            actionPanelTitle.textContent = "System Operational Check";
-            actionPanelOptions.innerHTML = `
-              <div class="option">
-                <p style="font-size:13px; color:var(--muted);">Task is under review.</p>
-                ${wo.completionNotes ? `<div style="margin-top:8px; padding:8px; border-left:2px solid #3b82f6; background:#eff6ff; font-size:12px;"><strong>Notes:</strong><br/>${wo.completionNotes}</div>` : ''}
-              </div>
-            `;
-        }
-    }
-
-    // Task execution flow
+    // Execution flow
     updateTaskFlow(wo.status);
 }
 
+function renderActionPanel(wo) {
+    if (!actionPanelTitle || !actionPanelOptions) return;
+
+    var id = wo.work_order_id;
+
+    if (wo.status === "new") {
+        actionPanelTitle.textContent = "Work Order Assignment";
+        actionPanelOptions.innerHTML =
+            '<div class="option active">' +
+                "<b>Accept Task</b>" +
+                "<p>Begin phase execution.</p>" +
+                '<button class="btn btn-dark btn-full" onclick="acceptWO(\'' + id + '\')">Accept Task</button>' +
+            "</div>" +
+            '<div class="option">' +
+                "<b>Reject Task</b>" +
+                "<p>Return work order to the queue.</p>" +
+                '<button class="btn btn-light btn-full" style="color:#ef4444; border-color:#ef4444;" onclick="rejectWO(\'' + id + '\')">Reject</button>' +
+            "</div>";
+
+    } else if (wo.status === "inprogress") {
+        actionPanelTitle.textContent = "System Operational Check";
+        actionPanelOptions.innerHTML =
+            '<div class="option active">' +
+                "<b>Operational</b>" +
+                "<p>Document completion.</p>" +
+                '<textarea id="completionNotes" placeholder="Enter resolution details..." style="width:100%; border:1px solid #d1d5db; border-radius:4px; padding:6px; font-size:12px; margin-bottom:6px; resize:vertical; min-height:40px;"></textarea>' +
+                '<button class="btn btn-dark btn-full" onclick="submitForReview(\'' + id + '\')">Submit for Review</button>' +
+            "</div>" +
+            '<div class="option">' +
+                "<b>Requires Cost Estimate</b>" +
+                "<p>Submit for financial approval.</p>" +
+                '<button class="btn btn-light btn-full" onclick="document.getElementById(\'costEstimateBlock\').style.display=\'block\'">Show Cost Form</button>' +
+            "</div>";
+
+    } else if (wo.status === "approval") {
+        actionPanelTitle.textContent = "Cost Estimate Approval";
+        actionPanelOptions.innerHTML =
+            '<div class="option">' +
+                '<p style="font-size:13px; color:var(--muted);">Waiting for Finance Analyst to approve the submitted estimate...</p>' +
+            "</div>";
+
+    } else if (wo.status === "review") {
+        actionPanelTitle.textContent = "Under Review";
+        actionPanelOptions.innerHTML =
+            '<div class="option">' +
+                '<p style="font-size:13px; color:var(--muted);">Task is under review by the Technician Administrator.</p>' +
+            "</div>";
+
+    } else {
+        actionPanelTitle.textContent = "Work Order Closed";
+        actionPanelOptions.innerHTML =
+            '<div class="option">' +
+                '<p style="font-size:13px; color:var(--muted);">This work order has been closed.</p>' +
+            "</div>";
+    }
+}
+
 function updateTaskFlow(status) {
-    const steps = ['schedule', 'inspect', 'perform', 'test'];
-    const activeIndex = status === 'new' ? 0 : status === 'inprogress' ? 1 : status === 'review' ? 2 : 3;
-    steps.forEach((s, i) => {
-        const el = document.getElementById(`step-${s}`);
-        if (el) {
-            el.classList.toggle('active', i <= activeIndex);
-        }
+    var steps       = ["schedule", "inspect", "perform", "test"];
+    var activeIndex = status === "new" ? 0 : status === "inprogress" ? 1 : status === "review" ? 2 : 3;
+    steps.forEach(function (s, i) {
+        var el = document.getElementById("step-" + s);
+        if (el) el.classList.toggle("active", i <= activeIndex);
     });
 }
 
-/* ─── Move WO to new status ──────────────────────── */
-function moveWOStatus(id, newStatus) {
-    TechDB.updateWorkOrder(id, { status: newStatus });
-    showToast(`Work order ${id} moved to ${cap(newStatus)}.`, 'success');
+/* ─── Actions (call backend, then refresh local state) ─ */
+async function patchWO(id, patch) {
+    var updated = await api.patch("/work-orders/" + id, patch);
+    // Update local cache
+    var idx = allWorkOrders.findIndex(function (w) { return w.work_order_id === id; });
+    if (idx !== -1) allWorkOrders[idx] = updated;
     renderBoard();
     selectWorkOrder(id);
+    renderArchive();
 }
-window.moveWOStatus = moveWOStatus;
 
-window.submitReviewWithNotes = function(id) {
-    const notes = document.getElementById('completionNotes')?.value;
-    TechDB.updateWorkOrder(id, { status: 'review', completionNotes: notes || '' });
-    showToast(`Work order ${id} moved to Review.`, 'success');
-    renderBoard();
-    selectWorkOrder(id);
+window.acceptWO = async function (id) {
+    try {
+        await patchWO(id, { status: "inprogress" });
+        showToast("Task accepted. Procedural tracking started.", "success");
+    } catch (err) {
+        showToast("Failed to accept task: " + err.message, "error");
+    }
 };
 
-window.acceptWO = function(id) {
-    TechDB.updateWorkOrder(id, { status: 'inprogress' });
-    showToast('Task accepted. Procedural tracking started.', 'success');
-    renderBoard();
-    selectWorkOrder(id);
+window.rejectWO = async function (id) {
+    try {
+        // Unassign (return to queue by clearing assigned_to_id, resetting to new)
+        await patchWO(id, { status: "new", assigned_to_id: null });
+        showToast("Work order returned to queue.", "info");
+    } catch (err) {
+        showToast("Failed to reject task: " + err.message, "error");
+    }
 };
 
-window.submitCostEstimate = function(id) {
-    const materials = document.getElementById('estMaterials').value;
-    const labor = document.getElementById('estLabor').value;
+window.submitForReview = async function (id) {
+    try {
+        await patchWO(id, { status: "review" });
+        showToast("Work order submitted for review.", "success");
+    } catch (err) {
+        showToast("Failed to submit for review: " + err.message, "error");
+    }
+};
+
+window.submitCostEstimate = async function (id) {
+    var materials = document.getElementById("estMaterials").value;
+    var labor     = document.getElementById("estLabor").value;
     if (!materials || !labor) {
         showToast("Please enter both materials and labor costs.", "warning");
         return;
     }
-    const total = Number(materials) + Number(labor);
-    if (total > 0) {
-        TechDB.updateWorkOrder(id, { 
-            status: 'approval', 
-            estimate: { materials: Number(materials), labor: Number(labor), total, type: 'repair' } 
-        });
-        showToast('Cost estimate submitted. Waiting for approval.', 'success');
-        document.getElementById('costEstimateBlock').style.display = 'none';
-        renderBoard();
-        selectWorkOrder(id);
+    try {
+        // Move to approval status — cost data stored client-side until invoice module is wired
+        await patchWO(id, { status: "approval" });
+        document.getElementById("costEstimateBlock").style.display = "none";
+        showToast("Cost estimate submitted. Awaiting approval.", "success");
+    } catch (err) {
+        showToast("Failed to submit estimate: " + err.message, "error");
     }
 };
 
-window.onload = () => {
-    const btn = document.getElementById('btnSubmitCostEst');
-    if (btn) btn.addEventListener('click', () => { if (selectedWOId) window.submitCostEstimate(selectedWOId); });
-};
-
-window.rejectAndReassign = function(id) {
-    const assignedTech = document.getElementById('reassignSelect').value;
-    
-    if (assignedTech) {
-        TechDB.updateWorkOrder(id, { technician: assignedTech, status: 'new' });
-        showToast('Work order reassigned directly.', 'success');
-    } else {
-        TechDB.updateWorkOrder(id, { status: 'new', technician: "", rejected: true });
-        showToast('Work order rejected to System Admin queue.', 'info');
-    }
-    
-    renderBoard();
-    selectWorkOrder(id);
-};
+document.addEventListener("DOMContentLoaded", function () {
+    var btn = document.getElementById("btnSubmitCostEst");
+    if (btn) btn.addEventListener("click", function () { if (selectedWOId) window.submitCostEstimate(selectedWOId); });
+});
 
 /* ─── Archive table ──────────────────────────────── */
 function renderArchive() {
-    const tbody = document.getElementById('archiveBody');
+    var tbody = document.getElementById("archiveBody");
     if (!tbody) return;
 
-    const closed = TechDB.workOrders.filter(w => w.status === 'closed' && w.technician === currentUser.name);
+    var closed = allWorkOrders.filter(function (wo) {
+        return wo.status === "closed" && wo.assigned_to_id === currentUser.user_id;
+    });
+
     if (!closed.length) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:20px;">No archived work orders yet.</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:20px;">No archived work orders yet.</td></tr>';
         return;
     }
-    tbody.innerHTML = closed.map(wo => `
-        <tr>
-            <td>${wo.id}</td>
-            <td>${wo.title}</td>
-            <td><span class="badge ${wo.priority}">${cap(wo.type)}</span></td>
-            <td>${wo.technician}</td>
-            <td><span class="badge closed">Closed</span></td>
-        </tr>
-    `).join('');
+
+    tbody.innerHTML = closed.map(function (wo) {
+        return (
+            "<tr>" +
+                "<td>WO-" + wo.work_order_id.split('-')[1].toUpperCase() + "</td>" +
+                "<td>" + wo.title + "</td>" +
+                "<td><span class=\"badge\">" + cap(wo.priority) + "</span></td>" +
+                "<td>" + getUserName(wo.assigned_to_id) + "</td>" +
+                "<td><span class=\"badge closed\">Closed</span></td>" +
+            "</tr>"
+        );
+    }).join("");
 }
 
 /* ─── Helpers ─────────────────────────────────────── */
-function cap(str) { if (!str) return '—'; return str.charAt(0).toUpperCase() + str.slice(1); }
-function setEl(id, val) { 
-    const el = document.getElementById(id); 
+function cap(str) {
+    if (!str) return "—";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function setEl(id, val) {
+    var el = document.getElementById(id);
     if (!el) return;
-    if (String(val).includes('<svg')) el.innerHTML = val;
+    if (String(val).includes("<svg")) el.innerHTML = val;
     else el.textContent = val;
+}
+
+function showToast(msg, type) {
+    var existing = document.getElementById("wo-toast");
+    if (existing) existing.remove();
+
+    var colors = { success: "#10b981", error: "#ef4444", info: "#3b82f6", warning: "#f59e0b" };
+    var toast = document.createElement("div");
+    toast.id = "wo-toast";
+    toast.style.cssText =
+        "position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;" +
+        "background:" + (colors[type] || "#333") + ";color:#fff;font-size:14px;" +
+        "font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:9999;" +
+        "animation:fadeIn .2s ease;";
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(function () { toast.remove(); }, 3500);
 }

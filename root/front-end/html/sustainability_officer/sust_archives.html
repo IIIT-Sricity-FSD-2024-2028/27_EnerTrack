@@ -71,6 +71,8 @@
             letter-spacing: 0.4px;
             color: #6b7280;
             margin: 0 0 6px 0;
+            line-height: 1.4;
+            padding-bottom: 2px;
         }
         .ticket-expanded-section .exp-val {
             font-size: 15px;
@@ -178,48 +180,76 @@
                 'Dismissed':  { label: 'Dismissed',         cssClass: 'status-dismissed' }
             };
 
-            window.removeFromArchive = function(type, id) {
-                const raw = localStorage.getItem('enertrack_universal_v1');
-                if (!raw) return;
-                const data = JSON.parse(raw);
-                
-                if (type === 'initiative') {
-                    if (data.sust && data.sust.initiativeArchives) {
-                        data.sust.initiativeArchives = data.sust.initiativeArchives.filter(i => i.id !== id);
-                    }
-                } else if (type === 'report') {
-                    if (data.sust && data.sust.reportArchives) {
-                        data.sust.reportArchives = data.sust.reportArchives.filter(r => r.id !== id);
-                    }
-                } else if (type === 'wastage') {
-                    if (data.workflow && data.workflow.wastageReports) {
-                        const idx = data.workflow.wastageReports.findIndex(r => r.id === id);
-                        if (idx !== -1) {
-                            data.workflow.wastageReports[idx].soArchived = false;
-                            data.workflow.wastageReports[idx].archived = false;
+            window.removeFromArchive = async function(type, id) {
+                // Try backend delete first
+                if (window.api) {
+                    try {
+                        if (type === 'report') {
+                            await window.api.delete(`/sustainability-reports/${id}`);
+                        } else if (type === 'wastage') {
+                            await window.api.patch(`/wastage-reports/${id}`, { status: 'dismissed' });
                         }
+                    } catch(e) {
+                        console.warn('[Archive] Backend deletion failed or not found', e);
                     }
                 }
-                
-                localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
+
+                // Fallback local storage update
+                const raw = localStorage.getItem('enertrack_universal_v1');
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    
+                    if (type === 'initiative') {
+                        if (data.sust && data.sust.initiativeArchives) {
+                            data.sust.initiativeArchives = data.sust.initiativeArchives.filter(i => i.id !== id);
+                        }
+                    } else if (type === 'report') {
+                        if (data.sust && data.sust.reportArchives) {
+                            data.sust.reportArchives = data.sust.reportArchives.filter(r => r.id !== id);
+                        }
+                    } else if (type === 'wastage') {
+                        if (data.workflow && data.workflow.wastageReports) {
+                            const idx = data.workflow.wastageReports.findIndex(r => r.id === id);
+                            if (idx !== -1) {
+                                data.workflow.wastageReports[idx].soArchived = false;
+                                data.workflow.wastageReports[idx].archived = false;
+                            }
+                        }
+                    }
+                    
+                    localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
+                }
                 window.renderArchives();
             };
 
-            function render() {
+            async function render() {
                 const raw = localStorage.getItem('enertrack_universal_v1');
                 const data = raw ? JSON.parse(raw) : null;
-                const reports = data?.workflow?.wastageReports || [];
-                const archived = reports
-                    .filter(r => r.soArchived || r.archived)
-                    .sort((a, b) => new Date(b.soArchivedAt || b.archivedAt || b.timestamp) - new Date(a.soArchivedAt || a.archivedAt || a.timestamp));
+
+                let archived = [];
+                try {
+                    const wRes = window.api ? await window.api.get('/wastage-reports') : [];
+                    let wData = Array.isArray(wRes) ? wRes : (wRes?.data || []);
+                    archived = wData.filter(r => r.status === 'Finalized' || r.status === 'Dismissed' || r.archived);
+                } catch(e) {}
+                if (!archived.length) {
+                    archived = (data?.workflow?.wastageReports || []).filter(r => r.soArchived || r.archived);
+                }
+                archived.sort((a, b) => new Date(b.soArchivedAt || b.archivedAt || b.timestamp || b.created_at || 0) - new Date(a.soArchivedAt || a.archivedAt || a.timestamp || a.created_at || 0));
                 
                 const initiativeArchives = (data?.sust?.initiativeArchives || [])
                     .slice()
                     .sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
 
-                const reportArchives = (data?.sust?.reportArchives || [])
-                    .slice()
-                    .sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
+                let reportArchives = [];
+                try {
+                    const srRes = window.api ? await window.api.get('/sustainability-reports') : [];
+                    reportArchives = Array.isArray(srRes) ? srRes : (srRes?.data || []);
+                } catch(e) {}
+                if (!reportArchives.length) {
+                    reportArchives = data?.sust?.reportArchives || [];
+                }
+                reportArchives.sort((a, b) => new Date(b.generated_at || b.archivedAt || 0) - new Date(a.generated_at || a.archivedAt || 0));
 
                 document.getElementById('initArchiveCount').textContent = initiativeArchives.length;
                 document.getElementById('reportArchiveCount').textContent = reportArchives.length;
@@ -256,7 +286,9 @@
                 if (reportArchives.length === 0) {
                     reportContainer.innerHTML = '<div class="empty-state"><p>No sustainability report archives yet.</p></div>';
                 } else {
-                    reportContainer.innerHTML = reportArchives.map(r => `
+                    reportContainer.innerHTML = reportArchives.map(r => {
+                        const m = r.metrics || {};
+                        return `
                         <div class="ticket-card">
                             <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;">
                                 <div style="flex:1;">
@@ -265,21 +297,21 @@
                                         <span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:999px;font-size:11px;">Sustainability Report</span>
                                     </div>
                                     <p style="font-size:13px;color:#4b5563;margin:0 0 8px 0;">Period: ${r.period}</p>
-                                    <p style="font-size:11px;color:#9ca3af;margin:0;">Archived ${new Date(r.archivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                    <p style="font-size:11px;color:#9ca3af;margin:0;">Archived ${new Date(r.generated_at || r.archivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                                 </div>
                                 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
                                     <span class="ticket-status status-finalized">Archived</span>
-                                    <button onclick="removeFromArchive('report', '${r.id}')" style="background:none;border:1px solid #ef4444;color:#ef4444;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove from Archive</button>
+                                    <button onclick="removeFromArchive('report', '${r.report_id || r.id}')" style="background:none;border:1px solid #ef4444;color:#ef4444;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove from Archive</button>
                                 </div>
                             </div>
                             <div class="ticket-expanded-section" style="margin-top:12px;">
-                                <div class="exp-box"><h5>Energy Reduction</h5><div class="exp-val" style="color:#059669;">${r.energyReduction}</div></div>
-                                <div class="exp-box"><h5>Waste Diverted</h5><div class="exp-val" style="color:#059669;">${r.wasteDiverted}</div></div>
-                                <div class="exp-box"><h5>Carbon Offset</h5><div class="exp-val" style="color:#059669;">${r.carbonOffset}</div></div>
-                                <div class="exp-box"><h5>Water Saved</h5><div class="exp-val" style="color:#059669;">${r.waterSaved}</div></div>
+                                <div class="exp-box"><h5>Energy Reduction</h5><div class="exp-val" style="color:#059669;">${m.energyReduction || r.energyReduction || '—'}</div></div>
+                                <div class="exp-box"><h5>Waste Diverted</h5><div class="exp-val" style="color:#059669;">${m.wasteDiverted || r.wasteDiverted || '—'}</div></div>
+                                <div class="exp-box"><h5>Carbon Offset</h5><div class="exp-val" style="color:#059669;">${m.carbonOffset || r.carbonOffset || '—'}</div></div>
+                                <div class="exp-box"><h5>Water Saved</h5><div class="exp-val" style="color:#059669;">${m.waterSaved || r.waterSaved || '—'}</div></div>
                             </div>
                         </div>
-                    `).join('');
+                    `}).join('');
                 }
 
                 const buildReportCards = (items, emptyText) => {
@@ -346,6 +378,7 @@
             window.addEventListener('storage', e => { if (e.key === 'enertrack_universal_v1') render(); });
         });
     </script>
+    <script src="../../js/shared/api.js"></script>
     <script src="../../js/shared/dashboardProfileMenu.js"></script>
 </body>
 </html>

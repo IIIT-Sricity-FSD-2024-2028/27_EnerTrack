@@ -2,17 +2,20 @@
  * workOrdersPage.js
  * Handles interactivity for the Maintenance Work Orders page.
  * CRUD: create new WO, update type/priority/status, close WO, kanban board render.
+ * Backend-wired: /api/users, /api/service-requests, /api/work-orders
  */
 import TechDB from './data/mockData.js';
 import { showToast, openModal, generateId } from './utils/utils.js';
 
 let selectedWOId = null;
 let selectedType = 'scheduled';
+let backendTechs = [];   // cached from /api/users
+let backendSRs   = [];   // cached from /api/service-requests
 
-document.addEventListener("DOMContentLoaded", () => {
-    populateTechnicianDropdown();
+document.addEventListener("DOMContentLoaded", async () => {
+    await populateTechnicianDropdown();
     try {
-        initWorkOrders();
+        await initWorkOrders();
         console.log("TechWorkOrders: Initialized.");
     } catch (err) {
         console.error("TechWorkOrders: Init error:", err);
@@ -20,38 +23,66 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-function populateTechnicianDropdown() {
+async function populateTechnicianDropdown() {
     const select = document.getElementById('inputTechnician');
     const reassignSelect = document.getElementById('reassignTechSelect');
 
-    const techs = TechDB.getRegisteredUsers().filter(u =>
+    // Try backend first
+    try {
+        if (window.api) {
+            const users = await window.api.get('/users');
+            if (Array.isArray(users)) {
+                backendTechs = users.filter(u =>
+                    u.role === 'Technician' || u.role === 'Technician Administrator'
+                );
+                const opts = `<option value="">— Select —</option>` +
+                    backendTechs.map(t => `<option value="${t.user_id}" data-name="${t.name}">${t.name}</option>`).join('');
+                if (select) select.innerHTML = opts;
+                if (reassignSelect) reassignSelect.innerHTML =
+                    `<option value="">-- Select Alternate Tech --</option>` +
+                    backendTechs.map(t => `<option value="${t.user_id}" data-name="${t.name}">${t.name}</option>`).join('');
+                console.log('[TechAdmin] Loaded', backendTechs.length, 'technicians from backend');
+                return;
+            }
+        }
+    } catch (err) {
+        console.warn('[TechAdmin] Backend tech lookup failed, using localStorage:', err.message);
+    }
+
+    // Fallback: localStorage registeredUsers
+    const KNOWN_TECHNICIANS = [
+        { name: 'Teja', email: 'teja@gmail.com', phone: '9876543214', password: 'Teja@123', role: 'Technician' }
+    ];
+    let registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    let dirty = false;
+    KNOWN_TECHNICIANS.forEach(kt => {
+        if (!registeredUsers.some(u => u.email.toLowerCase() === kt.email.toLowerCase())) {
+            registeredUsers.push(kt);
+            dirty = true;
+        }
+    });
+    if (dirty) localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+
+    const techs = registeredUsers.filter(u =>
         u.role === 'Technician' || u.role === 'Technician Administrator'
     );
-
     const optionsHTML = `<option value="">— Select —</option>` +
         techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
-
     if (select) select.innerHTML = optionsHTML;
-
-    // Also populate the reassign dropdown dynamically
-    if (reassignSelect) {
-        reassignSelect.innerHTML = `<option value="">-- Select Alternate Tech --</option>` +
-            techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
-    }
+    if (reassignSelect) reassignSelect.innerHTML =
+        `<option value="">-- Select Alternate Tech --</option>` +
+        techs.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
 }
 
 
 
-function initWorkOrders() {
+async function initWorkOrders() {
     renderBoard();
     renderArchive();
-    renderServiceRequests();
+    await renderServiceRequests();
     wireTypeSelector();
     wireNewWOForm();
     wireInitiateBtn();
-
-    // Unassigned tasks popup removed by User request
-
 
     // Select first WO by default
     const first = TechDB.workOrders.find(w => w.status !== 'closed');
@@ -304,19 +335,62 @@ function wireNewWOForm() {
     const form = document.getElementById('newWOForm');
     if (!form) return;
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const asset = document.getElementById('inputAsset')?.value.trim();
-        const window_ = document.getElementById('inputWindow')?.value.trim();
-        const tech = document.getElementById('inputTechnician')?.value;
+        const asset    = document.getElementById('inputAsset')?.value.trim();
+        const tech     = document.getElementById('inputTechnician')?.value;  // user_id or name
         const priority = document.getElementById('inputPriority')?.value;
-        const estReq = document.getElementById('inputEstimateReq')?.value === 'yes';
+        const estReq   = document.getElementById('inputEstimateReq')?.value === 'yes';
 
         if (!asset || !tech) {
             showToast('Please fill in asset and assign a technician.', 'warning');
             return;
         }
 
+        const linkedSrId = form.dataset.linkedSrId || null;
+
+        // Try posting to backend
+        try {
+            if (window.api) {
+                // Resolve tech name from backendTechs cache if using UUIDs
+                const techObj = backendTechs.find(t => t.user_id === tech);
+                const techName = techObj ? techObj.name : tech;
+
+                const payload = {
+                    assigned_technician_id: techObj ? tech : null,
+                    campus_id: 'cccc0000-0001-4000-8000-000000000000',
+                    service_request_id: linkedSrId || null,
+                    title: `${cap(selectedType)} maintenance: ${asset}`,
+                    description: asset,
+                    priority: priority || 'medium',
+                    status: 'open',
+                    type: selectedType,
+                };
+
+                const woData = await window.api.post('/work-orders', payload);
+                if (woData && woData.work_order_id) {
+                    console.log('[TechAdmin] Work order created in backend:', woData.work_order_id);
+                    showToast(`Work order created (backend).`, 'success');
+
+                    // Dispatch linked SR in backend
+                    if (linkedSrId) {
+                        await window.api.patch(`/service-requests/${linkedSrId}`, { status: 'in_progress' });
+                        form.removeAttribute('data-linked-sr-id');
+                    }
+
+                    form.reset();
+                    await renderServiceRequests();
+                    renderBoard();
+                    return;
+                } else {
+                    console.warn('[TechAdmin] Backend WO creation failed:', woData);
+                }
+            }
+        } catch (err) {
+            console.warn('[TechAdmin] Backend unavailable, creating WO locally:', err.message);
+        }
+
+        // Fallback: local TechDB
         const newWO = {
             id: generateId('WO'),
             title: `${cap(selectedType)} maintenance: ${asset}`,
@@ -328,20 +402,17 @@ function wireNewWOForm() {
             linkedFault: null,
         };
 
-        const linkedSrId = form.dataset.linkedSrId;
         if (linkedSrId) {
             const sr = TechDB.serviceRequests.find(s => s.id === linkedSrId);
-            if (sr) {
-                sr.status = 'Dispatched';
-            }
+            if (sr) sr.status = 'Dispatched';
             newWO.sourceRequest = linkedSrId;
             form.removeAttribute('data-linked-sr-id');
         }
 
         TechDB.addWorkOrder(newWO);
-        showToast(`Work order ${newWO.id} created successfully.`, 'success');
+        showToast(`Work order ${newWO.id} created.`, 'success');
         form.reset();
-        renderServiceRequests();
+        await renderServiceRequests();
         renderBoard();
     });
 }
@@ -384,12 +455,32 @@ function setEl(id, val) {
 }
 
 /* ─── Service Requests Triage ──────────────────────── */
-function renderServiceRequests() {
+async function renderServiceRequests() {
     const container = document.getElementById("serviceRequestsContainer");
     if (!container) return;
 
-    // Combine both initially reported, and ones previously forwarded
-    const requests = TechDB.serviceRequests.filter(sr => sr.status === 'Reported' || sr.status === 'Pending Category');
+    let requests = [];
+
+    // Try backend first
+    try {
+        if (window.api) {
+            const srData = await window.api.get('/service-requests');
+            if (Array.isArray(srData)) {
+                backendSRs = srData;
+                requests = backendSRs.filter(sr => sr.status === 'open' || sr.status === 'pending');
+                console.log('[TechAdmin] Loaded', requests.length, 'pending SRs from backend');
+            }
+        }
+    } catch (err) {
+        console.warn('[TechAdmin] SR backend fetch failed, using TechDB:', err.message);
+    }
+
+    // Fallback to TechDB
+    if (!requests.length) {
+        requests = TechDB.serviceRequests.filter(sr =>
+            sr.status === 'Reported' || sr.status === 'Pending Category'
+        );
+    }
 
     const countBadge = document.getElementById("pendingRequestsCount");
     if (countBadge) countBadge.textContent = `${requests.length} Pending`;
@@ -401,16 +492,22 @@ function renderServiceRequests() {
         container.parentElement.style.display = 'block';
     }
 
-    container.innerHTML = requests.map(sr => `
+    // Render — handle both backend (service_request_id) and legacy (id) shapes
+    container.innerHTML = requests.map(sr => {
+        const srId     = sr.service_request_id || sr.id;
+        const desc     = sr.description || sr.location || '—';
+        const reporter = sr.requested_by_id ? `ID: ${sr.requested_by_id.slice(0,8)}…` : (sr.reporterName || 'Campus User');
+        const date     = sr.created_at || sr.timestamp || new Date().toISOString();
+        const priority = sr.priority || sr.severity || 'medium';
+        return `
       <div class="alert-item card mb-12" style="border-left: 4px solid #f59e0b; padding: 12px; display: flex; align-items: center; justify-content: space-between;">
         <div style="flex:1">
-          <h4 style="margin:0 0 4px 0;font-size:14px;color:var(--text-main);">${sr.location}</h4>
-          <p style="margin:0;font-size:13px;color:var(--text-muted);">${sr.description}</p>
-          <div style="font-size:11px;color:#888;margin-top:4px;">Reported by ${sr.reporterName} • ${new Date(sr.timestamp).toLocaleDateString()}</div>
+          <h4 style="margin:0 0 4px 0;font-size:14px;color:var(--text-main);">${desc.slice(0, 80)}${desc.length > 80 ? '…' : ''}</h4>
+          <div style="font-size:11px;color:#888;margin-top:4px;">Reported by ${reporter} • ${new Date(date).toLocaleDateString()} • Priority: <strong>${priority}</strong></div>
         </div>
         <div>
-          <button class="btn btn-dark" style="padding: 6px 12px; font-size: 12px;" onclick="triageRequest('${sr.id}')">Create Work Order -></button>
+          <button class="btn btn-dark" style="padding: 6px 12px; font-size: 12px;" onclick="triageRequest('${srId}')">Create Work Order -></button>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
 }

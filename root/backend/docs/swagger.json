@@ -1,0 +1,5787 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/users/login": {
+      "post": {
+        "operationId": "UsersController_loginUser",
+        "summary": "Login",
+        "description": "Authenticates a user by email and password. No x-role header required. Returns user info (without password) on success. Store the returned object in localStorage as the active session.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful. Returns user record (without password)."
+          },
+          "401": {
+            "description": "Invalid email or password."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/register": {
+      "post": {
+        "operationId": "UsersController_register",
+        "summary": "Public User Registration",
+        "description": "Registers a new user account without requiring any authorization headers. Intended for the public sign-up page.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users": {
+      "post": {
+        "operationId": "UsersController_create",
+        "summary": "Create User",
+        "description": "Creates a new user account in the system. Only the System Administrator can register new users by providing name, email, password, role, and optional phone/specialization fields. Send a POST request with a CreateUserDto JSON body containing all required user fields.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_findAll",
+        "summary": "List All Users",
+        "description": "Retrieves a list of all registered user accounts. Internal staff can view the complete user directory to resolve names for assignments.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician Administrator | Technician | Sustainability Officer",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all user records returned."
+          },
+          "403": {
+            "description": "Forbidden – caller lacks required role."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne",
+        "summary": "Get User by ID",
+        "description": "Retrieves a single user account by its UUID. Internal staff can look up individual user profiles. Pass the user_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician Administrator | Technician | Sustainability Officer",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User record returned."
+          },
+          "403": {
+            "description": "Forbidden – caller lacks required role."
+          },
+          "404": {
+            "description": "User with the given ID not found."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      },
+      "put": {
+        "operationId": "UsersController_put",
+        "summary": "Replace User",
+        "description": "Completely replaces an existing user record with new data. Only the System Administrator can perform full user replacements. Send a PUT request with the user_id in the URL and a complete PutUserDto JSON body containing all fields.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User record replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "User with the given ID not found."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_update",
+        "summary": "Update User",
+        "description": "Partially updates specific fields of an existing user record (e.g., role, specialization, contact info). Only the System Administrator can modify user details. Send a PATCH request with the user_id in the URL and an UpdateUserDto JSON body containing only the fields to change.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User record updated successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "User with the given ID not found."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_remove",
+        "summary": "Delete User",
+        "description": "Permanently removes a user account from the system. Only the System Administrator can delete user records. Pass the user_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User record deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "User with the given ID not found."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/{id}/notifications": {
+      "get": {
+        "operationId": "UsersController_getNotifications",
+        "summary": "Get User Notifications",
+        "description": "Retrieves all notifications belonging to a specific user. Any authenticated user can fetch notifications to view alerts, wastage report updates, and service request status changes. Pass the user_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of notification records for the user returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/notifications": {
+      "post": {
+        "operationId": "NotificationsController_create",
+        "summary": "Create Notification",
+        "description": "Creates a new notification record linked to a target entity (wastage report, alert, or service request). Only the System Administrator can manually create notifications. Send a POST request with a CreateNotificationDto JSON body containing user_id, target_type, target_id, and message.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Notification created successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "get": {
+        "operationId": "NotificationsController_findAll",
+        "summary": "List All Notifications",
+        "description": "Retrieves all notification records across the system. Any authenticated user can access this endpoint to view all notifications. Send a GET request with no additional parameters.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all notification records returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/{id}": {
+      "get": {
+        "operationId": "NotificationsController_findOne",
+        "summary": "Get Notification by ID",
+        "description": "Retrieves a single notification record by its UUID. Any authenticated user can look up a specific notification. Pass the notification_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Notification with the given ID not found."
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "put": {
+        "operationId": "NotificationsController_put",
+        "summary": "Replace Notification",
+        "description": "Completely replaces an existing notification record with new data. Only the System Administrator can perform full notification replacements. Send a PUT request with the notification_id in the URL and a complete PutNotificationDto JSON body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notification record replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Notification with the given ID not found."
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "patch": {
+        "operationId": "NotificationsController_update",
+        "summary": "Update Notification",
+        "description": "Partially updates specific fields of an existing notification (e.g., message text or target references). Any authenticated user can update their own notification. Send a PATCH request with the notification_id in the URL and an UpdateNotificationDto JSON body containing only the fields to change.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notification record updated successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Notification with the given ID not found."
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "delete": {
+        "operationId": "NotificationsController_remove",
+        "summary": "Delete Notification",
+        "description": "Permanently removes a notification record from the system. Only the System Administrator can delete notifications. Pass the notification_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification record deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Notification with the given ID not found."
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/{id}/mark-read": {
+      "patch": {
+        "operationId": "NotificationsController_markRead",
+        "summary": "Mark Notification as Read",
+        "description": "Marks a specific notification as read by setting its is_read flag to true. Any authenticated user can mark their own notifications as read. Pass the notification_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as read successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/campus": {
+      "post": {
+        "operationId": "CampusController_create",
+        "summary": "Create Campus",
+        "description": "Registers a new campus location in the system with its name, location, and total_budget. Only the System Administrator can create campus records. Send a POST request with a CreateCampusDto JSON body.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCampusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Campus created successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      },
+      "get": {
+        "operationId": "CampusController_findAll",
+        "summary": "List All Campuses",
+        "description": "Retrieves all campus records in the system. Any authenticated user can view the list of campuses and their budgets. Send a GET request with no additional parameters.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all campus records returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      }
+    },
+    "/api/campus/{id}": {
+      "get": {
+        "operationId": "CampusController_findOne",
+        "summary": "Get Campus by ID",
+        "description": "Retrieves a single campus record by its UUID including name, location, and total_budget. Any authenticated user can look up a specific campus. Pass the campus_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campus record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Campus with the given ID not found."
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      },
+      "put": {
+        "operationId": "CampusController_put",
+        "summary": "Replace Campus",
+        "description": "Completely replaces an existing campus record with new data. Only the System Administrator can perform full campus replacements. Send a PUT request with the campus_id in the URL and a complete PutCampusDto JSON body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutCampusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Campus record replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Campus with the given ID not found."
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      },
+      "patch": {
+        "operationId": "CampusController_update",
+        "summary": "Update Campus",
+        "description": "Partially updates specific fields of an existing campus record (e.g., total_budget or location). Only the System Administrator can modify campus details. Send a PATCH request with the campus_id in the URL and an UpdateCampusDto JSON body containing only the fields to change.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCampusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Campus record updated successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Campus with the given ID not found."
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      },
+      "delete": {
+        "operationId": "CampusController_remove",
+        "summary": "Delete Campus",
+        "description": "Permanently removes a campus record and its associated hierarchy from the system. Only the System Administrator can delete campus records. Pass the campus_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campus record deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Campus with the given ID not found."
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      }
+    },
+    "/api/campus/{id}/buildings": {
+      "get": {
+        "operationId": "CampusController_getBuildings",
+        "summary": "Get Buildings for Campus",
+        "description": "Retrieves all building records that belong to a specific campus (1:N relationship). Any authenticated user can view buildings within a campus. Pass the campus_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of building records for the campus returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "campus"
+        ]
+      }
+    },
+    "/api/buildings": {
+      "post": {
+        "operationId": "BuildingsController_create",
+        "summary": "Create Building",
+        "description": "Creates a new building record under a campus. Only the System Administrator can add buildings by providing campus_id, name, and optional budget. Send a POST request with a CreateBuildingDto JSON body.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBuildingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Building created successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      },
+      "get": {
+        "operationId": "BuildingsController_findAll",
+        "summary": "List All Buildings",
+        "description": "Retrieves all building records in the system. Any authenticated user can view the complete list of buildings across all campuses. Send a GET request with no additional parameters.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all building records returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      }
+    },
+    "/api/buildings/{id}": {
+      "get": {
+        "operationId": "BuildingsController_findOne",
+        "summary": "Get Building by ID",
+        "description": "Retrieves a single building record by its UUID including campus_id, name, and budget. Any authenticated user can look up a specific building. Pass the building_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Building record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Building with the given ID not found."
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      },
+      "put": {
+        "operationId": "BuildingsController_put",
+        "summary": "Replace Building",
+        "description": "Completely replaces an existing building record with new data. Only the System Administrator can perform full building replacements. Send a PUT request with the building_id in the URL and a complete PutBuildingDto JSON body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutBuildingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Building record replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Building with the given ID not found."
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      },
+      "patch": {
+        "operationId": "BuildingsController_update",
+        "summary": "Update Building",
+        "description": "Partially updates specific fields of an existing building (e.g., name or budget). Only the System Administrator can modify building details. Send a PATCH request with the building_id in the URL and an UpdateBuildingDto JSON body containing only the fields to change.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBuildingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Building record updated successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Building with the given ID not found."
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      },
+      "delete": {
+        "operationId": "BuildingsController_remove",
+        "summary": "Delete Building",
+        "description": "Permanently removes a building record from the system. Only the System Administrator can delete buildings. Pass the building_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Building record deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Building with the given ID not found."
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      }
+    },
+    "/api/buildings/{id}/departments": {
+      "get": {
+        "operationId": "BuildingsController_getDepartments",
+        "summary": "Get Departments for Building",
+        "description": "Retrieves all department records that belong to a specific building (1:N relationship). Any authenticated user can view departments within a building. Pass the building_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of department records for the building returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      }
+    },
+    "/api/buildings/{id}/meters": {
+      "get": {
+        "operationId": "BuildingsController_getMeters",
+        "summary": "Get Meters for Building",
+        "description": "Retrieves all meter/IoT sensor records installed in a specific building (1:N relationship). Any authenticated user can view meters for a building. Pass the building_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of meter records for the building returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "buildings"
+        ]
+      }
+    },
+    "/api/departments": {
+      "post": {
+        "operationId": "DepartmentsController_create",
+        "summary": "Create Department",
+        "description": "Creates a new department within a building. Only the System Administrator can add departments by providing building_id, name, and optional budget. Send a POST request with a CreateDepartmentDto JSON body.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Department created successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      },
+      "get": {
+        "operationId": "DepartmentsController_findAll",
+        "summary": "List All Departments",
+        "description": "Retrieves all department records across all buildings. Any authenticated user can view the complete department directory. Send a GET request with no additional parameters.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all department records returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      }
+    },
+    "/api/departments/{id}": {
+      "get": {
+        "operationId": "DepartmentsController_findOne",
+        "summary": "Get Department by ID",
+        "description": "Retrieves a single department record by its UUID including building_id, name, and budget. Any authenticated user can look up a specific department. Pass the department_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Department record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Department with the given ID not found."
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      },
+      "put": {
+        "operationId": "DepartmentsController_put",
+        "summary": "Replace Department",
+        "description": "Completely replaces an existing department record with new data. Only the System Administrator can perform full department replacements. Send a PUT request with the department_id in the URL and a complete PutDepartmentDto JSON body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Department record replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Department with the given ID not found."
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      },
+      "patch": {
+        "operationId": "DepartmentsController_update",
+        "summary": "Update Department",
+        "description": "Partially updates specific fields of an existing department (e.g., name or budget). Only the System Administrator can modify department details. Send a PATCH request with the department_id in the URL and an UpdateDepartmentDto JSON body containing only the fields to change.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Department record updated successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Department with the given ID not found."
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      },
+      "delete": {
+        "operationId": "DepartmentsController_remove",
+        "summary": "Delete Department",
+        "description": "Permanently removes a department record from the system. Only the System Administrator can delete departments. Pass the department_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Department record deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Department with the given ID not found."
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      }
+    },
+    "/api/departments/{id}/invoices": {
+      "get": {
+        "operationId": "DepartmentsController_getInvoices",
+        "summary": "Get Invoices for Department",
+        "description": "Retrieves all invoice records linked to a specific department (1:N relationship). The System Administrator and Financial Analyst can view invoices for a department. Pass the department_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of invoice records for the department returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "departments"
+        ]
+      }
+    },
+    "/api/meters": {
+      "post": {
+        "operationId": "MetersController_create",
+        "summary": "Create Meter",
+        "description": "Registers a new IoT meter/sensor in a building. Only the System Administrator can create meters by providing building_id, meter_code, meter_type (electricity, gas, water, emissions, food), zone, and status. Send a POST request with a CreateMeterDto JSON body.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Meter created successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      },
+      "get": {
+        "operationId": "MetersController_findAll",
+        "summary": "List All Meters",
+        "description": "Retrieves all meter/sensor records across all buildings. The System Administrator, Technician, and Sustainability Officer can view the full inventory of meters. Send a GET request with no additional parameters.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all meter records returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      }
+    },
+    "/api/meters/{id}": {
+      "get": {
+        "operationId": "MetersController_findOne",
+        "summary": "Get Meter by ID",
+        "description": "Retrieves a single meter record by its UUID including building_id, meter_code, meter_type, zone, and status. The System Administrator, Technician, and Sustainability Officer can look up a specific meter. Pass the meter_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Meter record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Meter with the given ID not found."
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      },
+      "put": {
+        "operationId": "MetersController_put",
+        "summary": "Replace Meter",
+        "description": "Completely replaces an existing meter record with new data. Only the System Administrator can perform full meter replacements. Send a PUT request with the meter_id in the URL and a complete PutMeterDto JSON body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutMeterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meter record replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Meter with the given ID not found."
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      },
+      "patch": {
+        "operationId": "MetersController_update",
+        "summary": "Update Meter",
+        "description": "Partially updates specific fields of an existing meter (e.g., status from active to faulty, or zone reassignment). Only the System Administrator can modify meter configuration. Send a PATCH request with the meter_id in the URL and an UpdateMeterDto JSON body containing only the fields to change.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meter record updated successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Meter with the given ID not found."
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      },
+      "delete": {
+        "operationId": "MetersController_remove",
+        "summary": "Delete Meter",
+        "description": "Permanently removes a meter record from the system. Only the System Administrator can decommission and delete meters. Pass the meter_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Meter record deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Meter with the given ID not found."
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      }
+    },
+    "/api/meters/{id}/readings": {
+      "get": {
+        "operationId": "MetersController_getReadings",
+        "summary": "Get Readings for Meter",
+        "description": "Retrieves all meter reading records captured by a specific meter (1:N relationship). The System Administrator, Technician, and Sustainability Officer can view historical readings. Pass the meter_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of meter reading records for the meter returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      }
+    },
+    "/api/meters/{id}/alerts": {
+      "get": {
+        "operationId": "MetersController_getAlerts",
+        "summary": "Get Alerts for Meter",
+        "description": "Retrieves all alert records triggered by a specific meter (1:N relationship). The System Administrator and Technician can view alerts associated with a meter. Pass the meter_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of alert records for the meter returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "meters"
+        ]
+      }
+    },
+    "/api/meter-readings": {
+      "post": {
+        "operationId": "MeterReadingsController_create",
+        "summary": "Create Meter Reading",
+        "description": "Records a new meter reading from an IoT sensor. The System Administrator and Technician can submit readings by providing meter_id, value, and unit. Send a POST request with a CreateMeterReadingDto JSON body.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterReadingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Meter reading created successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator or Technician."
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      },
+      "get": {
+        "operationId": "MeterReadingsController_findAll",
+        "summary": "List All Meter Readings",
+        "description": "Retrieves all meter reading records across the system. The System Administrator, Technician, Financial Analyst, and Sustainability Officer can view the full history of sensor readings. Send a GET request with no additional parameters.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all meter reading records returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      }
+    },
+    "/api/meter-readings/{id}": {
+      "get": {
+        "operationId": "MeterReadingsController_findOne",
+        "summary": "Get Meter Reading by ID",
+        "description": "Retrieves a single meter reading record by its UUID including meter_id, value, unit, and timestamp. The System Administrator, Technician, Financial Analyst, and Sustainability Officer can look up a specific reading. Pass the reading_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Meter reading record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Meter reading with the given ID not found."
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      },
+      "put": {
+        "operationId": "MeterReadingsController_put",
+        "summary": "Replace Meter Reading",
+        "description": "Completely replaces an existing meter reading record with new data. Only the System Administrator can perform full reading replacements. Send a PUT request with the reading_id in the URL and a complete PutMeterReadingDto JSON body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutMeterReadingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meter reading record replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Meter reading with the given ID not found."
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      },
+      "patch": {
+        "operationId": "MeterReadingsController_update",
+        "summary": "Update Meter Reading",
+        "description": "Partially updates specific fields of an existing meter reading (e.g., correcting a value or unit). Only the System Administrator can modify readings. Send a PATCH request with the reading_id in the URL and an UpdateMeterReadingDto JSON body containing only the fields to change.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterReadingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meter reading record updated successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Meter reading with the given ID not found."
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      },
+      "delete": {
+        "operationId": "MeterReadingsController_remove",
+        "summary": "Delete Meter Reading",
+        "description": "Permanently removes a meter reading record from the system. Only the System Administrator can delete readings. Pass the reading_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Meter reading record deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Meter reading with the given ID not found."
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      }
+    },
+    "/api/wastage-reports": {
+      "post": {
+        "operationId": "WastageReportsController_create",
+        "summary": "Create Wastage Report",
+        "description": "Submits a new wastage report. Any authenticated user (including Campus Visitor) can report wastage. Send a POST with a CreateWastageReportDto JSON body.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWastageReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Wastage report created successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      },
+      "get": {
+        "operationId": "WastageReportsController_findAll",
+        "summary": "List All Wastage Reports",
+        "description": "Retrieves all wastage reports. Only the System Administrator and Sustainability Officer can view them.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of wastage report records returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
+    "/api/wastage-reports/{id}": {
+      "get": {
+        "operationId": "WastageReportsController_findOne",
+        "summary": "Get Wastage Report by ID",
+        "description": "Retrieves a single wastage report by UUID. Only the System Administrator and Sustainability Officer can look up reports.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wastage report record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      },
+      "put": {
+        "operationId": "WastageReportsController_put",
+        "summary": "Replace Wastage Report",
+        "description": "Completely replaces an existing wastage report. Only the System Administrator can perform full replacements.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutWastageReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      },
+      "patch": {
+        "operationId": "WastageReportsController_update",
+        "summary": "Update Wastage Report",
+        "description": "Partially updates a wastage report (e.g., status). The Sustainability Officer and System Administrator can update reports.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWastageReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      },
+      "delete": {
+        "operationId": "WastageReportsController_remove",
+        "summary": "Delete Wastage Report",
+        "description": "Permanently removes a wastage report. Only the System Administrator can delete.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
+    "/api/alerts": {
+      "post": {
+        "operationId": "AlertsController_create",
+        "summary": "Create Alert",
+        "description": "Creates a new alert triggered by a meter anomaly. The System Administrator, Technician Administrator and Technician can raise alerts.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAlertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Alert created successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      },
+      "get": {
+        "operationId": "AlertsController_findAll",
+        "summary": "List All Alerts",
+        "description": "Retrieves all alert records. The System Administrator, Technician Administrator and Technician can view alerts and their statuses.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of alert records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/alerts/{id}": {
+      "get": {
+        "operationId": "AlertsController_findOne",
+        "summary": "Get Alert by ID",
+        "description": "Retrieves a single alert by UUID including messages chat thread. The System Administrator, Technician Administrator and Technician can look up alerts.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Alert record returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      },
+      "put": {
+        "operationId": "AlertsController_put",
+        "summary": "Replace Alert",
+        "description": "Completely replaces an existing alert record. Only the System Administrator and Technician Administrator can perform full replacements.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutAlertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      },
+      "patch": {
+        "operationId": "AlertsController_update",
+        "summary": "Update Alert",
+        "description": "Partially updates an alert (e.g., status from open to acknowledged/resolved). System Administrator, Technician Administrator and Technician can update.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAlertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      },
+      "delete": {
+        "operationId": "AlertsController_remove",
+        "summary": "Delete Alert",
+        "description": "Permanently removes an alert record. Only the System Administrator and Technician Administrator can delete alerts.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/alerts/{id}/messages": {
+      "post": {
+        "operationId": "AlertsController_addMessage",
+        "summary": "Add Message to Alert Thread",
+        "description": "Appends a message to the alert JSONB messages thread. System Administrator, Technician Administrator and Technician can post messages.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message added successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/alerts/{id}/faults": {
+      "get": {
+        "operationId": "AlertsController_getFaults",
+        "summary": "Get Faults for Alert",
+        "description": "Retrieves all fault records linked to a specific alert. System Administrator, Technician Administrator and Technician can view faults from an alert.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of fault records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/faults": {
+      "post": {
+        "operationId": "FaultsController_create",
+        "summary": "Create Fault",
+        "description": "Logs a new equipment fault, optionally linked to an alert. System Administrator and Technician can create faults.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFaultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Fault created successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      },
+      "get": {
+        "operationId": "FaultsController_findAll",
+        "summary": "List All Faults",
+        "description": "Retrieves all fault records. System Administrator and Technician can view faults.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of fault records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      }
+    },
+    "/api/faults/{id}": {
+      "get": {
+        "operationId": "FaultsController_findOne",
+        "summary": "Get Fault by ID",
+        "description": "Retrieves a single fault by UUID. System Administrator and Technician can look up faults.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fault record returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      },
+      "put": {
+        "operationId": "FaultsController_put",
+        "summary": "Replace Fault",
+        "description": "Completely replaces an existing fault record. Only System Administrator can perform full replacements.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutFaultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      },
+      "patch": {
+        "operationId": "FaultsController_update",
+        "summary": "Update Fault",
+        "description": "Partially updates a fault (e.g., status, reassigning Technician). System Administrator and Technician can update.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFaultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      },
+      "delete": {
+        "operationId": "FaultsController_remove",
+        "summary": "Delete Fault",
+        "description": "Permanently removes a fault record. Only the System Administrator can delete faults.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      }
+    },
+    "/api/faults/{id}/work-orders": {
+      "get": {
+        "operationId": "FaultsController_getWorkOrders",
+        "summary": "Get Work Orders for Fault",
+        "description": "Retrieves all work orders linked to a fault. System Administrator and Technician can view.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of work order records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "faults"
+        ]
+      }
+    },
+    "/api/service-requests": {
+      "post": {
+        "operationId": "ServiceRequestsController_create",
+        "summary": "Create Service Request",
+        "description": "Submits a new service request. Any authenticated user (including Campus Visitor) can create service requests.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Service request created successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      },
+      "get": {
+        "operationId": "ServiceRequestsController_findAll",
+        "summary": "List All Service Requests",
+        "description": "Retrieves all service requests.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of service request records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      }
+    },
+    "/api/service-requests/{id}": {
+      "get": {
+        "operationId": "ServiceRequestsController_findOne",
+        "summary": "Get Service Request by ID",
+        "description": "Retrieves a single service request by UUID.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service request record returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      },
+      "put": {
+        "operationId": "ServiceRequestsController_put",
+        "summary": "Replace Service Request",
+        "description": "Completely replaces a service request. Only System Administrator can perform full replacements.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutServiceRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      },
+      "patch": {
+        "operationId": "ServiceRequestsController_update",
+        "summary": "Update Service Request",
+        "description": "Partially updates a service request.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      },
+      "delete": {
+        "operationId": "ServiceRequestsController_remove",
+        "summary": "Delete Service Request",
+        "description": "Permanently removes a service request. Only System Administrator can delete.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      }
+    },
+    "/api/service-requests/{id}/work-orders": {
+      "get": {
+        "operationId": "ServiceRequestsController_getWorkOrders",
+        "summary": "Get Work Orders for Service Request",
+        "description": "Retrieves all work orders from a service request. System Administrator and Technician can view.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of work order records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      }
+    },
+    "/api/work-orders": {
+      "post": {
+        "operationId": "WorkOrdersController_create",
+        "summary": "Create Work Order",
+        "description": "Creates a new work order linked to a fault or service request. System Administrator, Technician Administrator and Technician can create work orders.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Work order created successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      },
+      "get": {
+        "operationId": "WorkOrdersController_findAll",
+        "summary": "List All Work Orders",
+        "description": "Retrieves all work orders.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of work order records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      }
+    },
+    "/api/work-orders/{id}": {
+      "get": {
+        "operationId": "WorkOrdersController_findOne",
+        "summary": "Get Work Order by ID",
+        "description": "Retrieves a single work order by UUID.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Work order record returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      },
+      "put": {
+        "operationId": "WorkOrdersController_put",
+        "summary": "Replace Work Order",
+        "description": "Completely replaces a work order record. System Administrator and Technician Administrator can perform full replacements.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutWorkOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      },
+      "patch": {
+        "operationId": "WorkOrdersController_update",
+        "summary": "Update Work Order",
+        "description": "Partially updates a work order (e.g., status, priority). System Administrator, Technician Administrator, Technician, and Financial Analyst can update.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      },
+      "delete": {
+        "operationId": "WorkOrdersController_remove",
+        "summary": "Delete Work Order",
+        "description": "Permanently removes a work order. System Administrator and Technician Administrator can delete.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "work-orders"
+        ]
+      }
+    },
+    "/api/energy-costs": {
+      "post": {
+        "operationId": "EnergyCostsController_create",
+        "summary": "Create Energy Cost",
+        "description": "Records a new energy cost entry for a building/department for a given period. Financial Analyst and System Administrator can create.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnergyCostDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Energy cost created successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      },
+      "get": {
+        "operationId": "EnergyCostsController_findAll",
+        "summary": "List All Energy Costs",
+        "description": "Retrieves all energy cost records. Financial Analyst and System Administrator can view energy cost data.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of energy cost records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      }
+    },
+    "/api/energy-costs/{id}": {
+      "get": {
+        "operationId": "EnergyCostsController_findOne",
+        "summary": "Get Energy Cost by ID",
+        "description": "Retrieves a single energy cost record by UUID. Financial Analyst and System Administrator can look up records.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Energy cost record returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      },
+      "put": {
+        "operationId": "EnergyCostsController_put",
+        "summary": "Replace Energy Cost",
+        "description": "Completely replaces an energy cost record. Only System Administrator can perform full replacements.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutEnergyCostDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      },
+      "patch": {
+        "operationId": "EnergyCostsController_update",
+        "summary": "Update Energy Cost",
+        "description": "Partially updates an energy cost record (e.g., adjusting costs or budget status). Financial Analyst and System Administrator can update.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEnergyCostDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      },
+      "delete": {
+        "operationId": "EnergyCostsController_remove",
+        "summary": "Delete Energy Cost",
+        "description": "Permanently removes an energy cost record. Only System Administrator can delete.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      }
+    },
+    "/api/energy-costs/by-period/{period}": {
+      "get": {
+        "operationId": "EnergyCostsController_getByPeriod",
+        "summary": "Get Energy Costs by Period",
+        "description": "Retrieves energy costs for a specific billing period (e.g., '2025-03'). Financial Analyst and System Administrator can filter by period.",
+        "parameters": [
+          {
+            "name": "period",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of energy cost records for the period returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "energy-costs"
+        ]
+      }
+    },
+    "/api/invoices": {
+      "post": {
+        "operationId": "InvoicesController_create",
+        "summary": "Create Invoice",
+        "description": "Creates a new invoice for a department. Financial Analyst and System Administrator can submit invoices.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invoice created successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      },
+      "get": {
+        "operationId": "InvoicesController_findAll",
+        "summary": "List All Invoices",
+        "description": "Retrieves all invoices. Financial Analyst and System Administrator can view the invoice directory.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of invoice records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/invoices/{id}": {
+      "get": {
+        "operationId": "InvoicesController_findOne",
+        "summary": "Get Invoice by ID",
+        "description": "Retrieves a single invoice by UUID. Financial Analyst and System Administrator can look up invoices.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice record returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      },
+      "put": {
+        "operationId": "InvoicesController_put",
+        "summary": "Replace Invoice",
+        "description": "Completely replaces an invoice record. Only System Administrator can perform full replacements.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      },
+      "patch": {
+        "operationId": "InvoicesController_update",
+        "summary": "Update Invoice",
+        "description": "Partially updates an invoice (e.g., changing status to approved, setting approved_by_id). Financial Analyst and System Administrator can update.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      },
+      "delete": {
+        "operationId": "InvoicesController_remove",
+        "summary": "Delete Invoice",
+        "description": "Permanently removes an invoice. Only System Administrator can delete.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/financial-reports": {
+      "post": {
+        "operationId": "FinancialReportsController_create",
+        "summary": "Create Financial Report",
+        "description": "Generates a new financial report for a building or department. The Financial Analyst and System Administrator can create reports by providing generated_by_id, building_id, department_id, title, period, roi, and npv. Send a POST request with a CreateFinancialReportDto JSON body.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFinancialReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Financial report created successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not Financial Analyst or System Administrator."
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      },
+      "get": {
+        "operationId": "FinancialReportsController_findAll",
+        "summary": "List All Financial Reports",
+        "description": "Retrieves all financial report records. The Financial Analyst and System Administrator can view the complete archive of financial reports. Send a GET request with no additional parameters.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all financial report records returned."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not Financial Analyst or System Administrator."
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      }
+    },
+    "/api/financial-reports/{id}": {
+      "get": {
+        "operationId": "FinancialReportsController_findOne",
+        "summary": "Get Financial Report by ID",
+        "description": "Retrieves a single financial report by its UUID including generated_by_id, building/department scope, title, period, roi, and npv. The Financial Analyst and System Administrator can look up a specific report. Pass the financial_report_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Financial report record returned."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not Financial Analyst or System Administrator."
+          },
+          "404": {
+            "description": "Financial report with the given ID not found."
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      },
+      "put": {
+        "operationId": "FinancialReportsController_put",
+        "summary": "Replace Financial Report",
+        "description": "Completely replaces an existing financial report record with new data. Only the System Administrator can perform full report replacements. Send a PUT request with the financial_report_id in the URL and a complete PutFinancialReportDto JSON body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutFinancialReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Financial report record replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Financial report with the given ID not found."
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      },
+      "patch": {
+        "operationId": "FinancialReportsController_update",
+        "summary": "Update Financial Report",
+        "description": "Partially updates specific fields of an existing financial report (e.g., updating roi or npv values). The Financial Analyst and System Administrator can modify reports. Send a PATCH request with the financial_report_id in the URL and an UpdateFinancialReportDto JSON body containing only the fields to change.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFinancialReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Financial report record updated successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not Financial Analyst or System Administrator."
+          },
+          "404": {
+            "description": "Financial report with the given ID not found."
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      },
+      "delete": {
+        "operationId": "FinancialReportsController_remove",
+        "summary": "Delete Financial Report",
+        "description": "Permanently removes a financial report record from the system. Only the System Administrator can delete financial reports. Pass the financial_report_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Financial report record deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Financial report with the given ID not found."
+          }
+        },
+        "tags": [
+          "financial-reports"
+        ]
+      }
+    },
+    "/api/sustainability-metrics": {
+      "post": {
+        "operationId": "SustainabilityMetricsController_create",
+        "summary": "Create Sustainability Metric",
+        "description": "Records a new sustainability metric snapshot. Sustainability Officer and System Administrator can create.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSustainabilityMetricDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      },
+      "get": {
+        "operationId": "SustainabilityMetricsController_findAll",
+        "summary": "List All Sustainability Metrics",
+        "description": "Retrieves all sustainability metrics. Sustainability Officer and System Administrator can view KPIs.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      }
+    },
+    "/api/sustainability-metrics/{id}": {
+      "get": {
+        "operationId": "SustainabilityMetricsController_findOne",
+        "summary": "Get Sustainability Metric by ID",
+        "description": "Retrieves a single metric by UUID. Sustainability Officer and System Administrator can look up.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Record returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      },
+      "put": {
+        "operationId": "SustainabilityMetricsController_put",
+        "summary": "Replace Sustainability Metric",
+        "description": "Completely replaces a metric record. Only System Administrator can perform full replacements.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutSustainabilityMetricDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      },
+      "patch": {
+        "operationId": "SustainabilityMetricsController_update",
+        "summary": "Update Sustainability Metric",
+        "description": "Partially updates a metric. Sustainability Officer and System Administrator can update.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSustainabilityMetricDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      },
+      "delete": {
+        "operationId": "SustainabilityMetricsController_remove",
+        "summary": "Delete Sustainability Metric",
+        "description": "Permanently removes a metric. Only System Administrator can delete.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      }
+    },
+    "/api/initiatives": {
+      "post": {
+        "operationId": "InitiativesController_create",
+        "summary": "Create Initiative",
+        "description": "Proposes a new sustainability initiative. Sustainability Officer and System Administrator can create.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInitiativeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      },
+      "get": {
+        "operationId": "InitiativesController_findAll",
+        "summary": "List All Initiatives",
+        "description": "Retrieves all initiatives. Sustainability Officer and System Administrator can view.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      }
+    },
+    "/api/initiatives/{id}": {
+      "get": {
+        "operationId": "InitiativesController_findOne",
+        "summary": "Get Initiative by ID",
+        "description": "Retrieves a single initiative by UUID. Sustainability Officer and System Administrator can look up.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Record returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      },
+      "put": {
+        "operationId": "InitiativesController_put",
+        "summary": "Replace Initiative",
+        "description": "Completely replaces an initiative. Only System Administrator can perform full replacements.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutInitiativeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      },
+      "patch": {
+        "operationId": "InitiativesController_update",
+        "summary": "Update Initiative",
+        "description": "Partially updates an initiative (e.g., status, outcomes). Sustainability Officer and System Administrator can update.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInitiativeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      },
+      "delete": {
+        "operationId": "InitiativesController_remove",
+        "summary": "Delete Initiative",
+        "description": "Permanently removes an initiative.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      }
+    },
+    "/api/activity-logs": {
+      "post": {
+        "operationId": "ActivityLogsController_create",
+        "summary": "Create Activity Log",
+        "description": "Records a new audit trail entry capturing a user action in the system. Only the System Administrator can manually create activity log entries by providing user_id, action_type, and title. Send a POST request with a CreateActivityLogDto JSON body.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateActivityLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Activity log entry created successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      },
+      "get": {
+        "operationId": "ActivityLogsController_findAll",
+        "summary": "List All Activity Logs",
+        "description": "Retrieves all activity log entries for system-wide audit tracking. Only the System Administrator can view the complete audit trail. Send a GET request with no additional parameters.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all activity log entries returned."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      }
+    },
+    "/api/activity-logs/{id}": {
+      "get": {
+        "operationId": "ActivityLogsController_findOne",
+        "summary": "Get Activity Log by ID",
+        "description": "Retrieves a single activity log entry by its UUID including user_id, action_type, title, and timestamp. Only the System Administrator can look up specific log entries. Pass the activity_log_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity log entry returned."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Activity log with the given ID not found."
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      },
+      "put": {
+        "operationId": "ActivityLogsController_put",
+        "summary": "Replace Activity Log",
+        "description": "Completely replaces an existing activity log entry with new data. Only the System Administrator can perform full log replacements. Send a PUT request with the activity_log_id in the URL and a complete PutActivityLogDto JSON body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutActivityLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Activity log entry replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Activity log with the given ID not found."
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      },
+      "patch": {
+        "operationId": "ActivityLogsController_update",
+        "summary": "Update Activity Log",
+        "description": "Partially updates specific fields of an existing activity log entry. Only the System Administrator can modify log entries. Send a PATCH request with the activity_log_id in the URL and an UpdateActivityLogDto JSON body containing only the fields to change.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateActivityLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Activity log entry updated successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Activity log with the given ID not found."
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      },
+      "delete": {
+        "operationId": "ActivityLogsController_remove",
+        "summary": "Delete Activity Log",
+        "description": "Permanently removes an activity log entry from the system. Only the System Administrator can delete audit trail records. Pass the activity_log_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity log entry deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator."
+          },
+          "404": {
+            "description": "Activity log with the given ID not found."
+          }
+        },
+        "tags": [
+          "activity-logs"
+        ]
+      }
+    },
+    "/api/sustainability-reports": {
+      "post": {
+        "operationId": "SustainabilityReportsController_create",
+        "summary": "Create Sustainability Report",
+        "description": "Archives a new sustainability report with KPI metrics. Sustainability Officer and System Administrator can create.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSustainabilityReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      },
+      "get": {
+        "operationId": "SustainabilityReportsController_findAll",
+        "summary": "List All Sustainability Reports",
+        "description": "Retrieves all archived sustainability reports. Sustainability Officer and System Administrator can view.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of records returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      }
+    },
+    "/api/sustainability-reports/{id}": {
+      "get": {
+        "operationId": "SustainabilityReportsController_findOne",
+        "summary": "Get Sustainability Report by ID",
+        "description": "Retrieves a single report by UUID. Sustainability Officer and System Administrator can look up.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Record returned."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      },
+      "put": {
+        "operationId": "SustainabilityReportsController_put",
+        "summary": "Replace Sustainability Report",
+        "description": "Completely replaces a report. Only System Administrator can perform full replacements.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutSustainabilityReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      },
+      "patch": {
+        "operationId": "SustainabilityReportsController_update",
+        "summary": "Update Sustainability Report",
+        "description": "Partially updates a report. Sustainability Officer and System Administrator can update.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSustainabilityReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      },
+      "delete": {
+        "operationId": "SustainabilityReportsController_remove",
+        "summary": "Delete Sustainability Report",
+        "description": "Permanently removes a report. Only System Administrator can delete.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "EnerTrack API",
+    "description": "Backend API for EnerTrack — Facility Management, Sustainability & Finance Platform",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "users",
+      "description": "User management and role assignment"
+    },
+    {
+      "name": "notifications",
+      "description": "Notification delivery and read tracking"
+    },
+    {
+      "name": "campus",
+      "description": "Campus-level location management"
+    },
+    {
+      "name": "buildings",
+      "description": "Building management within campuses"
+    },
+    {
+      "name": "departments",
+      "description": "Department management within buildings"
+    },
+    {
+      "name": "meters",
+      "description": "IoT meter configuration and tracking"
+    },
+    {
+      "name": "meter-readings",
+      "description": "Sensor/meter reading ingestion"
+    },
+    {
+      "name": "wastage-reports",
+      "description": "Wastage report submission and tracking"
+    },
+    {
+      "name": "alerts",
+      "description": "Maintenance alert lifecycle and chat threads"
+    },
+    {
+      "name": "faults",
+      "description": "Fault tracking and technician assignment"
+    },
+    {
+      "name": "service-requests",
+      "description": "Campus visitor and staff service requests"
+    },
+    {
+      "name": "work-orders",
+      "description": "Work order creation and progress tracking"
+    },
+    {
+      "name": "energy-costs",
+      "description": "Energy cost tracking per building/department"
+    },
+    {
+      "name": "invoices",
+      "description": "Invoice management and approval workflow"
+    },
+    {
+      "name": "financial-reports",
+      "description": "Financial report generation and retrieval"
+    },
+    {
+      "name": "sustainability-metrics",
+      "description": "Platform-wide sustainability KPI tracking"
+    },
+    {
+      "name": "initiatives",
+      "description": "Sustainability initiative proposals and lifecycle"
+    },
+    {
+      "name": "activity-logs",
+      "description": "System-wide audit log"
+    },
+    {
+      "name": "sustainability-reports",
+      "description": "Sustainability report generation and archiving"
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "x-role": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-role"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "aadi@gmail.com",
+            "description": "Registered user email"
+          },
+          "password": {
+            "type": "string",
+            "example": "Aadi@123",
+            "description": "User password (min 6 chars)"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "name": "Aadithya",
+          "email": "aadi@gmail.com",
+          "phone": "9876543210",
+          "password": "Aadi@123",
+          "role": "System Administrator",
+          "specialization": null
+        }
+      },
+      "PutUserDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "name": "Aadithya",
+          "email": "aadi@gmail.com",
+          "phone": "9876543210",
+          "password": "Aadi@123",
+          "role": "System Administrator",
+          "specialization": null
+        }
+      },
+      "CreateNotificationDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "target_type": "alert",
+          "target_id": "target1",
+          "message": "Notif 1",
+          "is_read": false
+        }
+      },
+      "PutNotificationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateNotificationDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "target_type": "alert",
+          "target_id": "target1",
+          "message": "Notif 1",
+          "is_read": false
+        }
+      },
+      "CreateCampusDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "name": "Campus 1",
+          "location": "Location 1",
+          "total_budget": 1000000
+        }
+      },
+      "PutCampusDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateCampusDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "name": "Campus 1",
+          "location": "Location 1",
+          "total_budget": 1000000
+        }
+      },
+      "CreateBuildingDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "campus_id": "cccc0000-0002-4000-8000-000000000000",
+          "name": "Building 1",
+          "budget": 200000
+        }
+      },
+      "PutBuildingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateBuildingDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "campus_id": "cccc0000-0002-4000-8000-000000000000",
+          "name": "Building 1",
+          "budget": 200000
+        }
+      },
+      "CreateDepartmentDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "name": "Department 1",
+          "budget": 50000
+        }
+      },
+      "PutDepartmentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateDepartmentDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "name": "Department 1",
+          "budget": 50000
+        }
+      },
+      "CreateMeterDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "meter_code": "M-001",
+          "meter_type": "electricity",
+          "zone": "Zone 2",
+          "status": "active"
+        }
+      },
+      "PutMeterDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMeterDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "meter_code": "M-001",
+          "meter_type": "electricity",
+          "zone": "Zone 2",
+          "status": "active"
+        }
+      },
+      "CreateMeterReadingDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "meter_id": "mmmm0000-0002-4000-8000-000000000000",
+          "value": 105.5,
+          "unit": "unit",
+          "timestamp": "2025-01-01T10:00:00.000Z"
+        }
+      },
+      "PutMeterReadingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMeterReadingDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "meter_id": "mmmm0000-0002-4000-8000-000000000000",
+          "value": 105.5,
+          "unit": "unit",
+          "timestamp": "2025-01-01T10:00:00.000Z"
+        }
+      },
+      "CreateWastageReportDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
+          "type": "Water",
+          "status": "Forwarded to Finance",
+          "details": {
+            "specificData": {
+              "nature": "Sprinkler system leaking heavily near the pathway.",
+              "location": "Main Courtyard, East Wing"
+            },
+            "priority": "High",
+            "systemData": {
+              "sensorId": "FLOW-CW-01",
+              "readingValue": 45.5,
+              "readingUnit": "L/min",
+              "baselineValue": 20,
+              "confidence": "High",
+              "status": "abnormal"
+            }
+          },
+          "sensor_reading_id": "rrrr0000-0001-4000-8000-000000000000"
+        }
+      },
+      "PutWastageReportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateWastageReportDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
+          "type": "Water",
+          "status": "Forwarded to Finance",
+          "details": {
+            "specificData": {
+              "nature": "Sprinkler system leaking heavily near the pathway.",
+              "location": "Main Courtyard, East Wing"
+            },
+            "priority": "High",
+            "systemData": {
+              "sensorId": "FLOW-CW-01",
+              "readingValue": 45.5,
+              "readingUnit": "L/min",
+              "baselineValue": 20,
+              "confidence": "High",
+              "status": "abnormal"
+            }
+          },
+          "sensor_reading_id": "rrrr0000-0001-4000-8000-000000000000"
+        }
+      },
+      "CreateAlertDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "meter_id": "mmmm0000-0002-4000-8000-000000000000",
+          "triggering_reading_id": "rrrr0000-0002-4000-8000-000000000000",
+          "title": "Alert 1",
+          "severity": "High",
+          "status": "open",
+          "messages": [
+            {
+              "sender_role": "System Administrator",
+              "content": "Checking",
+              "timestamp": "2025-01-01T10:00:00.000Z"
+            },
+            {
+              "sender_role": "Technician",
+              "content": "Fixed",
+              "timestamp": "2025-01-01T11:00:00.000Z"
+            }
+          ]
+        }
+      },
+      "PutAlertDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateAlertDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "meter_id": "mmmm0000-0002-4000-8000-000000000000",
+          "triggering_reading_id": "rrrr0000-0002-4000-8000-000000000000",
+          "title": "Alert 1",
+          "severity": "High",
+          "status": "open",
+          "messages": [
+            {
+              "sender_role": "System Administrator",
+              "content": "Checking",
+              "timestamp": "2025-01-01T10:00:00.000Z"
+            },
+            {
+              "sender_role": "Technician",
+              "content": "Fixed",
+              "timestamp": "2025-01-01T11:00:00.000Z"
+            }
+          ]
+        }
+      },
+      "AddMessageDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateFaultDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "alert_id": null,
+          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
+          "asset_name": "Asset 1",
+          "fault_type": "Electrical",
+          "severity": "moderate",
+          "status": "pending"
+        }
+      },
+      "PutFaultDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateFaultDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "alert_id": null,
+          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
+          "asset_name": "Asset 1",
+          "fault_type": "Electrical",
+          "severity": "moderate",
+          "status": "pending"
+        }
+      },
+      "CreateServiceRequestDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PutServiceRequestDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateServiceRequestDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateWorkOrderDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "assigned_to_id": "uuuu0000-0004-4000-8000-000000000000",
+          "linked_fault_id": null,
+          "source_request_id": "ssss0000-0002-4000-8000-000000000000",
+          "title": "HVAC Filter Replacement – Block A",
+          "priority": "high",
+          "status": "approval"
+        }
+      },
+      "PutWorkOrderDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateWorkOrderDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "assigned_to_id": "uuuu0000-0004-4000-8000-000000000000",
+          "linked_fault_id": null,
+          "source_request_id": "ssss0000-0002-4000-8000-000000000000",
+          "title": "HVAC Filter Replacement – Block A",
+          "priority": "high",
+          "status": "approval"
+        }
+      },
+      "CreateEnergyCostDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "period": "2025-02",
+          "electricity": 1000,
+          "gas": 200,
+          "water": 150,
+          "status": "on-budget"
+        }
+      },
+      "PutEnergyCostDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateEnergyCostDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "period": "2025-02",
+          "electricity": 1000,
+          "gas": 200,
+          "water": 150,
+          "status": "on-budget"
+        }
+      },
+      "CreateInvoiceDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "approved_by_id": "uuuu0000-0002-4000-8000-000000000000",
+          "invoice_number": "INV-0001",
+          "vendor": "Vendor 1",
+          "amount": 500,
+          "status": "approved"
+        }
+      },
+      "PutInvoiceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateInvoiceDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "approved_by_id": "uuuu0000-0002-4000-8000-000000000000",
+          "invoice_number": "INV-0001",
+          "vendor": "Vendor 1",
+          "amount": 500,
+          "status": "approved"
+        }
+      },
+      "CreateFinancialReportDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "generated_by_id": "uuuu0000-0002-4000-8000-000000000000",
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "title": "Report 1",
+          "period": "Q1 2025",
+          "roi": "15%",
+          "npv": 10000
+        }
+      },
+      "PutFinancialReportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateFinancialReportDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "generated_by_id": "uuuu0000-0002-4000-8000-000000000000",
+          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "title": "Report 1",
+          "period": "Q1 2025",
+          "roi": "15%",
+          "npv": 10000
+        }
+      },
+      "CreateSustainabilityMetricDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "period": "2024-11",
+          "energy_consumed": 15000,
+          "water_usage": 2000,
+          "emissions": 500
+        }
+      },
+      "PutSustainabilityMetricDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateSustainabilityMetricDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "period": "2024-11",
+          "energy_consumed": 15000,
+          "water_usage": 2000,
+          "emissions": 500
+        }
+      },
+      "CreateInitiativeDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "created_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "title": "Initiative 1",
+          "status": "proposed",
+          "feasible": true,
+          "target_reduction": "10%",
+          "outcomes": [
+            "Outcome 1"
+          ]
+        }
+      },
+      "PutInitiativeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateInitiativeDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "created_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "title": "Initiative 1",
+          "status": "proposed",
+          "feasible": true,
+          "target_reduction": "10%",
+          "outcomes": [
+            "Outcome 1"
+          ]
+        }
+      },
+      "CreateActivityLogDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "action_type": "LOGIN",
+          "title": "User logged in",
+          "timestamp": "2025-01-01T10:00:00.000Z"
+        }
+      },
+      "PutActivityLogDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateActivityLogDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "action_type": "LOGIN",
+          "title": "User logged in",
+          "timestamp": "2025-01-01T10:00:00.000Z"
+        }
+      },
+      "CreateSustainabilityReportDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "generated_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "title": "Q1 Sustainability Performance",
+          "period": "Q1 2025",
+          "metrics": {
+            "energyReduction": "-4.2%",
+            "wasteDiverted": "68%",
+            "carbonOffset": "124 tCO2e",
+            "waterSaved": "1.2 ML"
+          },
+          "generated_at": "2025-04-01T10:00:00.000Z"
+        }
+      },
+      "PutSustainabilityReportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateSustainabilityReportDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "generated_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "title": "Q1 Sustainability Performance",
+          "period": "Q1 2025",
+          "metrics": {
+            "energyReduction": "-4.2%",
+            "wasteDiverted": "68%",
+            "carbonOffset": "124 tCO2e",
+            "waterSaved": "1.2 ML"
+          },
+          "generated_at": "2025-04-01T10:00:00.000Z"
+        }
+      }
+    }
+  }
+}

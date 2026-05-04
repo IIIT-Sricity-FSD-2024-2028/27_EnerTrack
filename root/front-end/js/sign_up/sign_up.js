@@ -1,5 +1,3 @@
-import { isEmailTaken, isPhoneTaken, saveRegisteredUser } from "../shared/mockData.js";
-
 (function () {
     "use strict";
 
@@ -424,7 +422,7 @@ import { isEmailTaken, isPhoneTaken, saveRegisteredUser } from "../shared/mockDa
     });
 
     /* ───────── Form submission ───────── */
-    form.addEventListener("submit", function (e) {
+    form.addEventListener("submit", async function (e) {
         e.preventDefault();
         clearAllErrors();
 
@@ -443,9 +441,58 @@ import { isEmailTaken, isPhoneTaken, saveRegisteredUser } from "../shared/mockDa
             return;
         }
 
+        var btn = document.getElementById("signUpBtn");
+        var originalText = btn.textContent;
+        btn.textContent = "Signing up...";
+        btn.disabled = true;
+
+        /* Save new user */
+        var newUser = {
+            name:     nameInput.value.trim(),
+            email:    emailInput.value.trim().toLowerCase(),
+            phone:    phoneInput.value.trim(),
+            password: passwordInput.value,
+            role:     roleSelect.value
+        };
+
+        try {
+            if (window.api) {
+                // Remove local user duplicate check since backend enforces unique email/phone
+                const res = await window.api.post('/users/register', newUser);
+                
+                // If the response is valid (we're unwrapping inside api.js)
+                if (res && !res.error) {
+                    /* Save current user to localStorage for persistence */
+                    // Add the backend-generated ID to the session
+                    if (res.user_id) newUser.user_id = res.user_id;
+                    localStorage.setItem("currentUser", JSON.stringify(newUser));
+                    window.location.href = "../landing/landing.html";
+                    return;
+                }
+            }
+        } catch (err) {
+            console.error('Signup failed:', err);
+            // Handle backend errors (e.g., email taken)
+            var popup = document.getElementById("duplicatePopup");
+            var popupMsg = document.getElementById("popupMsg");
+            if (err.message && err.message.toLowerCase().includes('exist')) {
+                popupMsg.textContent = err.message;
+            } else {
+                popupMsg.textContent = "Signup failed: " + (err.message || 'Unknown error');
+            }
+            popup.style.display = "flex";
+            document.getElementById("popupClose").onclick = function () {
+                popup.style.display = "none";
+            };
+            btn.textContent = originalText;
+            btn.disabled = false;
+            return;
+        }
+
+        // Fallback for offline/no backend
         /* Check if email or phone is already taken — show popup */
-        var emailTaken = isEmailTaken(emailInput.value.trim());
-        var phoneTaken = isPhoneTaken(phoneInput.value.trim());
+        var emailTaken = typeof isEmailTaken === 'function' ? isEmailTaken(emailInput.value.trim()) : false;
+        var phoneTaken = typeof isPhoneTaken === 'function' ? isPhoneTaken(phoneInput.value.trim()) : false;
 
         if (emailTaken || phoneTaken) {
             var popup = document.getElementById("duplicatePopup");
@@ -464,21 +511,15 @@ import { isEmailTaken, isPhoneTaken, saveRegisteredUser } from "../shared/mockDa
             document.getElementById("popupClose").onclick = function () {
                 popup.style.display = "none";
             };
+            btn.textContent = originalText;
+            btn.disabled = false;
             return;
         }
 
-        /* Save new user to sessionStorage */
-        var newUser = {
-            name:     nameInput.value.trim(),
-            email:    emailInput.value.trim().toLowerCase(),
-            phone:    phoneInput.value.trim(),
-            password: passwordInput.value,
-            role:     roleSelect.value
-        };
-        var savedUser = saveRegisteredUser(newUser);
+        if (typeof saveRegisteredUser === 'function') saveRegisteredUser(newUser);
 
         /* Save current user to localStorage for persistence */
-        localStorage.setItem("currentUser", JSON.stringify(savedUser));
+        localStorage.setItem("currentUser", JSON.stringify(newUser));
 
         /* Redirect to landing page */
         window.location.href = "../landing/landing.html";

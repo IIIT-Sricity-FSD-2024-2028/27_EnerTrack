@@ -1,11 +1,14 @@
 /**
  * reportingPage.js
  * Handles session logic, report generation pipeline, and custom date range.
+ * Reports are archived to the NestJS backend via /api/sustainability-reports.
  */
 import SustDB from './data/mockData.js';
 import SessionModule from './modules/session.js';
 import { showToast } from './utils/utils.js';
 import { injectIcons } from './utils/icons.js';
+
+const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
 function REPORT_PIPELINE_KEY() {
     try {
@@ -20,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initFormInteractions();
     wireGeneration();
     restoreReportPipelineState();
+    loadReportArchive();
 });
 
 /* ── Form Interactions ─────────────────────────────── */
@@ -212,6 +216,13 @@ function wireGeneration() {
     });
 }
 
+const REPORT_METRICS = {
+    energyReduction: '-4.2%',
+    wasteDiverted: '68%',
+    carbonOffset: '124 tCO₂e',
+    waterSaved: '1.2 ML',
+};
+
 function showReportModal(title, period) {
     import('./utils/utils.js').then(utils => {
         utils.openModal({
@@ -222,58 +233,143 @@ function showReportModal(title, period) {
                         <h2>Sustainability Report</h2>
                         <p>Period: ${period}</p>
                     </div>
-                    
                     <div class="report-body-grid">
                         <div class="report-stat-card">
                             <h4>Energy Reduction</h4>
-                            <div class="val">-4.2%</div>
+                            <div class="val">${REPORT_METRICS.energyReduction}</div>
                         </div>
                         <div class="report-stat-card">
                             <h4>Waste Diverted</h4>
-                            <div class="val">68%</div>
+                            <div class="val">${REPORT_METRICS.wasteDiverted}</div>
                         </div>
                         <div class="report-stat-card">
                             <h4>Carbon Offset</h4>
-                            <div class="val">124 tCO₂e</div>
+                            <div class="val">${REPORT_METRICS.carbonOffset}</div>
                         </div>
                         <div class="report-stat-card">
                             <h4>Water Saved</h4>
-                            <div class="val">1.2 ML</div>
+                            <div class="val">${REPORT_METRICS.waterSaved}</div>
                         </div>
                     </div>
-                    
                 </div>
             `,
             confirmLabel: "Close and Archive Report",
             cancelLabel: "",
-            onConfirm: () => {
-                // Save report to sustainability report archives
-                try {
-                    const raw = localStorage.getItem('enertrack_universal_v1');
-                    const fullData = raw ? JSON.parse(raw) : {};
-                    if (fullData.sust) {
-                        if (!Array.isArray(fullData.sust.reportArchives)) {
-                            fullData.sust.reportArchives = [];
-                        }
-                        fullData.sust.reportArchives.unshift({
-                            id: 'RPT-' + Date.now().toString(36).toUpperCase(),
-                            title: title || 'Sustainability Report',
-                            period: period,
-                            energyReduction: '-4.2%',
-                            wasteDiverted: '68%',
-                            carbonOffset: '124 tCO₂e',
-                            waterSaved: '1.2 ML',
-                            archivedAt: new Date().toISOString()
-                        });
-                        localStorage.setItem('enertrack_universal_v1', JSON.stringify(fullData));
-                    }
-                } catch (e) { console.error('Failed to archive report:', e); }
-
+            onConfirm: async () => {
+                await archiveReport(title, period);
                 resetReportingPipeline();
-                showToast("Report archived successfully.", "success");
             }
         });
     });
+}
+
+async function archiveReport(title, period) {
+    const payload = {
+        generated_by_id: currentUser.user_id || 'uuuu0000-0005-4000-8000-000000000000',
+        title: title || 'Sustainability Report',
+        period: period,
+        metrics: {
+            energyReduction: REPORT_METRICS.energyReduction,
+            wasteDiverted:   REPORT_METRICS.wasteDiverted,
+            carbonOffset:    REPORT_METRICS.carbonOffset,
+            waterSaved:      REPORT_METRICS.waterSaved,
+        },
+        generated_at: new Date().toISOString(),
+    };
+
+    try {
+        if (window.api) {
+            const res = await window.api.post('/sustainability-reports', payload);
+            if (res.success) {
+                console.log('[SO Reporting] Report archived to backend:', res.data.report_id);
+                showToast('Report archived to backend successfully.', 'success');
+                loadReportArchive(); // Refresh the archive section
+                return;
+            } else {
+                console.warn('[SO Reporting] Backend error:', res.message);
+            }
+        }
+    } catch (err) {
+        console.warn('[SO Reporting] Backend unavailable, saving locally:', err.message);
+    }
+
+    // Fallback: save to localStorage
+    try {
+        const raw = localStorage.getItem('enertrack_universal_v1');
+        const fullData = raw ? JSON.parse(raw) : {};
+        if (fullData.sust) {
+            if (!Array.isArray(fullData.sust.reportArchives)) fullData.sust.reportArchives = [];
+            fullData.sust.reportArchives.unshift({
+                id: 'RPT-' + Date.now().toString(36).toUpperCase(),
+                title: title || 'Sustainability Report',
+                period: period,
+                ...REPORT_METRICS,
+                archivedAt: new Date().toISOString()
+            });
+            localStorage.setItem('enertrack_universal_v1', JSON.stringify(fullData));
+        }
+    } catch (e) { console.error('Failed to archive report locally:', e); }
+
+    showToast('Report archived successfully.', 'success');
+}
+
+async function loadReportArchive() {
+    const container = document.getElementById('reportArchiveList');
+    if (!container) return; // Archive list element may not exist on this page
+
+    try {
+        if (!window.api) return;
+        const res = await window.api.get('/sustainability-reports');
+        
+        let reports = [];
+        if (Array.isArray(res)) {
+            reports = res;
+        } else if (res && res.success && Array.isArray(res.data)) {
+            reports = res.data;
+        }
+        
+        if (!reports.length) {
+            container.innerHTML = '<p style="color:#9ca3af;font-size:13px;text-align:center;padding:16px;">No reports archived yet.</p>';
+            return;
+        }
+
+        // Sort newest first
+        reports.sort((a, b) => new Date(b.generated_at) - new Date(a.generated_at));
+
+        container.innerHTML = reports.map(r => {
+            const m = r.metrics || {};
+            // Provide fallback metrics if the database has empty objects
+            const displayMetrics = {
+                energyReduction: m.energyReduction || '—',
+                wasteDiverted: m.wasteDiverted || '—',
+                carbonOffset: m.carbonOffset || '—',
+                waterSaved: m.waterSaved || '—'
+            };
+            
+            return `
+            <div style="background:#fdfdfd;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+                    <div>
+                        <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:4px;">${r.title}</div>
+                        <div style="font-size:13px;color:#6b7280;">Reporting Period: <strong>${r.period}</strong></div>
+                    </div>
+                    <span style="background:#d1fae5;color:#065f46;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.3px;">Archived</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+                    ${Object.entries(displayMetrics).map(([k,v]) => `
+                    <div style="background:#f9fafb;border:1px solid #f3f4f6;border-radius:8px;padding:12px;text-align:center;">
+                        <div style="font-size:11px;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;line-height:1.4;padding-bottom:2px;">${k.replace(/([A-Z])/g,' $1').trim()}</div>
+                        <div style="font-size:16px;font-weight:700;color:#111827;">${v}</div>
+                    </div>`).join('')}
+                </div>
+                <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f3f4f6;font-size:12px;color:#9ca3af;">
+                    Generated on ${new Date(r.generated_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+                </div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        console.warn('[SO Reporting] Could not load archive:', err.message);
+    }
 }
 
 function resetReportingPipeline() {
