@@ -41,14 +41,28 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ── WORKFLOW 1 ───────────────────────────────────── */
-function renderFinanceWorkflow() {
+async function renderFinanceWorkflow() {
   const container = document.getElementById("financeWorkflowFeed");
   if (!container) return;
 
-  const srs = FinanceDB.serviceRequests;
+  let srs = [];
+  let internalWOs = [];
+  try {
+    if (window.api) {
+      const [srRes, woRes] = await Promise.all([
+        window.api.get('/service-requests'),
+        window.api.get('/work-orders')
+      ]);
+      if (Array.isArray(srRes)) srs = srRes;
+      if (Array.isArray(woRes)) internalWOs = woRes.filter(w => w.status === 'approval');
+    }
+  } catch(e) {
+    console.error("API error fetching workflow items", e);
+  }
+
+  // The legacy flow used 'Awaiting Estimate Approval' on Service Requests.
+  // The new flow uses Work Orders in 'approval' status.
   const pendingEstimates = srs.filter(sr => sr.status === 'Awaiting Estimate Approval');
-  const internalWOs      = window.FinanceDB.workOrders.filter(w => w.status === 'approval');
-  
   const validatedJobs = srs.filter(sr => sr.status === 'Validated (Awaiting Payment)');
 
   if (pendingEstimates.length === 0 && validatedJobs.length === 0 && internalWOs.length === 0) {
@@ -99,12 +113,13 @@ function renderFinanceWorkflow() {
   // Render Internal WO Estimates
   if (internalWOs.length > 0) {
     html += internalWOs.map(wo => {
-      const c = wo.estimate;
+      // In the backend, work orders may not have a populated 'estimate' yet, so we mock it visually if missing
+      const c = wo.estimate || { materials: 0, labor: 0, total: 0 };
       return `
       <div style="padding:16px; border-bottom:1px solid #d8dde2;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
            <div>
-             <h4 style="margin:0 0 4px 0; font-size:15px; color:#111827;">${wo.id} - ${wo.title}</h4>
+             <h4 style="margin:0 0 4px 0; font-size:15px; color:#111827;">${wo.id.split('-')[0]} - ${wo.title}</h4>
              <div style="font-size:12px; color:#d97706; font-weight:600;">Cost Estimate Approval</div>
            </div>
            <span class="badge badge-gray" style="font-size:10px;">REPAIR / MAINT</span>
@@ -165,64 +180,67 @@ function renderFinanceWorkflow() {
   container.innerHTML = html;
 }
 
-window.approveEstimate = function(id) {
-  const sr = FinanceDB.serviceRequests.find(s => s.id === id);
-  if (sr) {
-    sr.status = 'Approved (Executing)';
-    FinanceDB.save();
-    renderFinanceWorkflow();
-    showToast("Estimate approved. Technician can proceed.", "success");
+window.approveEstimate = async function(id) {
+  try {
+    const res = await window.api.patch(`/service-requests/${id}`, { status: 'Approved (Executing)' });
+    if (res && !res.error) {
+      showToast("Estimate approved. Technician can proceed.", "success");
+      await renderFinanceWorkflow();
+    }
+  } catch (err) {
+    console.error(err);
   }
 };
 
-window.rejectEstimate = function(id) {
-  const sr = FinanceDB.serviceRequests.find(s => s.id === id);
-  if (sr) {
-    sr.status = 'Accepted'; // Send back to Technician to re-estimate
-    FinanceDB.save();
-    renderFinanceWorkflow();
-    showToast("Estimate rejected. Sent back to technician.", "warning");
+window.rejectEstimate = async function(id) {
+  try {
+    const res = await window.api.patch(`/service-requests/${id}`, { status: 'Accepted' });
+    if (res && !res.error) {
+      showToast("Estimate rejected. Sent back to technician.", "warning");
+      await renderFinanceWorkflow();
+    }
+  } catch (err) {
+    console.error(err);
   }
 };
 
-window.approveWOEstimate = function(id) {
-  const wo = FinanceDB.workOrders.find(w => w.id === id);
-  if (wo) {
-    wo.status = 'inprogress';
-    FinanceDB.save();
-    renderFinanceWorkflow();
-    showToast("Internal Work Order estimate approved.", "success");
+window.approveWOEstimate = async function(id) {
+  try {
+    const res = await window.api.patch(`/work-orders/${id}`, { status: 'inprogress' });
+    if (res && !res.error) {
+      showToast("Internal Work Order estimate approved.", "success");
+      await renderFinanceWorkflow();
+    } else {
+      showToast(res.message || "Failed to approve estimate", "warning");
+    }
+  } catch (err) {
+    showToast("Error updating work order", "warning");
   }
 };
 
-window.rejectWOEstimate = function(id) {
-  const wo = FinanceDB.workOrders.find(w => w.id === id);
-  if (wo) {
-    // Return to New and notify Tech System Admin
-    wo.status = 'new';
-    wo.technician = '';
-    wo.rejected = true;
-    FinanceDB.alerts.unshift({
-        id: 'ALR-' + Math.floor(Math.random()*10000),
-        severity: 'high',
-        timestamp: 'Just now',
-        status: 'open',
-        description: `Cost estimate for Work Order ${id} was REJECTED by Finance. Please inform the end user or revise.`,
-        zone: 'Finance'
-    });
-    FinanceDB.save();
-    renderFinanceWorkflow();
-    showToast("Internal Work Order estimate rejected. Tech System Admin notified.", "warning");
+window.rejectWOEstimate = async function(id) {
+  try {
+    const res = await window.api.patch(`/work-orders/${id}`, { status: 'new', assigned_to_id: null });
+    if (res && !res.error) {
+      showToast("Internal Work Order estimate rejected. Tech notified.", "warning");
+      await renderFinanceWorkflow();
+    } else {
+      showToast(res.message || "Failed to reject estimate", "warning");
+    }
+  } catch (err) {
+    showToast("Error updating work order", "warning");
   }
 };
 
-window.authorizePayment = function(id) {
-  const sr = FinanceDB.serviceRequests.find(s => s.id === id);
-  if (sr) {
-    sr.status = 'Closed';
-    FinanceDB.save();
-    renderFinanceWorkflow();
-    showToast("Payment authorized. Job closed successfully.", "success");
+window.authorizePayment = async function(id) {
+  try {
+    const res = await window.api.patch(`/service-requests/${id}`, { status: 'Closed' });
+    if (res && !res.error) {
+      showToast("Payment authorized. Job closed successfully.", "success");
+      await renderFinanceWorkflow();
+    }
+  } catch (err) {
+    console.error(err);
   }
 };
 
@@ -314,7 +332,33 @@ function _setText(id, val) {
    and returns reports to the Sustainability Officer.
    ══════════════════════════════════════════════════════ */
 
-function _readWastageReports() {
+async function _readWastageReports() {
+  try {
+    if (window.api) {
+      const res = await window.api.get('/wastage-reports');
+      if (Array.isArray(res)) {
+        return res.map(r => ({
+          id: r.wastage_report_id,
+          type: r.type,
+          status: r.status,
+          reporterEmail: r.reporter_id === currentUser.user_id ? currentUser.email : 'other',
+          reporterName: r.reporter_id === currentUser.user_id ? currentUser.name : 'Unknown',
+          specificData: r.details?.specificData || {},
+          systemData: r.details?.systemData || {},
+          costImpact: r.details?.costImpact || null,
+          metricTarget: r.details?.metricTarget || null,
+          priority: r.details?.priority || 'Low',
+          archived: r.details?.archived || false,
+          comments: r.details?.comments || [],
+          timestamp: r.created_at || new Date().toISOString(),
+          validatedAt: r.details?.validatedAt,
+          revisionRequest: r.details?.revisionRequest
+        }));
+      }
+    }
+  } catch (e) { console.error('API Error', e); }
+  
+  // Fallback
   try {
     const raw = localStorage.getItem('enertrack_universal_v1');
     if (raw) {
@@ -325,16 +369,43 @@ function _readWastageReports() {
   return [];
 }
 
-function _writeWastageReports(reports) {
+async function _updateWastageReport(id, patchData) {
+  try {
+    if (window.api) {
+      // Get the existing report to update its details properly
+      const all = await window.api.get('/wastage-reports');
+      const target = all.find(r => r.wastage_report_id === id);
+      if (target) {
+          const payload = {
+              status: patchData.status || target.status,
+              details: { ...(target.details || {}), ...patchData.details }
+          };
+          await window.api.patch(`/wastage-reports/${id}`, payload);
+          return true;
+      }
+    }
+  } catch(e) {
+    console.error('Failed to update via API', e);
+  }
+  
+  // Fallback to local
   try {
     const raw = localStorage.getItem('enertrack_universal_v1');
     const data = raw ? JSON.parse(raw) : {};
     if (!data.workflow) data.workflow = {};
-    data.workflow.wastageReports = reports;
+    const target = data.workflow.wastageReports?.find(r => r.id === id);
+    if (target) {
+        Object.assign(target, patchData);
+        if (patchData.details) {
+            Object.assign(target, patchData.details); // flat map for local
+        }
+    }
     localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
+    return true;
   } catch (e) {
     console.error('Failed to persist wastage reports', e);
   }
+  return false;
 }
 
 const TYPE_COLORS = { Energy: '#f59e0b', Water: '#3b82f6', Emissions: '#8b5cf6', Food: '#ef4444' };
@@ -345,12 +416,12 @@ const TYPE_ICONS = {
   Food: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>'
 };
 
-function renderWastageReviewQueue() {
+async function renderWastageReviewQueue() {
   const container = document.getElementById('wastageReviewFeed');
   const countBadge = document.getElementById('wastageReviewCount');
   if (!container) return;
 
-  const allReports = _readWastageReports();
+  const allReports = await _readWastageReports();
   // Show reports forwarded to finance OR with cost impact added (waiting to be sent back)
   const actionable = allReports.filter(r =>
     r.status === 'Forwarded to Finance' || r.status === 'Cost Impact Added'
@@ -455,7 +526,7 @@ function _buildReportCard(r) {
   let actionsHTML = '';
   if (r.status === 'Forwarded to Finance') {
     actionsHTML = `
-      <button onclick="window._openCostImpactModal('${r.id}')" style="flex:1;padding:8px 16px;border-radius:6px;border:none;background:#111827;color:white;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">💰 Add Cost Impact</button>`;
+      <button onclick="window._openCostImpactModal('${r.id}')" style="flex:1;padding:8px 16px;border-radius:6px;border:none;background:#111827;color:white;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Add Cost Impact</button>`;
   } else if (r.status === 'Cost Impact Added') {
     actionsHTML = `
       <button onclick="window._openCostImpactModal('${r.id}')" style="padding:8px 16px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#374151;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">✏ Edit Cost Impact</button>
@@ -468,7 +539,7 @@ function _buildReportCard(r) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="color:${color}">${icon}</span>
-        <strong style="font-size:14px;color:#111827;">#${r.id}</strong>
+        <strong style="font-size:14px;color:#111827;">#${r.id.split('-')[0]}</strong>
         <span style="background:${color};color:white;padding:2px 8px;border-radius:4px;font-size:11px;">${r.type} Wastage</span>
         <span style="font-size:12px;color:#9ca3af;">by ${r.reporterName || 'End User'}</span>
       </div>
@@ -554,31 +625,32 @@ function _buildReportCard(r) {
 }
 
 // Finance Comment Handler
-window._addFAComment = function (reportId) {
+window._addFAComment = async function (reportId) {
     const input = document.getElementById(`fa-cmt-${reportId}`);
     if (!input) return;
     const text = input.value.trim();
     if (!text) return;
 
-    const reports = _readWastageReports();
+    const reports = await _readWastageReports();
     const report = reports.find(r => r.id === reportId);
     if (!report) return;
 
-    if (!report.comments) report.comments = [];
-    report.comments.push({
+    const newComments = report.comments || [];
+    newComments.push({
         author: currentUser.name || 'Finance Analyst',
         role: 'Finance Analyst',
         text: text,
         timestamp: new Date().toISOString()
     });
-    _writeWastageReports(reports);
-    renderWastageReviewQueue();
+    
+    await _updateWastageReport(reportId, { details: { comments: newComments } });
+    await renderWastageReviewQueue();
 };
 
 /* ── Cost Impact Modal ────────────────────────────── */
 
-window._openCostImpactModal = function(reportId) {
-  const allReports = _readWastageReports();
+window._openCostImpactModal = async function(reportId) {
+  const allReports = await _readWastageReports();
   const report = allReports.find(r => r.id === reportId);
   if (!report) return;
 
@@ -608,11 +680,11 @@ window._openCostImpactModal = function(reportId) {
   `;
 
   openModal({
-    title: '💰 Add Cost Impact Assessment',
+    title: 'Add Cost Impact Assessment',
     bodyHTML,
     confirmLabel: 'Save Cost Impact',
     cancelLabel: 'Cancel',
-    onConfirm: () => {
+    onConfirm: async () => {
       const lossVal   = document.getElementById('ci-loss')?.value?.trim();
       const remVal    = document.getElementById('ci-remediation')?.value?.trim();
       const savVal    = document.getElementById('ci-savings')?.value?.trim();
@@ -635,11 +707,7 @@ window._openCostImpactModal = function(reportId) {
       }
 
       // Attach cost impact to the report
-      const freshReports = _readWastageReports();
-      const target = freshReports.find(r => r.id === reportId);
-      if (!target) return;
-
-      target.costImpact = {
+      const costImpact = {
         estimatedLoss: parseFloat(lossVal),
         remediationCost: parseFloat(remVal),
         projectedSavings: parseFloat(savVal),
@@ -649,21 +717,21 @@ window._openCostImpactModal = function(reportId) {
         addedBy: 'Finance Analyst',
         addedAt: new Date().toISOString()
       };
-      target.status = 'Cost Impact Added';
 
-      _writeWastageReports(freshReports);
+      await _updateWastageReport(reportId, { status: 'Cost Impact Added', details: { costImpact } });
+
       showToast('Cost impact saved. Review and return to SO when ready.', 'success');
-      notifyOnStateChange(target, 'cost_added', 'Finance Analyst');
+      notifyOnStateChange({ id: reportId }, 'cost_added', 'Finance Analyst');
       renderBellIcon('notif-container', currentUser.email);
-      renderWastageReviewQueue();
+      await renderWastageReviewQueue();
     }
   });
 };
 
 /* ── Send Back to SO ──────────────────────────────── */
 
-window._sendBackToSO = function(reportId) {
-  const freshReports = _readWastageReports();
+window._sendBackToSO = async function(reportId) {
+  const freshReports = await _readWastageReports();
   const target = freshReports.find(r => r.id === reportId);
   if (!target) return;
 
@@ -672,12 +740,13 @@ window._sendBackToSO = function(reportId) {
     return;
   }
 
-  target.status = 'Returned to SO';
-  target.returnedAt = new Date().toISOString();
+  await _updateWastageReport(reportId, { 
+      status: 'Returned to SO', 
+      details: { returnedAt: new Date().toISOString() } 
+  });
 
-  _writeWastageReports(freshReports);
   showToast('Report sent back to Sustainability Officer with cost figures.', 'success');
   notifyOnStateChange(target, 'returned_to_so', 'Finance Analyst');
   renderBellIcon('notif-container', currentUser.email);
-  renderWastageReviewQueue();
+  await renderWastageReviewQueue();
 };

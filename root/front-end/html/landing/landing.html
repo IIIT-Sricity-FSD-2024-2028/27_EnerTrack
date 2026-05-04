@@ -390,8 +390,9 @@
                 var linksHTML = '';
                 for (var l = 0; l < allLinks.length; l++) {
                     var link = allLinks[l];
+                    var isAdmin = user.role === 'System Administrator' || user.role === 'System Admin';
                     // System Admin sees all links; others see only their own role's link
-                    if (user.role === 'System Admin' || user.role === link.role) {
+                    if (isAdmin || user.role === link.role) {
                         linksHTML += '<a href="' + link.href + '" class="dropdown-item">' +
                             '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + link.icon + '</svg>' +
                             link.label + '</a>';
@@ -428,7 +429,7 @@
                     var effectiveRole = user.role;
                     if (user.role === 'Technician Administrator') effectiveRole = 'Technician';
 
-                    var isAllowed = (user.role === 'System Admin') || (effectiveRole === cardRole);
+                    var isAllowed = (user.role === 'System Administrator' || user.role === 'System Admin') || (effectiveRole === cardRole) || (cardRole === 'System Admin' && user.role === 'System Administrator');
 
                     var targetHref = cardHref;
                     if (cardRole === 'Technician') {

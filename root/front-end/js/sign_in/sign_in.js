@@ -2,11 +2,12 @@
     "use strict";
 
     /* ───────── DOM references ───────── */
-    var form         = document.getElementById("signInForm");
-    var emailInput   = document.getElementById("email");
+    var form          = document.getElementById("signInForm");
+    var emailInput    = document.getElementById("email");
     var passwordInput = document.getElementById("password");
-    var emailError   = document.getElementById("emailError");
+    var emailError    = document.getElementById("emailError");
     var passwordError = document.getElementById("passwordError");
+    var signInBtn     = document.getElementById("signInBtn");
 
     /* ───────── Error helpers ───────── */
     function showError(el, msg) {
@@ -34,8 +35,22 @@
         }
     };
 
+    /* ───────── Role → redirect map ───────── */
+    function redirectByRole(role) {
+        var routes = {
+            "System Administrator":    "../system_admin/system_admin_overview.html",
+            "Financial Analyst":       "../finance-analyst/finance_overview.html",
+            "Technician Administrator":"../technician/technician_overview.html",
+            "Technician":              "../technician_jr/technician_jr_work_orders.html",
+            "Sustainability Officer":  "../sustainability_officer/sustainability_officer_overview.html",
+            "Campus Visitor":          "../enduser/enduser_dashboard.html",
+        };
+        var path = routes[role] || "../landing/landing.html";
+        window.location.href = path;
+    }
+
     /* ───────── Form submission ───────── */
-    form.addEventListener("submit", function (e) {
+    form.addEventListener("submit", async function (e) {
         e.preventDefault();
         clearError(emailError);
         clearError(passwordError);
@@ -53,26 +68,24 @@
             return;
         }
 
-        /* Look up user in mockData + sessionStorage */
-        var user = findUser(email, password);
+        /* Disable button while request is in flight */
+        signInBtn.disabled = true;
+        signInBtn.textContent = "Signing in…";
 
-        if (!user) {
-            showError(passwordError, "Invalid email or password.");
-            return;
-        }
+        try {
+            /* Call the real backend login endpoint */
+            var user = await api.post("/users/login", { email: email, password: password });
 
-        /* Save current user to localStorage for persistence */
-        localStorage.setItem("currentUser", JSON.stringify(user));
+            /* Persist session in localStorage for all pages to read */
+            localStorage.setItem("currentUser", JSON.stringify(user));
 
-        /* Smart redirect based on role */
-        if (user.role === "Campus Visitor") {
-            window.location.href = "../enduser/enduser_dashboard.html";
-        } else if (user.role === "Technician") {
-            window.location.href = "../technician_jr/technician_jr_work_orders.html";
-        } else if (user.role === "Technician Administrator") {
-            window.location.href = "../technician/technician_overview.html";
-        } else {
-            window.location.href = "../landing/landing.html";
+            /* Redirect to the correct dashboard by role */
+            redirectByRole(user.role);
+
+        } catch (err) {
+            showError(passwordError, err.message || "Invalid email or password.");
+            signInBtn.disabled = false;
+            signInBtn.textContent = "Sign In";
         }
     });
 

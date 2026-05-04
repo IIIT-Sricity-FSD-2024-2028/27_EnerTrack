@@ -65,12 +65,12 @@ export class InitiativesController {
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "Delete Initiative", description: "Permanently removes an initiative. Only System Administrator can delete." })
+  @ApiOperation({ summary: "Delete Initiative", description: "Permanently removes an initiative." })
   @ApiResponse({ status: 200, description: "Deleted successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator")
+  @Roles("Sustainability Officer", "System Administrator")
   remove(@Param("id") id: string) {
     return this.initiativesService.remove(id);
   }

@@ -12,6 +12,61 @@
         }
       }
     },
+    "/api/users/login": {
+      "post": {
+        "operationId": "UsersController_loginUser",
+        "summary": "Login",
+        "description": "Authenticates a user by email and password. No x-role header required. Returns user info (without password) on success. Store the returned object in localStorage as the active session.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful. Returns user record (without password)."
+          },
+          "401": {
+            "description": "Invalid email or password."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/register": {
+      "post": {
+        "operationId": "UsersController_register",
+        "summary": "Public User Registration",
+        "description": "Registers a new user account without requiring any authorization headers. Intended for the public sign-up page.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/users": {
       "post": {
         "operationId": "UsersController_create",
@@ -53,12 +108,12 @@
       "get": {
         "operationId": "UsersController_findAll",
         "summary": "List All Users",
-        "description": "Retrieves a list of all registered user accounts. Only the System Administrator can view the complete user directory. Send a GET request with no additional parameters.",
+        "description": "Retrieves a list of all registered user accounts. Internal staff can view the complete user directory to resolve names for assignments.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician Administrator | Technician | Sustainability Officer",
             "required": false,
             "schema": {
               "type": "string"
@@ -70,7 +125,7 @@
             "description": "Array of all user records returned."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller lacks required role."
           }
         },
         "tags": [
@@ -82,7 +137,7 @@
       "get": {
         "operationId": "UsersController_findOne",
         "summary": "Get User by ID",
-        "description": "Retrieves a single user account by its UUID. Only the System Administrator can look up individual user profiles. Pass the user_id as a URL path parameter.",
+        "description": "Retrieves a single user account by its UUID. Internal staff can look up individual user profiles. Pass the user_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -95,7 +150,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician Administrator | Technician | Sustainability Officer",
             "required": false,
             "schema": {
               "type": "string"
@@ -107,7 +162,7 @@
             "description": "User record returned."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller lacks required role."
           },
           "404": {
             "description": "User with the given ID not found."
@@ -2232,7 +2287,7 @@
       "post": {
         "operationId": "AlertsController_create",
         "summary": "Create Alert",
-        "description": "Creates a new alert triggered by a meter anomaly. The System Administrator and Technician can raise alerts.",
+        "description": "Creates a new alert triggered by a meter anomaly. The System Administrator, Technician Administrator and Technician can raise alerts.",
         "parameters": [
           {
             "name": "x-role",
@@ -2269,7 +2324,7 @@
       "get": {
         "operationId": "AlertsController_findAll",
         "summary": "List All Alerts",
-        "description": "Retrieves all alert records. The System Administrator and Technician can view alerts and their statuses.",
+        "description": "Retrieves all alert records. The System Administrator, Technician Administrator and Technician can view alerts and their statuses.",
         "parameters": [
           {
             "name": "x-role",
@@ -2298,7 +2353,7 @@
       "get": {
         "operationId": "AlertsController_findOne",
         "summary": "Get Alert by ID",
-        "description": "Retrieves a single alert by UUID including messages chat thread. The System Administrator and Technician can look up alerts.",
+        "description": "Retrieves a single alert by UUID including messages chat thread. The System Administrator, Technician Administrator and Technician can look up alerts.",
         "parameters": [
           {
             "name": "id",
@@ -2336,7 +2391,7 @@
       "put": {
         "operationId": "AlertsController_put",
         "summary": "Replace Alert",
-        "description": "Completely replaces an existing alert record. Only the System Administrator can perform full replacements.",
+        "description": "Completely replaces an existing alert record. Only the System Administrator and Technician Administrator can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -2384,7 +2439,7 @@
       "patch": {
         "operationId": "AlertsController_update",
         "summary": "Update Alert",
-        "description": "Partially updates an alert (e.g., status from open to acknowledged/resolved). System Administrator and Technician can update.",
+        "description": "Partially updates an alert (e.g., status from open to acknowledged/resolved). System Administrator, Technician Administrator and Technician can update.",
         "parameters": [
           {
             "name": "id",
@@ -2432,7 +2487,7 @@
       "delete": {
         "operationId": "AlertsController_remove",
         "summary": "Delete Alert",
-        "description": "Permanently removes an alert record. Only the System Administrator can delete alerts.",
+        "description": "Permanently removes an alert record. Only the System Administrator and Technician Administrator can delete alerts.",
         "parameters": [
           {
             "name": "id",
@@ -2472,7 +2527,7 @@
       "post": {
         "operationId": "AlertsController_addMessage",
         "summary": "Add Message to Alert Thread",
-        "description": "Appends a message to the alert JSONB messages thread. System Administrator and Technician can post messages.",
+        "description": "Appends a message to the alert JSONB messages thread. System Administrator, Technician Administrator and Technician can post messages.",
         "parameters": [
           {
             "name": "id",
@@ -2519,7 +2574,7 @@
       "get": {
         "operationId": "AlertsController_getFaults",
         "summary": "Get Faults for Alert",
-        "description": "Retrieves all fault records linked to a specific alert. System Administrator and Technician can view faults from an alert.",
+        "description": "Retrieves all fault records linked to a specific alert. System Administrator, Technician Administrator and Technician can view faults from an alert.",
         "parameters": [
           {
             "name": "id",
@@ -2870,7 +2925,7 @@
       "get": {
         "operationId": "ServiceRequestsController_findAll",
         "summary": "List All Service Requests",
-        "description": "Retrieves all service requests. System Administrator and Technician can view them.",
+        "description": "Retrieves all service requests.",
         "parameters": [
           {
             "name": "x-role",
@@ -2899,7 +2954,7 @@
       "get": {
         "operationId": "ServiceRequestsController_findOne",
         "summary": "Get Service Request by ID",
-        "description": "Retrieves a single service request by UUID. System Administrator and Technician can look up requests.",
+        "description": "Retrieves a single service request by UUID.",
         "parameters": [
           {
             "name": "id",
@@ -2985,7 +3040,7 @@
       "patch": {
         "operationId": "ServiceRequestsController_update",
         "summary": "Update Service Request",
-        "description": "Partially updates a service request (e.g., assigning Technician, changing status). System Administrator and Technician can update.",
+        "description": "Partially updates a service request.",
         "parameters": [
           {
             "name": "id",
@@ -3110,7 +3165,7 @@
       "post": {
         "operationId": "WorkOrdersController_create",
         "summary": "Create Work Order",
-        "description": "Creates a new work order linked to a fault or service request. System Administrator and Technician can create work orders.",
+        "description": "Creates a new work order linked to a fault or service request. System Administrator, Technician Administrator and Technician can create work orders.",
         "parameters": [
           {
             "name": "x-role",
@@ -3147,7 +3202,7 @@
       "get": {
         "operationId": "WorkOrdersController_findAll",
         "summary": "List All Work Orders",
-        "description": "Retrieves all work orders. System Administrator and Technician can view work orders.",
+        "description": "Retrieves all work orders.",
         "parameters": [
           {
             "name": "x-role",
@@ -3176,7 +3231,7 @@
       "get": {
         "operationId": "WorkOrdersController_findOne",
         "summary": "Get Work Order by ID",
-        "description": "Retrieves a single work order by UUID. System Administrator and Technician can look up work orders.",
+        "description": "Retrieves a single work order by UUID.",
         "parameters": [
           {
             "name": "id",
@@ -3214,7 +3269,7 @@
       "put": {
         "operationId": "WorkOrdersController_put",
         "summary": "Replace Work Order",
-        "description": "Completely replaces a work order record. Only System Administrator can perform full replacements.",
+        "description": "Completely replaces a work order record. System Administrator and Technician Administrator can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -3262,7 +3317,7 @@
       "patch": {
         "operationId": "WorkOrdersController_update",
         "summary": "Update Work Order",
-        "description": "Partially updates a work order (e.g., status, priority). System Administrator and Technician can update.",
+        "description": "Partially updates a work order (e.g., status, priority). System Administrator, Technician Administrator, Technician, and Financial Analyst can update.",
         "parameters": [
           {
             "name": "id",
@@ -3310,7 +3365,7 @@
       "delete": {
         "operationId": "WorkOrdersController_remove",
         "summary": "Delete Work Order",
-        "description": "Permanently removes a work order. Only System Administrator can delete.",
+        "description": "Permanently removes a work order. System Administrator and Technician Administrator can delete.",
         "parameters": [
           {
             "name": "id",
@@ -4547,7 +4602,7 @@
       "delete": {
         "operationId": "InitiativesController_remove",
         "summary": "Delete Initiative",
-        "description": "Permanently removes an initiative. Only System Administrator can delete.",
+        "description": "Permanently removes an initiative.",
         "parameters": [
           {
             "name": "id",
@@ -5158,14 +5213,33 @@
       }
     },
     "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "aadi@gmail.com",
+            "description": "Registered user email"
+          },
+          "password": {
+            "type": "string",
+            "example": "Aadi@123",
+            "description": "User password (min 6 chars)"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {},
         "example": {
-          "name": "User 1",
-          "email": "user1@enertrack.com",
-          "phone": "555-0101",
-          "password": "hashedpassword",
+          "name": "Aadithya",
+          "email": "aadi@gmail.com",
+          "phone": "9876543210",
+          "password": "Aadi@123",
           "role": "System Administrator",
           "specialization": null
         }
@@ -5178,10 +5252,10 @@
         "type": "object",
         "properties": {},
         "example": {
-          "name": "User 1",
-          "email": "user1@enertrack.com",
-          "phone": "555-0101",
-          "password": "hashedpassword",
+          "name": "Aadithya",
+          "email": "aadi@gmail.com",
+          "phone": "9876543210",
+          "password": "Aadi@123",
           "role": "System Administrator",
           "specialization": null
         }
@@ -5334,11 +5408,23 @@
         "example": {
           "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
           "type": "Water",
-          "status": "reported",
+          "status": "Forwarded to Finance",
           "details": {
-            "note": "Wastage 1"
+            "specificData": {
+              "nature": "Sprinkler system leaking heavily near the pathway.",
+              "location": "Main Courtyard, East Wing"
+            },
+            "priority": "High",
+            "systemData": {
+              "sensorId": "FLOW-CW-01",
+              "readingValue": 45.5,
+              "readingUnit": "L/min",
+              "baselineValue": 20,
+              "confidence": "High",
+              "status": "abnormal"
+            }
           },
-          "sensor_reading_id": null
+          "sensor_reading_id": "rrrr0000-0001-4000-8000-000000000000"
         }
       },
       "PutWastageReportDto": {
@@ -5351,11 +5437,23 @@
         "example": {
           "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
           "type": "Water",
-          "status": "reported",
+          "status": "Forwarded to Finance",
           "details": {
-            "note": "Wastage 1"
+            "specificData": {
+              "nature": "Sprinkler system leaking heavily near the pathway.",
+              "location": "Main Courtyard, East Wing"
+            },
+            "priority": "High",
+            "systemData": {
+              "sensorId": "FLOW-CW-01",
+              "readingValue": 45.5,
+              "readingUnit": "L/min",
+              "baselineValue": 20,
+              "confidence": "High",
+              "status": "abnormal"
+            }
           },
-          "sensor_reading_id": null
+          "sensor_reading_id": "rrrr0000-0001-4000-8000-000000000000"
         }
       },
       "CreateAlertDto": {
@@ -5442,14 +5540,7 @@
       },
       "CreateServiceRequestDto": {
         "type": "object",
-        "properties": {},
-        "example": {
-          "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
-          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
-          "category": "Maintenance",
-          "issue_type": "Broken part",
-          "status": "pending"
-        }
+        "properties": {}
       },
       "PutServiceRequestDto": {
         "type": "object",
@@ -5457,25 +5548,18 @@
       },
       "UpdateServiceRequestDto": {
         "type": "object",
-        "properties": {},
-        "example": {
-          "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
-          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
-          "category": "Maintenance",
-          "issue_type": "Broken part",
-          "status": "pending"
-        }
+        "properties": {}
       },
       "CreateWorkOrderDto": {
         "type": "object",
         "properties": {},
         "example": {
-          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
+          "assigned_to_id": "uuuu0000-0004-4000-8000-000000000000",
           "linked_fault_id": null,
           "source_request_id": "ssss0000-0002-4000-8000-000000000000",
-          "title": "Work Order 1",
+          "title": "HVAC Filter Replacement – Block A",
           "priority": "high",
-          "status": "inprogress"
+          "status": "approval"
         }
       },
       "PutWorkOrderDto": {
@@ -5486,12 +5570,12 @@
         "type": "object",
         "properties": {},
         "example": {
-          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
+          "assigned_to_id": "uuuu0000-0004-4000-8000-000000000000",
           "linked_fault_id": null,
           "source_request_id": "ssss0000-0002-4000-8000-000000000000",
-          "title": "Work Order 1",
+          "title": "HVAC Filter Replacement – Block A",
           "priority": "high",
-          "status": "inprogress"
+          "status": "approval"
         }
       },
       "CreateEnergyCostDto": {
@@ -5667,10 +5751,15 @@
         "properties": {},
         "example": {
           "generated_by_id": "uuuu0000-0005-4000-8000-000000000000",
-          "title": "Sust. Report 1",
+          "title": "Q1 Sustainability Performance",
           "period": "Q1 2025",
-          "metrics": {},
-          "generated_at": "2025-01-01T10:00:00.000Z"
+          "metrics": {
+            "energyReduction": "-4.2%",
+            "wasteDiverted": "68%",
+            "carbonOffset": "124 tCO2e",
+            "waterSaved": "1.2 ML"
+          },
+          "generated_at": "2025-04-01T10:00:00.000Z"
         }
       },
       "PutSustainabilityReportDto": {
@@ -5682,10 +5771,15 @@
         "properties": {},
         "example": {
           "generated_by_id": "uuuu0000-0005-4000-8000-000000000000",
-          "title": "Sust. Report 1",
+          "title": "Q1 Sustainability Performance",
           "period": "Q1 2025",
-          "metrics": {},
-          "generated_at": "2025-01-01T10:00:00.000Z"
+          "metrics": {
+            "energyReduction": "-4.2%",
+            "wasteDiverted": "68%",
+            "carbonOffset": "124 tCO2e",
+            "waterSaved": "1.2 ML"
+          },
+          "generated_at": "2025-04-01T10:00:00.000Z"
         }
       }
     }

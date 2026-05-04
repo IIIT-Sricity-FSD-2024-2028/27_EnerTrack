@@ -64,7 +64,6 @@
                             <h3>Energy Consumption</h3>
                             <p>Current electricity and gas usage across all monitors.</p>
                         </div>
-                        <button class="btn-refresh" data-metric="energy"><span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="sync"></span> Sync</button>
                     </div>
                     <div class="metric-val"><span id="metricEnergy">812</span> <small>MWh</small></div>
                     <div class="metric-footer">Upstream feeds completed for 24 of 24 monitored meters in current cycle.</div>
@@ -76,7 +75,6 @@
                             <h3>Water Usage</h3>
                             <p>Aggregated water intake from facilities and process lines.</p>
                         </div>
-                        <button class="btn-refresh" data-metric="water"><span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="sync"></span> Sync</button>
                     </div>
                     <div class="metric-val"><span id="metricWater">3.6</span> <small>ML</small></div>
                     <div class="metric-footer">Building clusters posted below-average demand after optimization changes.</div>
@@ -88,7 +86,6 @@
                             <h3>Emissions Data</h3>
                             <p>Calculated emissions feed using current validated factors.</p>
                         </div>
-                        <button class="btn-refresh" data-metric="emissions"><span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="sync"></span> Sync</button>
                     </div>
                     <div class="metric-val"><span id="metricEmissions">214</span> <small>tCO₂e</small></div>
                     <div class="metric-footer">Emission factor tables were verified during the latest reporting rules sync.</div>
@@ -100,7 +97,6 @@
                             <h3>Food Wastage</h3>
                             <p>Consolidated food discard data from kitchens, canteens, and event service points.</p>
                         </div>
-                        <button class="btn-refresh" data-metric="food"><span style="display:inline-flex;width:12px;height:12px;margin-right:4px;" data-icon="sync"></span> Sync</button>
                     </div>
                     <div class="metric-val"><span id="metricFood">742</span> <small>kg</small></div>
                     <div class="metric-footer">Collection logs were reconciled with waste handling records for this cycle.</div>
@@ -153,114 +149,55 @@
                 </div>
             </section>
 
-            <!-- SPLIT GRID -->
-            <section class="split-grid">
-                <!-- ENVIRONMENTAL METRICS -->
-                <div class="dashboard-panel">
-                    <h2>Environmental metrics dashboard</h2>
-                    <p class="sub">Calculated impact indicators with directional signals to highlight improvement or deterioration.</p>
-                    
-                    <div class="mini-metrics">
-                        <div class="mini-box">
-                            <div class="mini-header">
-                                <h4>Energy Intensity</h4>
-                                <img src="../../assets/total_energy_consumed.png" width="16" style="opacity:0.5;">
-                            </div>
-                            <div class="mini-val">
-                                12.4 kWh/m²
-                                <span class="trend-down"><svg width="10" height="10" style="vertical-align:middle;margin-right:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> 4.3%</span>
-                            </div>
-                            <div class="mini-desc">Lower intensity than last month, indicating improved operating efficiency.</div>
-                        </div>
-                        
-                        <div class="mini-box">
-                            <div class="mini-header">
-                                <h4>Water Intensity</h4>
-                                <img src="../../assets/total_water_usage.png" width="16" style="opacity:0.5;">
-                            </div>
-                            <div class="mini-val">
-                                0.84 m³/unit
-                                <span class="trend-down"><svg width="10" height="10" style="vertical-align:middle;margin-right:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> 2.1%</span>
-                            </div>
-                            <div class="mini-desc">Usage per unit output is improving after recent conservation controls were enabled.</div>
-                        </div>
-                        
-                        <div class="mini-box">
-                            <div class="mini-header">
-                                <h4>Emissions Intensity</h4>
-                                <img src="../../assets/total_emissions.png" width="16" style="opacity:0.5;">
-                            </div>
-                            <div class="mini-val">
-                                0.26 tCO₂e/MWh
-                                <span class="trend-down"><svg width="10" height="10" style="vertical-align:middle;margin-right:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> 6.8%</span>
-                            </div>
-                            <div class="mini-desc">Cleaner energy sourcing continues to lower emissions per consumption unit.</div>
-                        </div>
-                        
-                        <div class="mini-box">
-                            <div class="mini-header">
-                                <h4>Exception Rate</h4>
-                                <img src="../../assets/exception_rate.png" width="16" style="opacity:0.5;">
-                            </div>
-                            <div class="mini-val">
-                                3.9%
-                                <span class="trend-up"><svg width="10" height="10" style="vertical-align:middle;margin-right:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> 0.7%</span>
-                            </div>
-                            <div class="mini-desc">A slight rise in flagged anomalies requires manual review in two buildings.</div>
-                        </div>
+            <!-- VIEW METRICS & TRENDS -->
+            <section class="dashboard-panel full-width">
+                <h2>View Metrics & Trends</h2>
+                <p class="sub">Filter chart views by date range and inspect time-based changes across all core indicators.</p>
+                
+                <div class="pill-nav" id="trendPeriodSelector">
+                    <div class="pill-item active" data-period="30 Days">30 Days</div>
+                    <div class="pill-item" data-period="Quarter">Quarter</div>
+                    <div class="pill-item" data-period="Year">Year</div>
+                </div>
+                
+                <div class="chart-container" id="trendsChart">
+                    <div class="chart-group">
+                        <div class="bar energy" style="height: 60%;"></div>
+                        <div class="bar water" style="height: 42%;"></div>
+                        <div class="bar emissions" style="height: 50%;"></div>
+                        <div class="bar food" style="height: 36%;"></div>
+                    </div>
+                    <div class="chart-group">
+                        <div class="bar energy" style="height: 70%;"></div>
+                        <div class="bar water" style="height: 46%;"></div>
+                        <div class="bar emissions" style="height: 45%;"></div>
+                        <div class="bar food" style="height: 40%;"></div>
+                    </div>
+                    <div class="chart-group">
+                        <div class="bar energy" style="height: 55%;"></div>
+                        <div class="bar water" style="height: 39%;"></div>
+                        <div class="bar emissions" style="height: 42%;"></div>
+                        <div class="bar food" style="height: 35%;"></div>
+                    </div>
+                    <div class="chart-group">
+                        <div class="bar energy" style="height: 50%;"></div>
+                        <div class="bar water" style="height: 35%;"></div>
+                        <div class="bar emissions" style="height: 40%;"></div>
+                        <div class="bar food" style="height: 33%;"></div>
                     </div>
                 </div>
-
-                <!-- VIEW METRICS & TRENDS -->
-                <div class="dashboard-panel">
-                    <h2>View Metrics & Trends</h2>
-                    <p class="sub">Filter chart views by date range and inspect time-based changes across all core indicators.</p>
-                    
-                    <div class="pill-nav" id="trendPeriodSelector">
-                        <div class="pill-item active" data-period="30 Days">30 Days</div>
-                        <div class="pill-item" data-period="Quarter">Quarter</div>
-                        <div class="pill-item" data-period="Year">Year</div>
-                    </div>
-                    
-                    <div class="chart-container" id="trendsChart">
-                        <div class="chart-group">
-                            <div class="bar energy" style="height: 60%;"></div>
-                            <div class="bar water" style="height: 42%;"></div>
-                            <div class="bar emissions" style="height: 50%;"></div>
-                            <div class="bar food" style="height: 36%;"></div>
-                        </div>
-                        <div class="chart-group">
-                            <div class="bar energy" style="height: 70%;"></div>
-                            <div class="bar water" style="height: 46%;"></div>
-                            <div class="bar emissions" style="height: 45%;"></div>
-                            <div class="bar food" style="height: 40%;"></div>
-                        </div>
-                        <div class="chart-group">
-                            <div class="bar energy" style="height: 55%;"></div>
-                            <div class="bar water" style="height: 39%;"></div>
-                            <div class="bar emissions" style="height: 42%;"></div>
-                            <div class="bar food" style="height: 35%;"></div>
-                        </div>
-                        <div class="chart-group">
-                            <div class="bar energy" style="height: 50%;"></div>
-                            <div class="bar water" style="height: 35%;"></div>
-                            <div class="bar emissions" style="height: 40%;"></div>
-                            <div class="bar food" style="height: 33%;"></div>
-                        </div>
-                    </div>
-                    <div class="chart-labels">
-                        <span>Week 1</span>
-                        <span>Week 2</span>
-                        <span>Week 3</span>
-                        <span>Week 4</span>
-                    </div>
-                    
-                    <div class="chart-legend">
-                        <div class="legend-item"><div class="legend-dot energy"></div>Energy</div>
-                        <div class="legend-item"><div class="legend-dot water"></div>Water</div>
-                        <div class="legend-item"><div class="legend-dot emissions"></div>Emissions</div>
-                        <div class="legend-item"><div class="legend-dot food"></div>Food</div>
-                    </div>
+                <div class="chart-labels">
+                    <span>Week 1</span>
+                    <span>Week 2</span>
+                    <span>Week 3</span>
+                    <span>Week 4</span>
+                </div>
+                
+                <div class="chart-legend">
+                    <div class="legend-item"><div class="legend-dot energy"></div>Energy</div>
+                    <div class="legend-item"><div class="legend-dot water"></div>Water</div>
+                    <div class="legend-item"><div class="legend-dot emissions"></div>Emissions</div>
+                    <div class="legend-item"><div class="legend-dot food"></div>Food</div>
                 </div>
             </section>
 

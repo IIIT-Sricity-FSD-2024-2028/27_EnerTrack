@@ -228,16 +228,44 @@
         'Dismissed':  { label: 'Dismissed',           cssClass: 'status-dismissed' }
       };
 
-      function renderArchives() {
+      async function renderArchives() {
         const container = document.getElementById('archiveContainer');
         const countBadge = document.getElementById('archiveCount');
 
-        // Read directly from localStorage for fresh data (avoids stale universalDB cache)
-        const raw = localStorage.getItem('enertrack_universal_v1');
-        const data = raw ? JSON.parse(raw) : null;
-        const archived = (data?.workflow?.wastageReports || [])
-          .filter(wr => wr.reporterEmail === user.email && wr.archived)
-          .sort((a, b) => new Date(b.archivedAt || b.timestamp) - new Date(a.archivedAt || a.timestamp));
+        let archived = [];
+        try {
+            if (window.api) {
+                const res = await window.api.get('/wastage-reports');
+                if (Array.isArray(res)) {
+                    archived = res.filter(r => r.reporter_id === user.user_id && r.details?.archived)
+                        .map(r => ({
+                            id: r.wastage_report_id,
+                            type: r.type,
+                            status: r.status,
+                            specificData: r.details?.specificData || {},
+                            systemData: r.details?.systemData || {},
+                            costImpact: r.details?.costImpact || null,
+                            metricTarget: r.details?.metricTarget || null,
+                            priority: r.details?.priority || 'Low',
+                            archivedAt: r.details?.archivedAt,
+                            dismissReason: r.details?.dismissReason,
+                            timestamp: r.created_at
+                        }))
+                        .sort((a, b) => new Date(b.archivedAt || b.timestamp) - new Date(a.archivedAt || a.timestamp));
+                }
+            }
+        } catch (err) {
+            console.warn('[EndUser] Failed to fetch archives from backend:', err);
+        }
+
+        // Fallback
+        if (archived.length === 0) {
+            const raw = localStorage.getItem('enertrack_universal_v1');
+            const data = raw ? JSON.parse(raw) : null;
+            archived = (data?.workflow?.wastageReports || [])
+              .filter(wr => wr.reporterEmail === user.email && wr.archived)
+              .sort((a, b) => new Date(b.archivedAt || b.timestamp) - new Date(a.archivedAt || a.timestamp));
+        }
 
         countBadge.textContent = archived.length;
 
@@ -329,6 +357,7 @@
       });
     });
   </script>
+  <script src="../../js/shared/api.js"></script>
   <script src="../../js/shared/dashboardProfileMenu.js"></script>
 </body>
 

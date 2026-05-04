@@ -1,431 +1,335 @@
 /**
- * initiativesPage.js
- * Handles CRUD and UI rendering for the Sustainability Initiatives page.
+ * initiativesPage.js — Sustainability Officer Initiatives
+ * Fully wired to the NestJS backend via window.api.
+ *
+ * Backend field mapping:
+ *   initiative_id   → card id
+ *   created_by_id   → resolved from currentUser
+ *   title           → card title
+ *   status          → kanban column (proposed/approved/in-progress/completed)
+ *   feasible        → boolean
+ *   target_reduction → target %
+ *   outcomes        → string[]
  */
-import SustDB from './data/mockData.js';
+
 import SessionModule from './modules/session.js';
-import { showToast, openModal, generateId } from './utils/utils.js';
+import { showToast, openModal } from './utils/utils.js';
 import { injectIcons } from './utils/icons.js';
 
+const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+/* ─── State ────────────────────────────────────── */
+var allInitiatives = [];
+
+/* ─── Boot ──────────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", () => {
   SessionModule.initSession();
   injectIcons();
-  renderInitiatives();
+  loadInitiatives();
   wireForm();
 });
 
-// State flow for forward/backward transitions
+/* ─── Load from backend ─────────────────────────── */
+async function loadInitiatives() {
+  try {
+    const res = await window.api.get('/initiatives');
+    if (res && !res.error) {
+      allInitiatives = Array.isArray(res) ? res : (res.data || []);
+      renderInitiatives();
+    } else {
+      showToast('Failed to load initiatives', 'error');
+    }
+  } catch (err) {
+    console.error('[Initiatives] Load failed:', err);
+    showToast('Could not connect to backend.', 'error');
+  }
+}
+
+/* ─── State flow ────────────────────────────────── */
 const STATE_ORDER = ["proposed", "approved", "in-progress", "completed"];
 
 function getNextState(status) {
   const idx = STATE_ORDER.indexOf(status);
   return idx < STATE_ORDER.length - 1 ? STATE_ORDER[idx + 1] : null;
 }
-
 function getPrevState(status) {
   const idx = STATE_ORDER.indexOf(status);
   return idx > 0 ? STATE_ORDER[idx - 1] : null;
 }
-
 function formatStatus(status) {
   const map = { "proposed": "Proposed", "approved": "Approved", "in-progress": "In Progress", "completed": "Completed" };
   return map[status] || status;
 }
 
-// Render the entire pipeline based on SustDB
+/* ─── Render kanban ─────────────────────────────── */
 function renderInitiatives() {
-  const initiatives = SustDB.initiatives;
-
-  const proposedCols = document.getElementById("col-proposed");
-  const inProgressCols = document.getElementById("col-in-progress");
-  const approvedCols = document.getElementById("col-approved");
-  const completedCols = document.getElementById("col-completed");
-
-  if (!proposedCols || !inProgressCols || !approvedCols || !completedCols) return;
-
-  // Clear existing
-  proposedCols.innerHTML = "";
-  inProgressCols.innerHTML = "";
-  approvedCols.innerHTML = "";
-  completedCols.innerHTML = "";
-
-  let counts = { proposed: 0, "in-progress": 0, approved: 0, completed: 0 };
-
-  initiatives.forEach(init => {
-    const card = buildCard(init);
-    counts[init.status]++;
-    
-    if (init.status === "proposed") {
-      proposedCols.appendChild(card);
-    } else if (init.status === "in-progress") {
-      inProgressCols.appendChild(card);
-    } else if (init.status === "approved") {
-      approvedCols.appendChild(card);
-    } else if (init.status === "completed") {
-      completedCols.appendChild(card);
-    }
-  });
-
-  // Toggle Visibility of Column Headers
-  const toggleHeader = (colId, show) => {
-    const el = document.getElementById(colId);
-    if (el && el.previousElementSibling) {
-        el.previousElementSibling.style.display = show ? "block" : "none";
-    }
+  const cols = {
+    proposed:     document.getElementById("col-proposed"),
+    "in-progress":document.getElementById("col-in-progress"),
+    approved:     document.getElementById("col-approved"),
+    completed:    document.getElementById("col-completed"),
   };
 
-  toggleHeader("col-proposed", counts.proposed > 0);
-  toggleHeader("col-in-progress", counts["in-progress"] > 0);
-  toggleHeader("col-approved", counts.approved > 0);
-  toggleHeader("col-completed", counts.completed > 0);
+  Object.values(cols).forEach(c => { if (c) c.innerHTML = ""; });
+  const counts = { proposed: 0, "in-progress": 0, approved: 0, completed: 0 };
+
+  allInitiatives.forEach(init => {
+    const card = buildCard(init);
+    counts[init.status] = (counts[init.status] || 0) + 1;
+    if (cols[init.status]) cols[init.status].appendChild(card);
+  });
+
+  // Toggle column headers
+  Object.entries(cols).forEach(([key, el]) => {
+    if (el && el.previousElementSibling) {
+      el.previousElementSibling.style.display = counts[key] > 0 ? "block" : "none";
+    }
+  });
 }
 
+/* ─── Build card ────────────────────────────────── */
 function buildCard(init) {
   const div = document.createElement("div");
   div.className = `kanban-card ${init.onTrack === false ? 'offtrack' : ''}`;
-  div.dataset.id = init.id;
+  div.dataset.id = init.initiative_id;
 
-  // Description
-  const descHtml = init.description ? `<p class="kanban-desc">${init.description}</p>` : '';
-
-  // Body: stats or outcomes
-  let bodyHtml = "";
-  if (init.status === "completed" && init.outcomes) {
-    bodyHtml = `
-      <div class="kanban-outcomes">
-        ${init.outcomes.map(o => `<div class="outcome-pill">${o}</div>`).join('')}
-      </div>
-    `;
-  } else {
-    bodyHtml = `
-      <div class="kanban-stats">
-        <div class="kanban-stats-label">Target</div>
-        <div class="kanban-stats-val">${init.target || '—'}</div>
-        <div class="kanban-stats-label">Cost</div>
-        <div class="kanban-stats-val">${init.cost || '—'}</div>
-        <div class="kanban-stats-label">Timeline</div>
-        <div class="kanban-stats-val">${(init.timeline || '—').split(' - ')[0]}</div>
-      </div>
-    `;
-  }
-
-  // On Track / Off Track toggle
-  const trackHtml = init.status !== "completed" ? `
-    <div class="kanban-track-toggle">
-      <button class="track-btn ${init.onTrack !== false ? 'active on' : ''}" data-track="on">On Track</button>
-      <button class="track-btn ${init.onTrack === false ? 'active off' : ''}" data-track="off">Off Track</button>
-    </div>
-  ` : '';
-
-  // State transition buttons
   const nextState = getNextState(init.status);
   const prevState = getPrevState(init.status);
 
   let stateButtonsHtml = '';
-  if (prevState) {
-    stateButtonsHtml += `<button class="btn-state btn-state-prev" data-to="${prevState}">← ${formatStatus(prevState)}</button>`;
-  }
-  if (nextState) {
-    stateButtonsHtml += `<button class="btn-state btn-state-next" data-to="${nextState}">${formatStatus(nextState)} →</button>`;
-  }
+  if (prevState) stateButtonsHtml += `<button class="btn-state btn-state-prev" data-to="${prevState}">← ${formatStatus(prevState)}</button>`;
+  if (nextState) stateButtonsHtml += `<button class="btn-state btn-state-next" data-to="${nextState}">${formatStatus(nextState)} →</button>`;
 
-  // Action buttons
-  let actionButtonsHtml = `
-    <button class="btn-action btn-edit-action">Edit</button>
-  `;
-  if (init.status === "completed") {
-    actionButtonsHtml += `<button class="btn-action btn-archive-action">Archive</button>`;
+  const trackHtml = init.status !== "completed" ? `
+    <div class="kanban-track-toggle">
+      <button class="track-btn ${init.onTrack !== false ? 'active on' : ''}" data-track="on">On Track</button>
+      <button class="track-btn ${init.onTrack === false ? 'active off' : ''}" data-track="off">Off Track</button>
+    </div>` : '';
+
+  let bodyHtml = '';
+  if (init.status === "completed" && init.outcomes) {
+    bodyHtml = `<div class="kanban-outcomes">${(init.outcomes || []).map(o => `<div class="outcome-pill">${o}</div>`).join('')}</div>`;
+  } else {
+    bodyHtml = `
+      <div class="kanban-stats">
+        <div class="kanban-stats-label">Target Reduction</div>
+        <div class="kanban-stats-val">${init.target_reduction || '—'}</div>
+        <div class="kanban-stats-label">Feasible</div>
+        <div class="kanban-stats-val">${init.feasible ? 'Yes' : 'No'}</div>
+      </div>`;
   }
-  actionButtonsHtml += `<button class="btn-action btn-delete-action">Delete</button>`;
 
   div.innerHTML = `
-    <div class="kanban-header">
-      <h5>${init.title}</h5>
-    </div>
-    ${descHtml}
+    <div class="kanban-header"><h5>${init.title}</h5></div>
     ${bodyHtml}
     ${trackHtml}
-    <div class="kanban-state-row">
-      ${stateButtonsHtml}
-    </div>
+    <div class="kanban-state-row">${stateButtonsHtml}</div>
     <div class="kanban-actions">
-      ${actionButtonsHtml}
+      <button class="btn-action btn-edit-action">Edit</button>
+      ${init.status === "completed" ? '<button class="btn-action btn-archive-action">Archive</button>' : ''}
+      <button class="btn-action btn-delete-action">Delete</button>
     </div>
   `;
 
-  // Bind track toggle
+  // Track toggle
   div.querySelectorAll('.track-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const isOn = btn.dataset.track === 'on';
-      SustDB.updateInitiative(init.id, { onTrack: isOn });
+      await patchInitiative(init.initiative_id, { feasible: isOn });
       showToast(isOn ? "Marked 'On Track'" : "Marked 'Off Track'", isOn ? "success" : "warning");
-      renderInitiatives();
     });
   });
 
-  // Bind state transitions
+  // State transitions
   div.querySelectorAll('.btn-state').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const newStatus = btn.dataset.to;
-      SustDB.updateInitiative(init.id, { status: newStatus });
-      SustDB.addHighlight("Status Update", `${init.title} → ${formatStatus(newStatus)}`, "blue");
-      showToast(`Moved to ${formatStatus(newStatus)}`, "success");
-      renderInitiatives();
+      await patchInitiative(init.initiative_id, { status: btn.dataset.to });
+      showToast(`Moved to ${formatStatus(btn.dataset.to)}`, "success");
     });
   });
 
-  // Bind actions
-  const bindAction = (selector, actionCallback) => {
-      const btn = div.querySelector(selector);
-      if (btn) {
-          btn.addEventListener("click", (e) => {
-              e.stopPropagation();
-              actionCallback(e);
-          });
-      }
+  // Action buttons
+  const bindAction = (selector, cb) => {
+    const b = div.querySelector(selector);
+    if (b) b.addEventListener('click', (e) => { e.stopPropagation(); cb(); });
   };
-
-  bindAction(".btn-edit-action", () => openEditModal(init));
-  bindAction(".btn-archive-action", () => archiveInitiative(init.id));
-  bindAction(".btn-delete-action", () => confirmDelete(init.id));
+  bindAction('.btn-edit-action', () => openEditModal(init));
+  bindAction('.btn-archive-action', () => archiveInitiative(init.initiative_id));
+  bindAction('.btn-delete-action', () => confirmDelete(init.initiative_id));
 
   return div;
 }
 
-function switchStatus(id, newStatus, msg) {
-    const init = SustDB.initiatives.find(i => i.id === id);
-    if (init) SustDB.addHighlight("Status Update", `${init.title} moved to ${newStatus}`, "blue");
-    SustDB.updateInitiative(id, { status: newStatus });
-    renderInitiatives();
-    showToast(msg, "success");
+/* ─── API helpers ───────────────────────────────── */
+async function patchInitiative(id, patch) {
+  try {
+    const res = await window.api.patch(`/initiatives/${id}`, patch);
+    if (res && !res.error) {
+      // Update local cache
+      const idx = allInitiatives.findIndex(i => i.initiative_id === id);
+      if (idx !== -1) allInitiatives[idx] = { ...allInitiatives[idx], ...patch };
+      renderInitiatives();
+    } else {
+      showToast('Update failed', 'error');
+    }
+  } catch (err) {
+    showToast(err.message || 'Update failed', 'error');
+  }
 }
 
-function archiveInitiative(id) {
-    const init = SustDB.initiatives.find(i => i.id === id);
-    openModal({
-        title: "Archive Initiative",
-        bodyHTML: "<p>Archiving will remove this completed initiative from active view. Continue?</p>",
-        confirmLabel: "Archive",
-        danger: false,
-        onConfirm: () => {
-            if (init) {
-                SustDB.addHighlight("Initiative Archived", init.title, "gray");
-
-                // Read fresh from localStorage to get the full data tree
-                const raw = localStorage.getItem('enertrack_universal_v1');
-                const fullData = raw ? JSON.parse(raw) : {};
-
-                if (fullData.sust) {
-                    if (!Array.isArray(fullData.sust.initiativeArchives)) {
-                        fullData.sust.initiativeArchives = [];
-                    }
-                    fullData.sust.initiativeArchives.unshift({
-                        ...init,
-                        archivedAt: new Date().toISOString(),
-                        archiveType: 'initiative'
-                    });
-
-                    // Remove from active initiatives in the same data object
-                    fullData.sust.initiatives = (fullData.sust.initiatives || []).filter(i => i.id !== id);
-
-                    // Single atomic write
-                    localStorage.setItem('enertrack_universal_v1', JSON.stringify(fullData));
-
-                    // Sync in-memory state by reloading the page
-                    showToast("Initiative archived", "info");
-                    window.location.href = 'sust_archives.html';
-                    return;
-                }
-            }
-            SustDB.deleteInitiative(id);
-            renderInitiatives();
-            showToast("Initiative archived", "info");
-            window.location.href = 'sust_archives.html';
-        }
-    });
+async function deleteInitiative(id) {
+  try {
+    const res = await window.api.delete(`/initiatives/${id}`);
+    if (res && !res.error) {
+      allInitiatives = allInitiatives.filter(i => i.initiative_id !== id);
+      renderInitiatives();
+    } else {
+      showToast('Delete failed', 'error');
+    }
+  } catch (err) {
+    showToast(err.message || 'Delete failed', 'error');
+  }
 }
 
+/* ─── Wire form (Propose) ───────────────────────── */
 function wireForm() {
-    const btnPropose = document.querySelector(".btn-propose");
-    if (!btnPropose) return;
+  const btn = document.querySelector(".btn-propose");
+  if (!btn) return;
 
-    btnPropose.addEventListener("click", () => {
-        const titleEl = document.getElementById("new-init-title");
-        const descEl = document.getElementById("new-init-desc");
-        const targetEl = document.getElementById("new-init-target");
-        const costEl = document.getElementById("new-init-cost");
-        const timelineEl = document.querySelector("#new-init-timeline .select-value");
+  btn.addEventListener("click", async () => {
+    const titleEl  = document.getElementById("new-init-title");
+    const descEl   = document.getElementById("new-init-desc");
+    const targetEl = document.getElementById("new-init-target");
+    const timelineEl = document.querySelector("#new-init-timeline .select-value");
 
-        // ── Validation ──
-        const title = titleEl ? titleEl.value.trim() : "";
-        const desc = descEl ? descEl.value.trim() : "";
-        const target = targetEl ? targetEl.value.trim() : "";
-        const cost = costEl ? costEl.value.trim() : "";
+    const title  = titleEl?.value.trim()  || "";
+    const desc   = descEl?.value.trim()   || "";
+    const target = targetEl?.value.trim() || "";
 
-        if (!title) {
-            showToast("Title is required.", "error");
-            return;
-        }
-        if (!desc) {
-            showToast("Description is required.", "error");
-            return;
-        }
-        if (!target) {
-            showToast("Target Energy Reduction is required.", "error");
-            return;
-        }
-        if (isNaN(parseFloat(target)) || !isFinite(target.replace('%', ''))) {
-            showToast("Target Energy must be a valid number (e.g. 7.5).", "error");
-            return;
-        }
-        if (!cost) {
-            showToast("Estimated Cost is required.", "error");
-            return;
-        }
-        // Strip $ and commas for validation
-        const costClean = cost.replace(/[$,]/g, '');
-        if (isNaN(parseFloat(costClean)) || !isFinite(costClean)) {
-            showToast("Estimated Cost must be a valid number (e.g. 56500).", "error");
-            return;
-        }
+    if (!title)  { showToast("Title is required.", "error"); return; }
+    if (!desc)   { showToast("Description is required.", "error"); return; }
+    if (!target) { showToast("Target Reduction is required.", "error"); return; }
 
-        const newInit = {
-            id: "init_" + generateId(),
-            title: title,
-            description: desc,
-            target: target.includes('%') ? target : target + '%',
-            cost: cost.startsWith('₹') ? cost : '₹' + cost,
-            timeline: timelineEl ? timelineEl.textContent.trim() : "",
-            status: "proposed",
-            feasible: true,
-            onTrack: true 
-        };
+    const payload = {
+      created_by_id: currentUser.user_id || 'uuuu0000-0005-4000-8000-000000000000',
+      title: title,
+      status: "proposed",
+      feasible: true,
+      target_reduction: target.includes('%') ? target : target + '%',
+      outcomes: [],
+    };
 
-        SustDB.addInitiative(newInit);
-        SustDB.addHighlight("Initiative Proposed", title, "blue");
-        
-        showToast("Initiative proposed successfully!", "success");
+    try {
+      const res = await window.api.post('/initiatives', payload);
+      if (res && !res.error) {
+        allInitiatives.push(res);
         renderInitiatives();
-        
-        // Reset form
-        titleEl.value = "";
-        descEl.value = "";
-        targetEl.value = "";
-        costEl.value = "";
-    });
+        showToast("Initiative proposed successfully!", "success");
+        if (titleEl)  titleEl.value  = "";
+        if (descEl)   descEl.value   = "";
+        if (targetEl) targetEl.value = "";
+      } else {
+        showToast('Failed to propose initiative', 'error');
+      }
+    } catch (err) {
+      showToast('Could not connect to backend.', 'error');
+    }
+  });
 }
 
+/* ─── Edit modal ────────────────────────────────── */
 function openEditModal(init) {
-    const formHtml = `
-      <div style="display:flex; flex-direction:column; gap: 12px;">
+  openModal({
+    title: "Edit Initiative",
+    bodyHTML: `
+      <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Title</label>
-          <input type="text" id="edit-init-title" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" value="${init.title}">
+          <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:4px;">Title</label>
+          <input type="text" id="edit-init-title" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;" value="${init.title}">
         </div>
         <div>
-          <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Description</label>
-          <input type="text" id="edit-init-desc" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" value="${init.description || ''}">
+          <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:4px;">Target Reduction</label>
+          <input type="text" id="edit-init-target" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;" value="${init.target_reduction || ''}">
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div>
-            <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Target (%)</label>
-            <input type="text" id="edit-init-target" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" value="${init.target || ''}">
-          </div>
-          <div>
-            <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Cost</label>
-            <input type="text" id="edit-init-cost" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" value="${init.cost || ''}">
-          </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:4px;">Status</label>
+          <select id="edit-init-status" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+            <option value="proposed"    ${init.status === "proposed"    ? "selected" : ""}>Proposed</option>
+            <option value="approved"    ${init.status === "approved"    ? "selected" : ""}>Approved</option>
+            <option value="in-progress" ${init.status === "in-progress" ? "selected" : ""}>In Progress</option>
+            <option value="completed"   ${init.status === "completed"   ? "selected" : ""}>Completed</option>
+          </select>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div>
-            <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Timeline</label>
-            <select id="edit-init-timeline" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; background: #fff;">
-                <option value="3 weeks - Assessment -> Procurement -> Install" ${(init.timeline || '').includes('3 weeks') ? 'selected' : ''}>3 weeks</option>
-                <option value="6 weeks - Assessment -> Procurement -> Install -> QA" ${(init.timeline || '').includes('6 weeks') ? 'selected' : ''}>6 weeks</option>
-                <option value="8 weeks - Assessment -> Procurement -> Install -> Validation" ${(init.timeline || '').includes('8 weeks') ? 'selected' : ''}>8 weeks</option>
-                <option value="12 weeks - Multi-phase rollout" ${(init.timeline || '').includes('12 weeks') ? 'selected' : ''}>12 weeks</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:4px;">Status</label>
-            <select id="edit-init-status" style="width:100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; background: #fff;">
-                <option value="proposed" ${init.status === "proposed" ? "selected" : ""}>Proposed</option>
-                <option value="approved" ${init.status === "approved" ? "selected" : ""}>Approved</option>
-                <option value="in-progress" ${init.status === "in-progress" ? "selected" : ""}>In Progress</option>
-                <option value="completed" ${init.status === "completed" ? "selected" : ""}>Completed</option>
-            </select>
-          </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:4px;">Feasible</label>
+          <select id="edit-init-feasible" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;">
+            <option value="true"  ${init.feasible !== false ? "selected" : ""}>Yes</option>
+            <option value="false" ${init.feasible === false ? "selected" : ""}>No</option>
+          </select>
         </div>
-      </div>
-    `;
-
-    openModal({
-        title: "Edit Initiative",
-        bodyHTML: formHtml,
-        confirmLabel: "Save Changes",
-        onConfirm: () => {
-            const title = document.getElementById("edit-init-title").value.trim();
-            const description = document.getElementById("edit-init-desc").value.trim();
-            const status = document.getElementById("edit-init-status").value;
-            const target = document.getElementById("edit-init-target").value.trim();
-            const cost = document.getElementById("edit-init-cost").value.trim();
-            const timeline = document.getElementById("edit-init-timeline").value.trim();
-
-            if (!title) {
-                showToast("Title is required.", "error");
-                return;
-            }
-            if (!description) {
-                showToast("Description is required.", "error");
-                return;
-            }
-            if (!target) {
-                showToast("Target reduction is required.", "error");
-                return;
-            }
-            const targetClean = target.replace('%', '');
-            if (isNaN(parseFloat(targetClean)) || !isFinite(targetClean)) {
-                showToast("Target must be a valid number (e.g. 7.5).", "error");
-                return;
-            }
-            if (!cost) {
-                showToast("Cost is required.", "error");
-                return;
-            }
-            const costClean = cost.replace(/[₹$,]/g, '');
-            if (isNaN(parseFloat(costClean)) || !isFinite(costClean)) {
-                showToast("Cost must be a valid number (e.g. 56500).", "error");
-                return;
-            }
-            if (!timeline) {
-                showToast("Timeline is required.", "error");
-                return;
-            }
-
-            SustDB.updateInitiative(init.id, { title, description, status, target, cost, timeline });
-            SustDB.addHighlight("Initiative Edited", title, "yellow");
-            
-            showToast("Initiative updated", "success");
-            renderInitiatives();
-        }
-    });
+      </div>`,
+    confirmLabel: "Save Changes",
+    onConfirm: async () => {
+      const title  = document.getElementById("edit-init-title")?.value.trim();
+      const target = document.getElementById("edit-init-target")?.value.trim();
+      const status = document.getElementById("edit-init-status")?.value;
+      const feasible = document.getElementById("edit-init-feasible")?.value === "true";
+      if (!title) { showToast("Title is required.", "error"); return false; }
+      await patchInitiative(init.initiative_id, { title, target_reduction: target, status, feasible });
+      showToast("Initiative updated", "success");
+    }
+  });
 }
 
-function confirmDelete(id) {
+/* ─── Archive ───────────────────────────────────── */
+function archiveInitiative(id) {
+    const init = allInitiatives.find(i => i.initiative_id === id);
+    if (!init) return;
+
     openModal({
-        title: "Delete Initiative",
-        bodyHTML: "<p>Are you sure you want to permanently remove this initiative?</p>",
-        danger: true,
-        confirmLabel: "Delete",
-        onConfirm: () => {
-            const init = SustDB.initiatives.find(i => i.id === id);
-            if (init) SustDB.addHighlight("Initiative Deleted", init.title, "gray");
-            
-            SustDB.deleteInitiative(id);
-            showToast("Initiative deleted", "success");
-            renderInitiatives();
+      title: "Archive Initiative",
+      bodyHTML: "<p>Archiving will remove this completed initiative from active view. Continue?</p>",
+      confirmLabel: "Archive",
+      danger: false,
+      onConfirm: async () => {
+        try {
+          const raw = localStorage.getItem('enertrack_universal_v1');
+          const data = raw ? JSON.parse(raw) : { sust: { initiativeArchives: [] } };
+          if (!data.sust) data.sust = {};
+          if (!data.sust.initiativeArchives) data.sust.initiativeArchives = [];
+          
+          data.sust.initiativeArchives.push({
+            id: init.initiative_id,
+            title: init.title,
+            status: init.status,
+            target: init.target_reduction,
+            outcomes: init.outcomes,
+            archivedAt: new Date().toISOString()
+          });
+          
+          localStorage.setItem('enertrack_universal_v1', JSON.stringify(data));
+        } catch (e) {
+          console.warn("Failed to archive locally", e);
         }
+
+        await deleteInitiative(id);
+        showToast("Initiative archived", "info");
+      }
     });
+  }
+
+/* ─── Delete ────────────────────────────────────── */
+function confirmDelete(id) {
+  openModal({
+    title: "Delete Initiative",
+    bodyHTML: "<p>Are you sure you want to permanently remove this initiative?</p>",
+    danger: true,
+    confirmLabel: "Delete",
+    onConfirm: async () => {
+      await deleteInitiative(id);
+      showToast("Initiative deleted", "success");
+    }
+  });
 }

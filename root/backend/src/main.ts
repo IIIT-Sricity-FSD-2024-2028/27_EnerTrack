@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { TransformInterceptor } from './core/interceptors/transform.interceptor';
+import { LoggingInterceptor } from './core/interceptors/logging.interceptor';
 import { RolesGuard } from './core/guards/roles.guard';
 
 async function bootstrap() {
@@ -22,8 +23,11 @@ async function bootstrap() {
   const reflector = app.get(Reflector);
   app.useGlobalGuards(new RolesGuard(reflector));
 
-  // 3. TransformInterceptor globally
-  app.useGlobalInterceptors(new TransformInterceptor());
+  // 3. TransformInterceptor & LoggingInterceptor globally
+  app.useGlobalInterceptors(
+    new TransformInterceptor(),
+    new LoggingInterceptor(),
+  );
 
   // 4. CORS enabled for all origins
   app.enableCors({
