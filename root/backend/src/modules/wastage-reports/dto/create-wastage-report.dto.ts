@@ -8,9 +8,9 @@ import {
 import { WastageType } from "../../../core/database/database.service";
 
 export class CreateWastageReportDto {
-  @IsUUID() reporter_id: string;
+  @IsOptional() @IsString() reporter_id?: string;
   @IsEnum(WastageType) type: WastageType;
   @IsOptional() @IsString() status?: string;
   @IsObject() details: Record<string, any>;
-  @IsOptional() @IsUUID() sensor_reading_id?: string;
+  @IsOptional() @IsString() sensor_reading_id?: string;
 }

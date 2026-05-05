@@ -33,6 +33,7 @@ export enum MeterStatus {
 export enum WastageType {
   ENERGY = "Energy",
   WATER = "Water",
+  EMISSIONS = "Emissions",
   FOOD = "Food",
 }
 
@@ -180,6 +181,7 @@ export interface WorkOrder {
   title: string;
   priority: WorkOrderPriority;
   status: WorkOrderStatus;
+  details?: Record<string, any>;
 }
 export interface EnergyCost {
   energy_cost_id: string;
@@ -221,8 +223,10 @@ export interface Initiative {
   initiative_id: string;
   created_by_id: string;
   title: string;
+  description?: string;
   status: InitiativeStatus;
   feasible: boolean;
+  onTrack?: boolean;
   target_reduction: string;
   outcomes: string[];
 }
@@ -1354,56 +1358,62 @@ export class DatabaseService {
     {
       initiative_id: "iiii0000-0001-4000-8000-000000000000",
       created_by_id: "uuuu0000-0005-4000-8000-000000000000",
-      title: "Initiative 1",
-      status: InitiativeStatus.PROPOSED,
+      title: "LED Campus-Wide Retrofit",
+      description: "Replace all remaining fluorescent and incandescent bulbs with high-efficiency LED lighting in all administrative and academic buildings to lower baseline energy consumption.",
+      status: InitiativeStatus.COMPLETED,
       feasible: true,
-      target_reduction: "10%",
-      outcomes: ["Outcome 1"],
+      target_reduction: "15%",
+      outcomes: ["Reduced lighting energy load by 18%", "Decreased maintenance costs for replacements"],
     },
     {
       initiative_id: "iiii0000-0002-4000-8000-000000000000",
       created_by_id: "uuuu0000-0005-4000-8000-000000000000",
-      title: "Initiative 2",
+      title: "Smart HVAC Automation",
+      description: "Implement occupancy-based smart thermostats and automated scheduling for the campus HVAC system to prevent heating/cooling in unoccupied zones.",
       status: InitiativeStatus.IN_PROGRESS,
       feasible: true,
-      target_reduction: "10%",
-      outcomes: ["Outcome 1"],
+      target_reduction: "12%",
+      outcomes: [],
     },
     {
       initiative_id: "iiii0000-0003-4000-8000-000000000000",
       created_by_id: "uuuu0000-0005-4000-8000-000000000000",
-      title: "Initiative 3",
+      title: "Cafeteria Food Waste Composting",
+      description: "Establish a dedicated composting stream for pre-consumer and post-consumer food waste in all main dining halls to divert organic waste from landfills.",
       status: InitiativeStatus.APPROVED,
       feasible: true,
-      target_reduction: "10%",
-      outcomes: ["Outcome 1"],
+      target_reduction: "40%",
+      outcomes: [],
     },
     {
       initiative_id: "iiii0000-0004-4000-8000-000000000000",
       created_by_id: "uuuu0000-0005-4000-8000-000000000000",
-      title: "Initiative 4",
-      status: InitiativeStatus.COMPLETED,
+      title: "Greywater Harvesting System",
+      description: "Install greywater collection and filtration systems in the dormitories to reuse water for landscaping and non-potable campus needs.",
+      status: InitiativeStatus.PROPOSED,
       feasible: true,
-      target_reduction: "10%",
-      outcomes: ["Outcome 1"],
+      target_reduction: "25%",
+      outcomes: [],
     },
     {
       initiative_id: "iiii0000-0005-4000-8000-000000000000",
       created_by_id: "uuuu0000-0005-4000-8000-000000000000",
-      title: "Initiative 5",
+      title: "Solar Panel Expansion (South Lot)",
+      description: "Construct a 500kW solar canopy over the South Parking Lot to generate on-site renewable energy and provide shaded parking.",
       status: InitiativeStatus.REJECTED,
-      feasible: true,
-      target_reduction: "10%",
-      outcomes: ["Outcome 1"],
+      feasible: false,
+      target_reduction: "5%",
+      outcomes: ["Determined cost-prohibitive due to grid interconnection upgrades required"],
     },
     {
       initiative_id: "iiii0000-0006-4000-8000-000000000000",
       created_by_id: "uuuu0000-0005-4000-8000-000000000000",
-      title: "Initiative 6",
+      title: "Water Pressure Optimization",
+      description: "Install pressure reducing valves (PRVs) across the campus water distribution network to minimize leakage rates and fixture wear.",
       status: InitiativeStatus.PROPOSED,
       feasible: true,
-      target_reduction: "10%",
-      outcomes: ["Outcome 1"],
+      target_reduction: "8%",
+      outcomes: [],
     },
   ];
   public activityLogs: ActivityLog[] = [
