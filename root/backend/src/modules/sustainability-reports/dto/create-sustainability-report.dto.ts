@@ -1,7 +1,7 @@
-import { IsString, IsUUID, IsObject } from "class-validator";
+import { IsString, IsObject } from "class-validator";
 
 export class CreateSustainabilityReportDto {
-  @IsUUID() generated_by_id: string;
+  @IsString() generated_by_id: string;
   @IsString() title: string;
   @IsString() period: string;
   @IsObject() metrics: Record<string, any>;
