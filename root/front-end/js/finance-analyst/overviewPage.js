@@ -49,6 +49,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+/* ── FORMAT HELPERS ───────────────────────────────── */
+function formatWOId(id) {
+  if (!id) return "WO-XXXX";
+  if (id.startsWith("WO-")) return id;
+  const parts = id.split("-");
+  if (parts.length > 1) {
+    return "WO-" + parts[1].toUpperCase();
+  }
+  return "WO-" + id.substring(0, 4).toUpperCase();
+}
+
 /* ── WORKFLOW 1 ───────────────────────────────────── */
 async function renderFinanceWorkflow() {
   const container = document.getElementById("financeWorkflowFeed");
@@ -103,7 +114,7 @@ async function renderFinanceWorkflow() {
              <h4 style="margin:0 0 4px 0; font-size:15px; color:#111827;">${sr.location} - ${sr.category}</h4>
              <div style="font-size:12px; color:#d97706; font-weight:600;">Cost Estimate Approval</div>
            </div>
-           <span class="badge badge-gray" style="font-size:10px;">${c.type.toUpperCase()}</span>
+           <span class="badge" style="font-size:10px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-weight:600; text-transform:uppercase;">${c.type || "Service"}</span>
         </div>
         
         <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px;">
@@ -123,7 +134,7 @@ async function renderFinanceWorkflow() {
 
         <div style="display:flex; gap:8px;">
           <button style="flex:1; padding:8px; background:#111827; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; transition:opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1" onclick="approveEstimate('${sr.id}')">Approve Estimate</button>
-          <button style="padding:8px 16px; background:#fff; border:1px solid #d1d5db; color:#374151; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'" onclick="rejectEstimate('${sr.id}')">Reject</button>
+          <button style="flex:1; padding:8px 16px; background:#fff; border:1px solid #d1d5db; color:#374151; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'" onclick="rejectEstimate('${sr.id}')">Reject</button>
         </div>
       </div>
       `;
@@ -135,16 +146,16 @@ async function renderFinanceWorkflow() {
   if (internalWOs.length > 0) {
     html += internalWOs
       .map((wo) => {
-        // In the backend, work orders may not have a populated 'estimate' yet, so we mock it visually if missing
-        const c = wo.estimate || { materials: 0, labor: 0, total: 0 };
+        const woId = wo.work_order_id || wo.id || '';
+        const c = wo.estimate || (wo.details && wo.details.estimate) || { materials: 0, labor: 0, total: 0 };
         return `
       <div style="padding:16px; border-bottom:1px solid #d8dde2;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
            <div>
-             <h4 style="margin:0 0 4px 0; font-size:15px; color:#111827;">${wo.id.split("-")[0]} - ${wo.title}</h4>
+             <h4 style="margin:0 0 4px 0; font-size:15px; color:#111827;">${formatWOId(woId)} - ${wo.title}</h4>
              <div style="font-size:12px; color:#d97706; font-weight:600;">Cost Estimate Approval</div>
            </div>
-           <span class="badge badge-gray" style="font-size:10px;">REPAIR / MAINT</span>
+           <span class="badge" style="font-size:10px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-weight:600; text-transform:uppercase;">${wo.type || "Maintenance"}</span>
         </div>
         
         <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px;">
@@ -163,8 +174,8 @@ async function renderFinanceWorkflow() {
         </div>
 
         <div style="display:flex; gap:8px;">
-          <button style="flex:1; padding:8px; background:#111827; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; transition:opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1" onclick="approveWOEstimate('${wo.id}')">Approve Estimate</button>
-          <button style="padding:8px 16px; background:#fff; border:1px solid #d1d5db; color:#374151; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'" onclick="rejectWOEstimate('${wo.id}')">Reject</button>
+          <button style="flex:1; padding:8px; background:#111827; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; transition:opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1" onclick="approveWOEstimate('${woId}')">Approve Estimate</button>
+          <button style="flex:1; padding:8px 16px; background:#fff; border:1px solid #d1d5db; color:#374151; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'" onclick="rejectWOEstimate('${woId}')">Reject</button>
         </div>
       </div>
       `;

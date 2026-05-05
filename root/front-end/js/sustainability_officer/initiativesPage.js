@@ -119,22 +119,31 @@ function buildCard(init) {
     </div>`
       : "";
 
-  let bodyHtml = "";
-  if (init.status === "completed" && init.outcomes) {
-    bodyHtml = `<div class="kanban-outcomes">${(init.outcomes || []).map((o) => `<div class="outcome-pill">${o}</div>`).join("")}</div>`;
-  } else {
-    bodyHtml = `
-      <div class="kanban-stats">
-        <div class="kanban-stats-label">Target Reduction</div>
-        <div class="kanban-stats-val">${init.target_reduction || "—"}</div>
-        <div class="kanban-stats-label">Feasible</div>
-        <div class="kanban-stats-val">${init.feasible ? "Yes" : "No"}</div>
-      </div>`;
-  }
+  // Description line (always shown if available)
+  const descHtml = init.description
+    ? `<p style="font-size:12px;color:#6b7280;margin:0 0 8px 0;line-height:1.5;">${init.description}</p>`
+    : "";
+
+  // Stats (always shown)
+  const statsHtml = `
+    <div class="kanban-stats">
+      <div class="kanban-stats-label">Target Reduction</div>
+      <div class="kanban-stats-val">${init.target_reduction || "—"}</div>
+      <div class="kanban-stats-label">Feasible</div>
+      <div class="kanban-stats-val">${init.feasible ? "Yes" : "No"}</div>
+    </div>`;
+
+  // Outcomes (shown for completed)
+  const outcomesHtml =
+    init.status === "completed" && init.outcomes && init.outcomes.length > 0
+      ? `<div class="kanban-outcomes">${init.outcomes.map((o) => `<div class="outcome-pill">${o}</div>`).join("")}</div>`
+      : "";
 
   div.innerHTML = `
     <div class="kanban-header"><h5>${init.title}</h5></div>
-    ${bodyHtml}
+    ${descHtml}
+    ${statsHtml}
+    ${outcomesHtml}
     ${trackHtml}
     <div class="kanban-state-row">${stateButtonsHtml}</div>
     <div class="kanban-actions">
@@ -149,7 +158,7 @@ function buildCard(init) {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const isOn = btn.dataset.track === "on";
-      await patchInitiative(init.initiative_id, { feasible: isOn });
+      await patchInitiative(init.initiative_id, { onTrack: isOn });
       showToast(
         isOn ? "Marked 'On Track'" : "Marked 'Off Track'",
         isOn ? "success" : "warning",
@@ -250,8 +259,10 @@ function wireForm() {
       created_by_id:
         currentUser.user_id || "uuuu0000-0005-4000-8000-000000000000",
       title: title,
+      description: desc,
       status: "proposed",
       feasible: true,
+      onTrack: true,
       target_reduction: target.includes("%") ? target : target + "%",
       outcomes: [],
     };
@@ -285,6 +296,10 @@ function openEditModal(init) {
           <input type="text" id="edit-init-title" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;" value="${init.title}">
         </div>
         <div>
+          <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:4px;">Description</label>
+          <textarea id="edit-init-desc" rows="3" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;resize:vertical;font-family:inherit;">${init.description || ""}</textarea>
+        </div>
+        <div>
           <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:4px;">Target Reduction</label>
           <input type="text" id="edit-init-target" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;" value="${init.target_reduction || ""}">
         </div>
@@ -308,6 +323,7 @@ function openEditModal(init) {
     confirmLabel: "Save Changes",
     onConfirm: async () => {
       const title = document.getElementById("edit-init-title")?.value.trim();
+      const desc = document.getElementById("edit-init-desc")?.value.trim();
       const target = document.getElementById("edit-init-target")?.value.trim();
       const status = document.getElementById("edit-init-status")?.value;
       const feasible =
@@ -318,6 +334,7 @@ function openEditModal(init) {
       }
       await patchInitiative(init.initiative_id, {
         title,
+        description: desc || "",
         target_reduction: target,
         status,
         feasible,

@@ -56,6 +56,16 @@ function setEl(id, value) {
   if (el) el.textContent = value;
 }
 
+function formatID(id, prefix) {
+  if (!id) return prefix + "-XXXX";
+  if (id.startsWith(prefix + "-")) return id;
+  const parts = id.split("-");
+  if (parts.length > 1) {
+    return prefix + "-" + parts[1].toUpperCase();
+  }
+  return prefix + "-" + id.substring(0, 4).toUpperCase();
+}
+
 // ── TECH ADMIN: TRIAGE & DISPATCH ──────────────────────
 // ── TECH ADMIN: TRIAGE & DISPATCH ──────────────────────
 async function initWorkflow1() {
@@ -101,7 +111,7 @@ async function initWorkflow1() {
           const category = sr.category || "General";
           return `
                 <div style="padding:16px;border-bottom:1px solid var(--border);">
-                    <h4 style="margin:0 0 4px;">${srId} — ${location} (${category})</h4>
+                    <h4 style="margin:0 0 4px;">${formatID(srId, "SR")} — ${location} (${category})</h4>
                     <p style="margin:0 0 8px;font-size:13px;color:#555;">
                         Completed by <strong>${sr.assignedTo || "Technician"}</strong>. Awaiting quality check.
                     </p>
@@ -118,7 +128,7 @@ async function initWorkflow1() {
           const woId = wo.work_order_id || wo.id;
           return `
                 <div style="padding:16px;border-bottom:1px solid var(--border);">
-                    <h4 style="margin:0 0 4px;">${woId} — ${wo.title} (${wo.type})</h4>
+                    <h4 style="margin:0 0 4px;">${formatID(woId, "WO")} — ${wo.title} (${wo.details?.type || "General"})</h4>
                     <p style="margin:0 0 8px;font-size:13px;color:#555;">
                         Completed by <strong>${wo.technician || "Technician"}</strong>. Awaiting quality check.
                     </p>
@@ -225,7 +235,7 @@ async function initActiveWorkOrders() {
       return `
         <div style="padding:14px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
-                <span style="font-size:12px; font-weight:700; color:#111827;">${woId}</span>
+                <span style="font-size:12px; font-weight:700; color:#111827;">${formatID(woId, "WO")}</span>
                 <span class="badge ${wo.status === "new" ? "new" : wo.status === "review" ? "review" : "inprogress"}" style="font-size:10px;">${wo.status.toUpperCase()}</span>
             </div>
             <h4 style="margin:0 0 4px; font-size:13px; color:#111827; line-height:1.4;">${wo.title}</h4>

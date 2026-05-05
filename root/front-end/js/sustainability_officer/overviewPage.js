@@ -509,12 +509,12 @@ async function renderWastageAuditQueue() {
                 <button onclick="window._auditAction('${r.id}','forward')" style="padding:6px 14px;border-radius:6px;border:none;background:#3b82f6;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">→ Forward to Finance</button>`;
       } else if (r.status === "Returned to SO") {
         actionsHTML = `
-                <button onclick="window._openTargetModal('${r.id}')" style="padding:8px 16px;border-radius:6px;border:none;background:#2563eb;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">🎯 Set New Target</button>
+                <button onclick="window._openTargetModal('${r.id}')" style="padding:8px 16px;border-radius:6px;border:none;background:#2563eb;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">Set New Target</button>
                 <button onclick="window._sendBackToFinance('${r.id}')" style="padding:8px 16px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#6b7280;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">↻ Send Back to Finance</button>`;
       } else if (r.status === "Target Set") {
         actionsHTML = `
                 <button onclick="window._finalizeReport('${r.id}')" style="padding:8px 16px;border-radius:6px;border:none;background:#111827;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">✓ Finalize Report</button>
-                <button onclick="window._openTargetModal('${r.id}')" style="padding:8px 16px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#374151;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">🎯 Edit Target</button>`;
+                <button onclick="window._openTargetModal('${r.id}')" style="padding:8px 16px;border-radius:6px;border:1px solid #d1d5db;background:white;color:#374151;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">Edit Target</button>`;
       } else if (r.status === "Finalized") {
         actionsHTML = `
                 <button onclick="window._sendReportToUser('${r.id}')" style="padding:8px 16px;border-radius:6px;border:none;background:#059669;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;">Send Detailed Report to Campus Visitor</button>`;
@@ -964,21 +964,56 @@ const METRIC_FIELDS = {
   Food: null,
 };
 
-window._openTargetModal = function (reportId) {
-  const raw = localStorage.getItem("enertrack_universal_v1");
-  if (!raw) return;
-  const universalData = JSON.parse(raw);
-  const reports = universalData.workflow.wastageReports || [];
-  const report = reports.find((r) => r.id === reportId);
-  if (!report) return;
+window._openTargetModal = async function (reportId) {
+  // Fetch report from backend API first, then fall back to localStorage
+  let report = null;
+  let universalData = {};
+
+  try {
+    if (window.api) {
+      const allReports = await window.api.get("/wastage-reports");
+      if (Array.isArray(allReports)) {
+        const backendReport = allReports.find(r => r.wastage_report_id === reportId);
+        if (backendReport) {
+          report = {
+            id: backendReport.wastage_report_id,
+            type: backendReport.type,
+            status: backendReport.status,
+            specificData: backendReport.details?.specificData || {},
+            systemData: backendReport.details?.systemData || {},
+            metricTarget: backendReport.details?.metricTarget || null,
+            costImpact: backendReport.details?.costImpact || null,
+          };
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[SO] Failed to fetch from backend for target modal", e);
+  }
+
+  // Fallback to localStorage
+  if (!report) {
+    const raw = localStorage.getItem("enertrack_universal_v1");
+    if (!raw) return;
+    universalData = JSON.parse(raw);
+    const reports = universalData.workflow?.wastageReports || [];
+    report = reports.find((r) => r.id === reportId);
+  }
+
+  if (!report) {
+    console.warn("[SO] Report not found for target modal:", reportId);
+    return;
+  }
 
   const metricType = report.type || "Energy";
   const unit =
     report?.systemData?.readingUnit || METRIC_UNITS[metricType] || "units";
   const metricField = METRIC_FIELDS[metricType];
-  const currentValue = metricField
-    ? universalData.sust?.metrics?.[metricField] || "—"
-    : "—";
+  const currentValue = Number.isFinite(Number(report?.systemData?.readingValue))
+    ? Number(report.systemData.readingValue)
+    : metricField
+      ? universalData.sust?.metrics?.[metricField] || "—"
+      : "—";
   const existing = report.metricTarget || {};
   const currentMeasured = Number(report?.systemData?.readingValue);
   const currentBaseline = Number(report?.systemData?.baselineValue);
@@ -1037,7 +1072,7 @@ window._openTargetModal = function (reportId) {
     `;
 
   openModal({
-    title: "🎯 Set New " + metricType + " Target",
+    title: "Set New " + metricType + " Target",
     bodyHTML,
     confirmLabel: "Set Target",
     cancelLabel: "Cancel",
