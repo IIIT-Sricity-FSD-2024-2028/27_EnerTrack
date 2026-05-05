@@ -118,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         if (window.api) {
           const payload = {
-            reporter_id: user.user_id || "uuuu0000-0006-4000-8000-000000000000",
+            reporter_id: user.user_id || "550e8400-0006-4000-8000-000000000006",
             category: "General",
             issue_type: issueType || "General",
             description: `[${issueType || "General"}] ${description} — Location: ${location}`,
@@ -211,14 +211,49 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("userTicketsContainer");
     const countBadge = document.getElementById("myReportsCount");
 
+    function deriveStatusMeta(statusValue) {
+      var status = String(statusValue || "open").toLowerCase();
+      if (status === "closed" || status === "resolved" || status === "completed") {
+        return { cssClass: "status-closed", label: "Completed" };
+      }
+      if (status === "in_progress" || status === "inprogress" || status === "approval" || status === "review" || status === "new") {
+        return { cssClass: "status-progress", label: "In Progress" };
+      }
+      if (status === "pending" || status === "pending_category") {
+        return { cssClass: "status-forwarded", label: "Under Review" };
+      }
+      if (status === "dispatched") {
+        return { cssClass: "status-dispatched", label: "Dispatched" };
+      }
+      return { cssClass: "status-reported", label: "Reported" };
+    }
+
     let myTickets = [];
     try {
       if (window.api) {
-        const srs = await window.api.get("/service-requests");
+        var results = await Promise.all([
+          window.api.get("/service-requests"),
+          window.api.get("/work-orders"),
+        ]);
+        var srs = results[0];
+        var wos = Array.isArray(results[1]) ? results[1] : [];
+
         if (Array.isArray(srs)) {
           myTickets = srs
             .filter((sr) => sr.reporter_id === user.user_id)
             .map((sr, i) => {
+              var relatedWOs = wos.filter(
+                (wo) => wo.source_request_id === sr.service_request_id,
+              );
+              var hasClosedWO = relatedWOs.some((wo) => wo.status === "closed");
+              var hasActiveWO = relatedWOs.some((wo) =>
+                ["new", "approval", "inprogress", "review"].includes(wo.status),
+              );
+              var effectiveStatus = sr.status || "open";
+              if (hasClosedWO) effectiveStatus = "closed";
+              else if (hasActiveWO && effectiveStatus === "open")
+                effectiveStatus = "in_progress";
+
               let offset = sr.service_request_id
                 ? (sr.service_request_id.charCodeAt(5) || 0) * 3600000
                 : i * 86400000;
@@ -233,7 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 priority: sr.priority
                   ? sr.priority.charAt(0).toUpperCase() + sr.priority.slice(1)
                   : "Medium",
-                status: sr.status || "Reported",
+                status: effectiveStatus,
                 timestamp: sr.created_at || fallbackDate,
                 issueType: "",
               };
@@ -268,31 +303,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     container.innerHTML = myTickets
       .map((t) => {
-        // Derive status class
-        let statusClass = "status-reported";
-        let statusLabel = t.status;
-        if (["Closed", "Validated (Awaiting Payment)"].includes(t.status)) {
-          statusClass = "status-closed";
-          statusLabel = "Resolved";
-        } else if (
-          t.status === "Dispatched" ||
-          t.status === "Pending Category"
-        ) {
-          statusClass = "status-dispatched";
-        } else if (
-          [
-            "Accepted",
-            "Approved (Executing)",
-            "Work Complete (Awaiting Validation)",
-            "Awaiting Estimate Approval",
-          ].includes(t.status)
-        ) {
-          statusClass = "status-progress";
-          statusLabel = "In Progress";
-        } else if (t.status === "Pending Category") {
-          statusClass = "status-forwarded";
-          statusLabel = "Under Review";
-        }
+        var statusMeta = deriveStatusMeta(t.status);
+        let statusClass = statusMeta.cssClass;
+        let statusLabel = statusMeta.label;
 
         const pClass = `p-${t.priority || "Medium"}`;
         const typeTag = t.issueType

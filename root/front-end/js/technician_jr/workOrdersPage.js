@@ -57,6 +57,10 @@ async function loadPage() {
       }
     }
 
+    console.log("[WorkOrders] Current user:", currentUser);
+    console.log("[WorkOrders] All work orders:", allWorkOrders);
+    console.log("[WorkOrders] Work orders assigned to this user:", allWorkOrders.filter(function(wo) { return wo.assigned_to_id === currentUser.user_id; }));
+
     renderBoard();
     renderArchive();
 
@@ -71,7 +75,9 @@ async function loadPage() {
     console.log(
       "[WorkOrders] Loaded",
       allWorkOrders.length,
-      "orders from backend.",
+      "orders from backend. Found",
+      mine.length,
+      "assigned to current user.",
     );
   } catch (err) {
     console.error("[WorkOrders] Failed to load:", err.message);

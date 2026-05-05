@@ -33,7 +33,8 @@ export class FaultsService {
           `Target users with id '${createDto.assigned_to_id}' not found`,
         );
     }
-    const generatedId = crypto.randomUUID();
+    const nextId = this.database.faults.length + 1;
+    const generatedId = `FLT-${nextId.toString().padStart(3, "0")}`;
     const newRecord = { fault_id: generatedId, ...createDto };
     this.database.faults.push(newRecord as any);
     return newRecord;

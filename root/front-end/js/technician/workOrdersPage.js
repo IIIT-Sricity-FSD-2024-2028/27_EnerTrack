@@ -76,6 +76,7 @@ async function populateTechnicianDropdown() {
       phone: "9876543214",
       password: "Teja@123",
       role: "Technician",
+      user_id: "550e8400-0004-4000-8000-000000000004",
     },
   ];
   let registeredUsers = JSON.parse(
@@ -95,17 +96,22 @@ async function populateTechnicianDropdown() {
   if (dirty)
     localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
 
+  // Build backendTechs from fallback registeredUsers so form submission can find technicians
+  backendTechs = registeredUsers.filter(
+    (u) => u.role === "Technician" || u.role === "Technician Administrator",
+  );
+
   const techs = registeredUsers.filter(
     (u) => u.role === "Technician" || u.role === "Technician Administrator",
   );
   const optionsHTML =
     `<option value="">— Select —</option>` +
-    techs.map((t) => `<option value="${t.name}">${t.name}</option>`).join("");
+    techs.map((t) => `<option value="${t.user_id || t.name}">${t.name}</option>`).join("");
   if (select) select.innerHTML = optionsHTML;
   if (reassignSelect)
     reassignSelect.innerHTML =
       `<option value="">-- Select Alternate Tech --</option>` +
-      techs.map((t) => `<option value="${t.name}">${t.name}</option>`).join("");
+      techs.map((t) => `<option value="${t.user_id || t.name}">${t.name}</option>`).join("");
 }
 
 /* ─── Sync backend work orders into TechDB ───────── */
@@ -456,8 +462,23 @@ function confirmCloseWO(id) {
     danger: true,
     onConfirm: async () => {
       try {
+        const currentWO = TechDB.getWorkOrder(id);
+        const linkedRequestId =
+          (currentWO &&
+            (currentWO.source_request_id ||
+              currentWO.sourceRequest ||
+              currentWO.source_request)) ||
+          null;
+
         if (window.api && id.includes("-")) {
           await window.api.patch(`/work-orders/${id}`, { status: "closed" });
+
+          // Keep source request lifecycle aligned with the archived work order.
+          if (linkedRequestId) {
+            await window.api.patch(`/service-requests/${linkedRequestId}`, {
+              status: "closed",
+            });
+          }
         }
       } catch (err) {
         console.warn("Backend close failed:", err);
@@ -466,6 +487,7 @@ function confirmCloseWO(id) {
       showToast(`Work order ${formatWOId(id)} closed and archived.`, "success");
       renderBoard();
       renderArchive();
+      await renderServiceRequests();
       selectedWOId = null;
       
       // Clear Detail Panel
@@ -513,7 +535,9 @@ window.triageRequest = function (id) {
   // Fill the form fields
   const assetInput = document.getElementById("inputAsset");
   if (assetInput) {
-    assetInput.value = `${sr.location} - ${sr.description}`;
+    // Backend SRs have description with full details; local TechDB has location and description separate
+    const assetText = sr.description || sr.location || "Service Request";
+    assetInput.value = assetText;
   }
 
   const priorityInput = document.getElementById("inputPriority");
@@ -549,12 +573,16 @@ function wireNewWOForm() {
     // Try posting to backend
     try {
       if (window.api) {
-        // Resolve tech name from backendTechs cache if using UUIDs
-        const techObj = backendTechs.find((t) => t.user_id === tech);
+        // Resolve tech object - search by user_id first, then by name
+        let techObj = backendTechs.find((t) => t.user_id === tech);
+        if (!techObj) {
+          techObj = backendTechs.find((t) => t.name === tech);
+        }
         const techName = techObj ? techObj.name : tech;
+        const techId = techObj ? techObj.user_id : null;
 
         const payload = {
-          assigned_to_id: techObj ? tech : null,
+          assigned_to_id: techId,
           source_request_id: linkedSrId || null,
           title: `${cap(selectedType)} maintenance: ${asset}`,
           priority: priority || "medium",
@@ -599,12 +627,21 @@ function wireNewWOForm() {
     }
 
     // Fallback: local TechDB
+    // Resolve tech object - search by user_id first, then by name
+    let techObj = backendTechs.find((t) => t.user_id === tech);
+    if (!techObj) {
+      techObj = backendTechs.find((t) => t.name === tech);
+    }
+    const techName = techObj ? techObj.name : tech;
+    const techId = techObj ? techObj.user_id : null;
+
     const newWO = {
       id: generateId("WO"),
       title: `${cap(selectedType)} maintenance: ${asset}`,
       type: selectedType,
       priority,
-      technician: tech,
+      technician: techName,
+      assigned_to_id: techId,
       estimateRequired: estReq,
       status: "new",
       linkedFault: null,
