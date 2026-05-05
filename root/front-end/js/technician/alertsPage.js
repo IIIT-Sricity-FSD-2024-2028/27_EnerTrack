@@ -68,7 +68,7 @@ function renderQueue() {
     .map((a) => {
       const id = a.alert_id || a.id;
       const severity = a.severity || a.type || "low";
-      const ts = a.created_at || a.timestamp || "—";
+      const ts = a.created_at || a.timestamp || (a.messages && a.messages.length ? a.messages[0].timestamp : "—");
       return `
         <tr data-alert-id="${id}" class="${id === selectedAlertId ? "selected" : ""}">
             <td>${id}</td>
@@ -103,12 +103,12 @@ function renderHistoryLog() {
     .map((a) => {
       const id = a.alert_id || a.id;
       const severity = a.severity || "low";
-      const ts = a.created_at || a.timestamp || "—";
+      const ts = a.created_at || a.timestamp || (a.messages && a.messages.length ? a.messages[0].timestamp : "—");
       const s = (a.status || "").toLowerCase();
       return `
         <tr>
             <td>${id}</td>
-            <td>${a.description || a.message || "—"}</td>
+            <td>${a.title || "—"}</td>
             <td><span class="badge ${severity}">${cap(severity)}</span></td>
             <td>${ts}</td>
             <td>${a.actionTaken || "—"}</td>
@@ -142,8 +142,8 @@ function selectAlert(id) {
     "detailSeverityBadge",
     `<span class="badge ${alert.severity || "low"}">${cap(alert.severity || "low")}</span>`,
   );
-  setEl("detailDescription", alert.description || alert.message || "—");
-  setEl("detailZone", alert.zone || alert.location || "Unknown Zone");
+  setEl("detailDescription", alert.title || "—");
+  setEl("detailZone", alert.meter_id || "Unknown Zone");
 
   const btnEmergency = document.getElementById("btnInitiateEmergency");
   const btnSchedule = document.getElementById("btnScheduleInspection");

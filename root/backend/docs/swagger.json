@@ -5264,7 +5264,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "user_id": "550e8400-0002-4000-8000-000000000002",
           "target_type": "alert",
           "target_id": "target1",
           "message": "Notif 1",
@@ -5279,7 +5279,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "user_id": "550e8400-0002-4000-8000-000000000002",
           "target_type": "alert",
           "target_id": "target1",
           "message": "Notif 1",
@@ -5312,7 +5312,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "campus_id": "cccc0000-0002-4000-8000-000000000000",
+          "campus_id": "660e8700-0002-4000-8000-000000000000",
           "name": "Building 1",
           "budget": 200000
         }
@@ -5325,7 +5325,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "campus_id": "cccc0000-0002-4000-8000-000000000000",
+          "campus_id": "660e8700-0002-4000-8000-000000000000",
           "name": "Building 1",
           "budget": 200000
         }
@@ -5334,7 +5334,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "building_id": "660e8800-0002-4000-8000-000000000000",
           "name": "Department 1",
           "budget": 50000
         }
@@ -5347,7 +5347,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "building_id": "660e8800-0002-4000-8000-000000000000",
           "name": "Department 1",
           "budget": 50000
         }
@@ -5356,7 +5356,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "building_id": "660e8800-0002-4000-8000-000000000000",
           "meter_code": "M-001",
           "meter_type": "electricity",
           "zone": "Zone 2",
@@ -5371,7 +5371,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "building_id": "660e8800-0002-4000-8000-000000000000",
           "meter_code": "M-001",
           "meter_type": "electricity",
           "zone": "Zone 2",
@@ -5406,7 +5406,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
+          "reporter_id": "550e8400-0002-4000-8000-000000000002",
           "type": "Water",
           "status": "Forwarded to Finance",
           "details": {
@@ -5435,7 +5435,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "reporter_id": "uuuu0000-0002-4000-8000-000000000000",
+          "reporter_id": "550e8400-0002-4000-8000-000000000002",
           "type": "Water",
           "status": "Forwarded to Finance",
           "details": {
@@ -5462,19 +5462,14 @@
         "example": {
           "meter_id": "mmmm0000-0002-4000-8000-000000000000",
           "triggering_reading_id": "rrrr0000-0002-4000-8000-000000000000",
-          "title": "Alert 1",
-          "severity": "High",
+          "title": "Abnormal Water Flow: Science Lab 4",
+          "severity": "critical",
           "status": "open",
           "messages": [
             {
               "sender_role": "System Administrator",
-              "content": "Checking",
-              "timestamp": "2025-01-01T10:00:00.000Z"
-            },
-            {
-              "sender_role": "Technician",
-              "content": "Fixed",
-              "timestamp": "2025-01-01T11:00:00.000Z"
+              "content": "Flow rate 40L/min detected outside operating hours.",
+              "timestamp": "2026-05-05T08:00:00.000Z"
             }
           ]
         }
@@ -5489,19 +5484,14 @@
         "example": {
           "meter_id": "mmmm0000-0002-4000-8000-000000000000",
           "triggering_reading_id": "rrrr0000-0002-4000-8000-000000000000",
-          "title": "Alert 1",
-          "severity": "High",
+          "title": "Abnormal Water Flow: Science Lab 4",
+          "severity": "critical",
           "status": "open",
           "messages": [
             {
               "sender_role": "System Administrator",
-              "content": "Checking",
-              "timestamp": "2025-01-01T10:00:00.000Z"
-            },
-            {
-              "sender_role": "Technician",
-              "content": "Fixed",
-              "timestamp": "2025-01-01T11:00:00.000Z"
+              "content": "Flow rate 40L/min detected outside operating hours.",
+              "timestamp": "2026-05-05T08:00:00.000Z"
             }
           ]
         }
@@ -5515,9 +5505,9 @@
         "properties": {},
         "example": {
           "alert_id": null,
-          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
-          "asset_name": "Asset 1",
-          "fault_type": "Electrical",
+          "assigned_to_id": "550e8400-0003-4000-8000-000000000003",
+          "asset_name": "Chiller Unit C-12",
+          "fault_type": "Mechanical",
           "severity": "moderate",
           "status": "pending"
         }
@@ -5531,9 +5521,9 @@
         "properties": {},
         "example": {
           "alert_id": null,
-          "assigned_to_id": "uuuu0000-0003-4000-8000-000000000000",
-          "asset_name": "Asset 1",
-          "fault_type": "Electrical",
+          "assigned_to_id": "550e8400-0003-4000-8000-000000000003",
+          "asset_name": "Chiller Unit C-12",
+          "fault_type": "Mechanical",
           "severity": "moderate",
           "status": "pending"
         }
@@ -5554,9 +5544,9 @@
         "type": "object",
         "properties": {},
         "example": {
-          "assigned_to_id": "uuuu0000-0004-4000-8000-000000000000",
+          "assigned_to_id": "550e8400-0004-4000-8000-000000000004",
           "linked_fault_id": null,
-          "source_request_id": "ssss0000-0002-4000-8000-000000000000",
+          "source_request_id": "660e8500-0002-4000-8000-000000000000",
           "title": "HVAC Filter Replacement – Block A",
           "priority": "high",
           "status": "approval"
@@ -5570,9 +5560,9 @@
         "type": "object",
         "properties": {},
         "example": {
-          "assigned_to_id": "uuuu0000-0004-4000-8000-000000000000",
+          "assigned_to_id": "550e8400-0004-4000-8000-000000000004",
           "linked_fault_id": null,
-          "source_request_id": "ssss0000-0002-4000-8000-000000000000",
+          "source_request_id": "660e8500-0002-4000-8000-000000000000",
           "title": "HVAC Filter Replacement – Block A",
           "priority": "high",
           "status": "approval"
@@ -5582,7 +5572,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "building_id": "660e8800-0002-4000-8000-000000000000",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
           "period": "2025-02",
           "electricity": 1000,
@@ -5599,7 +5589,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "building_id": "660e8800-0002-4000-8000-000000000000",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
           "period": "2025-02",
           "electricity": 1000,
@@ -5613,7 +5603,7 @@
         "properties": {},
         "example": {
           "department_id": "dddd0000-0002-4000-8000-000000000000",
-          "approved_by_id": "uuuu0000-0002-4000-8000-000000000000",
+          "approved_by_id": "550e8400-0002-4000-8000-000000000002",
           "invoice_number": "INV-0001",
           "vendor": "Vendor 1",
           "amount": 500,
@@ -5629,7 +5619,7 @@
         "properties": {},
         "example": {
           "department_id": "dddd0000-0002-4000-8000-000000000000",
-          "approved_by_id": "uuuu0000-0002-4000-8000-000000000000",
+          "approved_by_id": "550e8400-0002-4000-8000-000000000002",
           "invoice_number": "INV-0001",
           "vendor": "Vendor 1",
           "amount": 500,
@@ -5640,8 +5630,8 @@
         "type": "object",
         "properties": {},
         "example": {
-          "generated_by_id": "uuuu0000-0002-4000-8000-000000000000",
-          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "generated_by_id": "550e8400-0002-4000-8000-000000000002",
+          "building_id": "660e8800-0002-4000-8000-000000000000",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
           "title": "Report 1",
           "period": "Q1 2025",
@@ -5657,8 +5647,8 @@
         "type": "object",
         "properties": {},
         "example": {
-          "generated_by_id": "uuuu0000-0002-4000-8000-000000000000",
-          "building_id": "bbbb0000-0002-4000-8000-000000000000",
+          "generated_by_id": "550e8400-0002-4000-8000-000000000002",
+          "building_id": "660e8800-0002-4000-8000-000000000000",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
           "title": "Report 1",
           "period": "Q1 2025",
@@ -5694,7 +5684,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "created_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "created_by_id": "550e8400-0005-4000-8000-000000000005",
           "title": "LED Campus-Wide Retrofit",
           "description": "Replace all remaining fluorescent and incandescent bulbs with high-efficiency LED lighting in all administrative and academic buildings to lower baseline energy consumption.",
           "status": "completed",
@@ -5714,7 +5704,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "created_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "created_by_id": "550e8400-0005-4000-8000-000000000005",
           "title": "LED Campus-Wide Retrofit",
           "description": "Replace all remaining fluorescent and incandescent bulbs with high-efficiency LED lighting in all administrative and academic buildings to lower baseline energy consumption.",
           "status": "completed",
@@ -5730,7 +5720,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "user_id": "550e8400-0002-4000-8000-000000000002",
           "action_type": "LOGIN",
           "title": "User logged in",
           "timestamp": "2025-01-01T10:00:00.000Z"
@@ -5744,7 +5734,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "user_id": "uuuu0000-0002-4000-8000-000000000000",
+          "user_id": "550e8400-0002-4000-8000-000000000002",
           "action_type": "LOGIN",
           "title": "User logged in",
           "timestamp": "2025-01-01T10:00:00.000Z"
@@ -5754,7 +5744,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "generated_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "generated_by_id": "550e8400-0005-4000-8000-000000000005",
           "title": "Q1 Sustainability Performance",
           "period": "Q1 2025",
           "metrics": {
@@ -5774,7 +5764,7 @@
         "type": "object",
         "properties": {},
         "example": {
-          "generated_by_id": "uuuu0000-0005-4000-8000-000000000000",
+          "generated_by_id": "550e8400-0005-4000-8000-000000000005",
           "title": "Q1 Sustainability Performance",
           "period": "Q1 2025",
           "metrics": {

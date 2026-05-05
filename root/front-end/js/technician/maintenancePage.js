@@ -45,12 +45,14 @@ function renderAlertSelector() {
   grid.innerHTML = activeFaults
     .map((f) => {
       const id = f.fault_id || f.id;
+      const assignedUser = _users.find(u => u.user_id === f.assigned_to_id);
+      const assignedName = assignedUser ? assignedUser.name : "Unassigned";
       return `
         <div class="alert-tile ${id === selectedFaultId ? "active" : ""}" data-fault-id="${id}">
             <span class="badge ${severityClass(f.severity)}">${cap(f.severity)}</span>
             <div class="alert-tile-id">${f.alert_id || "—"} / ${id}</div>
-            <div class="alert-tile-desc">${f.fault_type || f.type || "—"} — ${f.asset || f.description || "—"}</div>
-            <div class="alert-tile-meta">Assigned to ${f.assigned_to || f.assignedTo || "Unassigned"}</div>
+            <div class="alert-tile-desc">${f.fault_type || f.type || "—"} — ${f.asset_name || "—"}</div>
+            <div class="alert-tile-meta">Assigned to ${assignedName}</div>
         </div>`;
     })
     .join("");
@@ -74,7 +76,7 @@ function selectFault(faultId) {
     ?.classList.add("active");
 
   setEl("workspaceTitle", `Active Diagnostics — ${fault.alert_id || faultId}`);
-  setEl("workspaceAsset", fault.asset || fault.description || "—");
+  setEl("workspaceAsset", fault.asset_name || "—");
   setEl("diagnosticFaultTypeBadge", fault.fault_type || fault.type || "—");
 
   const severityEl = document.getElementById("diagnosticSeverityBadge");
@@ -239,7 +241,7 @@ function getWOModalHTML(fault, type) {
     .join("");
   const finalTechOptions =
     techOptions || `<option value="Unassigned">Unassigned</option>`;
-  const asset = fault.asset || fault.description || "Unknown Asset";
+  const asset = fault.asset_name || "Unknown Asset";
 
   let priorityOptions = `<option value="high" selected>High (Emergency)</option>`;
   if (type !== "immediate") {
@@ -287,8 +289,8 @@ async function handleWOCreation(faultId, type) {
   const notes = document.getElementById("modalWONotes").value;
 
   const payload = {
-    title: `${type === "immediate" ? "Urgent Repair" : "Scheduled Maintenance"}: ${fault.asset || fault.description}`,
-    status: "open",
+    title: `${type === "immediate" ? "Urgent Repair" : "Scheduled Maintenance"}: ${fault.asset_name || "Asset"}`,
+    status: "new",
     type: type === "immediate" ? "emergency" : "scheduled",
     priority,
     assigned_to_id: _users.find((u) => u.name === assignee)?.user_id || null,

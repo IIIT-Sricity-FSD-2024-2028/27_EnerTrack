@@ -33,7 +33,8 @@ export class AlertsService {
           `Target meterReadings with id '${createDto.triggering_reading_id}' not found`,
         );
     }
-    const generatedId = crypto.randomUUID();
+    const nextId = this.database.alerts.length + 1;
+    const generatedId = `ALT-${nextId.toString().padStart(3, "0")}`;
     const newRecord = { alert_id: generatedId, ...createDto };
     this.database.alerts.push(newRecord as any);
     return newRecord;

@@ -16,7 +16,7 @@ export class FaultsController {
   @ApiResponse({ status: 201, description: "Fault created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician")
+  @Roles("System Administrator", "Technician Administrator", "Technician")
   create(@Body() createDto: CreateFaultDto) {
     return this.faultsService.create(createDto);
   }
@@ -26,7 +26,7 @@ export class FaultsController {
   @ApiResponse({ status: 200, description: "Array of fault records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician")
+  @Roles("System Administrator", "Technician Administrator", "Technician")
   findAll() {
     return this.faultsService.findAll();
   }
@@ -37,7 +37,7 @@ export class FaultsController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician")
+  @Roles("System Administrator", "Technician Administrator", "Technician")
   findOne(@Param("id") id: string) {
     return this.faultsService.findOne(id);
   }
@@ -59,7 +59,7 @@ export class FaultsController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician")
+  @Roles("System Administrator", "Technician Administrator", "Technician")
   update(@Param("id") id: string, @Body() updateDto: UpdateFaultDto) {
     return this.faultsService.update(id, updateDto);
   }
@@ -80,7 +80,7 @@ export class FaultsController {
   @ApiResponse({ status: 200, description: "Array of work order records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician")
+  @Roles("System Administrator", "Technician Administrator", "Technician")
   getWorkOrders(@Param("id") id: string) {
     return this.faultsService.getWorkOrders(id);
   }

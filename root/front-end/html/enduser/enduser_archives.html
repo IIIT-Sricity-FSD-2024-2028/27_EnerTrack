@@ -237,7 +237,7 @@
         <div class="header-row">
           <div class="page-header">
             <h1>My Archives</h1>
-            <p>Previously resolved wastage reports that have been archived.</p>
+            <p>Previously completed reports and requests that have been archived.</p>
           </div>
         </div>
 
@@ -310,9 +310,18 @@
           const countBadge = document.getElementById("archiveCount");
 
           let archived = [];
+          let archivedServiceRequests = [];
           try {
             if (window.api) {
-              const res = await window.api.get("/wastage-reports");
+              const results = await Promise.all([
+                window.api.get("/wastage-reports"),
+                window.api.get("/service-requests"),
+                window.api.get("/work-orders"),
+              ]);
+              const res = results[0];
+              const serviceRequests = Array.isArray(results[1]) ? results[1] : [];
+              const workOrders = Array.isArray(results[2]) ? results[2] : [];
+
               if (Array.isArray(res)) {
                 archived = res
                   .filter(
@@ -338,6 +347,30 @@
                       new Date(a.archivedAt || a.timestamp),
                   );
               }
+
+              const closedSourceIds = new Set(
+                workOrders
+                  .filter((wo) => wo.status === "closed" && wo.source_request_id)
+                  .map((wo) => wo.source_request_id),
+              );
+
+              archivedServiceRequests = serviceRequests
+                .filter(
+                  (sr) =>
+                    sr.reporter_id === user.user_id &&
+                    (
+                      String(sr.status || "").toLowerCase() === "closed" ||
+                      closedSourceIds.has(sr.service_request_id)
+                    ),
+                )
+                .map((sr) => ({
+                  id: sr.service_request_id,
+                  status: "closed",
+                  description: sr.description || "Service request",
+                  priority: sr.priority || "medium",
+                  timestamp: sr.created_at || new Date().toISOString(),
+                }))
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             }
           } catch (err) {
             console.warn(
@@ -347,7 +380,7 @@
           }
 
           // Fallback
-          if (archived.length === 0) {
+          if (archived.length === 0 && archivedServiceRequests.length === 0) {
             const raw = localStorage.getItem("enertrack_universal_v1");
             const data = raw ? JSON.parse(raw) : null;
             archived = (data?.workflow?.wastageReports || [])
@@ -357,16 +390,25 @@
                   new Date(b.archivedAt || b.timestamp) -
                   new Date(a.archivedAt || a.timestamp),
               );
+
+            archivedServiceRequests = (data?.workflow?.serviceRequests || [])
+              .filter(
+                (sr) =>
+                  sr.reporterEmail === user.email &&
+                  String(sr.status || "").toLowerCase() === "closed",
+              )
+              .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
           }
 
-          countBadge.textContent = archived.length;
+          countBadge.textContent =
+            archived.length + archivedServiceRequests.length;
 
-          if (archived.length === 0) {
-            container.innerHTML = `<div class="empty-state"><p>No archived reports yet. Resolved reports can be archived from the Report Wastage page.</p></div>`;
+          if (archived.length === 0 && archivedServiceRequests.length === 0) {
+            container.innerHTML = `<div class="empty-state"><p>No archived items yet.</p></div>`;
             return;
           }
 
-          container.innerHTML = archived
+          const wastageHtml = archived
             .map((t) => {
               const cfg = STATUS_MAP[t.status] || {
                 label: t.status,
@@ -469,6 +511,55 @@
             </div>`;
             })
             .join("");
+
+          const serviceRequestHtml = archivedServiceRequests
+            .map((t) => {
+              const p = String(t.priority || "medium");
+              const pCap = p.charAt(0).toUpperCase() + p.slice(1);
+              const archivedOn = new Date(t.timestamp).toLocaleDateString(
+                "en-GB",
+                { day: "numeric", month: "short", year: "numeric" },
+              );
+
+              return `
+            <div class="ticket-card">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;gap:16px;">
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px;">
+                    <strong style="font-size:14px;color:var(--dark);">#${t.id}</strong>
+                    <span style="background:#1f2937;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px;">Service Request</span>
+                  </div>
+                  <p style="font-size:13px;color:#374151;margin:0 0 6px 0;line-height:1.5;">${t.description}</p>
+                  <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+                    <span class="ticket-priority p-${pCap}">${pCap} Priority</span>
+                    <span style="font-size:11px;color:#9ca3af;">Archived ${archivedOn}</span>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">
+                  <span class="ticket-status status-finalized">Completed</span>
+                </div>
+              </div>
+            </div>`;
+            })
+            .join("");
+
+          const serviceSection = serviceRequestHtml
+            ? `
+          <div style="margin-bottom:14px;">
+            <h4 style="margin:0 0 10px 0;font-size:13px;color:#374151;">Service Request Archives</h4>
+            ${serviceRequestHtml}
+          </div>`
+            : "";
+
+          const wastageSection = wastageHtml
+            ? `
+          <div>
+            <h4 style="margin:0 0 10px 0;font-size:13px;color:#374151;">Wastage Report Archives</h4>
+            ${wastageHtml}
+          </div>`
+            : "";
+
+          container.innerHTML = serviceSection + wastageSection;
         }
 
         renderArchives();
