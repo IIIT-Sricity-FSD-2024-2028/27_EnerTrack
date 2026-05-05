@@ -346,12 +346,35 @@
               ? await window.api.get("/wastage-reports")
               : [];
             let wData = Array.isArray(wRes) ? wRes : wRes?.data || [];
-            archived = wData.filter(
-              (r) =>
-                r.status === "Finalized" ||
-                r.status === "Dismissed" ||
-                r.archived,
-            );
+            archived = wData
+              .filter(
+                (r) =>
+                  r.status === "Finalized" ||
+                  r.status === "Dismissed" ||
+                  r.status === "Delivered" ||
+                  r.status === "Target Set" ||
+                  r.details?.soArchived ||
+                  r.details?.archived,
+              )
+              .map((r) => ({
+                id: r.wastage_report_id || r.id,
+                type: r.type,
+                status: r.status,
+                specificData: r.details?.specificData || {},
+                systemData: r.details?.systemData || {},
+                costImpact: r.details?.costImpact || null,
+                metricTarget: r.details?.metricTarget || null,
+                priority: r.details?.priority || "Low",
+                comments: r.details?.comments || [],
+                timestamp: r.created_at || r.details?.timestamp,
+                dismissReason: r.details?.dismissReason,
+                dismissComment: r.details?.dismissComment,
+                dismissedAt: r.details?.dismissedAt,
+                soArchivedAt: r.details?.soArchivedAt,
+                archivedAt: r.details?.archivedAt,
+                soArchived: r.details?.soArchived,
+                archived: r.details?.archived,
+              }));
           } catch (e) {}
           if (!archived.length) {
             archived = (data?.workflow?.wastageReports || []).filter(

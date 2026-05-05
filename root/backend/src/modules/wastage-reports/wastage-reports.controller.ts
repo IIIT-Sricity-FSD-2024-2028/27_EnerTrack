@@ -22,22 +22,22 @@ export class WastageReportsController {
   }
 
   @Get()
-  @ApiOperation({ summary: "List All Wastage Reports", description: "Retrieves all wastage reports. Only the System Administrator and Sustainability Officer can view them." })
+  @ApiOperation({ summary: "List All Wastage Reports", description: "Retrieves all wastage reports. Any authenticated user can view them (the frontend filters by reporter)." })
   @ApiResponse({ status: 200, description: "Array of wastage report records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Sustainability Officer")
+  @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findAll() {
     return this.wastageReportsService.findAll();
   }
 
   @Get(":id")
-  @ApiOperation({ summary: "Get Wastage Report by ID", description: "Retrieves a single wastage report by UUID. Only the System Administrator and Sustainability Officer can look up reports." })
+  @ApiOperation({ summary: "Get Wastage Report by ID", description: "Retrieves a single wastage report by UUID. Any authenticated user can look up reports." })
   @ApiResponse({ status: 200, description: "Wastage report record returned." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Sustainability Officer")
+  @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findOne(@Param("id") id: string) {
     return this.wastageReportsService.findOne(id);
   }

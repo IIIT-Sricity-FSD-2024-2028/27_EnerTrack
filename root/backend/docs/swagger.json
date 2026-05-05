@@ -2084,7 +2084,7 @@
       "get": {
         "operationId": "WastageReportsController_findAll",
         "summary": "List All Wastage Reports",
-        "description": "Retrieves all wastage reports. Only the System Administrator and Sustainability Officer can view them.",
+        "description": "Retrieves all wastage reports. Any authenticated user can view them (the frontend filters by reporter).",
         "parameters": [
           {
             "name": "x-role",
@@ -2113,7 +2113,7 @@
       "get": {
         "operationId": "WastageReportsController_findOne",
         "summary": "Get Wastage Report by ID",
-        "description": "Retrieves a single wastage report by UUID. Only the System Administrator and Sustainability Officer can look up reports.",
+        "description": "Retrieves a single wastage report by UUID. Any authenticated user can look up reports.",
         "parameters": [
           {
             "name": "id",
@@ -5695,12 +5695,14 @@
         "properties": {},
         "example": {
           "created_by_id": "uuuu0000-0005-4000-8000-000000000000",
-          "title": "Initiative 1",
-          "status": "proposed",
+          "title": "LED Campus-Wide Retrofit",
+          "description": "Replace all remaining fluorescent and incandescent bulbs with high-efficiency LED lighting in all administrative and academic buildings to lower baseline energy consumption.",
+          "status": "completed",
           "feasible": true,
-          "target_reduction": "10%",
+          "target_reduction": "15%",
           "outcomes": [
-            "Outcome 1"
+            "Reduced lighting energy load by 18%",
+            "Decreased maintenance costs for replacements"
           ]
         }
       },
@@ -5713,12 +5715,14 @@
         "properties": {},
         "example": {
           "created_by_id": "uuuu0000-0005-4000-8000-000000000000",
-          "title": "Initiative 1",
-          "status": "proposed",
+          "title": "LED Campus-Wide Retrofit",
+          "description": "Replace all remaining fluorescent and incandescent bulbs with high-efficiency LED lighting in all administrative and academic buildings to lower baseline energy consumption.",
+          "status": "completed",
           "feasible": true,
-          "target_reduction": "10%",
+          "target_reduction": "15%",
           "outcomes": [
-            "Outcome 1"
+            "Reduced lighting energy load by 18%",
+            "Decreased maintenance costs for replacements"
           ]
         }
       },

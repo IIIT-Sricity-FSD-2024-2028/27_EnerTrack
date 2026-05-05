@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Form Submit ──────────────────────────────────────────
   document
     .getElementById("wastageReportForm")
-    .addEventListener("submit", (e) => {
+    .addEventListener("submit", async (e) => {
       e.preventDefault();
 
       // Strict Validation
@@ -282,10 +282,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       async function _submitReport(reportObj) {
         // POST to backend
+        console.log("[DEBUG _submitReport] reportObj:", JSON.stringify(reportObj, null, 2));
+        console.log("[DEBUG _submitReport] user.user_id:", user.user_id, "user.email:", user.email);
         try {
           if (window.api) {
             const payload = {
-              reporter_id: user.user_id || null,
               type: reportObj.type,
               status: "Reported",
               details: {
@@ -295,9 +296,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 metricCategory: reportObj.metricCategory,
                 systemData: reportObj.systemData,
                 location: _getLocation(reportObj.type, reportObj.specificData),
+                timestamp: reportObj.timestamp,
               },
             };
+            // Only include reporter_id if we have a valid UUID from the backend
+            if (user.user_id) payload.reporter_id = user.user_id;
+            console.log("[DEBUG _submitReport] POSTING payload:", JSON.stringify(payload, null, 2));
             const res = await window.api.post("/wastage-reports", payload);
+            console.log("[DEBUG _submitReport] POST response:", JSON.stringify(res, null, 2));
             if (res && !res.error) {
               console.log(
                 "[EndUser] Wastage report created in backend:",
@@ -306,17 +312,23 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
               console.warn("[EndUser] Backend returned error:", res);
             }
+          } else {
+            console.warn("[DEBUG _submitReport] window.api is NOT available!");
           }
         } catch (err) {
           console.warn(
-            "[EndUser] Could not reach backend, saving locally only:",
+            "[EndUser] Could not reach backend or validation failed, saving locally only:",
             err.message,
           );
           if (!universalDB.data.workflow.wastageReports) {
             universalDB.data.workflow.wastageReports = [];
           }
-          universalDB.data.workflow.wastageReports.push(reportObj);
-          universalDB.save();
+          // Do not duplicate if already in local
+          const localExists = universalDB.data.workflow.wastageReports.find(r => r.id === reportObj.id);
+          if (!localExists) {
+             universalDB.data.workflow.wastageReports.push(reportObj);
+             universalDB.save();
+          }
         }
 
         // Reset
@@ -364,7 +376,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // ── Duplicate Detection ──
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       const newLoc = _getLocation(issueType, specificData);
-      const existingReports = getFreshReports();
+      const existingReports = await getFreshReports();
       const duplicate = existingReports.find(
         (r) =>
           r.type === issueType &&
@@ -510,7 +522,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let reports = [];
     try {
       if (window.api) {
+        console.log("[DEBUG getFreshReports] Calling GET /wastage-reports...");
         const res = await window.api.get("/wastage-reports");
+        console.log("[DEBUG getFreshReports] Raw backend response:", res);
+        console.log("[DEBUG getFreshReports] Is array?", Array.isArray(res), "Length:", res?.length);
         if (Array.isArray(res)) {
           reports = res.map((r, i) => {
             let offset = r.wastage_report_id
@@ -518,7 +533,7 @@ document.addEventListener("DOMContentLoaded", () => {
               : i * 86400000;
             const fallbackDate = new Date(1777521600000 - offset).toISOString(); // May 2026
 
-            return {
+            const mapped = {
               id: r.wastage_report_id || r.id,
               type: r.type || r.category || "Energy",
               status: r.status
@@ -540,22 +555,29 @@ document.addEventListener("DOMContentLoaded", () => {
               dismissComment: r.details?.dismissComment,
               dismissedAt: r.details?.dismissedAt,
             };
+            console.log(`[DEBUG getFreshReports] Report ${i}: reporter_id=${r.reporter_id} user.user_id=${user.user_id} match=${r.reporter_id === user.user_id} => reporterEmail=${mapped.reporterEmail}`);
+            return mapped;
           });
         }
+      } else {
+        console.warn("[DEBUG getFreshReports] window.api is NOT available!");
       }
     } catch (err) {
       console.warn(
-        "[EndUser] Failed to fetch wastage reports from backend:",
+        "[DEBUG getFreshReports] Failed to fetch wastage reports from backend:",
         err,
       );
     }
 
-    if (reports.length === 0) {
-      const raw = localStorage.getItem("enertrack_universal_v1");
-      if (raw) {
-        const data = JSON.parse(raw);
-        reports = data?.workflow?.wastageReports || [];
-      }
+    const raw = localStorage.getItem("enertrack_universal_v1");
+    if (raw) {
+      const data = JSON.parse(raw);
+      const localReports = data?.workflow?.wastageReports || [];
+      localReports.forEach(lr => {
+        if (!reports.find(br => br.id === lr.id)) {
+          reports.push(lr);
+        }
+      });
     }
     return reports;
   }
@@ -570,9 +592,15 @@ document.addEventListener("DOMContentLoaded", () => {
       .filter((wr) => wr.reporterEmail === user.email && !wr.archived)
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-    // If nothing is selected, reset timeline to step 1 (default guidance state)
+    // If nothing is selected, auto-select the latest report if one exists
     const lookupId = reportId || selectedReportId;
-    if (!lookupId) {
+    if (!lookupId && myReports.length > 0) {
+      // Auto-select the most recent report so the timeline isn't stuck at step 1
+      const latestReport = myReports[0];
+      selectedReportId = latestReport.id;
+    }
+    const effectiveId = reportId || selectedReportId;
+    if (!effectiveId) {
       const staticHTML = TIMELINE_STEPS.map(
         (step) => `
               <li>
@@ -589,8 +617,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // If a specific reportId is provided (card clicked), use that report only
     let targetReport = null;
-    if (lookupId) {
-      targetReport = allReports.find((r) => r.id === lookupId) || null;
+    if (effectiveId) {
+      targetReport = allReports.find((r) => r.id === effectiveId) || null;
     }
     if (!targetReport) {
       targetReport = myReports[0] || null;
@@ -627,8 +655,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // isFullyDone: only when the workflow is at step 6 (Delivered) are ALL steps green
     const isFullyDone = activeStep >= 6;
 
-    // Only show filter label when user explicitly clicked a card
-    const filterLabel = lookupId
+    // Only show filter label when user explicitly clicked a card (not auto-selected)
+    const filterLabel = reportId
       ? `<div style="font-size:12px;color:#6b7280;margin-bottom:8px;font-weight:500;">Showing audit trail for <strong style="color:#111827;">#${targetReport.id}</strong></div>`
       : "";
 
@@ -684,9 +712,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const countBadge = document.getElementById("myReportsCount");
 
     const freshReports = await getFreshReports();
+    console.log("[DEBUG renderTickets] Total freshReports:", freshReports.length);
+    console.log("[DEBUG renderTickets] user.email:", user.email);
+    freshReports.forEach((wr, i) => console.log(`[DEBUG renderTickets] Report ${i}: reporterEmail=${wr.reporterEmail} archived=${wr.archived} type=${wr.type} status=${wr.status}`));
     const myReports = freshReports
       .filter((wr) => wr.reporterEmail === user.email && !wr.archived)
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    console.log("[DEBUG renderTickets] myReports after filter:", myReports.length);
 
     countBadge.textContent = myReports.length;
 
@@ -1137,22 +1169,41 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // ── Archive Report ───────────────────────────────────────
-  window._archiveReport = function (reportId) {
-    // Always read fresh from localStorage to avoid stale cache
+  window._archiveReport = async function (reportId) {
+    // Try backend first
+    try {
+      if (window.api) {
+        const all = await window.api.get("/wastage-reports");
+        const target = all.find((r) => r.wastage_report_id === reportId);
+        if (target) {
+          await window.api.patch(`/wastage-reports/${reportId}`, {
+            details: {
+              ...(target.details || {}),
+              archived: true,
+              archivedAt: new Date().toISOString(),
+            },
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("[EndUser] Backend archive failed, falling back to local", e);
+    }
+
+    // Also update localStorage if present
     const raw = localStorage.getItem("enertrack_universal_v1");
-    if (!raw) return;
-    const universalData = JSON.parse(raw);
-    const reports = universalData?.workflow?.wastageReports || [];
-    const report = reports.find((r) => r.id === reportId);
-    if (!report) return;
-
-    report.archived = true;
-    report.archivedAt = new Date().toISOString();
-
-    localStorage.setItem(
-      "enertrack_universal_v1",
-      JSON.stringify(universalData),
-    );
+    if (raw) {
+      const universalData = JSON.parse(raw);
+      const reports = universalData?.workflow?.wastageReports || [];
+      const report = reports.find((r) => r.id === reportId);
+      if (report) {
+        report.archived = true;
+        report.archivedAt = new Date().toISOString();
+        localStorage.setItem(
+          "enertrack_universal_v1",
+          JSON.stringify(universalData),
+        );
+      }
+    }
 
     // If this was the selected report, clear selection
     if (selectedReportId === reportId) {
@@ -1193,8 +1244,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (newBtn) newBtn.style.display = "none";
     }
 
-    renderTickets();
-    renderAuditTimeline();
+    await renderTickets();
+    await renderAuditTimeline();
     showToast();
   };
 

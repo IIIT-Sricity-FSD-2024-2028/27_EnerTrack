@@ -108,13 +108,63 @@ async function populateTechnicianDropdown() {
       techs.map((t) => `<option value="${t.name}">${t.name}</option>`).join("");
 }
 
+/* ─── Sync backend work orders into TechDB ───────── */
+async function syncBackendWorkOrders() {
+  try {
+    if (!window.api) return;
+    const backendWOs = await window.api.get("/work-orders");
+    if (!Array.isArray(backendWOs)) return;
+
+    // Merge backend WOs into TechDB (avoid duplicates by work_order_id)
+    backendWOs.forEach((bwo) => {
+      const existing = TechDB.workOrders.find(
+        (w) => w.id === bwo.work_order_id || w.work_order_id === bwo.work_order_id
+      );
+      if (!existing) {
+        // Resolve technician name for display
+        let techName = bwo.assigned_to_id || "Unassigned";
+        if (techName.startsWith("uuuu")) {
+          const found = backendTechs.find((t) => t.user_id === techName);
+          techName = found ? found.name : techName;
+        }
+
+        TechDB.workOrders.push({
+          id: bwo.work_order_id,
+          work_order_id: bwo.work_order_id,
+          title: bwo.title,
+          type: bwo.details?.type || "scheduled",
+          priority: bwo.priority,
+          technician: techName,
+          assigned_to_id: bwo.assigned_to_id,
+          description: bwo.details?.description || "",
+          estimateRequired: bwo.details?.estimateRequired || false,
+          estimate: bwo.details?.estimate || null,
+          resolution_notes: bwo.details?.resolution_notes || null,
+          status: bwo.status,
+          linkedFault: bwo.linked_fault_id || null,
+          sourceRequest: bwo.source_request_id || null,
+        });
+      } else {
+        // Update existing record with the latest state
+        existing.status = bwo.status;
+        existing.estimate = bwo.details?.estimate || existing.estimate;
+        existing.resolution_notes = bwo.details?.resolution_notes || existing.resolution_notes;
+      }
+    });
+
+    console.log("[TechAdmin] Synced", backendWOs.length, "work orders from backend.");
+  } catch (err) {
+    console.warn("[TechAdmin] Backend WO sync failed:", err.message);
+  }
+}
+
 async function initWorkOrders() {
+  await syncBackendWorkOrders();
   renderBoard();
   renderArchive();
   await renderServiceRequests();
   wireTypeSelector();
   wireNewWOForm();
-  wireInitiateBtn();
 
   // Select first WO by default
   const first = TechDB.workOrders.find((w) => w.status !== "closed");
@@ -137,31 +187,41 @@ function renderColumn(containerId, status) {
   const orders = TechDB.workOrders.filter((w) => w.status === status);
   container.innerHTML =
     orders
-      .map(
-        (wo) => `
+      .map((wo) => {
+        // Resolve tech name
+        let techName = wo.technician || "Unassigned";
+        if (techName.startsWith("uuuu")) {
+          const found = backendTechs.find((t) => t.user_id === techName);
+          techName = found ? found.name : "Assigned Tech";
+        }
+        
+        // Resolve asset (fallback to description or type if missing)
+        const assetName = wo.description || wo.asset || "General Maintenance";
+
+        return `
         <div class="task-card ${wo.id === selectedWOId ? "selected-task" : ""}" data-wo-id="${wo.id}" style="${wo.rejected ? "border: 1.5px solid #ef4444; background: #fff1f2;" : ""}">
             <div class="task-title">
-                ${wo.id}
+                ${formatWOId(wo.id)}
                 <span class="priority-tag priority-${wo.priority}">${cap(wo.priority)}</span>
             </div>
             <div>${wo.title}</div>
-                <div style="margin-top:6px; font-size:11px; color:var(--muted); display:flex; align-items:center; gap:10px;">
-                    <span style="display:inline-flex;align-items:center;gap:4px;">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        ${wo.technician}
+                <div style="margin-top:8px; font-size:11px; color:var(--muted); display:flex; flex-direction:column; gap:6px;">
+                    <span style="display:inline-flex;align-items:center;gap:6px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <strong>Tech:</strong> ${techName}
                     </span>
-                    <span style="display:inline-flex;align-items:center;gap:4px;">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        ${wo.technician}
+                    <span style="display:inline-flex;align-items:center;gap:6px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <strong>Asset:</strong> ${assetName}
                     </span>
-                    <span style="display:inline-flex;align-items:center;gap:4px;">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        Estimate: ${wo.estimate ? "Submitted" : "Needed"}
+                    <span style="display:inline-flex;align-items:center;gap:6px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        <strong>Estimate:</strong> ${wo.estimate ? "Submitted" : "Needed"}
                     </span>
                 </div>
         </div>
-    `,
-      )
+    `;
+      })
       .join("") ||
     `<div style="font-size:12px; color:var(--muted); text-align:center; padding:14px;">No work orders</div>`;
 
@@ -196,9 +256,11 @@ function selectWorkOrder(id) {
     ?.classList.add("selected-task");
 
   // Update detail panel
-  setEl("selectedWOTitle", `Selected Work Order — ${wo.id}`);
+  setEl("selectedWOTitle", `Selected Work Order — ${formatWOId(wo.id)}`);
   setEl("selectedWOStatus", wo.status);
-  setEl("selectedWOTechnician", wo.technician);
+  setEl("selectedWOType", wo.type || "Maintenance");
+  setEl("selectedWOPriority", wo.priority);
+  setEl("selectedWOTechnician", wo.technician || "Unassigned");
 
   // Update Cost Estimate Display
   const costStatusEl = document.getElementById("selectedWOCost");
@@ -207,6 +269,38 @@ function selectWorkOrder(id) {
       costStatusEl.innerHTML = `<span style="color:#10b981; font-weight:600;">Submitted (₹${wo.estimate.total})</span>`;
     } else {
       costStatusEl.innerHTML = `<span style="color:#ef4444; font-weight:600;">Required / Not Submitted</span>`;
+    }
+  }
+
+  // System Operational Check Panel Update
+  const actionTitle = document.getElementById("actionPanelTitle");
+  const actionOptions = document.getElementById("actionPanelOptions");
+  if (actionTitle && actionOptions) {
+    if (wo.status === "review" || wo.status === "closed") {
+      actionTitle.textContent = "Resolution Details";
+      actionOptions.innerHTML = `
+        <div class="option active" style="grid-column: span 2;">
+          <b>Technician Comments</b>
+          <p style="margin-top:4px; padding:10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:4px; font-size:13px; color:#374151;">
+            ${wo.resolution_notes || "No notes provided."}
+          </p>
+        </div>
+      `;
+    } else {
+      actionTitle.textContent = "System Operational Check";
+      actionOptions.innerHTML = `
+        <div class="option active">
+          <b>Operational</b>
+          <p>Document completion and submit for review.</p>
+          <textarea id="completionNotes" placeholder="Enter resolution details..." style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 6px; font-size: 12px; margin-bottom: 6px; resize: vertical; min-height: 40px;"></textarea>
+          <button class="btn btn-dark btn-full" id="btnSubmitForReview">Submit for Review</button>
+        </div>
+        <div class="option">
+          <b>Not Operational</b>
+          <p>Keep WO in-progress pending further work.</p>
+          <button class="btn btn-light btn-full" onclick="showToast('Task marked on hold.', 'info')">Mark On Hold</button>
+        </div>
+      `;
     }
   }
   // Status logic removed per request
@@ -230,11 +324,21 @@ function selectWorkOrder(id) {
   if (reassignBlock) {
     if (wo.rejected) {
       reassignBlock.style.display = "block";
-      reassignBtn.onclick = () => {
+      reassignBtn.onclick = async () => {
         if (reassignSelect && reassignSelect.value) {
+          try {
+            if (window.api) {
+              await window.api.patch(`/work-orders/${id}`, {
+                assigned_to_id: reassignSelect.value,
+                status: "new"
+              });
+            }
+          } catch(e) { console.warn("Backend reassign failed:", e); }
+
           TechDB.updateWorkOrder(id, {
             technician: reassignSelect.value,
             rejected: false,
+            status: "new"
           });
           showToast(`Assigned ${id} to ${reassignSelect.value}`, "success");
           renderBoard();
@@ -346,17 +450,42 @@ window.addEventListener("load", () => {
 function confirmCloseWO(id) {
   openModal({
     title: "Close Work Order",
-    bodyHTML: `<p>Are you sure you want to close <strong>${id}</strong> and move it to the archive?</p>`,
+    bodyHTML: `<p>Are you sure you want to close <strong>${formatWOId(id)}</strong> and move it to the archive?</p>`,
     confirmLabel: "Close Work Order",
     cancelLabel: "Cancel",
     danger: true,
-    onConfirm: () => {
+    onConfirm: async () => {
+      try {
+        if (window.api && id.includes("-")) {
+          await window.api.patch(`/work-orders/${id}`, { status: "closed" });
+        }
+      } catch (err) {
+        console.warn("Backend close failed:", err);
+      }
       TechDB.closeWorkOrder(id);
-      showToast(`Work order ${id} closed and archived.`, "success");
+      showToast(`Work order ${formatWOId(id)} closed and archived.`, "success");
       renderBoard();
       renderArchive();
       selectedWOId = null;
+      
+      // Clear Detail Panel
       setEl("selectedWOTitle", "Select a work order from the board");
+      setEl("selectedWOStatus", "—");
+      setEl("selectedWOType", "—");
+      setEl("selectedWOPriority", "—");
+      setEl("selectedWOTechnician", "—");
+      
+      const costEl = document.getElementById("selectedWOCost");
+      if (costEl) costEl.innerHTML = "—";
+      
+      const actionTitle = document.getElementById("actionPanelTitle");
+      const actionOptions = document.getElementById("actionPanelOptions");
+      if (actionTitle && actionOptions) {
+          actionTitle.textContent = "System Operational Check";
+          actionOptions.innerHTML = "";
+      }
+      
+      document.querySelectorAll(".task-card").forEach((c) => c.classList.remove("selected-task"));
     },
   });
 }
@@ -425,14 +554,16 @@ function wireNewWOForm() {
         const techName = techObj ? techObj.name : tech;
 
         const payload = {
-          assigned_technician_id: techObj ? tech : null,
-          campus_id: "cccc0000-0001-4000-8000-000000000000",
-          service_request_id: linkedSrId || null,
+          assigned_to_id: techObj ? tech : null,
+          source_request_id: linkedSrId || null,
           title: `${cap(selectedType)} maintenance: ${asset}`,
-          description: asset,
           priority: priority || "medium",
-          status: "open",
-          type: selectedType,
+          status: "new",
+          details: {
+            description: asset,
+            type: selectedType,
+            estimateRequired: estReq,
+          }
         };
 
         const woData = await window.api.post("/work-orders", payload);
@@ -453,6 +584,7 @@ function wireNewWOForm() {
 
           form.reset();
           await renderServiceRequests();
+          await syncBackendWorkOrders();
           renderBoard();
           return;
         } else {
@@ -493,16 +625,6 @@ function wireNewWOForm() {
   });
 }
 
-/* ─── Initiate btn (header) ──────────────────────── */
-function wireInitiateBtn() {
-  document
-    .getElementById("btnInitiateMaintenance")
-    ?.addEventListener("click", () => {
-      document
-        .getElementById("newWOSetup")
-        ?.scrollIntoView({ behavior: "smooth" });
-    });
-}
 
 /* ─── Archive table ──────────────────────────────── */
 function renderArchive() {
@@ -518,7 +640,7 @@ function renderArchive() {
     .map(
       (wo) => `
         <tr>
-            <td>${wo.id}</td>
+            <td>${formatWOId(wo.id)}</td>
             <td>${wo.title}</td>
             <td><span class="badge ${wo.priority}">${cap(wo.type)}</span></td>
             <td>${wo.technician}</td>
@@ -530,6 +652,15 @@ function renderArchive() {
 }
 
 /* ─── Helpers ─────────────────────────────────────── */
+function formatWOId(id) {
+  if (!id) return "WO-XXXX";
+  if (id.startsWith("WO-")) return id;
+  const parts = id.split("-");
+  if (parts.length > 1) {
+    return "WO-" + parts[1].toUpperCase();
+  }
+  return "WO-" + id.substring(0, 4).toUpperCase();
+}
 function cap(str) {
   if (!str) return "—";
   return str.charAt(0).toUpperCase() + str.slice(1);

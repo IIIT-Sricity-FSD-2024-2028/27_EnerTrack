@@ -49,6 +49,14 @@ async function loadPage() {
     allUsers = results[0];
     allWorkOrders = results[1];
 
+    // Fallback for stale sessions missing user_id
+    if (!currentUser.user_id && currentUser.name) {
+      var foundUser = allUsers.find(function(u) { return u.name === currentUser.name; });
+      if (foundUser) {
+        currentUser.user_id = foundUser.user_id;
+      }
+    }
+
     renderBoard();
     renderArchive();
 
@@ -181,11 +189,19 @@ function selectWorkOrder(id) {
   setEl("selectedWOPriority", cap(wo.priority));
   setEl("selectedWOTechnician", getUserName(wo.assigned_to_id));
 
-  // Cost estimate display — backend doesn't have an estimate field yet, show placeholder
+  // Cost estimate display
   var costStatusEl = document.getElementById("selectedWOCost");
   if (costStatusEl) {
-    costStatusEl.innerHTML =
-      '<span style="color:#6b7280; font-weight:500;">Not yet submitted</span>';
+    if (wo.details && wo.details.estimate) {
+      if (wo.status === "approval") {
+        costStatusEl.innerHTML = '<span style="color:#d97706; font-weight:600;">Pending Approval (₹' + wo.details.estimate.total + ')</span>';
+      } else {
+        costStatusEl.innerHTML = '<span style="color:#10b981; font-weight:600;">Approved (₹' + wo.details.estimate.total + ')</span>';
+      }
+    } else {
+      costStatusEl.innerHTML =
+        '<span style="color:#6b7280; font-weight:500;">Not yet submitted</span>';
+    }
   }
 
   // Toggle cost form button
@@ -193,10 +209,15 @@ function selectWorkOrder(id) {
   var costEstBlock = document.getElementById("costEstimateBlock");
   if (btnShowForm && costEstBlock) {
     costEstBlock.style.display = "none";
-    btnShowForm.onclick = function () {
-      costEstBlock.style.display =
-        costEstBlock.style.display === "none" ? "block" : "none";
-    };
+    if (wo.details && wo.details.estimate) {
+      btnShowForm.style.display = "none";
+    } else {
+      btnShowForm.style.display = "block";
+      btnShowForm.onclick = function () {
+        costEstBlock.style.display =
+          costEstBlock.style.display === "none" ? "block" : "none";
+      };
+    }
   }
 
   // Action panel
@@ -231,18 +252,13 @@ function renderActionPanel(wo) {
   } else if (wo.status === "inprogress") {
     actionPanelTitle.textContent = "System Operational Check";
     actionPanelOptions.innerHTML =
-      '<div class="option active">' +
+      '<div class="option active" style="grid-column: span 2;">' +
       "<b>Operational</b>" +
       "<p>Document completion.</p>" +
       '<textarea id="completionNotes" placeholder="Enter resolution details..." style="width:100%; border:1px solid #d1d5db; border-radius:4px; padding:6px; font-size:12px; margin-bottom:6px; resize:vertical; min-height:40px;"></textarea>' +
       '<button class="btn btn-dark btn-full" onclick="submitForReview(\'' +
       id +
       "')\">Submit for Review</button>" +
-      "</div>" +
-      '<div class="option">' +
-      "<b>Requires Cost Estimate</b>" +
-      "<p>Submit for financial approval.</p>" +
-      "<button class=\"btn btn-light btn-full\" onclick=\"document.getElementById('costEstimateBlock').style.display='block'\">Show Cost Form</button>" +
       "</div>";
   } else if (wo.status === "approval") {
     actionPanelTitle.textContent = "Cost Estimate Approval";
@@ -323,15 +339,18 @@ window.submitForReview = async function (id) {
 };
 
 window.submitCostEstimate = async function (id) {
-  var materials = document.getElementById("estMaterials").value;
-  var labor = document.getElementById("estLabor").value;
-  if (!materials || !labor) {
-    showToast("Please enter both materials and labor costs.", "warning");
+  var materials = parseFloat(document.getElementById("estMaterials").value);
+  var labor = parseFloat(document.getElementById("estLabor").value);
+  if (isNaN(materials) || isNaN(labor)) {
+    showToast("Please enter valid numeric costs.", "warning");
     return;
   }
   try {
-    // Move to approval status — cost data stored client-side until invoice module is wired
-    await patchWO(id, { status: "approval" });
+    var wo = allWorkOrders.find(function (w) { return w.work_order_id === id; });
+    var details = wo && wo.details ? Object.assign({}, wo.details) : {};
+    details.estimate = { materials: materials, labor: labor, total: materials + labor };
+
+    await patchWO(id, { status: "approval", details: details });
     document.getElementById("costEstimateBlock").style.display = "none";
     showToast("Cost estimate submitted. Awaiting approval.", "success");
   } catch (err) {

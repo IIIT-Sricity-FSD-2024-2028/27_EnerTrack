@@ -131,9 +131,6 @@
               changes are saved instantly.
             </p>
           </div>
-          <button class="btn btn-dark btn-header" id="btnInitiateMaintenance">
-            + Initiate Maintenance Action
-          </button>
         </div>
 
         <!-- ─── USER-REPORTED SERVICE REQUESTS ─────────────────────── -->
@@ -212,14 +209,6 @@
                     id="inputAsset"
                     type="text"
                     placeholder="e.g. Compressor C-12"
-                  />
-                </div>
-                <div class="field">
-                  <label>Planned Service Window</label>
-                  <input
-                    id="inputWindow"
-                    type="text"
-                    placeholder="e.g. Today · 2:00 PM to 4:00 PM"
                   />
                 </div>
               </div>
@@ -393,7 +382,7 @@
             <div class="card mb-16">
               <h2 class="section-title-small mb-12">Work Order Summary</h2>
               <div class="summary-grid">
-                <span class="summary-label">ID</span>
+                <span class="summary-label">Status</span>
                 <span id="selectedWOStatus">—</span>
                 <span class="summary-label">Type</span>
                 <span id="selectedWOType">—</span>
@@ -406,10 +395,10 @@
 
             <!-- System operational check -->
             <div class="card no-margin">
-              <h2 class="section-title-small mb-10">
+              <h2 class="section-title-small mb-10" id="actionPanelTitle">
                 System Operational Check
               </h2>
-              <div class="grid2">
+              <div class="grid2" id="actionPanelOptions">
                 <div class="option active">
                   <b>Operational</b>
                   <p>Document completion and submit for review.</p>
