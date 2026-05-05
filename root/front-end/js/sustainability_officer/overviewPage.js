@@ -593,7 +593,7 @@ async function renderWastageAuditQueue() {
 
             <!-- Comment Thread -->
             ${(() => {
-              const comments = r.comments || [];
+              const comments = r.comments || r.details?.comments || [];
               const commentListHTML = comments
                 .map((c) => {
                   const roleBadge =

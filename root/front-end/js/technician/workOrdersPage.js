@@ -504,7 +504,7 @@ function wireTypeSelector() {
 }
 
 window.triageRequest = function (id) {
-  const sr = TechDB.serviceRequests.find((s) => s.id === id);
+  const sr = backendSRs.find((s) => s.service_request_id === id) || TechDB.serviceRequests.find((s) => s.id === id);
   if (!sr) return;
 
   // Automatically open and scroll to the new work order form

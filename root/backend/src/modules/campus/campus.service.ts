@@ -5,10 +5,10 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { CreateCampusDto } from "./dto/create-campu.dto";
-import { PutCampusDto } from "./dto/put-campu.dto";
+import { CreateCampusDto } from "./dto/create-campus.dto";
+import { PutCampusDto } from "./dto/put-campus.dto";
 
-import { UpdateCampusDto } from "./dto/update-campu.dto";
+import { UpdateCampusDto } from "./dto/update-campus.dto";
 
 @Injectable()
 export class CampusService {

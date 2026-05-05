@@ -118,10 +118,9 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         if (window.api) {
           const payload = {
-            requested_by_id: user.user_id || null,
-            campus_id: "cccc0000-0001-4000-8000-000000000000",
-            building_id: null,
-            department_id: null,
+            reporter_id: user.user_id || "uuuu0000-0006-4000-8000-000000000000",
+            category: "General",
+            issue_type: issueType || "General",
             description: `[${issueType || "General"}] ${description} — Location: ${location}`,
             priority: priority.toLowerCase(),
             status: "open",
@@ -218,7 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const srs = await window.api.get("/service-requests");
         if (Array.isArray(srs)) {
           myTickets = srs
-            .filter((sr) => sr.requested_by_id === user.user_id)
+            .filter((sr) => sr.reporter_id === user.user_id)
             .map((sr, i) => {
               let offset = sr.service_request_id
                 ? (sr.service_request_id.charCodeAt(5) || 0) * 3600000
