@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
+import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
 import { CreateActivityLogDto } from "./dto/create-activity-log.dto";
 import { PutActivityLogDto } from "./dto/put-activity-log.dto";
 
@@ -28,6 +29,7 @@ export class ActivityLogsService {
     const newRecord = {
       activity_log_id: generatedId,
       ...createDto,
+      organization_id: createDto.organization_id ?? currentOrgId(),
       timestamp: new Date().toISOString(),
     };
     this.database.activityLogs.push(newRecord as any);
@@ -35,7 +37,7 @@ export class ActivityLogsService {
   }
 
   findAll() {
-    return this.database.activityLogs;
+    return scopeToTenant(this.database.activityLogs);
   }
 
   findOne(id: string) {

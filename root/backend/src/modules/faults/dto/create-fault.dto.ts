@@ -5,6 +5,8 @@ import {
 } from "../../../core/database/database.service";
 
 export class CreateFaultDto {
+  /** Tenant this record belongs to. Defaults to the x-org-id header. */
+  @IsOptional() @IsString() organization_id?: string;
   @IsOptional() @IsString() alert_id?: string;
   @IsOptional() @IsUUID() assigned_to_id?: string;
   @IsString() asset_name: string;

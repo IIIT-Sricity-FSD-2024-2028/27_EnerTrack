@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
+import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { PutUserDto } from "./dto/put-user.dto";
 
@@ -31,13 +32,13 @@ export class UsersService {
         throw new ConflictException(`Duplicate phone '${createDto.phone}'`);
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { user_id: generatedId, ...createDto };
+    const newRecord = { user_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
     this.database.users.push(newRecord as any);
     return newRecord;
   }
 
   findAll() {
-    return this.database.users;
+    return scopeToTenant(this.database.users);
   }
 
   findOne(id: string) {

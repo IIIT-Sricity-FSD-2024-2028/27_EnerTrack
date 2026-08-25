@@ -1,8 +1,10 @@
-import { Module } from "@nestjs/common";
+import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { DatabaseModule } from "./core/database/database.module";
+import { TenantMiddleware } from "./core/tenancy/tenant.middleware";
 
+import { OrganizationsModule } from "./modules/organizations/organizations.module";
 import { UsersModule } from "./modules/users/users.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { CampusModule } from "./modules/campus/campus.module";
@@ -26,6 +28,7 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
 @Module({
   imports: [
     DatabaseModule,
+    OrganizationsModule,
     UsersModule,
     NotificationsModule,
     CampusModule,
@@ -49,4 +52,13 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  /**
+   * TenantMiddleware runs on every route. It reads the x-role and x-org-id
+   * headers and opens a per-request tenant scope that services read from,
+   * so no controller or service signature has to carry an organisation id.
+   */
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(TenantMiddleware).forRoutes("*");
+  }
+}

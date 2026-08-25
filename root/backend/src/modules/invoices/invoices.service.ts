@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
+import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
 import { CreateInvoiceDto } from "./dto/create-invoice.dto";
 import { PutInvoiceDto } from "./dto/put-invoice.dto";
 
@@ -43,13 +44,13 @@ export class InvoicesService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { invoice_id: generatedId, ...createDto };
+    const newRecord = { invoice_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
     this.database.invoices.push(newRecord as any);
     return newRecord;
   }
 
   findAll() {
-    return this.database.invoices;
+    return scopeToTenant(this.database.invoices);
   }
 
   findOne(id: string) {

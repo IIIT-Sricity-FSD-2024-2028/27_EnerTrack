@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
+import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
 import { CreateSustainabilityReportDto } from "./dto/create-sustainability-report.dto";
 import { PutSustainabilityReportDto } from "./dto/put-sustainability-report.dto";
 
@@ -28,6 +29,7 @@ export class SustainabilityReportsService {
     const newRecord = {
       report_id: generatedId,
       ...createDto,
+      organization_id: createDto.organization_id ?? currentOrgId(),
       generated_at: new Date().toISOString(),
     };
     this.database.sustainabilityReports.push(newRecord as any);
@@ -35,7 +37,7 @@ export class SustainabilityReportsService {
   }
 
   findAll() {
-    return this.database.sustainabilityReports;
+    return scopeToTenant(this.database.sustainabilityReports);
   }
 
   findOne(id: string) {

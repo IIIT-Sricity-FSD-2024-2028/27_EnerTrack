@@ -1,0 +1,147 @@
+import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Put,
+} from "@nestjs/common";
+import { OrganizationsService } from "./organizations.service";
+import { CreateOrganizationDto } from "./dto/create-organization.dto";
+import { PutOrganizationDto } from "./dto/put-organization.dto";
+import { UpdateOrganizationDto } from "./dto/update-organization.dto";
+import { Roles } from "../../core/decorators/roles.decorator";
+
+const ROLE_HEADER = {
+  name: "x-role",
+  description:
+    "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+  required: false,
+};
+
+@ApiTags("organizations")
+@Controller("organizations")
+export class OrganizationsController {
+  constructor(private readonly organizationsService: OrganizationsService) {}
+
+  @Post()
+  @ApiOperation({
+    summary: "Create Organization",
+    description:
+      "Registers a new client organisation (tenant). Used when a prospect is onboarded. Only EnerTrack platform staff can create organisations.",
+  })
+  @ApiResponse({ status: 201, description: "Organization created successfully." })
+  @ApiResponse({ status: 409, description: "An organization with that name already exists." })
+  @ApiResponse({ status: 403, description: "Forbidden – caller is not EnerTrack platform staff." })
+  @ApiHeader(ROLE_HEADER)
+  @Roles("Platform Admin", "System Administrator")
+  create(@Body() createDto: CreateOrganizationDto) {
+    return this.organizationsService.create(createDto);
+  }
+
+  @Get()
+  @ApiOperation({
+    summary: "List All Organizations",
+    description:
+      "Retrieves every client organisation with its status, data source tier and contract details. This is the platform-wide tenant list, so it is restricted to EnerTrack staff.",
+  })
+  @ApiResponse({ status: 200, description: "Array of all organization records returned." })
+  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiHeader(ROLE_HEADER)
+  @Roles("Platform Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
+  findAll() {
+    return this.organizationsService.findAll();
+  }
+
+  @Get(":id")
+  @ApiOperation({
+    summary: "Get Organization by ID",
+    description:
+      "Retrieves a single client organisation by its id. Pass the organization_id as a URL path parameter.",
+  })
+  @ApiResponse({ status: 200, description: "Organization record returned." })
+  @ApiResponse({ status: 404, description: "Organization with the given ID not found." })
+  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiHeader(ROLE_HEADER)
+  @Roles("Platform Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
+  findOne(@Param("id") id: string) {
+    return this.organizationsService.findOne(id);
+  }
+
+  @Put(":id")
+  @ApiOperation({
+    summary: "Replace Organization",
+    description:
+      "Completely replaces an existing organisation record. Send the organization_id in the URL and a complete PutOrganizationDto body.",
+  })
+  @ApiResponse({ status: 200, description: "Organization replaced successfully." })
+  @ApiResponse({ status: 404, description: "Organization with the given ID not found." })
+  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiHeader(ROLE_HEADER)
+  @Roles("Platform Admin", "System Administrator")
+  put(@Param("id") id: string, @Body() putDto: PutOrganizationDto) {
+    return this.organizationsService.put(id, putDto);
+  }
+
+  @Patch(":id")
+  @ApiOperation({
+    summary: "Update Organization",
+    description:
+      "Partially updates an organisation, for example moving its status from prospect to active once a contract is signed.",
+  })
+  @ApiResponse({ status: 200, description: "Organization updated successfully." })
+  @ApiResponse({ status: 404, description: "Organization with the given ID not found." })
+  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiHeader(ROLE_HEADER)
+  @Roles("Platform Admin", "System Administrator", "Account Officer")
+  update(@Param("id") id: string, @Body() updateDto: UpdateOrganizationDto) {
+    return this.organizationsService.update(id, updateDto);
+  }
+
+  @Delete(":id")
+  @ApiOperation({
+    summary: "Delete Organization",
+    description:
+      "Permanently removes an organisation. Refused while the organisation still owns campus records, to avoid orphaning tenant data.",
+  })
+  @ApiResponse({ status: 200, description: "Organization deleted successfully." })
+  @ApiResponse({ status: 404, description: "Organization with the given ID not found." })
+  @ApiResponse({ status: 409, description: "Organization still owns campus records." })
+  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiHeader(ROLE_HEADER)
+  @Roles("Platform Admin", "System Administrator")
+  remove(@Param("id") id: string) {
+    return this.organizationsService.remove(id);
+  }
+
+  @Get(":id/campuses")
+  @ApiOperation({
+    summary: "Get Organization Campuses",
+    description:
+      "Retrieves every campus owned by one organisation. Campus is the tenancy seam, so Buildings, Departments and Meters hang below these records.",
+  })
+  @ApiResponse({ status: 200, description: "Array of campus records returned." })
+  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiHeader(ROLE_HEADER)
+  @Roles("Platform Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
+  getCampuses(@Param("id") id: string) {
+    return this.organizationsService.getCampuses(id);
+  }
+
+  @Get(":id/users")
+  @ApiOperation({
+    summary: "Get Organization Users",
+    description:
+      "Retrieves the client-side user accounts belonging to one organisation. EnerTrack staff accounts are not included, as they belong to no tenant.",
+  })
+  @ApiResponse({ status: 200, description: "Array of user records returned." })
+  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiHeader(ROLE_HEADER)
+  @Roles("Platform Admin", "System Administrator", "Account Officer")
+  getUsers(@Param("id") id: string) {
+    return this.organizationsService.getUsers(id);
+  }
+}

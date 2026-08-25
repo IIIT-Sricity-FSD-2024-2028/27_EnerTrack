@@ -12,6 +12,326 @@
         }
       }
     },
+    "/api/organizations": {
+      "post": {
+        "operationId": "OrganizationsController_create",
+        "summary": "Create Organization",
+        "description": "Registers a new client organisation (tenant). Used when a prospect is onboarded. Only EnerTrack platform staff can create organisations.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Organization created successfully."
+          },
+          "403": {
+            "description": "Forbidden – caller is not EnerTrack platform staff."
+          },
+          "409": {
+            "description": "An organization with that name already exists."
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      },
+      "get": {
+        "operationId": "OrganizationsController_findAll",
+        "summary": "List All Organizations",
+        "description": "Retrieves every client organisation with its status, data source tier and contract details. This is the platform-wide tenant list, so it is restricted to EnerTrack staff.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all organization records returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/organizations/{id}": {
+      "get": {
+        "operationId": "OrganizationsController_findOne",
+        "summary": "Get Organization by ID",
+        "description": "Retrieves a single client organisation by its id. Pass the organization_id as a URL path parameter.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Organization with the given ID not found."
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      },
+      "put": {
+        "operationId": "OrganizationsController_put",
+        "summary": "Replace Organization",
+        "description": "Completely replaces an existing organisation record. Send the organization_id in the URL and a complete PutOrganizationDto body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutOrganizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Organization replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Organization with the given ID not found."
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      },
+      "patch": {
+        "operationId": "OrganizationsController_update",
+        "summary": "Update Organization",
+        "description": "Partially updates an organisation, for example moving its status from prospect to active once a contract is signed.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Organization updated successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Organization with the given ID not found."
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      },
+      "delete": {
+        "operationId": "OrganizationsController_remove",
+        "summary": "Delete Organization",
+        "description": "Permanently removes an organisation. Refused while the organisation still owns campus records, to avoid orphaning tenant data.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Organization with the given ID not found."
+          },
+          "409": {
+            "description": "Organization still owns campus records."
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/organizations/{id}/campuses": {
+      "get": {
+        "operationId": "OrganizationsController_getCampuses",
+        "summary": "Get Organization Campuses",
+        "description": "Retrieves every campus owned by one organisation. Campus is the tenancy seam, so Buildings, Departments and Meters hang below these records.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of campus records returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/organizations/{id}/users": {
+      "get": {
+        "operationId": "OrganizationsController_getUsers",
+        "summary": "Get Organization Users",
+        "description": "Retrieves the client-side user accounts belonging to one organisation. EnerTrack staff accounts are not included, as they belong to no tenant.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of user records returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
     "/api/users/login": {
       "post": {
         "operationId": "UsersController_loginUser",
@@ -5127,6 +5447,10 @@
   },
   "tags": [
     {
+      "name": "organizations",
+      "description": "Client organisations (tenants) and their onboarding status"
+    },
+    {
       "name": "users",
       "description": "User management and role assignment"
     },
@@ -5210,9 +5534,46 @@
         "type": "apiKey",
         "in": "header",
         "name": "x-role"
+      },
+      "x-org-id": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-org-id"
       }
     },
     "schemas": {
+      "CreateOrganizationDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "name": "Sri City Institute of Technology",
+          "type": "University",
+          "location": "Sri City, Andhra Pradesh",
+          "status": "active",
+          "data_source_tier": "bms-integration",
+          "floor_area_sqm": 42000,
+          "tariff_rate": 8.5,
+          "contract_start": "2025-01-01"
+        }
+      },
+      "PutOrganizationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateOrganizationDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "name": "Sri City Institute of Technology",
+          "type": "University",
+          "location": "Sri City, Andhra Pradesh",
+          "status": "active",
+          "data_source_tier": "bms-integration",
+          "floor_area_sqm": 42000,
+          "tariff_rate": 8.5,
+          "contract_start": "2025-01-01"
+        }
+      },
       "LoginDto": {
         "type": "object",
         "properties": {
@@ -5236,6 +5597,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
@@ -5252,6 +5614,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
@@ -5264,6 +5627,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "user_id": "550e8400-0002-4000-8000-000000000002",
           "target_type": "alert",
           "target_id": "target1",
@@ -5279,6 +5643,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "user_id": "550e8400-0002-4000-8000-000000000002",
           "target_type": "alert",
           "target_id": "target1",
@@ -5290,6 +5655,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "name": "Campus 1",
           "location": "Location 1",
           "total_budget": 1000000
@@ -5303,6 +5669,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "name": "Campus 1",
           "location": "Location 1",
           "total_budget": 1000000
@@ -5312,6 +5679,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "campus_id": "660e8700-0002-4000-8000-000000000000",
           "name": "Building 1",
           "budget": 200000
@@ -5325,6 +5693,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "campus_id": "660e8700-0002-4000-8000-000000000000",
           "name": "Building 1",
           "budget": 200000
@@ -5334,6 +5703,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "building_id": "660e8800-0002-4000-8000-000000000000",
           "name": "Department 1",
           "budget": 50000
@@ -5347,6 +5717,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "building_id": "660e8800-0002-4000-8000-000000000000",
           "name": "Department 1",
           "budget": 50000
@@ -5356,6 +5727,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "building_id": "660e8800-0002-4000-8000-000000000000",
           "meter_code": "M-001",
           "meter_type": "electricity",
@@ -5371,6 +5743,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "building_id": "660e8800-0002-4000-8000-000000000000",
           "meter_code": "M-001",
           "meter_type": "electricity",
@@ -5382,6 +5755,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "meter_id": "mmmm0000-0002-4000-8000-000000000000",
           "value": 105.5,
           "unit": "unit",
@@ -5396,6 +5770,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "meter_id": "mmmm0000-0002-4000-8000-000000000000",
           "value": 105.5,
           "unit": "unit",
@@ -5406,6 +5781,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "reporter_id": "550e8400-0002-4000-8000-000000000002",
           "type": "Water",
           "status": "Forwarded to Finance",
@@ -5435,6 +5811,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "reporter_id": "550e8400-0002-4000-8000-000000000002",
           "type": "Water",
           "status": "Forwarded to Finance",
@@ -5460,6 +5837,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "meter_id": "mmmm0000-0002-4000-8000-000000000000",
           "triggering_reading_id": "rrrr0000-0002-4000-8000-000000000000",
           "title": "Abnormal Water Flow: Science Lab 4",
@@ -5482,6 +5860,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "meter_id": "mmmm0000-0002-4000-8000-000000000000",
           "triggering_reading_id": "rrrr0000-0002-4000-8000-000000000000",
           "title": "Abnormal Water Flow: Science Lab 4",
@@ -5504,6 +5883,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "alert_id": null,
           "assigned_to_id": "550e8400-0003-4000-8000-000000000003",
           "asset_name": "Chiller Unit C-12",
@@ -5520,6 +5900,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "alert_id": null,
           "assigned_to_id": "550e8400-0003-4000-8000-000000000003",
           "asset_name": "Chiller Unit C-12",
@@ -5544,6 +5925,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "assigned_to_id": "550e8400-0004-4000-8000-000000000004",
           "linked_fault_id": null,
           "source_request_id": "660e8500-0002-4000-8000-000000000000",
@@ -5560,6 +5942,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "assigned_to_id": "550e8400-0004-4000-8000-000000000004",
           "linked_fault_id": null,
           "source_request_id": "660e8500-0002-4000-8000-000000000000",
@@ -5572,6 +5955,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "building_id": "660e8800-0002-4000-8000-000000000000",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
           "period": "2025-02",
@@ -5589,6 +5973,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "building_id": "660e8800-0002-4000-8000-000000000000",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
           "period": "2025-02",
@@ -5602,6 +5987,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
           "approved_by_id": "550e8400-0002-4000-8000-000000000002",
           "invoice_number": "INV-0001",
@@ -5618,6 +6004,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
           "approved_by_id": "550e8400-0002-4000-8000-000000000002",
           "invoice_number": "INV-0001",
@@ -5630,6 +6017,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "generated_by_id": "550e8400-0002-4000-8000-000000000002",
           "building_id": "660e8800-0002-4000-8000-000000000000",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
@@ -5647,6 +6035,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "generated_by_id": "550e8400-0002-4000-8000-000000000002",
           "building_id": "660e8800-0002-4000-8000-000000000000",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
@@ -5660,6 +6049,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "period": "2024-11",
           "energy_consumed": 15000,
           "water_usage": 2000,
@@ -5674,6 +6064,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "period": "2024-11",
           "energy_consumed": 15000,
           "water_usage": 2000,
@@ -5684,6 +6075,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "created_by_id": "550e8400-0005-4000-8000-000000000005",
           "title": "LED Campus-Wide Retrofit",
           "description": "Replace all remaining fluorescent and incandescent bulbs with high-efficiency LED lighting in all administrative and academic buildings to lower baseline energy consumption.",
@@ -5704,6 +6096,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "created_by_id": "550e8400-0005-4000-8000-000000000005",
           "title": "LED Campus-Wide Retrofit",
           "description": "Replace all remaining fluorescent and incandescent bulbs with high-efficiency LED lighting in all administrative and academic buildings to lower baseline energy consumption.",
@@ -5720,6 +6113,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "user_id": "550e8400-0002-4000-8000-000000000002",
           "action_type": "LOGIN",
           "title": "User logged in",
@@ -5734,6 +6128,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "user_id": "550e8400-0002-4000-8000-000000000002",
           "action_type": "LOGIN",
           "title": "User logged in",
@@ -5744,6 +6139,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "generated_by_id": "550e8400-0005-4000-8000-000000000005",
           "title": "Q1 Sustainability Performance",
           "period": "Q1 2025",
@@ -5764,6 +6160,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "organization_id": "org-001",
           "generated_by_id": "550e8400-0005-4000-8000-000000000005",
           "title": "Q1 Sustainability Performance",
           "period": "Q1 2025",

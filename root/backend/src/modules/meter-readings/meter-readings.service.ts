@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
+import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
 import { CreateMeterReadingDto } from "./dto/create-meter-reading.dto";
 import { PutMeterReadingDto } from "./dto/put-meter-reading.dto";
 
@@ -28,6 +29,7 @@ export class MeterReadingsService {
     const newRecord = {
       reading_id: generatedId,
       ...createDto,
+      organization_id: createDto.organization_id ?? currentOrgId(),
       timestamp: new Date().toISOString(),
     };
     this.database.meterReadings.push(newRecord as any);
@@ -35,7 +37,7 @@ export class MeterReadingsService {
   }
 
   findAll() {
-    return this.database.meterReadings;
+    return scopeToTenant(this.database.meterReadings);
   }
 
   findOne(id: string) {

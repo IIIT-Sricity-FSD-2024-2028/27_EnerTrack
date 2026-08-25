@@ -2,6 +2,8 @@ import { IsString, IsUUID, IsOptional, IsEnum, IsArray } from "class-validator";
 import { AlertStatus } from "../../../core/database/database.service";
 
 export class CreateAlertDto {
+  /** Tenant this record belongs to. Defaults to the x-org-id header. */
+  @IsOptional() @IsString() organization_id?: string;
   @IsUUID() meter_id: string;
   @IsOptional() @IsUUID() triggering_reading_id?: string;
   @IsString() title: string;

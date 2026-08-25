@@ -5,6 +5,8 @@ import {
 } from "../../../core/database/database.service";
 
 export class CreateWorkOrderDto {
+  /** Tenant this record belongs to. Defaults to the x-org-id header. */
+  @IsOptional() @IsString() organization_id?: string;
   @IsOptional() @IsString() assigned_to_id?: string;
   @IsOptional() @IsString() linked_fault_id?: string;
   @IsOptional() @IsString() source_request_id?: string;
