@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
+import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
 import { CreateWastageReportDto } from "./dto/create-wastage-report.dto";
 import { PutWastageReportDto } from "./dto/put-wastage-report.dto";
 
@@ -34,13 +35,13 @@ export class WastageReportsService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { wastage_report_id: generatedId, ...createDto };
+    const newRecord = { wastage_report_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
     this.database.wastageReports.push(newRecord as any);
     return newRecord;
   }
 
   findAll() {
-    return this.database.wastageReports;
+    return scopeToTenant(this.database.wastageReports);
   }
 
   findOne(id: string) {

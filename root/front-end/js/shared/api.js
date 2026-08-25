@@ -29,13 +29,31 @@ function _getRole() {
 }
 
 /**
- * Core fetch wrapper. Adds Content-Type and x-role headers automatically.
- * Throws an Error with a human-readable message on HTTP errors.
+ * Returns the current user's organisation id from localStorage.
+ * Sent as the x-org-id header so the backend can scope data to that tenant.
+ *
+ * EnerTrack staff have no organisation, so this returns "" for them and the
+ * header is omitted, which gives them the platform-wide view.
+ */
+function _getOrgId() {
+  try {
+    const user = JSON.parse(localStorage.getItem("currentUser") || "null");
+    return user && user.organization_id ? user.organization_id : "";
+  } catch (e) {
+    return "";
+  }
+}
+
+/**
+ * Core fetch wrapper. Adds Content-Type, x-role and x-org-id headers
+ * automatically. Throws an Error with a human-readable message on HTTP errors.
  */
 async function _apiFetch(path, options = {}) {
+  const orgId = _getOrgId();
   const headers = {
     "Content-Type": "application/json",
     "x-role": _getRole(),
+    ...(orgId ? { "x-org-id": orgId } : {}),
     ...(options.headers || {}),
   };
 

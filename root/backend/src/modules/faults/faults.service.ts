@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
+import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
 import { CreateFaultDto } from "./dto/create-fault.dto";
 import { PutFaultDto } from "./dto/put-fault.dto";
 
@@ -35,13 +36,13 @@ export class FaultsService {
     }
     const nextId = this.database.faults.length + 1;
     const generatedId = `FLT-${nextId.toString().padStart(3, "0")}`;
-    const newRecord = { fault_id: generatedId, ...createDto };
+    const newRecord = { fault_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
     this.database.faults.push(newRecord as any);
     return newRecord;
   }
 
   findAll() {
-    return this.database.faults;
+    return scopeToTenant(this.database.faults);
   }
 
   findOne(id: string) {

@@ -33,7 +33,7 @@ async function bootstrap() {
   app.enableCors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'x-role'],
+    allowedHeaders: ['Content-Type', 'Accept', 'x-role', 'x-org-id'],
   });
 
   // 5. Swagger setup at /api/docs
@@ -41,6 +41,7 @@ async function bootstrap() {
     .setTitle('EnerTrack API')
     .setDescription('Backend API for EnerTrack — Facility Management, Sustainability & Finance Platform')
     .setVersion('1.0')
+    .addTag('organizations', 'Client organisations (tenants) and their onboarding status')
     .addTag('users', 'User management and role assignment')
     .addTag('notifications', 'Notification delivery and read tracking')
     .addTag('campus', 'Campus-level location management')
@@ -61,6 +62,7 @@ async function bootstrap() {
     .addTag('activity-logs', 'System-wide audit log')
     .addTag('sustainability-reports', 'Sustainability report generation and archiving')
     .addApiKey({ type: 'apiKey', name: 'x-role', in: 'header' }, 'x-role')
+    .addApiKey({ type: 'apiKey', name: 'x-org-id', in: 'header' }, 'x-org-id')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   
@@ -68,6 +70,7 @@ async function bootstrap() {
   const { DatabaseService } = require('./core/database/database.service');
   const db = new DatabaseService();
   const examples = {
+    CreateOrganizationDto: db.organizations[0], UpdateOrganizationDto: db.organizations[0],
     CreateUserDto: db.users[0], UpdateUserDto: db.users[0],
     CreateNotificationDto: db.notifications[0], UpdateNotificationDto: db.notifications[0],
     CreateCampusDto: db.campus[0], UpdateCampusDto: db.campus[0],

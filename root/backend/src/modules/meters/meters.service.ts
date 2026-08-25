@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
+import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
 import { CreateMeterDto } from "./dto/create-meter.dto";
 import { PutMeterDto } from "./dto/put-meter.dto";
 
@@ -34,13 +35,13 @@ export class MetersService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { meter_id: generatedId, ...createDto };
+    const newRecord = { meter_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
     this.database.meters.push(newRecord as any);
     return newRecord;
   }
 
   findAll() {
-    return this.database.meters;
+    return scopeToTenant(this.database.meters);
   }
 
   findOne(id: string) {

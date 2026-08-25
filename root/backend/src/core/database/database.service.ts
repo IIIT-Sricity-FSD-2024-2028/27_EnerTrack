@@ -1,12 +1,67 @@
 import { Injectable, Scope } from "@nestjs/common";
 
 export enum UserRole {
+  // ── Legacy roles (still fully supported) ─────────────────
   SYSTEM_ADMINISTRATOR = "System Administrator",
   FINANCIAL_ANALYST = "Financial Analyst",
   TECHNICIAN = "Technician",
   TECHNICIAN_ADMINISTRATOR = "Technician Administrator",
   SUSTAINABILITY_OFFICER = "Sustainability Officer",
   CAMPUS_VISITOR = "Campus Visitor",
+
+  // ── EnerTrack-side roles (B2B model) ─────────────────────
+  PLATFORM_ADMIN = "Platform Admin",
+  CERTIFIED_ENERGY_AUDITOR = "Certified Energy Auditor",
+  ACCOUNT_OFFICER = "Account Officer",
+
+  // ── Client-side roles (B2B model) ────────────────────────
+  ECONOMIC_BUYER = "Economic Buyer",
+  FACILITY_MANAGER = "Facility Manager",
+  DEPARTMENT_HEAD = "Department Head",
+}
+
+/**
+ * Maps each new B2B role onto the legacy role(s) it replaces.
+ *
+ * The RolesGuard expands an incoming role through this table, so a caller
+ * sending "Facility Manager" satisfies a controller that still declares
+ * @Roles("Technician Administrator"). This lets the SRS role model land
+ * without touching 127 @Roles decorators or breaking the existing frontend.
+ *
+ * Legacy roles are deliberately absent: they expand to themselves only, so
+ * their behaviour is byte-for-byte unchanged.
+ */
+export const ROLE_EQUIVALENTS: Record<string, string[]> = {
+  [UserRole.PLATFORM_ADMIN]: [UserRole.SYSTEM_ADMINISTRATOR],
+  [UserRole.ACCOUNT_OFFICER]: [
+    UserRole.FINANCIAL_ANALYST,
+    UserRole.SUSTAINABILITY_OFFICER,
+  ],
+  [UserRole.CERTIFIED_ENERGY_AUDITOR]: [UserRole.TECHNICIAN],
+  [UserRole.ECONOMIC_BUYER]: [UserRole.FINANCIAL_ANALYST],
+  [UserRole.FACILITY_MANAGER]: [UserRole.TECHNICIAN_ADMINISTRATOR],
+  [UserRole.DEPARTMENT_HEAD]: [UserRole.CAMPUS_VISITOR],
+};
+
+/** Roles that belong to EnerTrack itself and may work across all tenants. */
+export const PLATFORM_SIDE_ROLES: string[] = [
+  UserRole.PLATFORM_ADMIN,
+  UserRole.CERTIFIED_ENERGY_AUDITOR,
+  UserRole.ACCOUNT_OFFICER,
+  UserRole.SYSTEM_ADMINISTRATOR,
+];
+
+export enum OrganizationStatus {
+  PROSPECT = "prospect",
+  AUDITED = "audited",
+  ACTIVE = "active",
+  CHURNED = "churned",
+}
+
+export enum DataSourceTier {
+  BMS_INTEGRATION = "bms-integration",
+  MANUAL_UPLOAD = "manual-upload",
+  NO_METERING = "no-metering",
 }
 
 export enum NotificationTargetType {
@@ -92,8 +147,26 @@ export enum InitiativeStatus {
   REJECTED = "rejected",
 }
 
+/**
+ * A client organisation (tenant). Sits above Campus, so Building,
+ * Department and Meter inherit their tenant through the campus chain.
+ */
+export interface Organization {
+  organization_id: string;
+  name: string;
+  type: string;
+  location: string | null;
+  status: OrganizationStatus;
+  data_source_tier: DataSourceTier | null;
+  floor_area_sqm: number | null;
+  tariff_rate: number | null;
+  contract_start: string | null;
+}
+
 export interface User {
   user_id: string;
+  /** null for EnerTrack staff, who are not tied to any single tenant. */
+  organization_id: string | null;
   name: string;
   email: string;
   phone: string | null;
@@ -103,24 +176,28 @@ export interface User {
 }
 export interface Campus {
   campus_id: string;
+  organization_id: string;
   name: string;
   location: string | null;
   total_budget: number;
 }
 export interface Building {
   building_id: string;
+  organization_id: string;
   campus_id: string;
   name: string;
   budget: number | null;
 }
 export interface Department {
   department_id: string;
+  organization_id: string;
   building_id: string;
   name: string;
   budget: number | null;
 }
 export interface Meter {
   meter_id: string;
+  organization_id: string;
   building_id: string;
   meter_code: string;
   meter_type: MeterType;
@@ -129,6 +206,7 @@ export interface Meter {
 }
 export interface MeterReading {
   reading_id: string;
+  organization_id: string;
   meter_id: string;
   value: number;
   unit: string;
@@ -136,6 +214,7 @@ export interface MeterReading {
 }
 export interface WastageReport {
   wastage_report_id: string;
+  organization_id: string;
   reporter_id: string;
   type: WastageType;
   status: string;
@@ -149,6 +228,7 @@ export interface AlertMessage {
 }
 export interface Alert {
   alert_id: string;
+  organization_id: string;
   meter_id: string;
   triggering_reading_id: string | null;
   title: string;
@@ -158,6 +238,7 @@ export interface Alert {
 }
 export interface Fault {
   fault_id: string;
+  organization_id: string;
   alert_id: string | null;
   assigned_to_id: string | null;
   asset_name: string;
@@ -167,6 +248,7 @@ export interface Fault {
 }
 export interface ServiceRequest {
   service_request_id: string;
+  organization_id: string;
   reporter_id: string;
   assigned_to_id: string | null;
   category: string;
@@ -175,6 +257,7 @@ export interface ServiceRequest {
 }
 export interface WorkOrder {
   work_order_id: string;
+  organization_id: string;
   assigned_to_id: string | null;
   linked_fault_id: string | null;
   source_request_id: string | null;
@@ -185,6 +268,7 @@ export interface WorkOrder {
 }
 export interface EnergyCost {
   energy_cost_id: string;
+  organization_id: string;
   building_id: string | null;
   department_id: string | null;
   period: string;
@@ -195,6 +279,7 @@ export interface EnergyCost {
 }
 export interface Invoice {
   invoice_id: string;
+  organization_id: string;
   department_id: string;
   approved_by_id: string | null;
   invoice_number: string;
@@ -204,6 +289,7 @@ export interface Invoice {
 }
 export interface FinancialReport {
   financial_report_id: string;
+  organization_id: string;
   generated_by_id: string;
   building_id: string | null;
   department_id: string | null;
@@ -214,6 +300,7 @@ export interface FinancialReport {
 }
 export interface SustainabilityMetric {
   sustainability_metric_id: string;
+  organization_id: string;
   period: string;
   energy_consumed: number;
   water_usage: number;
@@ -221,6 +308,7 @@ export interface SustainabilityMetric {
 }
 export interface Initiative {
   initiative_id: string;
+  organization_id: string;
   created_by_id: string;
   title: string;
   description?: string;
@@ -232,6 +320,7 @@ export interface Initiative {
 }
 export interface ActivityLog {
   activity_log_id: string;
+  organization_id: string;
   user_id: string | null;
   action_type: string;
   title: string;
@@ -239,6 +328,7 @@ export interface ActivityLog {
 }
 export interface SustainabilityReport {
   report_id: string;
+  organization_id: string;
   generated_by_id: string;
   title: string;
   period: string;
@@ -247,6 +337,7 @@ export interface SustainabilityReport {
 }
 export interface Notification {
   notification_id: string;
+  organization_id: string;
   user_id: string;
   target_type: NotificationTargetType;
   target_id: string;
@@ -256,9 +347,51 @@ export interface Notification {
 
 @Injectable({ scope: Scope.DEFAULT })
 export class DatabaseService {
+  /**
+   * Client organisations (tenants). org-001 owns all of the original
+   * single-campus demo data; org-002 is a second live client used to prove
+   * tenant isolation; org-003 is a prospect that has not been onboarded yet.
+   */
+  public organizations: Organization[] = [
+    {
+      organization_id: "org-001",
+      name: "Sri City Institute of Technology",
+      type: "University",
+      location: "Sri City, Andhra Pradesh",
+      status: OrganizationStatus.ACTIVE,
+      data_source_tier: DataSourceTier.BMS_INTEGRATION,
+      floor_area_sqm: 42000,
+      tariff_rate: 8.5,
+      contract_start: "2025-01-01",
+    },
+    {
+      organization_id: "org-002",
+      name: "Coastal Valley University",
+      type: "University",
+      location: "Visakhapatnam, Andhra Pradesh",
+      status: OrganizationStatus.ACTIVE,
+      data_source_tier: DataSourceTier.MANUAL_UPLOAD,
+      floor_area_sqm: 68000,
+      tariff_rate: 9.2,
+      contract_start: "2025-06-01",
+    },
+    {
+      organization_id: "org-003",
+      name: "Northgate Business Park",
+      type: "Corporate Campus",
+      location: "Hyderabad, Telangana",
+      status: OrganizationStatus.PROSPECT,
+      data_source_tier: DataSourceTier.NO_METERING,
+      floor_area_sqm: 31000,
+      tariff_rate: null,
+      contract_start: null,
+    },
+  ];
+
   public users: User[] = [
     {
       user_id: "550e8400-0001-4000-8000-000000000001",
+      organization_id: "org-001",
       name: "Aadithya",
       email: "aadi@gmail.com",
       phone: "9876543210",
@@ -268,6 +401,7 @@ export class DatabaseService {
     },
     {
       user_id: "550e8400-0002-4000-8000-000000000002",
+      organization_id: "org-001",
       name: "Husaam",
       email: "husaam@gmail.com",
       phone: "9876543211",
@@ -277,6 +411,7 @@ export class DatabaseService {
     },
     {
       user_id: "550e8400-0003-4000-8000-000000000003",
+      organization_id: "org-001",
       name: "Chirag",
       email: "chirag@gmail.com",
       phone: "9876543212",
@@ -286,6 +421,7 @@ export class DatabaseService {
     },
     {
       user_id: "550e8400-0004-4000-8000-000000000004",
+      organization_id: "org-001",
       name: "Teja",
       email: "teja@gmail.com",
       phone: "9876543214",
@@ -295,6 +431,7 @@ export class DatabaseService {
     },
     {
       user_id: "550e8400-0005-4000-8000-000000000005",
+      organization_id: "org-001",
       name: "Viksa",
       email: "viksa@gmail.com",
       phone: "9876543213",
@@ -304,6 +441,7 @@ export class DatabaseService {
     },
     {
       user_id: "550e8400-0006-4000-8000-000000000006",
+      organization_id: "org-001",
       name: "Trishank",
       email: "trishank@gmail.com",
       phone: "9876543215",
@@ -313,6 +451,7 @@ export class DatabaseService {
     },
     {
       user_id: "550e8400-0007-4000-8000-000000000007",
+      organization_id: "org-001",
       name: "Elena Park",
       email: "elena@gmail.com",
       phone: "9876543216",
@@ -322,6 +461,7 @@ export class DatabaseService {
     },
     {
       user_id: "550e8400-0008-4000-8000-000000000008",
+      organization_id: "org-001",
       name: "Marcus Reed",
       email: "marcus@gmail.com",
       phone: "9876543217",
@@ -331,6 +471,7 @@ export class DatabaseService {
     },
     {
       user_id: "550e8400-0009-4000-8000-000000000009",
+      organization_id: "org-001",
       name: "Noah Smith",
       email: "noah@gmail.com",
       phone: "9876543218",
@@ -340,6 +481,7 @@ export class DatabaseService {
     },
     {
       user_id: "550e8400-000a-4000-8000-00000000000a",
+      organization_id: "org-001",
       name: "Rina Das",
       email: "rina@gmail.com",
       phone: "9876543219",
@@ -347,10 +489,65 @@ export class DatabaseService {
       role: UserRole.TECHNICIAN,
       specialization: "Plumbing",
     },
+
+    // ── EnerTrack staff: no organization_id, they work across tenants ──
+    {
+      user_id: "550e8400-00f1-4000-8000-0000000000f1",
+      organization_id: null,
+      name: "Priya Nair",
+      email: "priya@enertrack.com",
+      phone: "9800000001",
+      password: "Priya@123",
+      role: UserRole.PLATFORM_ADMIN,
+      specialization: null,
+    },
+    {
+      user_id: "550e8400-00f2-4000-8000-0000000000f2",
+      organization_id: null,
+      name: "Arun Menon",
+      email: "arun@enertrack.com",
+      phone: "9800000002",
+      password: "Arun@123",
+      role: UserRole.CERTIFIED_ENERGY_AUDITOR,
+      specialization: "Energy Audit (BEE Certified)",
+    },
+    {
+      user_id: "550e8400-00f3-4000-8000-0000000000f3",
+      organization_id: null,
+      name: "Divya Rao",
+      email: "divya@enertrack.com",
+      phone: "9800000003",
+      password: "Divya@123",
+      role: UserRole.ACCOUNT_OFFICER,
+      specialization: null,
+    },
+
+    // ── Client-side staff for the second tenant (proves isolation) ──
+    {
+      user_id: "550e8400-00b1-4000-8000-0000000000b1",
+      organization_id: "org-002",
+      name: "Kavya Iyer",
+      email: "kavya@coastalvalley.edu",
+      phone: "9811000001",
+      password: "Kavya@123",
+      role: UserRole.FACILITY_MANAGER,
+      specialization: "Facilities",
+    },
+    {
+      user_id: "550e8400-00b2-4000-8000-0000000000b2",
+      organization_id: "org-002",
+      name: "Rahul Verma",
+      email: "rahul@coastalvalley.edu",
+      phone: "9811000002",
+      password: "Rahul@123",
+      role: UserRole.ECONOMIC_BUYER,
+      specialization: null,
+    },
   ];
   public notifications: Notification[] = [
     {
       notification_id: "660e8400-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0002-4000-8000-000000000002",
       target_type: NotificationTargetType.ALERT,
       target_id: "target1",
@@ -359,6 +556,7 @@ export class DatabaseService {
     },
     {
       notification_id: "660e8400-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0003-4000-8000-000000000003",
       target_type: NotificationTargetType.REQUEST,
       target_id: "target2",
@@ -367,6 +565,7 @@ export class DatabaseService {
     },
     {
       notification_id: "660e8400-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0004-4000-8000-000000000004",
       target_type: NotificationTargetType.WASTAGE,
       target_id: "target3",
@@ -375,6 +574,7 @@ export class DatabaseService {
     },
     {
       notification_id: "660e8400-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0005-4000-8000-000000000005",
       target_type: NotificationTargetType.ALERT,
       target_id: "target4",
@@ -383,6 +583,7 @@ export class DatabaseService {
     },
     {
       notification_id: "660e8400-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0006-4000-8000-000000000006",
       target_type: NotificationTargetType.REQUEST,
       target_id: "target5",
@@ -391,6 +592,7 @@ export class DatabaseService {
     },
     {
       notification_id: "660e8400-0006-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0007-4000-8000-000000000007",
       target_type: NotificationTargetType.WASTAGE,
       target_id: "target6",
@@ -399,6 +601,7 @@ export class DatabaseService {
     },
     {
       notification_id: "660e8400-0007-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0008-4000-8000-000000000008",
       target_type: NotificationTargetType.ALERT,
       target_id: "target7",
@@ -407,6 +610,7 @@ export class DatabaseService {
     },
     {
       notification_id: "660e8400-0008-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0001-4000-8000-000000000001",
       target_type: NotificationTargetType.REQUEST,
       target_id: "target8",
@@ -415,6 +619,7 @@ export class DatabaseService {
     },
     {
       notification_id: "660e8400-0009-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0002-4000-8000-000000000002",
       target_type: NotificationTargetType.WASTAGE,
       target_id: "target9",
@@ -423,6 +628,7 @@ export class DatabaseService {
     },
     {
       notification_id: "660e8400-000a-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0003-4000-8000-000000000003",
       target_type: NotificationTargetType.ALERT,
       target_id: "target10",
@@ -433,94 +639,123 @@ export class DatabaseService {
   public campus: Campus[] = [
     {
       campus_id: "660e8700-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       name: "Campus 1",
       location: "Location 1",
       total_budget: 1000000,
     },
     {
       campus_id: "660e8700-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       name: "Campus 2",
       location: "Location 2",
       total_budget: 2000000,
+    },
+    {
+      campus_id: "660e8700-0f02-4000-8000-000000000000",
+      organization_id: "org-002",
+      name: "Coastal Valley Main Campus",
+      location: "Visakhapatnam",
+      total_budget: 2400000,
     },
   ];
   public buildings: Building[] = [
     {
       building_id: "660e8800-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       campus_id: "660e8700-0002-4000-8000-000000000000",
       name: "Building 1",
       budget: 200000,
     },
     {
       building_id: "660e8800-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       campus_id: "660e8700-0001-4000-8000-000000000000",
       name: "Building 2",
       budget: 400000,
     },
     {
       building_id: "660e8800-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       campus_id: "660e8700-0002-4000-8000-000000000000",
       name: "Building 3",
       budget: 600000,
     },
     {
       building_id: "660e8800-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       campus_id: "660e8700-0001-4000-8000-000000000000",
       name: "Building 4",
       budget: 800000,
     },
     {
       building_id: "660e8800-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       campus_id: "660e8700-0002-4000-8000-000000000000",
       name: "Building 5",
       budget: 1000000,
+    },
+    {
+      building_id: "660e8800-0f02-4000-8000-000000000000",
+      organization_id: "org-002",
+      campus_id: "660e8700-0f02-4000-8000-000000000000",
+      name: "Marine Sciences Block",
+      budget: 900000,
     },
   ];
   public departments: Department[] = [
     {
       department_id: "dddd0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0002-4000-8000-000000000000",
       name: "Department 1",
       budget: 50000,
     },
     {
       department_id: "dddd0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0003-4000-8000-000000000000",
       name: "Department 2",
       budget: 100000,
     },
     {
       department_id: "dddd0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0004-4000-8000-000000000000",
       name: "Department 3",
       budget: 150000,
     },
     {
       department_id: "dddd0000-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0005-4000-8000-000000000000",
       name: "Department 4",
       budget: 200000,
     },
     {
       department_id: "dddd0000-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0001-4000-8000-000000000000",
       name: "Department 5",
       budget: 250000,
     },
     {
       department_id: "dddd0000-0006-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0002-4000-8000-000000000000",
       name: "Department 6",
       budget: 300000,
     },
     {
       department_id: "dddd0000-0007-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0003-4000-8000-000000000000",
       name: "Department 7",
       budget: 350000,
     },
     {
       department_id: "dddd0000-0008-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0004-4000-8000-000000000000",
       name: "Department 8",
       budget: 400000,
@@ -529,6 +764,7 @@ export class DatabaseService {
   public meters: Meter[] = [
     {
       meter_id: "mmmm0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0002-4000-8000-000000000000",
       meter_code: "M-001",
       meter_type: MeterType.ELECTRICITY,
@@ -537,6 +773,7 @@ export class DatabaseService {
     },
     {
       meter_id: "mmmm0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0003-4000-8000-000000000000",
       meter_code: "M-002",
       meter_type: MeterType.GAS,
@@ -545,6 +782,7 @@ export class DatabaseService {
     },
     {
       meter_id: "mmmm0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0004-4000-8000-000000000000",
       meter_code: "M-003",
       meter_type: MeterType.WATER,
@@ -553,6 +791,7 @@ export class DatabaseService {
     },
     {
       meter_id: "mmmm0000-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0005-4000-8000-000000000000",
       meter_code: "M-004",
       meter_type: MeterType.EMISSIONS,
@@ -561,6 +800,7 @@ export class DatabaseService {
     },
     {
       meter_id: "mmmm0000-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0001-4000-8000-000000000000",
       meter_code: "M-005",
       meter_type: MeterType.FOOD,
@@ -569,6 +809,7 @@ export class DatabaseService {
     },
     {
       meter_id: "mmmm0000-0006-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0002-4000-8000-000000000000",
       meter_code: "M-006",
       meter_type: MeterType.ELECTRICITY,
@@ -577,6 +818,7 @@ export class DatabaseService {
     },
     {
       meter_id: "mmmm0000-0007-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0003-4000-8000-000000000000",
       meter_code: "M-007",
       meter_type: MeterType.WATER,
@@ -585,6 +827,7 @@ export class DatabaseService {
     },
     {
       meter_id: "mmmm0000-0008-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0004-4000-8000-000000000000",
       meter_code: "M-008",
       meter_type: MeterType.GAS,
@@ -593,6 +836,7 @@ export class DatabaseService {
     },
     {
       meter_id: "mmmm0000-0009-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0005-4000-8000-000000000000",
       meter_code: "M-009",
       meter_type: MeterType.EMISSIONS,
@@ -601,16 +845,27 @@ export class DatabaseService {
     },
     {
       meter_id: "mmmm0000-000a-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0001-4000-8000-000000000000",
       meter_code: "M-010",
       meter_type: MeterType.ELECTRICITY,
       zone: "Zone 2",
       status: MeterStatus.ACTIVE,
     },
+    {
+      meter_id: "mmmm0000-0f02-4000-8000-000000000000",
+      organization_id: "org-002",
+      building_id: "660e8800-0f02-4000-8000-000000000000",
+      meter_code: "CV-M-001",
+      meter_type: MeterType.ELECTRICITY,
+      zone: "Block A",
+      status: MeterStatus.ACTIVE,
+    },
   ];
   public meterReadings: MeterReading[] = [
     {
       reading_id: "rrrr0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0002-4000-8000-000000000000",
       value: 105.5,
       unit: "unit",
@@ -618,6 +873,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0003-4000-8000-000000000000",
       value: 111.0,
       unit: "unit",
@@ -625,6 +881,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0004-4000-8000-000000000000",
       value: 116.5,
       unit: "unit",
@@ -632,6 +889,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0005-4000-8000-000000000000",
       value: 122.0,
       unit: "unit",
@@ -639,6 +897,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0006-4000-8000-000000000000",
       value: 127.5,
       unit: "unit",
@@ -646,6 +905,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0006-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0007-4000-8000-000000000000",
       value: 133.0,
       unit: "unit",
@@ -653,6 +913,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0007-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0008-4000-8000-000000000000",
       value: 138.5,
       unit: "unit",
@@ -660,6 +921,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0008-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0009-4000-8000-000000000000",
       value: 144.0,
       unit: "unit",
@@ -667,6 +929,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0009-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-000a-4000-8000-000000000000",
       value: 149.5,
       unit: "unit",
@@ -674,6 +937,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-000a-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0001-4000-8000-000000000000",
       value: 155.0,
       unit: "unit",
@@ -681,6 +945,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-000b-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0002-4000-8000-000000000000",
       value: 160.5,
       unit: "unit",
@@ -688,6 +953,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-000c-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0003-4000-8000-000000000000",
       value: 166.0,
       unit: "unit",
@@ -695,6 +961,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-000d-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0004-4000-8000-000000000000",
       value: 171.5,
       unit: "unit",
@@ -702,6 +969,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-000e-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0005-4000-8000-000000000000",
       value: 177.0,
       unit: "unit",
@@ -709,6 +977,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-000f-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0006-4000-8000-000000000000",
       value: 182.5,
       unit: "unit",
@@ -716,6 +985,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0010-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0007-4000-8000-000000000000",
       value: 188.0,
       unit: "unit",
@@ -723,6 +993,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0011-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0008-4000-8000-000000000000",
       value: 193.5,
       unit: "unit",
@@ -730,6 +1001,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0012-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0009-4000-8000-000000000000",
       value: 199.0,
       unit: "unit",
@@ -737,6 +1009,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0013-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-000a-4000-8000-000000000000",
       value: 204.5,
       unit: "unit",
@@ -744,6 +1017,7 @@ export class DatabaseService {
     },
     {
       reading_id: "rrrr0000-0014-4000-8000-000000000000",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0001-4000-8000-000000000000",
       value: 210.0,
       unit: "unit",
@@ -753,6 +1027,7 @@ export class DatabaseService {
   public wastageReports: WastageReport[] = [
     {
       wastage_report_id: "wwww0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       reporter_id: "550e8400-0002-4000-8000-000000000002",
       type: WastageType.WATER,
       status: "Forwarded to Finance",
@@ -775,6 +1050,7 @@ export class DatabaseService {
     },
     {
       wastage_report_id: "wwww0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       reporter_id: "550e8400-0003-4000-8000-000000000003",
       type: WastageType.FOOD,
       status: "reported",
@@ -798,6 +1074,7 @@ export class DatabaseService {
     },
     {
       wastage_report_id: "wwww0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       reporter_id: "550e8400-0004-4000-8000-000000000004",
       type: WastageType.ENERGY,
       status: "reported",
@@ -822,6 +1099,7 @@ export class DatabaseService {
   public alerts: Alert[] = [
     {
       alert_id: "ALT-001",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0002-4000-8000-000000000000",
       triggering_reading_id: "rrrr0000-0002-4000-8000-000000000000",
       title: "Abnormal Water Flow: Science Lab 4",
@@ -837,6 +1115,7 @@ export class DatabaseService {
     },
     {
       alert_id: "ALT-002",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0003-4000-8000-000000000000",
       triggering_reading_id: "rrrr0000-0003-4000-8000-000000000000",
       title: "Transformer Overheating: Substation A",
@@ -852,6 +1131,7 @@ export class DatabaseService {
     },
     {
       alert_id: "ALT-003",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0004-4000-8000-000000000000",
       triggering_reading_id: "rrrr0000-0004-4000-8000-000000000000",
       title: "Phase Unbalance: Engineering Block",
@@ -867,6 +1147,7 @@ export class DatabaseService {
     },
     {
       alert_id: "ALT-004",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0005-4000-8000-000000000000",
       triggering_reading_id: "rrrr0000-0005-4000-8000-000000000000",
       title: "Suspicious Energy Surge: IT Server Room",
@@ -882,6 +1163,7 @@ export class DatabaseService {
     },
     {
       alert_id: "ALT-005",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0006-4000-8000-000000000000",
       triggering_reading_id: "rrrr0000-0006-4000-8000-000000000000",
       title: "HVAC Communication Loss: Admin Building",
@@ -897,6 +1179,7 @@ export class DatabaseService {
     },
     {
       alert_id: "ALT-006",
+      organization_id: "org-001",
       meter_id: "mmmm0000-0007-4000-8000-000000000000",
       triggering_reading_id: "rrrr0000-0007-4000-8000-000000000000",
       title: "Gas Leak Sensor Trigger: Chemistry Wing",
@@ -914,6 +1197,7 @@ export class DatabaseService {
   public faults: Fault[] = [
     {
       fault_id: "FLT-001",
+      organization_id: "org-001",
       alert_id: null,
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       asset_name: "Chiller Unit C-12",
@@ -923,6 +1207,7 @@ export class DatabaseService {
     },
     {
       fault_id: "FLT-002",
+      organization_id: "org-001",
       alert_id: "ALT-003",
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       asset_name: "Main Breaker MB-01",
@@ -932,6 +1217,7 @@ export class DatabaseService {
     },
     {
       fault_id: "FLT-003",
+      organization_id: "org-001",
       alert_id: null,
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       asset_name: "Solar Inverter INV-5",
@@ -941,6 +1227,7 @@ export class DatabaseService {
     },
     {
       fault_id: "FLT-004",
+      organization_id: "org-001",
       alert_id: "ALT-005",
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       asset_name: "Cooling Tower CT-2",
@@ -950,6 +1237,7 @@ export class DatabaseService {
     },
     {
       fault_id: "FLT-005",
+      organization_id: "org-001",
       alert_id: null,
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       asset_name: "Backup Generator GEN-1",
@@ -959,6 +1247,7 @@ export class DatabaseService {
     },
     {
       fault_id: "FLT-006",
+      organization_id: "org-001",
       alert_id: "ALT-001",
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       asset_name: "Lab 4 Main Supply Pipe",
@@ -968,6 +1257,7 @@ export class DatabaseService {
     },
     {
       fault_id: "FLT-007",
+      organization_id: "org-001",
       alert_id: null,
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       asset_name: "Elevator E-2 Control Board",
@@ -980,6 +1270,7 @@ export class DatabaseService {
   public workOrders: WorkOrder[] = [
     {
       work_order_id: "660e8600-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       assigned_to_id: "550e8400-0004-4000-8000-000000000004",
       linked_fault_id: null,
       source_request_id: "660e8500-0002-4000-8000-000000000000",
@@ -989,6 +1280,7 @@ export class DatabaseService {
     },
     {
       work_order_id: "660e8600-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       assigned_to_id: "550e8400-0004-4000-8000-000000000004",
       linked_fault_id: "FLT-003",
       source_request_id: null,
@@ -998,6 +1290,7 @@ export class DatabaseService {
     },
     {
       work_order_id: "660e8600-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       assigned_to_id: "550e8400-0004-4000-8000-000000000004",
       linked_fault_id: null,
       source_request_id: "660e8500-0004-4000-8000-000000000000",
@@ -1007,6 +1300,7 @@ export class DatabaseService {
     },
     {
       work_order_id: "660e8600-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       assigned_to_id: "550e8400-0004-4000-8000-000000000004",
       linked_fault_id: "660e8900-0005-4000-8000-000000000000",
       source_request_id: null,
@@ -1016,6 +1310,7 @@ export class DatabaseService {
     },
     {
       work_order_id: "660e8600-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       linked_fault_id: null,
       source_request_id: "660e8500-0006-4000-8000-000000000000",
@@ -1025,6 +1320,7 @@ export class DatabaseService {
     },
     {
       work_order_id: "660e8600-0006-4000-8000-000000000000",
+      organization_id: "org-001",
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       linked_fault_id: "660e8900-0007-4000-8000-000000000000",
       source_request_id: null,
@@ -1034,6 +1330,7 @@ export class DatabaseService {
     },
     {
       work_order_id: "660e8600-0007-4000-8000-000000000000",
+      organization_id: "org-001",
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       linked_fault_id: null,
       source_request_id: "660e8500-0008-4000-8000-000000000000",
@@ -1043,6 +1340,7 @@ export class DatabaseService {
     },
     {
       work_order_id: "660e8600-0008-4000-8000-000000000000",
+      organization_id: "org-001",
       assigned_to_id: "550e8400-0003-4000-8000-000000000003",
       linked_fault_id: "660e8900-0002-4000-8000-000000000000",
       source_request_id: null,
@@ -1055,6 +1353,7 @@ export class DatabaseService {
   public energyCosts: EnergyCost[] = [
     {
       energy_cost_id: "eeee0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0002-4000-8000-000000000000",
       department_id: "dddd0000-0002-4000-8000-000000000000",
       period: "2025-02",
@@ -1065,6 +1364,7 @@ export class DatabaseService {
     },
     {
       energy_cost_id: "eeee0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0003-4000-8000-000000000000",
       department_id: "dddd0000-0003-4000-8000-000000000000",
       period: "2025-03",
@@ -1075,6 +1375,7 @@ export class DatabaseService {
     },
     {
       energy_cost_id: "eeee0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0004-4000-8000-000000000000",
       department_id: "dddd0000-0004-4000-8000-000000000000",
       period: "2025-01",
@@ -1085,6 +1386,7 @@ export class DatabaseService {
     },
     {
       energy_cost_id: "eeee0000-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0005-4000-8000-000000000000",
       department_id: "dddd0000-0005-4000-8000-000000000000",
       period: "2025-02",
@@ -1095,6 +1397,7 @@ export class DatabaseService {
     },
     {
       energy_cost_id: "eeee0000-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0001-4000-8000-000000000000",
       department_id: "dddd0000-0006-4000-8000-000000000000",
       period: "2025-03",
@@ -1105,6 +1408,7 @@ export class DatabaseService {
     },
     {
       energy_cost_id: "eeee0000-0006-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0002-4000-8000-000000000000",
       department_id: "dddd0000-0007-4000-8000-000000000000",
       period: "2025-01",
@@ -1115,6 +1419,7 @@ export class DatabaseService {
     },
     {
       energy_cost_id: "eeee0000-0007-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0003-4000-8000-000000000000",
       department_id: "dddd0000-0008-4000-8000-000000000000",
       period: "2025-02",
@@ -1125,6 +1430,7 @@ export class DatabaseService {
     },
     {
       energy_cost_id: "eeee0000-0008-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0004-4000-8000-000000000000",
       department_id: "dddd0000-0001-4000-8000-000000000000",
       period: "2025-03",
@@ -1135,6 +1441,7 @@ export class DatabaseService {
     },
     {
       energy_cost_id: "eeee0000-0009-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0005-4000-8000-000000000000",
       department_id: "dddd0000-0002-4000-8000-000000000000",
       period: "2025-01",
@@ -1145,6 +1452,7 @@ export class DatabaseService {
     },
     {
       energy_cost_id: "eeee0000-000a-4000-8000-000000000000",
+      organization_id: "org-001",
       building_id: "660e8800-0001-4000-8000-000000000000",
       department_id: "dddd0000-0003-4000-8000-000000000000",
       period: "2025-02",
@@ -1153,10 +1461,22 @@ export class DatabaseService {
       water: 150.0,
       status: EnergyCostStatus.ON_BUDGET,
     },
+    {
+      energy_cost_id: "eeee0000-0f02-4000-8000-000000000000",
+      organization_id: "org-002",
+      building_id: "660e8800-0f02-4000-8000-000000000000",
+      department_id: null,
+      period: "2025-02",
+      electricity: 2610.0,
+      gas: 340.0,
+      water: 280.0,
+      status: EnergyCostStatus.OVER_BUDGET,
+    },
   ];
   public invoices: Invoice[] = [
     {
       invoice_id: "vvvv0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       department_id: "dddd0000-0002-4000-8000-000000000000",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0001",
@@ -1166,6 +1486,7 @@ export class DatabaseService {
     },
     {
       invoice_id: "vvvv0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       department_id: "dddd0000-0003-4000-8000-000000000000",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0002",
@@ -1175,6 +1496,7 @@ export class DatabaseService {
     },
     {
       invoice_id: "vvvv0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       department_id: "dddd0000-0004-4000-8000-000000000000",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0003",
@@ -1184,6 +1506,7 @@ export class DatabaseService {
     },
     {
       invoice_id: "vvvv0000-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       department_id: "dddd0000-0005-4000-8000-000000000000",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0004",
@@ -1193,6 +1516,7 @@ export class DatabaseService {
     },
     {
       invoice_id: "vvvv0000-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       department_id: "dddd0000-0006-4000-8000-000000000000",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0005",
@@ -1202,6 +1526,7 @@ export class DatabaseService {
     },
     {
       invoice_id: "vvvv0000-0006-4000-8000-000000000000",
+      organization_id: "org-001",
       department_id: "dddd0000-0007-4000-8000-000000000000",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0006",
@@ -1211,6 +1536,7 @@ export class DatabaseService {
     },
     {
       invoice_id: "vvvv0000-0007-4000-8000-000000000000",
+      organization_id: "org-001",
       department_id: "dddd0000-0008-4000-8000-000000000000",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0007",
@@ -1220,6 +1546,7 @@ export class DatabaseService {
     },
     {
       invoice_id: "vvvv0000-0008-4000-8000-000000000000",
+      organization_id: "org-001",
       department_id: "dddd0000-0001-4000-8000-000000000000",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0008",
@@ -1231,6 +1558,7 @@ export class DatabaseService {
   public financialReports: FinancialReport[] = [
     {
       financial_report_id: "pppp0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       generated_by_id: "550e8400-0002-4000-8000-000000000002",
       building_id: "660e8800-0002-4000-8000-000000000000",
       department_id: "dddd0000-0002-4000-8000-000000000000",
@@ -1241,6 +1569,7 @@ export class DatabaseService {
     },
     {
       financial_report_id: "pppp0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       generated_by_id: "550e8400-0002-4000-8000-000000000002",
       building_id: "660e8800-0003-4000-8000-000000000000",
       department_id: "dddd0000-0003-4000-8000-000000000000",
@@ -1251,6 +1580,7 @@ export class DatabaseService {
     },
     {
       financial_report_id: "pppp0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       generated_by_id: "550e8400-0002-4000-8000-000000000002",
       building_id: "660e8800-0004-4000-8000-000000000000",
       department_id: "dddd0000-0004-4000-8000-000000000000",
@@ -1261,6 +1591,7 @@ export class DatabaseService {
     },
     {
       financial_report_id: "pppp0000-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       generated_by_id: "550e8400-0002-4000-8000-000000000002",
       building_id: "660e8800-0005-4000-8000-000000000000",
       department_id: "dddd0000-0005-4000-8000-000000000000",
@@ -1271,6 +1602,7 @@ export class DatabaseService {
     },
     {
       financial_report_id: "pppp0000-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       generated_by_id: "550e8400-0002-4000-8000-000000000002",
       building_id: "660e8800-0001-4000-8000-000000000000",
       department_id: "dddd0000-0006-4000-8000-000000000000",
@@ -1283,6 +1615,7 @@ export class DatabaseService {
   public sustainabilityMetrics: SustainabilityMetric[] = [
     {
       sustainability_metric_id: "kkkk0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       period: "2024-11",
       energy_consumed: 15000.0,
       water_usage: 2000.0,
@@ -1290,6 +1623,7 @@ export class DatabaseService {
     },
     {
       sustainability_metric_id: "kkkk0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       period: "2024-12",
       energy_consumed: 15000.0,
       water_usage: 2000.0,
@@ -1297,6 +1631,7 @@ export class DatabaseService {
     },
     {
       sustainability_metric_id: "kkkk0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       period: "2024-10",
       energy_consumed: 15000.0,
       water_usage: 2000.0,
@@ -1304,6 +1639,7 @@ export class DatabaseService {
     },
     {
       sustainability_metric_id: "kkkk0000-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       period: "2024-11",
       energy_consumed: 15000.0,
       water_usage: 2000.0,
@@ -1311,6 +1647,7 @@ export class DatabaseService {
     },
     {
       sustainability_metric_id: "kkkk0000-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       period: "2024-12",
       energy_consumed: 15000.0,
       water_usage: 2000.0,
@@ -1318,15 +1655,25 @@ export class DatabaseService {
     },
     {
       sustainability_metric_id: "kkkk0000-0006-4000-8000-000000000000",
+      organization_id: "org-001",
       period: "2024-10",
       energy_consumed: 15000.0,
       water_usage: 2000.0,
       emissions: 500.0,
     },
+    {
+      sustainability_metric_id: "kkkk0000-0f02-4000-8000-000000000000",
+      organization_id: "org-002",
+      period: "2024-10",
+      energy_consumed: 28400.0,
+      water_usage: 3600.0,
+      emissions: 910.0,
+    },
   ];
   public initiatives: Initiative[] = [
     {
       initiative_id: "iiii0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       created_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "LED Campus-Wide Retrofit",
       description: "Replace all remaining fluorescent and incandescent bulbs with high-efficiency LED lighting in all administrative and academic buildings to lower baseline energy consumption.",
@@ -1337,6 +1684,7 @@ export class DatabaseService {
     },
     {
       initiative_id: "iiii0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       created_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Smart HVAC Automation",
       description: "Implement occupancy-based smart thermostats and automated scheduling for the campus HVAC system to prevent heating/cooling in unoccupied zones.",
@@ -1347,6 +1695,7 @@ export class DatabaseService {
     },
     {
       initiative_id: "iiii0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       created_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Cafeteria Food Waste Composting",
       description: "Establish a dedicated composting stream for pre-consumer and post-consumer food waste in all main dining halls to divert organic waste from landfills.",
@@ -1357,6 +1706,7 @@ export class DatabaseService {
     },
     {
       initiative_id: "iiii0000-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       created_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Greywater Harvesting System",
       description: "Install greywater collection and filtration systems in the dormitories to reuse water for landscaping and non-potable campus needs.",
@@ -1367,6 +1717,7 @@ export class DatabaseService {
     },
     {
       initiative_id: "iiii0000-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       created_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Solar Panel Expansion (South Lot)",
       description: "Construct a 500kW solar canopy over the South Parking Lot to generate on-site renewable energy and provide shaded parking.",
@@ -1377,6 +1728,7 @@ export class DatabaseService {
     },
     {
       initiative_id: "iiii0000-0006-4000-8000-000000000000",
+      organization_id: "org-001",
       created_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Water Pressure Optimization",
       description: "Install pressure reducing valves (PRVs) across the campus water distribution network to minimize leakage rates and fixture wear.",
@@ -1389,6 +1741,7 @@ export class DatabaseService {
   public activityLogs: ActivityLog[] = [
     {
       activity_log_id: "llll0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0002-4000-8000-000000000002",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1396,6 +1749,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0003-4000-8000-000000000003",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1403,6 +1757,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0004-4000-8000-000000000004",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1410,6 +1765,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-0004-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0005-4000-8000-000000000005",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1417,6 +1773,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-0005-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0006-4000-8000-000000000006",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1424,6 +1781,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-0006-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0007-4000-8000-000000000007",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1431,6 +1789,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-0007-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0008-4000-8000-000000000008",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1438,6 +1797,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-0008-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0001-4000-8000-000000000001",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1445,6 +1805,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-0009-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0002-4000-8000-000000000002",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1452,6 +1813,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-000a-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0003-4000-8000-000000000003",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1459,6 +1821,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-000b-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0004-4000-8000-000000000004",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1466,6 +1829,7 @@ export class DatabaseService {
     },
     {
       activity_log_id: "llll0000-000c-4000-8000-000000000000",
+      organization_id: "org-001",
       user_id: "550e8400-0005-4000-8000-000000000005",
       action_type: "LOGIN",
       title: "User logged in",
@@ -1475,6 +1839,7 @@ export class DatabaseService {
   public sustainabilityReports: SustainabilityReport[] = [
     {
       report_id: "tttt0000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
       generated_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Q1 Sustainability Performance",
       period: "Q1 2025",
@@ -1488,6 +1853,7 @@ export class DatabaseService {
     },
     {
       report_id: "tttt0000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
       generated_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Q4 Year-End Sustainability Review",
       period: "Q4 2024",
@@ -1501,6 +1867,7 @@ export class DatabaseService {
     },
     {
       report_id: "tttt0000-0003-4000-8000-000000000000",
+      organization_id: "org-001",
       generated_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Annual Campus Emissions Report",
       period: "FY 2024",

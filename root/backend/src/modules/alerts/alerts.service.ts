@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
+import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
 import { CreateAlertDto } from "./dto/create-alert.dto";
 import { PutAlertDto } from "./dto/put-alert.dto";
 
@@ -35,13 +36,13 @@ export class AlertsService {
     }
     const nextId = this.database.alerts.length + 1;
     const generatedId = `ALT-${nextId.toString().padStart(3, "0")}`;
-    const newRecord = { alert_id: generatedId, ...createDto };
+    const newRecord = { alert_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
     this.database.alerts.push(newRecord as any);
     return newRecord;
   }
 
   findAll() {
-    return this.database.alerts;
+    return scopeToTenant(this.database.alerts);
   }
 
   findOne(id: string) {
