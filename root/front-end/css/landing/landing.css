@@ -682,3 +682,218 @@ h4 {
     display: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════
+   B2B SECTIONS
+   Hero CTAs, the two-sided roles split, the engagement
+   lifecycle, and the commercial model.
+   ══════════════════════════════════════════════════════ */
+
+/* ── Hero call to action ────────────────────────────── */
+.hero-cta {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.btn-secondary {
+  display: inline-block;
+  padding: 14px 28px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--primary-green);
+  border: 2px solid var(--primary-green);
+  font-weight: 700;
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+.btn-secondary:hover {
+  background: var(--primary-green);
+  color: var(--white);
+}
+
+.hero-note {
+  margin-top: var(--space-3);
+  font-size: 14px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Roles: two-sided split ─────────────────────────── */
+.roles-intro {
+  max-width: 720px;
+  margin-bottom: var(--space-6);
+  color: var(--text-secondary);
+}
+
+.roles-group-heading {
+  font-size: 24px;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.roles-group-sub {
+  color: var(--text-muted);
+  margin-bottom: var(--space-4);
+  font-size: 15px;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.team-card {
+  background: var(--white);
+  border: 2px solid var(--primary-green);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-soft);
+  transition: var(--transition-fast);
+}
+
+.team-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card);
+}
+
+.team-tag {
+  display: inline-block;
+  background: var(--primary-green);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-2);
+}
+
+.team-card h4 {
+  font-size: 19px;
+  margin-bottom: var(--space-1);
+  color: var(--text-primary);
+}
+
+.team-card p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── Engagement lifecycle ───────────────────────────── */
+.stage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.stage-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  border-left: 4px solid var(--primary-green);
+  box-shadow: var(--shadow-soft);
+  transition: var(--transition-fast);
+}
+
+.stage-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card);
+}
+
+.stage-num {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary-green);
+  opacity: 0.35;
+  line-height: 1;
+  margin-bottom: var(--space-1);
+}
+
+.stage-card h4 {
+  font-size: 18px;
+  margin-bottom: var(--space-1);
+  color: var(--text-primary);
+}
+
+.stage-card p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── Commercial model ───────────────────────────────── */
+.price-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.price-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-4);
+  border: 2px solid var(--white);
+  box-shadow: var(--shadow-soft);
+  transition: var(--transition-fast);
+}
+
+.price-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card);
+  border-color: var(--primary-green);
+}
+
+.price-card-feature {
+  background: var(--card-bg);
+  border-color: var(--primary-green);
+}
+
+.price-card h4 {
+  font-size: 20px;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.price-when {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary-green);
+  margin-bottom: var(--space-2);
+}
+
+.price-card p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.pricing-note {
+  margin-top: var(--space-5);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 15px;
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 900px) {
+  .team-grid,
+  .stage-grid,
+  .price-grid {
+    grid-template-columns: 1fr;
+  }
+}
