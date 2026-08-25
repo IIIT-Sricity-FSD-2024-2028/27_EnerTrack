@@ -17,27 +17,31 @@
   --space-6: 48px;
   --space-8: 64px;
 
-  /* Heritage palette */
-  --bg-main: #e2e6e1;
+  /* Heritage palette, original values */
+  --bg-main: #d9d9d9;
   --surface: #ffffff;
   --primary-green: #2f7d4f;
   --primary-dark: #1e5c38;
   --card-bg: #a9c7b3;
-  --line: #c9d0c9;
-  --line-soft: #dbe0da;
 
-  --text-primary: #16201b;
-  --text-secondary: #3f4a43;
-  --text-muted: #6d766f;
+  --text-primary: #111111;
+  --text-secondary: #333333;
+  --text-muted: #555555;
 
-  --shadow-soft: 0 1px 2px rgba(22, 32, 27, 0.04);
-  --shadow-card: 0 6px 20px -6px rgba(22, 32, 27, 0.13);
+  /* Borders, so cards no longer rely on an invisible white one */
+  --line: #c2c2c2;
+  --line-soft: #cfcfcf;
+  --border-subtle: rgba(0, 0, 0, 0.1);
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 8px 22px -8px rgba(0, 0, 0, 0.16);
 
   --radius: 12px;
   --radius-full: 9999px;
 
-  /* Centres content on a 1180px measure without a wrapper element */
-  --gutter: max(24px, calc((100vw - 1180px) / 2));
+  /* Side padding scales with the viewport rather than parking content
+     inside a fixed measure, so wide screens do not sit in empty margins. */
+  --gutter: clamp(20px, 5vw, 120px);
 
   --ease: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -289,7 +293,7 @@ a { color: inherit; }
 /* ── Hero ────────────────────────────────────────────────────── */
 .hero {
   display: grid;
-  grid-template-columns: 1fr 0.92fr;
+  grid-template-columns: minmax(0, 580px) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-6) var(--gutter) var(--space-8);
@@ -305,7 +309,6 @@ a { color: inherit; }
 .hero-content p {
   font-size: 17.5px;
   color: var(--text-secondary);
-  max-width: 46ch;
 }
 
 .hero-cta {
@@ -323,7 +326,8 @@ a { color: inherit; }
 
 .hero-image img {
   width: 100%;
-  height: auto;
+  height: clamp(340px, 46vh, 480px);
+  object-fit: cover;
   display: block;
   border-radius: var(--radius);
   border: 1px solid var(--line);
@@ -364,7 +368,7 @@ a { color: inherit; }
   font-size: clamp(28px, 3.3vw, 38px);
   line-height: 1.16;
   margin-bottom: var(--space-2);
-  max-width: 20ch;
+  max-width: 26ch;
 }
 
 /* ── One card system ─────────────────────────────────────────── */
@@ -398,7 +402,7 @@ a { color: inherit; }
 /* ── About ───────────────────────────────────────────────────── */
 .about-grid {
   display: grid;
-  grid-template-columns: 1fr 0.72fr;
+  grid-template-columns: minmax(0, 620px) minmax(0, 1fr);
   gap: var(--space-8);
   align-items: center;
 }
@@ -406,12 +410,12 @@ a { color: inherit; }
 .about-text p {
   color: var(--text-secondary);
   margin-bottom: var(--space-2);
-  max-width: 58ch;
 }
 
 .about-image img {
   width: 100%;
-  height: auto;
+  height: clamp(260px, 34vh, 380px);
+  object-fit: cover;
   display: block;
   border-radius: var(--radius);
   border: 1px solid var(--line);
@@ -694,14 +698,13 @@ a { color: inherit; }
 /* ── Results ─────────────────────────────────────────────────── */
 .results-grid {
   display: grid;
-  grid-template-columns: 1fr 1.1fr;
+  grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
   gap: var(--space-8);
   align-items: center;
 }
 
 .results-text p {
   color: var(--text-secondary);
-  max-width: 46ch;
 }
 
 .stats-container {
