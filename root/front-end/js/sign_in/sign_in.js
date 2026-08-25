@@ -42,8 +42,7 @@
       "Financial Analyst": "../finance-analyst/finance_overview.html",
       "Technician Administrator": "../technician/technician_overview.html",
       Technician: "../technician_jr/technician_jr_work_orders.html",
-      "Sustainability Officer":
-        "../sustainability_officer/sustainability_officer_overview.html",
+      "Sustainability Officer": "../sustainability_officer/sust_overview.html",
       "Campus Visitor": "../enduser/enduser_dashboard.html",
     };
     var path = routes[role] || "../landing/landing.html";
