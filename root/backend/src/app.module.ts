@@ -4,6 +4,7 @@ import { AppService } from "./app.service";
 import { DatabaseModule } from "./core/database/database.module";
 import { TenantMiddleware } from "./core/tenancy/tenant.middleware";
 import { LoggerMiddleware } from "./core/middleware/logger.middleware";
+import { SecurityMiddleware } from "./core/middleware/security.middleware";
 
 import { OrganizationsModule } from "./modules/organizations/organizations.module";
 import { UsersModule } from "./modules/users/users.module";
@@ -56,16 +57,23 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
 export class AppModule implements NestModule {
   /**
    * Middleware registration (Router-level):
-   *  1. TenantMiddleware — reads x-role and x-org-id headers for multi-tenancy
-   *  2. LoggerMiddleware — custom middleware that logs request bodies, response
+   *  1. SecurityMiddleware — validates x-role headers against UserRole enum,
+   *     deep-scans request payloads for XSS/injection patterns, and writes
+   *     blocked threats to logs/security-threats-YYYY-MM-DD.log
+   *  2. TenantMiddleware — reads x-role and x-org-id headers for multi-tenancy
+   *  3. LoggerMiddleware — custom middleware that logs request bodies, response
    *     payloads, and timing to both the console and logs/custom-debug.log
+   *
+   * SecurityMiddleware runs first so malicious requests are blocked before
+   * the tenant context or logger processes them.
    *
    * Morgan (third-party) is registered separately in main.ts as Express-level
    * middleware, writing standard access logs to daily-rotating files.
+   * Helmet and express-rate-limit are also registered in main.ts.
    */
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(TenantMiddleware, LoggerMiddleware)
+      .apply(SecurityMiddleware, TenantMiddleware, LoggerMiddleware)
       .forRoutes("*");
   }
 }

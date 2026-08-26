@@ -8,10 +8,45 @@ import * as morgan from 'morgan';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as rfs from 'rotating-file-stream';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
+
+  // ── Security Middleware (Express-level) ──────────────────────────
+
+  // A. Helmet — sets secure HTTP response headers
+  //    - Removes X-Powered-By (hides server tech stack from attackers)
+  //    - Adds X-Frame-Options: SAMEORIGIN (prevents clickjacking)
+  //    - Adds X-Content-Type-Options: nosniff (prevents MIME-type sniffing)
+  //    - Adds Strict-Transport-Security (forces HTTPS)
+  //    - Adds Referrer-Policy (prevents URL leakage to third parties)
+  //    CSP is disabled because it would break Swagger UI (/api/docs)
+  //    COEP is disabled because the frontend loads cross-origin assets
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
+
+  // B. Rate Limiting — caps requests per IP to prevent brute-force / DoS
+  //    200 requests per 15-minute window per IP address
+  app.use(
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 200,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: {
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: 'You have exceeded the rate limit. Please try again later.',
+      },
+    }),
+  );
 
   // 1. ValidationPipe globally
   app.useGlobalPipes(
