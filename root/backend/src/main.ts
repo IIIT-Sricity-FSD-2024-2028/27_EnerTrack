@@ -3,8 +3,11 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { TransformInterceptor } from './core/interceptors/transform.interceptor';
-import { LoggingInterceptor } from './core/interceptors/logging.interceptor';
 import { RolesGuard } from './core/guards/roles.guard';
+import * as morgan from 'morgan';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as rfs from 'rotating-file-stream';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,11 +26,29 @@ async function bootstrap() {
   const reflector = app.get(Reflector);
   app.useGlobalGuards(new RolesGuard(reflector));
 
-  // 3. TransformInterceptor & LoggingInterceptor globally
+  // 3. TransformInterceptor globally (LoggingInterceptor removed — replaced by Morgan + custom middleware)
   app.useGlobalInterceptors(
     new TransformInterceptor(),
-    new LoggingInterceptor(),
   );
+
+  // 3b. Morgan — third-party HTTP access logger with daily rotating file
+  const logDir = path.join(process.cwd(), 'logs');
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
+
+  // Create a rotating write stream — rotates daily, keeps 14 days of logs
+  const accessLogStream = rfs.createStream('access.log', {
+    interval: '1d',     // rotate daily
+    path: logDir,
+    maxFiles: 7,        // keep 7 days of logs
+  });
+
+  // Morgan writes standard Apache-combined access logs to the rotating file
+  app.use(morgan('combined', { stream: accessLogStream }));
+
+  // Morgan also writes short-format logs to the console for dev visibility
+  app.use(morgan('dev'));
 
   // 4. CORS enabled for all origins
   app.enableCors({
@@ -130,7 +151,6 @@ async function bootstrap() {
 
   SwaggerModule.setup('api/docs', app, document);
 
-  const fs = require('fs');
   if (!fs.existsSync('./docs')) fs.mkdirSync('./docs');
   fs.writeFileSync('./docs/swagger.json', JSON.stringify(document, null, 2));
 

@@ -3,6 +3,7 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { DatabaseModule } from "./core/database/database.module";
 import { TenantMiddleware } from "./core/tenancy/tenant.middleware";
+import { LoggerMiddleware } from "./core/middleware/logger.middleware";
 
 import { OrganizationsModule } from "./modules/organizations/organizations.module";
 import { UsersModule } from "./modules/users/users.module";
@@ -54,11 +55,17 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
 })
 export class AppModule implements NestModule {
   /**
-   * TenantMiddleware runs on every route. It reads the x-role and x-org-id
-   * headers and opens a per-request tenant scope that services read from,
-   * so no controller or service signature has to carry an organisation id.
+   * Middleware registration (Router-level):
+   *  1. TenantMiddleware — reads x-role and x-org-id headers for multi-tenancy
+   *  2. LoggerMiddleware — custom middleware that logs request bodies, response
+   *     payloads, and timing to both the console and logs/custom-debug.log
+   *
+   * Morgan (third-party) is registered separately in main.ts as Express-level
+   * middleware, writing standard access logs to daily-rotating files.
    */
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TenantMiddleware).forRoutes("*");
+    consumer
+      .apply(TenantMiddleware, LoggerMiddleware)
+      .forRoutes("*");
   }
 }
