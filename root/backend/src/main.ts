@@ -4,12 +4,17 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { TransformInterceptor } from './core/interceptors/transform.interceptor';
 import { RolesGuard } from './core/guards/roles.guard';
+<<<<<<< HEAD
 import * as morgan from 'morgan';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as rfs from 'rotating-file-stream';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
+=======
+import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
+>>>>>>> origin/main
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -66,6 +71,8 @@ async function bootstrap() {
     new TransformInterceptor(),
   );
 
+<<<<<<< HEAD
+  app.useGlobalFilters(new AllExceptionsFilter());
   // 3b. Morgan — third-party HTTP access logger with daily rotating file
   const logDir = path.join(process.cwd(), 'logs');
   if (!fs.existsSync(logDir)) {
@@ -86,13 +93,19 @@ async function bootstrap() {
   app.use(morgan('dev'));
 
   // 4. CORS enabled for all origins
+=======
+  // 4. Exception filter globally
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // 5. CORS enabled for all origins
+>>>>>>> origin/main
   app.enableCors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Accept', 'x-role', 'x-org-id'],
   });
 
-  // 5. Swagger setup at /api/docs
+  // 6. Swagger setup at /api/docs
   const config = new DocumentBuilder()
     .setTitle('EnerTrack API')
     .setDescription('Backend API for EnerTrack — Facility Management, Sustainability & Finance Platform')
@@ -189,7 +202,7 @@ async function bootstrap() {
   if (!fs.existsSync('./docs')) fs.mkdirSync('./docs');
   fs.writeFileSync('./docs/swagger.json', JSON.stringify(document, null, 2));
 
-  // 6. Listen on port 3000 (or process.env.PORT)
+  // 7. Listen on port 3000 (or process.env.PORT)
   const port = process.env.PORT || 3000;
   await app.listen(port);
 }
