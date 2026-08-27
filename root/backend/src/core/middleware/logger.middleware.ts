@@ -80,8 +80,8 @@ const bodyKeys = Object.keys(request.body || {});
 const hasLoggableBody = !isUpload && bodyKeys.length > 0;
 
 const requestLine = hasLoggableBody
-  ? [REQUEST] ${method} ${originalUrl} | Role: ${role} | IP: ${ip} | Body: ${JSON.stringify(request.body)}
-  : [REQUEST] ${method} ${originalUrl} | Role: ${role} | IP: ${ip};
+  ? `[REQUEST] ${method} ${originalUrl} | Role: ${role} | IP: ${ip} | Body: ${JSON.stringify(request.body)}`
+  : `[REQUEST] ${method} ${originalUrl} | Role: ${role} | IP: ${ip}`;
 
 this.logger.log(requestLine);
 
@@ -93,7 +93,7 @@ this.logger.log(requestLine);
       role,
       userAgent,
       contentType,
-      body: hasBody ? request.body : null,
+      body: hasLoggableBody ? request.body : null,
     });
 
     // ── Intercept the response to log status + body ─────────────────

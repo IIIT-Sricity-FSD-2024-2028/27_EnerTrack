@@ -47,7 +47,7 @@ export class UsersController {
   @ApiOperation({ summary: "Create User", description: "Creates a new user account in the system. Only the System Administrator can register new users by providing name, email, password, role, and optional phone/specialization fields. Send a POST request with a CreateUserDto JSON body containing all required user fields." })
   @ApiResponse({ status: 201, description: "User created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   create(@Body() createDto: CreateUserDto) {
     return this.usersService.create(createDto);
@@ -57,7 +57,7 @@ export class UsersController {
   @ApiOperation({ summary: "List All Users", description: "Retrieves a list of all registered user accounts. Internal staff can view the complete user directory to resolve names for assignments." })
   @ApiResponse({ status: 200, description: "Array of all user records returned." })
   @ApiResponse({ status: 403, description: "Forbidden – caller lacks required role." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician Administrator | Technician | Sustainability Officer", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician Administrator | Technician | Sustainability Officer", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician Administrator", "Technician", "Sustainability Officer")
   findAll() {
     return this.usersService.findAll();
@@ -68,7 +68,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: "User record returned." })
   @ApiResponse({ status: 404, description: "User with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller lacks required role." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician Administrator | Technician | Sustainability Officer", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician Administrator | Technician | Sustainability Officer", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician Administrator", "Technician", "Sustainability Officer")
   findOne(@Param("id") id: string) {
     return this.usersService.findOne(id);
@@ -79,7 +79,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: "User record replaced successfully." })
   @ApiResponse({ status: 404, description: "User with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   put(@Param("id") id: string, @Body() putDto: PutUserDto) {
     return this.usersService.put(id, putDto);
@@ -89,7 +89,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: "User record updated successfully." })
   @ApiResponse({ status: 404, description: "User with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   update(@Param("id") id: string, @Body() updateDto: UpdateUserDto) {
     return this.usersService.update(id, updateDto);
@@ -100,7 +100,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: "User record deleted successfully." })
   @ApiResponse({ status: 404, description: "User with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   remove(@Param("id") id: string) {
     return this.usersService.remove(id);
@@ -110,7 +110,7 @@ export class UsersController {
   @ApiOperation({ summary: "Get User Notifications", description: "Retrieves all notifications belonging to a specific user. Any authenticated user can fetch notifications to view alerts, wastage report updates, and service request status changes. Pass the user_id as a URL path parameter." })
   @ApiResponse({ status: 200, description: "Array of notification records for the user returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   getNotifications(@Param("id") id: string) {
     return this.usersService.getNotifications(id);

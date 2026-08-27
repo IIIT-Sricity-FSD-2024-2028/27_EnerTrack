@@ -34,7 +34,15 @@ export class AlertsService {
           `Target meterReadings with id '${createDto.triggering_reading_id}' not found`,
         );
     }
-    const nextId = this.database.alerts.length + 1;
+    // Find the highest existing ALT- ID to prevent collisions after deletion
+    const maxId = this.database.alerts.reduce((max, alert) => {
+      if (alert.alert_id && alert.alert_id.startsWith("ALT-")) {
+        const num = parseInt(alert.alert_id.replace("ALT-", ""), 10);
+        return !isNaN(num) ? Math.max(max, num) : max;
+      }
+      return max;
+    }, 0);
+    const nextId = maxId + 1;
     const generatedId = `ALT-${nextId.toString().padStart(3, "0")}`;
     const newRecord = { alert_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
     this.database.alerts.push(newRecord as any);

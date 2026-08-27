@@ -59,24 +59,6 @@ export class SecurityMiddleware implements NestMiddleware {
 
   use(req: Request, _res: Response, next: NextFunction): void {
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const roleHeader = req.headers['x-role'] as string | undefined;
-
-    // ── 1. HEADER INTEGRITY ─────────────────────────────────────────
-    // If x-role is supplied, it MUST match a value in the UserRole enum.
-    // This prevents attackers from sending garbage or SQL/injection
-    // strings inside the header that later code might interpolate.
-    if (roleHeader && !this.allowedRoles.includes(roleHeader)) {
-      this.writeThreatLog({
-        type: 'INVALID_ROLE_HEADER',
-        ip: clientIp,
-        method: req.method,
-        url: req.originalUrl,
-        detail: `Rejected unknown role: "${roleHeader}"`,
-      });
-      throw new ForbiddenException(
-        `Access Denied: "${roleHeader}" is not a recognised role`,
-      );
-    }
 
     // ── 2. DEEP PAYLOAD SANITISATION ────────────────────────────────
     // Recursively walk the request body, query string, and URL params

@@ -25,7 +25,7 @@ export class CampusController {
   @ApiOperation({ summary: "Create Campus", description: "Registers a new campus location in the system with its name, location, and total_budget. Only the System Administrator can create campus records. Send a POST request with a CreateCampusDto JSON body." })
   @ApiResponse({ status: 201, description: "Campus created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   create(@Body() createDto: CreateCampusDto) {
     return this.campusService.create(createDto);
@@ -35,7 +35,7 @@ export class CampusController {
   @ApiOperation({ summary: "List All Campuses", description: "Retrieves all campus records in the system. Any authenticated user can view the list of campuses and their budgets. Send a GET request with no additional parameters." })
   @ApiResponse({ status: 200, description: "Array of all campus records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findAll() {
     return this.campusService.findAll();
@@ -46,7 +46,7 @@ export class CampusController {
   @ApiResponse({ status: 200, description: "Campus record returned." })
   @ApiResponse({ status: 404, description: "Campus with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findOne(@Param("id") id: string) {
     return this.campusService.findOne(id);
@@ -57,7 +57,7 @@ export class CampusController {
   @ApiResponse({ status: 200, description: "Campus record replaced successfully." })
   @ApiResponse({ status: 404, description: "Campus with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   put(@Param("id") id: string, @Body() putDto: PutCampusDto) {
     return this.campusService.put(id, putDto);
@@ -67,7 +67,7 @@ export class CampusController {
   @ApiResponse({ status: 200, description: "Campus record updated successfully." })
   @ApiResponse({ status: 404, description: "Campus with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   update(@Param("id") id: string, @Body() updateDto: UpdateCampusDto) {
     return this.campusService.update(id, updateDto);
@@ -78,7 +78,7 @@ export class CampusController {
   @ApiResponse({ status: 200, description: "Campus record deleted successfully." })
   @ApiResponse({ status: 404, description: "Campus with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   remove(@Param("id") id: string) {
     return this.campusService.remove(id);
@@ -88,7 +88,7 @@ export class CampusController {
   @ApiOperation({ summary: "Get Buildings for Campus", description: "Retrieves all building records that belong to a specific campus (1:N relationship). Any authenticated user can view buildings within a campus. Pass the campus_id as a URL path parameter." })
   @ApiResponse({ status: 200, description: "Array of building records for the campus returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   getBuildings(@Param("id") id: string) {
     return this.campusService.getBuildings(id);

@@ -16,7 +16,7 @@ export class AlertsController {
   @ApiOperation({ summary: "Create Alert", description: "Creates a new alert triggered by a meter anomaly. The System Administrator, Technician Administrator and Technician can raise alerts." })
   @ApiResponse({ status: 201, description: "Alert created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator", "Technician")
   create(@Body() createDto: CreateAlertDto) {
     return this.alertsService.create(createDto);
@@ -26,7 +26,7 @@ export class AlertsController {
   @ApiOperation({ summary: "List All Alerts", description: "Retrieves all alert records. The System Administrator, Technician Administrator and Technician can view alerts and their statuses." })
   @ApiResponse({ status: 200, description: "Array of alert records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator", "Technician", "Sustainability Officer")
   findAll() {
     return this.alertsService.findAll();
@@ -37,7 +37,7 @@ export class AlertsController {
   @ApiResponse({ status: 200, description: "Alert record returned." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator", "Technician", "Sustainability Officer")
   findOne(@Param("id") id: string) {
     return this.alertsService.findOne(id);
@@ -48,7 +48,7 @@ export class AlertsController {
   @ApiResponse({ status: 200, description: "Replaced successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator")
   put(@Param("id") id: string, @Body() putDto: PutAlertDto) {
     return this.alertsService.put(id, putDto);
@@ -59,7 +59,7 @@ export class AlertsController {
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator", "Technician")
   update(@Param("id") id: string, @Body() updateDto: UpdateAlertDto) {
     return this.alertsService.update(id, updateDto);
@@ -70,7 +70,7 @@ export class AlertsController {
   @ApiResponse({ status: 200, description: "Deleted successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator")
   remove(@Param("id") id: string) {
     return this.alertsService.remove(id);
@@ -80,7 +80,7 @@ export class AlertsController {
   @ApiOperation({ summary: "Add Message to Alert Thread", description: "Appends a message to the alert JSONB messages thread. System Administrator, Technician Administrator and Technician can post messages." })
   @ApiResponse({ status: 201, description: "Message added successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator", "Technician", "Sustainability Officer")
   addMessage(@Param("id") id: string, @Body() messageDto: AddMessageDto) {
     // implemented logic for adding message
@@ -91,7 +91,7 @@ export class AlertsController {
   @ApiOperation({ summary: "Get Faults for Alert", description: "Retrieves all fault records linked to a specific alert. System Administrator, Technician Administrator and Technician can view faults from an alert." })
   @ApiResponse({ status: 200, description: "Array of fault records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator", "Technician")
   getFaults(@Param("id") id: string) {
     return this.alertsService.getFaults(id);

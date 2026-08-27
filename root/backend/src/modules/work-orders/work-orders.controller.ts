@@ -15,7 +15,7 @@ export class WorkOrdersController {
   @ApiOperation({ summary: "Create Work Order", description: "Creates a new work order linked to a fault or service request. System Administrator, Technician Administrator and Technician can create work orders." })
   @ApiResponse({ status: 201, description: "Work order created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator", "Technician")
   create(@Body() createDto: CreateWorkOrderDto) {
     return this.workOrdersService.create(createDto);
@@ -25,7 +25,7 @@ export class WorkOrdersController {
   @ApiOperation({ summary: "List All Work Orders", description: "Retrieves all work orders." })
   @ApiResponse({ status: 200, description: "Array of work order records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator", "Technician", "Financial Analyst")
   findAll() {
     return this.workOrdersService.findAll();
@@ -36,7 +36,7 @@ export class WorkOrdersController {
   @ApiResponse({ status: 200, description: "Work order record returned." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator", "Technician", "Financial Analyst")
   findOne(@Param("id") id: string) {
     return this.workOrdersService.findOne(id);
@@ -47,7 +47,7 @@ export class WorkOrdersController {
   @ApiResponse({ status: 200, description: "Replaced successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator")
   put(@Param("id") id: string, @Body() putDto: PutWorkOrderDto) {
     return this.workOrdersService.put(id, putDto);
@@ -58,7 +58,7 @@ export class WorkOrdersController {
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator", "Technician", "Financial Analyst")
   update(@Param("id") id: string, @Body() updateDto: UpdateWorkOrderDto) {
     return this.workOrdersService.update(id, updateDto);
@@ -69,7 +69,7 @@ export class WorkOrdersController {
   @ApiResponse({ status: 200, description: "Deleted successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator", "Technician Administrator")
   remove(@Param("id") id: string) {
     return this.workOrdersService.remove(id);

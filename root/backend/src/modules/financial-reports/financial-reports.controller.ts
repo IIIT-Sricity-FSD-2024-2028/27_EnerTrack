@@ -27,7 +27,7 @@ export class FinancialReportsController {
   @ApiOperation({ summary: "Create Financial Report", description: "Generates a new financial report for a building or department. The Financial Analyst and System Administrator can create reports by providing generated_by_id, building_id, department_id, title, period, roi, and npv. Send a POST request with a CreateFinancialReportDto JSON body." })
   @ApiResponse({ status: 201, description: "Financial report created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Financial Analyst or System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("Financial Analyst", "System Administrator")
   create(@Body() createDto: CreateFinancialReportDto) {
     return this.financialReportsService.create(createDto);
@@ -37,7 +37,7 @@ export class FinancialReportsController {
   @ApiOperation({ summary: "List All Financial Reports", description: "Retrieves all financial report records. The Financial Analyst and System Administrator can view the complete archive of financial reports. Send a GET request with no additional parameters." })
   @ApiResponse({ status: 200, description: "Array of all financial report records returned." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Financial Analyst or System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("Financial Analyst", "System Administrator")
   findAll() {
     return this.financialReportsService.findAll();
@@ -48,7 +48,7 @@ export class FinancialReportsController {
   @ApiResponse({ status: 200, description: "Financial report record returned." })
   @ApiResponse({ status: 404, description: "Financial report with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Financial Analyst or System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("Financial Analyst", "System Administrator")
   findOne(@Param("id") id: string) {
     return this.financialReportsService.findOne(id);
@@ -59,7 +59,7 @@ export class FinancialReportsController {
   @ApiResponse({ status: 200, description: "Financial report record replaced successfully." })
   @ApiResponse({ status: 404, description: "Financial report with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   put(@Param("id") id: string, @Body() putDto: PutFinancialReportDto) {
     return this.financialReportsService.put(id, putDto);
@@ -69,7 +69,7 @@ export class FinancialReportsController {
   @ApiResponse({ status: 200, description: "Financial report record updated successfully." })
   @ApiResponse({ status: 404, description: "Financial report with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Financial Analyst or System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("Financial Analyst", "System Administrator")
   update(@Param("id") id: string, @Body() updateDto: UpdateFinancialReportDto) {
     return this.financialReportsService.update(id, updateDto);
@@ -80,7 +80,7 @@ export class FinancialReportsController {
   @ApiResponse({ status: 200, description: "Financial report record deleted successfully." })
   @ApiResponse({ status: 404, description: "Financial report with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   remove(@Param("id") id: string) {
     return this.financialReportsService.remove(id);

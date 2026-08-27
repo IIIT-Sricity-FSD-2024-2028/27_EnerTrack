@@ -25,7 +25,7 @@ export class ActivityLogsController {
   @ApiOperation({ summary: "Create Activity Log", description: "Records a new audit trail entry capturing a user action in the system. Only the System Administrator can manually create activity log entries by providing user_id, action_type, and title. Send a POST request with a CreateActivityLogDto JSON body." })
   @ApiResponse({ status: 201, description: "Activity log entry created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   create(@Body() createDto: CreateActivityLogDto) {
     return this.activityLogsService.create(createDto);
@@ -35,7 +35,7 @@ export class ActivityLogsController {
   @ApiOperation({ summary: "List All Activity Logs", description: "Retrieves all activity log entries for system-wide audit tracking. Only the System Administrator can view the complete audit trail. Send a GET request with no additional parameters." })
   @ApiResponse({ status: 200, description: "Array of all activity log entries returned." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   findAll() {
     return this.activityLogsService.findAll();
@@ -46,7 +46,7 @@ export class ActivityLogsController {
   @ApiResponse({ status: 200, description: "Activity log entry returned." })
   @ApiResponse({ status: 404, description: "Activity log with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   findOne(@Param("id") id: string) {
     return this.activityLogsService.findOne(id);
@@ -57,7 +57,7 @@ export class ActivityLogsController {
   @ApiResponse({ status: 200, description: "Activity log entry replaced successfully." })
   @ApiResponse({ status: 404, description: "Activity log with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   put(@Param("id") id: string, @Body() putDto: PutActivityLogDto) {
     return this.activityLogsService.put(id, putDto);
@@ -67,7 +67,7 @@ export class ActivityLogsController {
   @ApiResponse({ status: 200, description: "Activity log entry updated successfully." })
   @ApiResponse({ status: 404, description: "Activity log with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   update(@Param("id") id: string, @Body() updateDto: UpdateActivityLogDto) {
     return this.activityLogsService.update(id, updateDto);
@@ -78,7 +78,7 @@ export class ActivityLogsController {
   @ApiResponse({ status: 200, description: "Activity log entry deleted successfully." })
   @ApiResponse({ status: 404, description: "Activity log with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   remove(@Param("id") id: string) {
     return this.activityLogsService.remove(id);
