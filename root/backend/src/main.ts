@@ -3,13 +3,55 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { TransformInterceptor } from './core/interceptors/transform.interceptor';
-import { LoggingInterceptor } from './core/interceptors/logging.interceptor';
 import { RolesGuard } from './core/guards/roles.guard';
+<<<<<<< HEAD
+import * as morgan from 'morgan';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as rfs from 'rotating-file-stream';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
+=======
+import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
+>>>>>>> origin/main
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
+
+  // ── Security Middleware (Express-level) ──────────────────────────
+
+  // A. Helmet — sets secure HTTP response headers
+  //    - Removes X-Powered-By (hides server tech stack from attackers)
+  //    - Adds X-Frame-Options: SAMEORIGIN (prevents clickjacking)
+  //    - Adds X-Content-Type-Options: nosniff (prevents MIME-type sniffing)
+  //    - Adds Strict-Transport-Security (forces HTTPS)
+  //    - Adds Referrer-Policy (prevents URL leakage to third parties)
+  //    CSP is disabled because it would break Swagger UI (/api/docs)
+  //    COEP is disabled because the frontend loads cross-origin assets
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
+
+  // B. Rate Limiting — caps requests per IP to prevent brute-force / DoS
+  //    200 requests per 15-minute window per IP address
+  app.use(
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 200,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: {
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: 'You have exceeded the rate limit. Please try again later.',
+      },
+    }),
+  );
 
   // 1. ValidationPipe globally
   app.useGlobalPipes(
@@ -24,16 +66,39 @@ async function bootstrap() {
   const reflector = app.get(Reflector);
   app.useGlobalGuards(new RolesGuard(reflector));
 
-  // 3. TransformInterceptor & LoggingInterceptor globally
+  // 3. TransformInterceptor globally (LoggingInterceptor removed — replaced by Morgan + custom middleware)
   app.useGlobalInterceptors(
     new TransformInterceptor(),
-    new LoggingInterceptor(),
   );
 
+<<<<<<< HEAD
+  app.useGlobalFilters(new AllExceptionsFilter());
+  // 3b. Morgan — third-party HTTP access logger with daily rotating file
+  const logDir = path.join(process.cwd(), 'logs');
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
+
+  // Create a rotating write stream — rotates daily, keeps 14 days of logs
+  const accessLogStream = rfs.createStream('access.log', {
+    interval: '1d',     // rotate daily
+    path: logDir,
+    maxFiles: 7,        // keep 7 days of logs
+  });
+
+  // Morgan writes standard Apache-combined access logs to the rotating file
+  app.use(morgan('combined', { stream: accessLogStream }));
+
+  // Morgan also writes short-format logs to the console for dev visibility
+  app.use(morgan('dev'));
+
+  // 4. CORS enabled for all origins
+=======
   // 4. Exception filter globally
   app.useGlobalFilters(new AllExceptionsFilter());
 
   // 5. CORS enabled for all origins
+>>>>>>> origin/main
   app.enableCors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -134,7 +199,6 @@ async function bootstrap() {
 
   SwaggerModule.setup('api/docs', app, document);
 
-  const fs = require('fs');
   if (!fs.existsSync('./docs')) fs.mkdirSync('./docs');
   fs.writeFileSync('./docs/swagger.json', JSON.stringify(document, null, 2));
 
