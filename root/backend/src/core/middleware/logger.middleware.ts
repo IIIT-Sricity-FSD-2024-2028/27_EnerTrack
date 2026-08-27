@@ -9,9 +9,10 @@ export class LoggerMiddleware implements NestMiddleware {
     const { ip, method, originalUrl } = request;
     const userAgent = request.get('user-agent') || '';
     const startTime = Date.now();
+  const isUpload = request.headers['content-type']?.includes('multipart/form-data');
 
     // Log the incoming request body
-    if (Object.keys(request.body || {}).length > 0) {
+  if (!isUpload && Object.keys(request.body || {}).length > 0) {
       this.logger.log(`[REQUEST] ${method} ${originalUrl} | Body: ${JSON.stringify(request.body)}`);
     } else {
       this.logger.log(`[REQUEST] ${method} ${originalUrl}`);

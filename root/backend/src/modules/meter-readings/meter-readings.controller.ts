@@ -1,4 +1,4 @@
-import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiConsumes, ApiBody } from "@nestjs/swagger";
 import {
   Controller,
   Get,
@@ -8,6 +8,9 @@ import {
   Param,
   Delete,
   Put,
+  UseInterceptors,
+  UploadedFile,
+  UseFilters,
 } from "@nestjs/common";
 import { MeterReadingsService } from "./meter-readings.service";
 import { CreateMeterReadingDto } from "./dto/create-meter-reading.dto";
@@ -15,6 +18,10 @@ import { PutMeterReadingDto } from "./dto/put-meter-reading.dto";
 
 import { UpdateMeterReadingDto } from "./dto/update-meter-reading.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
+
+import { FileInterceptor } from "@nestjs/platform-express";
+import { spreadsheetUploadConfig } from "../../core/middleware/file-upload.middleware";
+import { MulterExceptionFilter } from "../../core/filters/multer-exception.filter";
 
 @ApiTags("meter-readings")
 @Controller("meter-readings")
@@ -30,7 +37,30 @@ export class MeterReadingsController {
   create(@Body() createDto: CreateMeterReadingDto) {
     return this.meterReadingsService.create(createDto);
   }
-
+@Post("upload")
+@UseFilters(MulterExceptionFilter)
+@ApiConsumes('multipart/form-data')
+@ApiBody({
+  schema: {
+    type: 'object',
+    properties: {
+      file: {
+        type: 'string',
+        format: 'binary',
+      },
+    },
+  },
+})
+@ApiOperation({ summary: "Bulk Upload Meter Readings", description: "Uploads a CSV file of meter readings for sites without automatic sensors. The System Administrator and Technician can submit a batch of readings via file. Send a multipart/form-data POST request with the CSV file under the 'file' field." })
+@ApiResponse({ status: 201, description: "Meter readings imported successfully from CSV." })
+@ApiResponse({ status: 400, description: "File missing, wrong type, or over the size limit." })
+@ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator or Technician." })
+@ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+@Roles("System Administrator", "Technician")
+@UseInterceptors(FileInterceptor("file", spreadsheetUploadConfig))
+uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
+  return this.meterReadingsService.importFromCsv(file);
+}
   @Get()
   @ApiOperation({ summary: "List All Meter Readings", description: "Retrieves all meter reading records across the system. The System Administrator, Technician, Financial Analyst, and Sustainability Officer can view the full history of sensor readings. Send a GET request with no additional parameters." })
   @ApiResponse({ status: 200, description: "Array of all meter reading records returned." })
