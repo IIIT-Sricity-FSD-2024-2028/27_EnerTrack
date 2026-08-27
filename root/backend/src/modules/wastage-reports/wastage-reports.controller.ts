@@ -1,5 +1,5 @@
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiConsumes, ApiBody } from "@nestjs/swagger";
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseInterceptors, UploadedFiles, UseFilters } from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseInterceptors, UploadedFiles, UseFilters, BadRequestException } from "@nestjs/common";
 import { WastageReportsService } from "./wastage-reports.service";
 import { CreateWastageReportDto } from "./dto/create-wastage-report.dto";
 import { PutWastageReportDto } from "./dto/put-wastage-report.dto";
@@ -46,6 +46,12 @@ export class WastageReportsController {
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   @UseInterceptors(FilesInterceptor("files", 4, photoUploadConfig))
   uploadPhotos(@Param("id") id: string, @UploadedFiles() files: Express.Multer.File[]) {
+    // Multer leaves `files` undefined (or empty) when the request carries no
+    // files at all. Without this guard the service calls files.map and the
+    // caller gets a 500, contradicting the documented 400 above.
+    if (!files || files.length === 0) {
+      throw new BadRequestException("No files were uploaded under the 'files' field");
+    }
     return this.wastageReportsService.attachPhotos(id, files);
   }
   @Get()

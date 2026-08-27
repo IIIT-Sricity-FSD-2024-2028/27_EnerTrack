@@ -1,0 +1,22 @@
+{
+  // Deliberately standalone rather than extending ../tsconfig.json: that file
+  // sets rootDir to ./src and excludes this folder, both of which fight an
+  // "extends" here. Tests are only ever type-checked, never emitted.
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2021",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "noEmit": true,
+    // Lets `import request from 'supertest'` resolve to the callable export.
+    // to tests only: turning this on app-wide would break the `import * as
+    // morgan` style main.ts relies on.
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["jest", "node"]
+  },
+  "include": ["./**/*.ts"]
+}

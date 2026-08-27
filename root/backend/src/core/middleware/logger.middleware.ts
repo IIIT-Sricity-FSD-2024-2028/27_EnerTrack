@@ -74,16 +74,21 @@ export class LoggerMiddleware implements NestMiddleware {
     const role = request.get('x-role') || 'none';
     const contentType = request.get('content-type') || 'none';
     const startTime = Date.now();
-  const isUpload = request.headers['content-type']?.includes('multipart/form-data');
 
-const bodyKeys = Object.keys(request.body || {});
-const hasLoggableBody = !isUpload && bodyKeys.length > 0;
+    // ── Log the incoming request ────────────────────────────────────
+    // File uploads are skipped: a multipart body is binary, so stringifying
+    // it would dump megabytes of rubbish into the console and the log file.
+    const isUpload = request.headers['content-type']?.includes(
+      'multipart/form-data',
+    );
+    const bodyKeys = Object.keys(request.body || {});
+    const hasLoggableBody = !isUpload && bodyKeys.length > 0;
 
-const requestLine = hasLoggableBody
-  ? [REQUEST] ${method} ${originalUrl} | Role: ${role} | IP: ${ip} | Body: ${JSON.stringify(request.body)}
-  : [REQUEST] ${method} ${originalUrl} | Role: ${role} | IP: ${ip};
+    const requestLine = hasLoggableBody
+      ? `[REQUEST]  ${method} ${originalUrl} | Role: ${role} | IP: ${ip} | Body: ${JSON.stringify(request.body)}`
+      : `[REQUEST]  ${method} ${originalUrl} | Role: ${role} | IP: ${ip}`;
 
-this.logger.log(requestLine);
+    this.logger.log(requestLine);
 
     // Write structured request entry to file
     this.writeRequestToFile({
@@ -93,7 +98,7 @@ this.logger.log(requestLine);
       role,
       userAgent,
       contentType,
-      body: hasBody ? request.body : null,
+      body: hasLoggableBody ? request.body : null,
     });
 
     // ── Intercept the response to log status + body ─────────────────

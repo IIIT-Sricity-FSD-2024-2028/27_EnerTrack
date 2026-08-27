@@ -1,11 +1,16 @@
 import * as crypto from "crypto";
+import * as fs from "fs";
 import {
   Injectable,
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateInvoiceDto } from "./dto/create-invoice.dto";
 import { PutInvoiceDto } from "./dto/put-invoice.dto";
 
@@ -55,12 +60,56 @@ export class InvoicesService {
     if (index === -1)
       throw new NotFoundException(`Invoice with ID ${id} not found`);
 
+    // Ownership is checked on the way IN as well as on the way out. Without
+    // this, one tenant could attach a document to another tenant's invoice —
+    // getDocument would then refuse to serve it back, but the write would
+    // already have happened.
+    if (!assertTenantOwns(this.database.invoices[index]))
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
+
     this.database.invoices[index] = {
       ...this.database.invoices[index],
+      // The on-disk path stays server-side only. Clients get a URL they can
+      // actually fetch, rather than a raw filesystem path that both leaks the
+      // server layout and is useless to a browser.
       document_path: file.path,
       document_original_name: file.originalname,
+      document_size: file.size,
+      document_url: `/api/invoices/${id}/document`,
+      document_uploaded_at: new Date().toISOString(),
     } as any;
-    return this.database.invoices[index];
+    return this.stripInternalFields(this.database.invoices[index]);
+  }
+
+  /**
+   * Resolves the stored document for an invoice, checking tenant ownership.
+   *
+   * The path comes from the database record, never from the URL, so there is
+   * no way for a caller to steer this at an arbitrary file on disk.
+   */
+  getDocument(id: string) {
+    const record = assertTenantOwns(
+      this.database.invoices.find((item) => item.invoice_id === id),
+    ) as any;
+
+    if (!record) throw new NotFoundException(`Invoice with ID ${id} not found`);
+    if (!record.document_path)
+      throw new NotFoundException(`Invoice ${id} has no document attached`);
+    if (!fs.existsSync(record.document_path))
+      throw new NotFoundException(
+        `The document for invoice ${id} is no longer on disk`,
+      );
+
+    return {
+      path: record.document_path,
+      filename: record.document_original_name || "invoice.pdf",
+    };
+  }
+
+  /** Hides the server-side path from anything returned over the API. */
+  private stripInternalFields(record: any) {
+    const { document_path, ...safe } = record;
+    return safe;
   }
   findAll() {
     return scopeToTenant(this.database.invoices);

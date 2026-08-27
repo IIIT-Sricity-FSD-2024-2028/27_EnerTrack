@@ -1,5 +1,6 @@
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiConsumes, ApiBody } from "@nestjs/swagger";
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseInterceptors, UploadedFile, UseFilters } from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseInterceptors, UploadedFile, UseFilters, BadRequestException, Res } from "@nestjs/common";
+import { Response } from "express";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { documentUploadConfig } from "../../core/middleware/file-upload.middleware";
 import { MulterExceptionFilter } from "../../core/filters/multer-exception.filter";
@@ -43,8 +44,29 @@ export class InvoicesController {
   @Roles("Financial Analyst", "System Administrator")
   @UseInterceptors(FileInterceptor("file", documentUploadConfig))
   uploadDocument(@Param("id") id: string, @UploadedFile() file: Express.Multer.File) {
+    // Multer leaves `file` undefined when the request carries no file at all.
+    // Without this guard the service dereferences file.path and the caller
+    // gets a 500, contradicting the documented 400 above.
+    if (!file) {
+      throw new BadRequestException("No file was uploaded under the 'file' field");
+    }
     return this.invoicesService.attachDocument(id, file);
   }
+
+  @Get(":id/document")
+  @ApiOperation({ summary: "Download Invoice Document", description: "Streams back the PDF previously attached to this invoice. The file path is read from the invoice record, never from the URL, and tenant ownership is checked before the file is served." })
+  @ApiResponse({ status: 200, description: "PDF file streamed." })
+  @ApiResponse({ status: 404, description: "Invoice not found, or it has no document attached." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Financial Analyst", "System Administrator")
+  downloadDocument(@Param("id") id: string, @Res() res: Response) {
+    const { path, filename } = this.invoicesService.getDocument(id);
+    // res.download sets Content-Disposition so the browser saves it under the
+    // name the uploader used, not the randomised name it has on disk.
+    return res.download(path, filename);
+  }
+
   @Get()
   @ApiOperation({ summary: "List All Invoices", description: "Retrieves all invoices. Financial Analyst and System Administrator can view the invoice directory." })
   @ApiResponse({ status: 200, description: "Array of invoice records returned." })

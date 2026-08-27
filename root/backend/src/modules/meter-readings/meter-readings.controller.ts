@@ -11,6 +11,7 @@ import {
   UseInterceptors,
   UploadedFile,
   UseFilters,
+  BadRequestException,
 } from "@nestjs/common";
 import { MeterReadingsService } from "./meter-readings.service";
 import { CreateMeterReadingDto } from "./dto/create-meter-reading.dto";
@@ -59,6 +60,12 @@ export class MeterReadingsController {
 @Roles("System Administrator", "Technician")
 @UseInterceptors(FileInterceptor("file", spreadsheetUploadConfig))
 uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
+  // Multer leaves `file` undefined when the request carries no file at all.
+  // Without this guard the service calls fs.readFileSync(undefined.path)
+  // and the caller gets a 500, contradicting the documented 400 above.
+  if (!file) {
+    throw new BadRequestException("No file was uploaded under the 'file' field");
+  }
   return this.meterReadingsService.importFromCsv(file);
 }
   @Get()
