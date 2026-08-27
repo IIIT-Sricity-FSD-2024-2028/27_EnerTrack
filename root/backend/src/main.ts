@@ -11,6 +11,7 @@ import * as rfs from 'rotating-file-stream';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
+import { logWriter } from './core/utils/log-writer';
 
 
 async function bootstrap() {
@@ -78,11 +79,39 @@ async function bootstrap() {
       standardHeaders: true,
       legacyHeaders: false,
       skip: (req) => req.originalUrl.startsWith('/api/docs'),
-      message: {
-        success: false,
-        statusCode: 429,
-        error: 'Too Many Requests',
-        message: 'You have exceeded the rate limit. Please try again later.',
+      // express-rate-limit answers at the Express layer, BEFORE Nest's
+      // exception filter exists in the chain. Without this handler a 429
+      // would appear in access.log but never in error-*.log, so the one
+      // rejection an operator most wants to find would be missing from the
+      // error record. Written immediately: a client being rate limited is
+      // often a client about to cause more trouble.
+      handler: (req, res) => {
+        const body = {
+          success: false,
+          statusCode: 429,
+          error: 'Too Many Requests',
+          message: 'You have exceeded the rate limit. Please try again later.',
+          path: req.originalUrl,
+          method: req.method,
+          timestamp: new Date().toISOString(),
+        };
+
+        const separator = '─'.repeat(80);
+        logWriter.write(
+          'error-',
+          `\n${separator}\n` +
+            `  ⚠ RATE LIMIT EXCEEDED\n` +
+            `${separator}\n` +
+            `  Timestamp   : ${body.timestamp}\n` +
+            `  Status Code : 429\n` +
+            `  Route       : ${req.method} ${req.originalUrl}\n` +
+            `  IP          : ${req.ip || 'unknown'}\n` +
+            `  Role        : ${(req.headers['x-role'] as string) || 'none'}\n` +
+            `${separator}\n`,
+          { immediate: true },
+        );
+
+        res.status(429).json(body);
       },
     }),
   );

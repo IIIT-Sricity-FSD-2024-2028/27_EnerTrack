@@ -1,8 +1,7 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import * as fs from 'fs';
-import * as path from 'path';
 import { redactSensitive, redactedJson } from '../utils/redact';
+import { logWriter } from '../utils/log-writer';
 
 /**
  * Custom Logger Middleware
@@ -18,56 +17,24 @@ import { redactSensitive, redactedJson } from '../utils/redact';
  * This middleware is registered at the ROUTER level in AppModule.configure(),
  * satisfying the "Router-level middleware" evaluation criterion.
  *
- * Logs are written to:
- *   logs/custom-debug.log   (appended, not rotated — kept simple)
+ * Logs are written to logs/custom-debug-YYYY-MM-DD.log via the shared
+ * logWriter, which buffers entries and flushes them on a timer. Directory
+ * creation, daily filenames and 7-day retention are all handled there — see
+ * core/utils/log-writer.ts.
  */
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
   private readonly logger = new Logger('CustomMiddleware');
-  private readonly logDir = path.join(process.cwd(), 'logs');
-  private readonly MAX_LOG_AGE_DAYS = 7;
+
+  /** Filename prefix; logWriter appends the date and the .log extension. */
+  private readonly LOG_PREFIX = 'custom-debug-';
 
   /**
-   * Returns today's log file path, e.g. logs/custom-debug-2026-08-26.log
+   * Retention used to live here, but it only matched custom-debug-*.log, so
+   * the error, security, upload-audit and invoice-access logs were never
+   * cleaned. It now lives in logWriter.sweepOldLogs(), which covers every
+   * managed prefix and runs on a timer rather than only at startup.
    */
-  private get logFile(): string {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    return path.join(this.logDir, `custom-debug-${today}.log`);
-  }
-
-  constructor() {
-    // Ensure the logs directory exists on first load
-    if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir, { recursive: true });
-    }
-    // Clean up custom-debug log files older than 7 days
-    this.cleanOldLogs();
-  }
-
-  /**
-   * Delete custom-debug-*.log files that are older than MAX_LOG_AGE_DAYS.
-   */
-  private cleanOldLogs(): void {
-    try {
-      const files = fs.readdirSync(this.logDir);
-      const now = Date.now();
-      const maxAge = this.MAX_LOG_AGE_DAYS * 24 * 60 * 60 * 1000;
-
-      for (const file of files) {
-        if (!file.startsWith('custom-debug-') || !file.endsWith('.log')) {
-          continue;
-        }
-        const filePath = path.join(this.logDir, file);
-        const stats = fs.statSync(filePath);
-        if (now - stats.mtimeMs > maxAge) {
-          fs.unlinkSync(filePath);
-          this.logger.log(`Cleaned up old log file: ${file}`);
-        }
-      }
-    } catch (err) {
-      this.logger.error(`Failed to clean old logs: ${err}`);
-    }
-  }
 
   use(request: Request, response: Response, next: NextFunction): void {
     const { method, originalUrl, ip } = request;
@@ -186,7 +153,7 @@ export class LoggerMiddleware implements NestMiddleware {
 
     block += `${separator}\n`;
 
-    fs.appendFileSync(this.logFile, block, 'utf8');
+    logWriter.write(this.LOG_PREFIX, block);
   }
 
   /**
@@ -229,7 +196,7 @@ export class LoggerMiddleware implements NestMiddleware {
 
     block += `${doubleSep}\n\n`;
 
-    fs.appendFileSync(this.logFile, block, 'utf8');
+    logWriter.write(this.LOG_PREFIX, block);
   }
 
   /**

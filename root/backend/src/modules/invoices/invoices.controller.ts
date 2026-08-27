@@ -9,6 +9,7 @@ import { CreateInvoiceDto } from "./dto/create-invoice.dto";
 import { PutInvoiceDto } from "./dto/put-invoice.dto";
 import { UpdateInvoiceDto } from "./dto/update-invoice.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
+import { assertFileSignature } from "../../core/utils/file-signature";
 
 @ApiTags("invoices")
 @Controller("invoices")
@@ -50,6 +51,9 @@ export class InvoicesController {
     if (!file) {
       throw new BadRequestException("No file was uploaded under the 'file' field");
     }
+    // Extension and MIME type are client-supplied and forgeable. Check the
+    // actual leading bytes before the file is attached to a financial record.
+    assertFileSignature(file, "pdf");
     return this.invoicesService.attachDocument(id, file);
   }
 

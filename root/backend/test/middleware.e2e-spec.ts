@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import request from 'supertest';
+import request = require('supertest');
 import * as fs from 'fs';
 import * as path from 'path';
 import { AppModule } from '../src/app.module';
+import { logWriter, MANAGED_PREFIXES } from '../src/core/utils/log-writer';
 import { AllExceptionsFilter } from '../src/core/filters/all-exceptions.filter';
 import { TransformInterceptor } from '../src/core/interceptors/transform.interceptor';
 import { RolesGuard } from '../src/core/guards/roles.guard';
@@ -22,9 +23,21 @@ describe('Middleware (e2e)', () => {
   const logDir = path.join(process.cwd(), 'logs');
   const today = new Date().toISOString().split('T')[0];
 
-  const readLog = (name: string): string => {
+  /** Reads a log file WITHOUT flushing — shows only what is already on disk. */
+  const readLogRaw = (name: string): string => {
     const file = path.join(logDir, name);
     return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  };
+
+  /**
+   * Flushes the buffer, then reads. Log writes are batched on a 5-second
+   * timer, so a test that asserts immediately after a request would be racing
+   * the interval. Flushing explicitly makes these tests deterministic without
+   * having to sleep.
+   */
+  const readLog = (name: string): string => {
+    logWriter.flushAll();
+    return readLogRaw(name);
   };
 
   beforeAll(async () => {
@@ -222,6 +235,73 @@ describe('Middleware (e2e)', () => {
     });
   });
 
+  // ── Log writer: intervals and retention ────────────────────────────
+
+  describe('Log writer', () => {
+    const PREFIX = 'custom-debug-';
+
+    it('buffers ordinary entries and only writes them on flush', async () => {
+      // Flush first so the buffer starts empty and the assertion below is
+      // about THIS entry, not something left over from an earlier test.
+      logWriter.flushAll();
+
+      const marker = `BUFFER-MARKER-${Date.now()}`;
+      logWriter.write(PREFIX, marker + '\n');
+
+      // Still in memory — this is the "at regular intervals" behaviour.
+      expect(readLogRaw(`${PREFIX}${today}.log`)).not.toContain(marker);
+
+      logWriter.flushAll();
+      expect(readLogRaw(`${PREFIX}${today}.log`)).toContain(marker);
+    });
+
+    it('writes immediate entries straight to disk, bypassing the buffer', () => {
+      const marker = `IMMEDIATE-MARKER-${Date.now()}`;
+      logWriter.write(PREFIX, marker + '\n', { immediate: true });
+
+      // No flush call in between. A 5xx must survive a crash that happens
+      // before the next interval fires.
+      expect(readLogRaw(`${PREFIX}${today}.log`)).toContain(marker);
+    });
+
+    it('exposes a flush interval, so the docs and the code cannot drift', () => {
+      expect(logWriter.flushIntervalMs).toBeGreaterThan(0);
+    });
+
+    it('retention deletes back-dated files for EVERY managed prefix', () => {
+      const eightDaysAgo = Date.now() - 8 * 24 * 60 * 60 * 1000;
+      const created: string[] = [];
+
+      for (const prefix of MANAGED_PREFIXES) {
+        const file = path.join(logDir, `${prefix}1999-01-01.log`);
+        fs.writeFileSync(file, 'stale', 'utf8');
+        fs.utimesSync(file, eightDaysAgo / 1000, eightDaysAgo / 1000);
+        created.push(file);
+      }
+
+      // A file this writer does not own must be left alone.
+      const foreign = path.join(logDir, 'someone-elses.log');
+      fs.writeFileSync(foreign, 'keep me', 'utf8');
+      fs.utimesSync(foreign, eightDaysAgo / 1000, eightDaysAgo / 1000);
+
+      logWriter.sweepOldLogs();
+
+      for (const file of created) {
+        expect(fs.existsSync(file)).toBe(false);
+      }
+      expect(fs.existsSync(foreign)).toBe(true);
+
+      fs.unlinkSync(foreign);
+    });
+
+    it("keeps today's files", () => {
+      const file = path.join(logDir, `error-${today}.log`);
+      fs.writeFileSync(file, 'fresh', 'utf8');
+      logWriter.sweepOldLogs();
+      expect(fs.existsSync(file)).toBe(true);
+    });
+  });
+
   // ── Security headers (helmet) ──────────────────────────────────────
   // Registered with app.use() in main.ts, so it is asserted in the running
   // server rather than here — see MIDDLEWARE.md for the manual check.
@@ -263,6 +343,47 @@ describe('Middleware (e2e)', () => {
         .expect(400);
 
       expect(res.body.message).toContain('nothing was imported');
+    });
+
+    it('rejects a forged file whose contents do not match its extension', async () => {
+      // An .exe renamed to .pdf with a spoofed Content-Type passes the
+      // extension and MIME checks. Only the leading bytes give it away.
+      const fakePdf = Buffer.from([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00]); // "MZ" = Windows executable
+      const res = await request(app.getHttpServer())
+        .post('/api/invoices/vvvv0000-0001-4000-8000-000000000000/document')
+        .set('x-role', 'Financial Analyst')
+        .attach('file', fakePdf, {
+          filename: 'invoice.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(400);
+
+      expect(res.body.message).toContain('not a real PDF');
+    });
+
+    it('accepts a file whose contents genuinely match', async () => {
+      const realPdf = Buffer.from('%PDF-1.4 content %%EOF');
+      await request(app.getHttpServer())
+        .post('/api/invoices/vvvv0000-0001-4000-8000-000000000000/document')
+        .set('x-role', 'Financial Analyst')
+        .attach('file', realPdf, {
+          filename: 'invoice.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(201);
+    });
+
+    it('rejects binary content disguised as a CSV', async () => {
+      const binary = Buffer.alloc(300);
+      binary[10] = 0x00; // a NUL byte — never present in a text file
+      binary[11] = 0xff;
+      const res = await request(app.getHttpServer())
+        .post('/api/meter-readings/upload')
+        .set('x-role', 'System Administrator')
+        .attach('file', binary, { filename: 'readings.csv', contentType: 'text/csv' })
+        .expect(400);
+
+      expect(res.body.message).toContain('binary data');
     });
 
     it('blocks an upload from a role without permission', async () => {

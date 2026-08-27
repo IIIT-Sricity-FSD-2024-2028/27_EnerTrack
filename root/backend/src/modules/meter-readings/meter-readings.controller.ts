@@ -19,6 +19,7 @@ import { PutMeterReadingDto } from "./dto/put-meter-reading.dto";
 
 import { UpdateMeterReadingDto } from "./dto/update-meter-reading.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
+import { assertFileSignature } from "../../core/utils/file-signature";
 
 import { FileInterceptor } from "@nestjs/platform-express";
 import { spreadsheetUploadConfig } from "../../core/middleware/file-upload.middleware";
@@ -66,6 +67,8 @@ uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
   if (!file) {
     throw new BadRequestException("No file was uploaded under the 'file' field");
   }
+  // A .csv extension proves nothing — reject anything that is actually binary.
+  assertFileSignature(file, "csv");
   return this.meterReadingsService.importFromCsv(file);
 }
   @Get()

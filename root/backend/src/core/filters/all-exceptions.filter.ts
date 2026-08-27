@@ -7,8 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
-import * as fs from "fs";
-import * as path from "path";
+import { logWriter } from "../utils/log-writer";
 
 type HttpExceptionResponse = {
   message?: string | string[];
@@ -19,19 +18,8 @@ type HttpExceptionResponse = {
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
-  private readonly logDir = path.join(process.cwd(), "logs");
-
-  constructor() {
-    if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir, { recursive: true });
-    }
-  }
-
-  /** Today's error log, e.g. logs/error-2026-08-27.log */
-  private get errorLogFile(): string {
-    const today = new Date().toISOString().split("T")[0];
-    return path.join(this.logDir, `error-${today}.log`);
-  }
+  /** Filename prefix; logWriter appends the date and the .log extension. */
+  private readonly LOG_PREFIX = "error-";
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -132,11 +120,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     block += `${separator}\n`;
 
-    try {
-      fs.appendFileSync(this.errorLogFile, block, "utf8");
-    } catch (err) {
-      this.logger.error(`Failed to write error log: ${err}`);
-    }
+    // Server errors bypass the buffer. If the process is about to die, the
+    // record of WHY must already be on disk — a 500 flushed five seconds
+    // later is a 500 that never gets written. Handled 4xx entries are
+    // routine and can wait for the next flush.
+    logWriter.write(this.LOG_PREFIX, block, { immediate: entry.isServerError });
   }
 
   private normalizeExceptionResponse(

@@ -5,6 +5,7 @@ import { CreateWastageReportDto } from "./dto/create-wastage-report.dto";
 import { PutWastageReportDto } from "./dto/put-wastage-report.dto";
 import { UpdateWastageReportDto } from "./dto/update-wastage-report.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
+import { assertFileSignatures } from "../../core/utils/file-signature";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { photoUploadConfig } from "../../core/middleware/file-upload.middleware";
 import { MulterExceptionFilter } from "../../core/filters/multer-exception.filter";
@@ -52,6 +53,8 @@ export class WastageReportsController {
     if (!files || files.length === 0) {
       throw new BadRequestException("No files were uploaded under the 'files' field");
     }
+    // Every file must genuinely be a JPEG or PNG, not just named like one.
+    assertFileSignatures(files, "image");
     return this.wastageReportsService.attachPhotos(id, files);
   }
   @Get()
