@@ -2,6 +2,7 @@ import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
+import { redactSensitive, redactedJson } from '../utils/redact';
 
 /**
  * Custom Logger Middleware
@@ -84,8 +85,11 @@ export class LoggerMiddleware implements NestMiddleware {
     const bodyKeys = Object.keys(request.body || {});
     const hasLoggableBody = !isUpload && bodyKeys.length > 0;
 
+    // Passwords and tokens are masked before anything is written. See
+    // core/utils/redact.ts — POST /api/users/login carries a plaintext
+    // password, which used to land in this log in the clear.
     const requestLine = hasLoggableBody
-      ? `[REQUEST]  ${method} ${originalUrl} | Role: ${role} | IP: ${ip} | Body: ${JSON.stringify(request.body)}`
+      ? `[REQUEST]  ${method} ${originalUrl} | Role: ${role} | IP: ${ip} | Body: ${redactedJson(request.body)}`
       : `[REQUEST]  ${method} ${originalUrl} | Role: ${role} | IP: ${ip}`;
 
     this.logger.log(requestLine);
@@ -98,7 +102,7 @@ export class LoggerMiddleware implements NestMiddleware {
       role,
       userAgent,
       contentType,
-      body: hasLoggableBody ? request.body : null,
+      body: hasLoggableBody ? redactSensitive(request.body) : null,
     });
 
     // ── Intercept the response to log status + body ─────────────────
@@ -108,8 +112,11 @@ export class LoggerMiddleware implements NestMiddleware {
       const duration = Date.now() - startTime;
       const { statusCode } = response;
 
-      let bodyPreview: string =
-        typeof body === 'string' ? body : JSON.stringify(body);
+      // Responses are redacted too. Login returns the user record, and a
+      // future auth change that starts returning a token would otherwise
+      // begin leaking it into the log with nobody noticing.
+      const safeBody = this.safeParse(body);
+      let bodyPreview: string = redactedJson(safeBody);
 
       // Truncate large payloads to keep logs readable
       if (bodyPreview && bodyPreview.length > 500) {
@@ -133,7 +140,7 @@ export class LoggerMiddleware implements NestMiddleware {
         url: originalUrl,
         statusCode,
         duration,
-        body: this.safeParse(body),
+        body: redactSensitive(safeBody),
         isError: statusCode >= 400,
       });
 

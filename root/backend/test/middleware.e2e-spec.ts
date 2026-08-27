@@ -180,6 +180,48 @@ describe('Middleware (e2e)', () => {
     });
   });
 
+  describe('Credential redaction', () => {
+    // Regression test. The logger used to write POST /api/users/login bodies
+    // verbatim, which put every user's plaintext password on disk.
+    const password = 'PlaintextPasswordThatMustNeverBeLogged';
+
+    it('never writes a login password to the debug log', async () => {
+      await request(app.getHttpServer())
+        .post('/api/users/login')
+        .send({ email: 'aadi@gmail.com', password });
+
+      const log = readLog(`custom-debug-${today}.log`);
+      expect(log).not.toContain(password);
+      // The request itself must still be logged — redaction, not silence.
+      expect(log).toContain('/api/users/login');
+      expect(log).toContain('[REDACTED]');
+    });
+
+    it('redacts token-like fields too, not just password', async () => {
+      await request(app.getHttpServer())
+        .post('/api/users/login')
+        .send({
+          email: 'aadi@gmail.com',
+          password,
+          accessToken: 'tok_must_not_appear',
+          api_key: 'key_must_not_appear',
+        });
+
+      const log = readLog(`custom-debug-${today}.log`);
+      expect(log).not.toContain('tok_must_not_appear');
+      expect(log).not.toContain('key_must_not_appear');
+    });
+
+    it('leaves non-sensitive fields readable', async () => {
+      await request(app.getHttpServer())
+        .post('/api/users/login')
+        .send({ email: 'visible@example.com', password });
+
+      const log = readLog(`custom-debug-${today}.log`);
+      expect(log).toContain('visible@example.com');
+    });
+  });
+
   // ── Security headers (helmet) ──────────────────────────────────────
   // Registered with app.use() in main.ts, so it is asserted in the running
   // server rather than here — see MIDDLEWARE.md for the manual check.

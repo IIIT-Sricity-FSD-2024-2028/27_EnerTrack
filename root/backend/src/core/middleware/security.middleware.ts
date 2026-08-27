@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { UserRole } from '../database/database.service';
+import { isSensitiveKey, REDACTED } from '../utils/redact';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -118,7 +119,16 @@ export class SecurityMiddleware implements NestMiddleware {
         // Reset lastIndex because some regexes have the /g flag
         regex.lastIndex = 0;
         if (regex.test(value)) {
-          const preview = value.length > 80 ? value.substring(0, 80) + '…' : value;
+          // The threat log records WHAT was matched, so a rejected value from
+          // a credential field would otherwise be written to disk in the
+          // clear. `location` is a dotted path like "body.password", so the
+          // last segment is the field name.
+          const fieldName = location.split('.').pop() || location;
+          const preview = isSensitiveKey(fieldName)
+            ? REDACTED
+            : value.length > 80
+              ? value.substring(0, 80) + '…'
+              : value;
           return `${label} found in ${location}: "${preview}"`;
         }
       }
