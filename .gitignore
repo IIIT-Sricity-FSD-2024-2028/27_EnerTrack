@@ -9,3 +9,4 @@ logs/
 .DS_Store
 dist/
 build/
+root/backend/docs/swagger.json

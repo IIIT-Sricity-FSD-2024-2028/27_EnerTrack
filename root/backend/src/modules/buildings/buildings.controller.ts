@@ -25,7 +25,7 @@ export class BuildingsController {
   @ApiOperation({ summary: "Create Building", description: "Creates a new building record under a campus. Only the System Administrator can add buildings by providing campus_id, name, and optional budget. Send a POST request with a CreateBuildingDto JSON body." })
   @ApiResponse({ status: 201, description: "Building created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   create(@Body() createDto: CreateBuildingDto) {
     return this.buildingsService.create(createDto);
@@ -35,7 +35,7 @@ export class BuildingsController {
   @ApiOperation({ summary: "List All Buildings", description: "Retrieves all building records in the system. Any authenticated user can view the complete list of buildings across all campuses. Send a GET request with no additional parameters." })
   @ApiResponse({ status: 200, description: "Array of all building records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findAll() {
     return this.buildingsService.findAll();
@@ -46,7 +46,7 @@ export class BuildingsController {
   @ApiResponse({ status: 200, description: "Building record returned." })
   @ApiResponse({ status: 404, description: "Building with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findOne(@Param("id") id: string) {
     return this.buildingsService.findOne(id);
@@ -57,7 +57,7 @@ export class BuildingsController {
   @ApiResponse({ status: 200, description: "Building record replaced successfully." })
   @ApiResponse({ status: 404, description: "Building with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   put(@Param("id") id: string, @Body() putDto: PutBuildingDto) {
     return this.buildingsService.put(id, putDto);
@@ -67,7 +67,7 @@ export class BuildingsController {
   @ApiResponse({ status: 200, description: "Building record updated successfully." })
   @ApiResponse({ status: 404, description: "Building with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   update(@Param("id") id: string, @Body() updateDto: UpdateBuildingDto) {
     return this.buildingsService.update(id, updateDto);
@@ -78,7 +78,7 @@ export class BuildingsController {
   @ApiResponse({ status: 200, description: "Building record deleted successfully." })
   @ApiResponse({ status: 404, description: "Building with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   remove(@Param("id") id: string) {
     return this.buildingsService.remove(id);
@@ -88,7 +88,7 @@ export class BuildingsController {
   @ApiOperation({ summary: "Get Departments for Building", description: "Retrieves all department records that belong to a specific building (1:N relationship). Any authenticated user can view departments within a building. Pass the building_id as a URL path parameter." })
   @ApiResponse({ status: 200, description: "Array of department records for the building returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   getDepartments(@Param("id") id: string) {
     return this.buildingsService.getDepartments(id);
@@ -98,7 +98,7 @@ export class BuildingsController {
   @ApiOperation({ summary: "Get Meters for Building", description: "Retrieves all meter/IoT sensor records installed in a specific building (1:N relationship). Any authenticated user can view meters for a building. Pass the building_id as a URL path parameter." })
   @ApiResponse({ status: 200, description: "Array of meter records for the building returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   getMeters(@Param("id") id: string) {
     return this.buildingsService.getMeters(id);

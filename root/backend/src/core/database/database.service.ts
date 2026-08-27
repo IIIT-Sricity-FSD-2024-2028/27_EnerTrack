@@ -1,4 +1,5 @@
 import { Injectable, Scope } from "@nestjs/common";
+import { hashPassword } from "../utils/crypto.util";
 
 export enum UserRole {
   // ── Legacy roles (still fully supported) ─────────────────
@@ -347,6 +348,12 @@ export interface Notification {
 
 @Injectable({ scope: Scope.DEFAULT })
 export class DatabaseService {
+  constructor() {
+    this.users = this.users.map(u => ({
+      ...u,
+      password: hashPassword(u.password)
+    }));
+  }
   /**
    * Client organisations (tenants). org-001 owns all of the original
    * single-campus demo data; org-002 is a second live client used to prove

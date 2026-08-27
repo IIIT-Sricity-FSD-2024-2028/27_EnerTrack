@@ -15,7 +15,7 @@ export class InitiativesController {
   @ApiOperation({ summary: "Create Initiative", description: "Proposes a new sustainability initiative. Sustainability Officer and System Administrator can create." })
   @ApiResponse({ status: 201, description: "Created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("Sustainability Officer", "System Administrator")
   create(@Body() createDto: CreateInitiativeDto) {
     return this.initiativesService.create(createDto);
@@ -25,7 +25,7 @@ export class InitiativesController {
   @ApiOperation({ summary: "List All Initiatives", description: "Retrieves all initiatives. Sustainability Officer and System Administrator can view." })
   @ApiResponse({ status: 200, description: "Array of records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("Sustainability Officer", "System Administrator")
   findAll() {
     return this.initiativesService.findAll();
@@ -36,7 +36,7 @@ export class InitiativesController {
   @ApiResponse({ status: 200, description: "Record returned." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("Sustainability Officer", "System Administrator")
   findOne(@Param("id") id: string) {
     return this.initiativesService.findOne(id);
@@ -47,7 +47,7 @@ export class InitiativesController {
   @ApiResponse({ status: 200, description: "Replaced successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator")
   put(@Param("id") id: string, @Body() putDto: PutInitiativeDto) {
     return this.initiativesService.put(id, putDto);
@@ -58,7 +58,7 @@ export class InitiativesController {
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("Sustainability Officer", "System Administrator")
   update(@Param("id") id: string, @Body() updateDto: UpdateInitiativeDto) {
     return this.initiativesService.update(id, updateDto);
@@ -69,7 +69,7 @@ export class InitiativesController {
   @ApiResponse({ status: 200, description: "Deleted successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("Sustainability Officer", "System Administrator")
   remove(@Param("id") id: string) {
     return this.initiativesService.remove(id);

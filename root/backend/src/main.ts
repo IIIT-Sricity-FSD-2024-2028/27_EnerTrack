@@ -11,6 +11,7 @@ import * as rfs from 'rotating-file-stream';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
+import { DatabaseService } from './core/database/database.service';
 
 
 async function bootstrap() {
@@ -61,7 +62,8 @@ async function bootstrap() {
 
   // 2. RolesGuard globally
   const reflector = app.get(Reflector);
-  app.useGlobalGuards(new RolesGuard(reflector));
+  const databaseService = app.get(DatabaseService);
+  app.useGlobalGuards(new RolesGuard(reflector, databaseService));
 
   // 3. TransformInterceptor globally (LoggingInterceptor removed — replaced by Morgan + custom middleware)
   app.useGlobalInterceptors(
@@ -97,7 +99,7 @@ async function bootstrap() {
   app.enableCors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'x-role', 'x-org-id'],
+    allowedHeaders: ['Content-Type', 'Accept', 'x-user-id', 'x-org-id'],
   });
 
   // 6. Swagger setup at /api/docs
@@ -131,7 +133,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   
   // Inject preset examples from Universal DB (DatabaseService)
-  const { DatabaseService } = require('./core/database/database.service');
   const db = new DatabaseService();
   const examples = {
     CreateOrganizationDto: db.organizations[0], UpdateOrganizationDto: db.organizations[0],

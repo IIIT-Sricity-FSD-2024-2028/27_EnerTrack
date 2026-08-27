@@ -16,7 +16,7 @@ import { UpdateOrganizationDto } from "./dto/update-organization.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
 
 const ROLE_HEADER = {
-  name: "x-role",
+  name: "x-user-id",
   description:
     "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
   required: false,

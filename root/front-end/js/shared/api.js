@@ -16,13 +16,13 @@
 const API_BASE = "http://localhost:3000/api";
 
 /**
- * Returns the current user's role from localStorage.
- * Sent as the x-role header for RBAC on every request.
+ * Returns the current user's ID from localStorage.
+ * Sent as the x-user-id header for RBAC on every request.
  */
-function _getRole() {
+function _getUserId() {
   try {
     const user = JSON.parse(localStorage.getItem("currentUser") || "null");
-    return user ? user.role : "";
+    return user && user.user_id ? user.user_id : "";
   } catch (e) {
     return "";
   }
@@ -45,14 +45,15 @@ function _getOrgId() {
 }
 
 /**
- * Core fetch wrapper. Adds Content-Type, x-role and x-org-id headers
+ * Core fetch wrapper. Adds Content-Type, x-user-id and x-org-id headers
  * automatically. Throws an Error with a human-readable message on HTTP errors.
  */
 async function _apiFetch(path, options = {}) {
   const orgId = _getOrgId();
+  const userId = _getUserId();
   const headers = {
     "Content-Type": "application/json",
-    "x-role": _getRole(),
+    ...(userId ? { "x-user-id": userId } : {}),
     ...(orgId ? { "x-org-id": orgId } : {}),
     ...(options.headers || {}),
   };

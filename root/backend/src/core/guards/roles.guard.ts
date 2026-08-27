@@ -6,11 +6,14 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { ROLES_KEY } from "../decorators/roles.decorator";
-import { ROLE_EQUIVALENTS } from "../database/database.service";
+import { ROLE_EQUIVALENTS, DatabaseService } from "../database/database.service";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private databaseService: DatabaseService
+  ) {}
 
   /**
    * Expands a role into itself plus every legacy role it stands in for.
@@ -38,20 +41,29 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const roleHeader = request.headers["x-role"];
+    const userIdHeader = request.headers["x-user-id"];
 
-    if (!roleHeader) {
-      throw new ForbiddenException("Role header 'x-role' is required");
+    if (!userIdHeader) {
+      throw new ForbiddenException("User ID header 'x-user-id' is required for authentication");
     }
 
-    const held = this.effectiveRoles(roleHeader);
+    const user = this.databaseService.users.find(u => u.user_id === userIdHeader);
+    if (!user) {
+      throw new ForbiddenException("Invalid user session");
+    }
+
+    const role = user.role;
+    const held = this.effectiveRoles(role);
     const allowed = held.some((r) => requiredRoles.includes(r));
 
     if (!allowed) {
       throw new ForbiddenException(
-        `Role '${roleHeader}' is not authorized for this action`,
+        `Role '${role}' is not authorized for this action`,
       );
     }
+
+    // Attach user to request for current-user decorator
+    request.user = user;
 
     return true;
   }

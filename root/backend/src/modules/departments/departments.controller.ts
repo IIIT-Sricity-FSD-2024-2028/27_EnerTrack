@@ -25,7 +25,7 @@ export class DepartmentsController {
   @ApiOperation({ summary: "Create Department", description: "Creates a new department within a building. Only the System Administrator can add departments by providing building_id, name, and optional budget. Send a POST request with a CreateDepartmentDto JSON body." })
   @ApiResponse({ status: 201, description: "Department created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   create(@Body() createDto: CreateDepartmentDto) {
     return this.departmentsService.create(createDto);
@@ -35,7 +35,7 @@ export class DepartmentsController {
   @ApiOperation({ summary: "List All Departments", description: "Retrieves all department records across all buildings. Any authenticated user can view the complete department directory. Send a GET request with no additional parameters." })
   @ApiResponse({ status: 200, description: "Array of all department records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findAll() {
     return this.departmentsService.findAll();
@@ -46,7 +46,7 @@ export class DepartmentsController {
   @ApiResponse({ status: 200, description: "Department record returned." })
   @ApiResponse({ status: 404, description: "Department with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findOne(@Param("id") id: string) {
     return this.departmentsService.findOne(id);
@@ -57,7 +57,7 @@ export class DepartmentsController {
   @ApiResponse({ status: 200, description: "Department record replaced successfully." })
   @ApiResponse({ status: 404, description: "Department with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   put(@Param("id") id: string, @Body() putDto: PutDepartmentDto) {
     return this.departmentsService.put(id, putDto);
@@ -67,7 +67,7 @@ export class DepartmentsController {
   @ApiResponse({ status: 200, description: "Department record updated successfully." })
   @ApiResponse({ status: 404, description: "Department with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   update(@Param("id") id: string, @Body() updateDto: UpdateDepartmentDto) {
     return this.departmentsService.update(id, updateDto);
@@ -78,7 +78,7 @@ export class DepartmentsController {
   @ApiResponse({ status: 200, description: "Department record deleted successfully." })
   @ApiResponse({ status: 404, description: "Department with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   remove(@Param("id") id: string) {
     return this.departmentsService.remove(id);
@@ -88,7 +88,7 @@ export class DepartmentsController {
   @ApiOperation({ summary: "Get Invoices for Department", description: "Retrieves all invoice records linked to a specific department (1:N relationship). The System Administrator and Financial Analyst can view invoices for a department. Pass the department_id as a URL path parameter." })
   @ApiResponse({ status: 200, description: "Array of invoice records for the department returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Financial Analyst")
   getInvoices(@Param("id") id: string) {
     return this.departmentsService.getInvoices(id);

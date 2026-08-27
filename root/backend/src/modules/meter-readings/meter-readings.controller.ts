@@ -32,7 +32,7 @@ export class MeterReadingsController {
   @ApiOperation({ summary: "Create Meter Reading", description: "Records a new meter reading from an IoT sensor. The System Administrator and Technician can submit readings by providing meter_id, value, and unit. Send a POST request with a CreateMeterReadingDto JSON body." })
   @ApiResponse({ status: 201, description: "Meter reading created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator or Technician." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Technician")
   create(@Body() createDto: CreateMeterReadingDto) {
     return this.meterReadingsService.create(createDto);
@@ -55,7 +55,7 @@ export class MeterReadingsController {
 @ApiResponse({ status: 201, description: "Meter readings imported successfully from CSV." })
 @ApiResponse({ status: 400, description: "File missing, wrong type, or over the size limit." })
 @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator or Technician." })
-@ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+@ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
 @Roles("System Administrator", "Technician")
 @UseInterceptors(FileInterceptor("file", spreadsheetUploadConfig))
 uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
@@ -65,7 +65,7 @@ uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
   @ApiOperation({ summary: "List All Meter Readings", description: "Retrieves all meter reading records across the system. The System Administrator, Technician, Financial Analyst, and Sustainability Officer can view the full history of sensor readings. Send a GET request with no additional parameters." })
   @ApiResponse({ status: 200, description: "Array of all meter reading records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Technician", "Financial Analyst", "Sustainability Officer")
   findAll() {
     return this.meterReadingsService.findAll();
@@ -76,7 +76,7 @@ uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
   @ApiResponse({ status: 200, description: "Meter reading record returned." })
   @ApiResponse({ status: 404, description: "Meter reading with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator", "Technician", "Financial Analyst", "Sustainability Officer")
   findOne(@Param("id") id: string) {
     return this.meterReadingsService.findOne(id);
@@ -87,7 +87,7 @@ uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
   @ApiResponse({ status: 200, description: "Meter reading record replaced successfully." })
   @ApiResponse({ status: 404, description: "Meter reading with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   put(@Param("id") id: string, @Body() putDto: PutMeterReadingDto) {
     return this.meterReadingsService.put(id, putDto);
@@ -97,7 +97,7 @@ uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
   @ApiResponse({ status: 200, description: "Meter reading record updated successfully." })
   @ApiResponse({ status: 404, description: "Meter reading with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   update(@Param("id") id: string, @Body() updateDto: UpdateMeterReadingDto) {
     return this.meterReadingsService.update(id, updateDto);
@@ -108,7 +108,7 @@ uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
   @ApiResponse({ status: 200, description: "Meter reading record deleted successfully." })
   @ApiResponse({ status: 404, description: "Meter reading with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not System Administrator." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
   @Roles("System Administrator")
   remove(@Param("id") id: string) {
     return this.meterReadingsService.remove(id);

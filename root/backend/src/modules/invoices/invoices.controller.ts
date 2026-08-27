@@ -18,7 +18,7 @@ export class InvoicesController {
   @ApiOperation({ summary: "Create Invoice", description: "Creates a new invoice for a department. Financial Analyst and System Administrator can submit invoices." })
   @ApiResponse({ status: 201, description: "Invoice created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("Financial Analyst", "System Administrator")
   create(@Body() createDto: CreateInvoiceDto) {
     return this.invoicesService.create(createDto);
@@ -39,7 +39,7 @@ export class InvoicesController {
   @ApiResponse({ status: 400, description: "File missing, wrong type, or over the size limit." })
   @ApiResponse({ status: 404, description: "Invoice with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("Financial Analyst", "System Administrator")
   @UseInterceptors(FileInterceptor("file", documentUploadConfig))
   uploadDocument(@Param("id") id: string, @UploadedFile() file: Express.Multer.File) {
@@ -49,7 +49,7 @@ export class InvoicesController {
   @ApiOperation({ summary: "List All Invoices", description: "Retrieves all invoices. Financial Analyst and System Administrator can view the invoice directory." })
   @ApiResponse({ status: 200, description: "Array of invoice records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("Financial Analyst", "System Administrator")
   findAll() {
     return this.invoicesService.findAll();
@@ -60,7 +60,7 @@ export class InvoicesController {
   @ApiResponse({ status: 200, description: "Invoice record returned." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("Financial Analyst", "System Administrator")
   findOne(@Param("id") id: string) {
     return this.invoicesService.findOne(id);
@@ -71,7 +71,7 @@ export class InvoicesController {
   @ApiResponse({ status: 200, description: "Replaced successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator")
   put(@Param("id") id: string, @Body() putDto: PutInvoiceDto) {
     return this.invoicesService.put(id, putDto);
@@ -82,7 +82,7 @@ export class InvoicesController {
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("Financial Analyst", "System Administrator")
   update(@Param("id") id: string, @Body() updateDto: UpdateInvoiceDto) {
     return this.invoicesService.update(id, updateDto);
@@ -93,7 +93,7 @@ export class InvoicesController {
   @ApiResponse({ status: 200, description: "Deleted successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-user-id", description: "User role for RBAC.", required: false })
   @Roles("System Administrator")
   remove(@Param("id") id: string) {
     return this.invoicesService.remove(id);
