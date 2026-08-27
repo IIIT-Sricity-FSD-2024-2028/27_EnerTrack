@@ -1,8 +1,10 @@
 import * as crypto from "crypto";
+import * as fs from "fs";
 import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
 import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
@@ -34,6 +36,36 @@ export class MeterReadingsService {
     };
     this.database.meterReadings.push(newRecord as any);
     return newRecord;
+     }
+
+  importFromCsv(file: Express.Multer.File) {
+    const raw = fs.readFileSync(file.path, "utf-8");
+    const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
+
+    if (lines.length < 2) {
+      throw new BadRequestException("CSV file has no data rows");
+    }
+
+    const headers = lines[0].split(",").map((h) => h.trim());
+    const created: any[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(",").map((v) => v.trim());
+      const row: any = {};
+      headers.forEach((header, idx) => {
+        row[header] = values[idx];
+      });
+
+      const dto: CreateMeterReadingDto = {
+        meter_id: row.meter_id,
+        value: parseFloat(row.value),
+        unit: row.unit,
+      } as CreateMeterReadingDto;
+
+      created.push(this.create(dto));
+    }
+
+    return { imported: created.length, records: created };
   }
 
   findAll() {

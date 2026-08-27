@@ -1,5 +1,8 @@
-import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiConsumes, ApiBody } from "@nestjs/swagger";
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseInterceptors, UploadedFile, UseFilters } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { documentUploadConfig } from "../../core/middleware/file-upload.middleware";
+import { MulterExceptionFilter } from "../../core/filters/multer-exception.filter";
 import { InvoicesService } from "./invoices.service";
 import { CreateInvoiceDto } from "./dto/create-invoice.dto";
 import { PutInvoiceDto } from "./dto/put-invoice.dto";
@@ -20,7 +23,28 @@ export class InvoicesController {
   create(@Body() createDto: CreateInvoiceDto) {
     return this.invoicesService.create(createDto);
   }
-
+  @Post(":id/document")
+@UseFilters(MulterExceptionFilter)
+@ApiConsumes('multipart/form-data')
+@ApiBody({
+  schema: {
+    type: 'object',
+    properties: {
+      file: { type: 'string', format: 'binary' },
+    },
+  },
+})
+  @ApiOperation({ summary: "Attach Invoice Document", description: "Uploads a scanned PDF and attaches it to an existing invoice so the approver can review it. Financial Analyst and System Administrator can attach documents. Send a multipart/form-data POST request with the PDF under the 'file' field." })
+  @ApiResponse({ status: 201, description: "Document attached successfully." })
+  @ApiResponse({ status: 400, description: "File missing, wrong type, or over the size limit." })
+  @ApiResponse({ status: 404, description: "Invoice with the given ID not found." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Financial Analyst", "System Administrator")
+  @UseInterceptors(FileInterceptor("file", documentUploadConfig))
+  uploadDocument(@Param("id") id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.invoicesService.attachDocument(id, file);
+  }
   @Get()
   @ApiOperation({ summary: "List All Invoices", description: "Retrieves all invoices. Financial Analyst and System Administrator can view the invoice directory." })
   @ApiResponse({ status: 200, description: "Array of invoice records returned." })

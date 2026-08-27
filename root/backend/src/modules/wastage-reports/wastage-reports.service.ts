@@ -39,7 +39,29 @@ export class WastageReportsService {
     this.database.wastageReports.push(newRecord as any);
     return newRecord;
   }
+  attachPhotos(id: string, files: Express.Multer.File[]) {
+    const index = this.database.wastageReports.findIndex(
+      (item) => item.wastage_report_id === id,
+    );
+    if (index === -1)
+      throw new NotFoundException(`Wastage Report with ID ${id} not found`);
 
+    const photoPaths = files.map((f) => f.path);
+    const currentDetails = this.database.wastageReports[index].details;
+    const existingDetails =
+      currentDetails && typeof currentDetails === "object" && !Array.isArray(currentDetails)
+        ? currentDetails
+        : {};
+
+    this.database.wastageReports[index] = {
+      ...this.database.wastageReports[index],
+      details: {
+        ...existingDetails,
+        photos: [...(existingDetails.photos ?? []), ...photoPaths],
+      },
+    } as any;
+    return this.database.wastageReports[index];
+  }
   findAll() {
     return scopeToTenant(this.database.wastageReports);
   }

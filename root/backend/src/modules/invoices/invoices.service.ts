@@ -48,7 +48,20 @@ export class InvoicesService {
     this.database.invoices.push(newRecord as any);
     return newRecord;
   }
+  attachDocument(id: string, file: Express.Multer.File) {
+    const index = this.database.invoices.findIndex(
+      (item) => item.invoice_id === id,
+    );
+    if (index === -1)
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
 
+    this.database.invoices[index] = {
+      ...this.database.invoices[index],
+      document_path: file.path,
+      document_original_name: file.originalname,
+    } as any;
+    return this.database.invoices[index];
+  }
   findAll() {
     return scopeToTenant(this.database.invoices);
   }
