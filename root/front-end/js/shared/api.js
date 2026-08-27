@@ -57,9 +57,19 @@ async function _apiFetch(path, options = {}) {
     ...(options.headers || {}),
   };
 
+  // A caller can opt out of a header by passing it as undefined — file
+  // uploads do this for Content-Type so the browser can supply the multipart
+  // boundary itself. Without this, fetch would send the literal "undefined".
+  Object.keys(headers).forEach((key) => {
+    if (headers[key] === undefined) delete headers[key];
+  });
+
+  // FormData bodies are not JSON, so only try to pretty-print the ones that are.
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
   console.log(
     `[API Request] ${options.method || "GET"} ${path}`,
-    options.body ? JSON.parse(options.body) : "",
+    isFormData ? "(file upload)" : options.body ? JSON.parse(options.body) : "",
   );
 
   let response;
@@ -92,6 +102,34 @@ async function _apiFetch(path, options = {}) {
 }
 
 /**
+ * Uploads one or more files to a multipart endpoint.
+ *
+ *   api.upload('/invoices/abc-123/document', 'file', pdfFile);
+ *   api.upload('/wastage-reports/abc-123/photos', 'files', [img1, img2]);
+ *
+ * The Content-Type header is deliberately NOT set here. A multipart request
+ * needs a boundary marker in its Content-Type, and only the browser knows
+ * what that boundary is — setting the header by hand produces a request the
+ * server cannot parse. Passing `undefined` tells _apiFetch to leave it off so
+ * fetch can fill it in.
+ *
+ * @param {string} path       API path, e.g. '/invoices/<id>/document'
+ * @param {string} fieldName  Form field the backend expects ('file' or 'files')
+ * @param {File|File[]} files One File, or an array of them
+ */
+function _apiUpload(path, fieldName, files) {
+  const formData = new FormData();
+  const list = Array.isArray(files) ? files : [files];
+  list.forEach((file) => formData.append(fieldName, file));
+
+  return _apiFetch(path, {
+    method: "POST",
+    body: formData,
+    headers: { "Content-Type": undefined },
+  });
+}
+
+/**
  * Public API surface
  */
 const api = {
@@ -103,6 +141,7 @@ const api = {
   put: (path, body) =>
     _apiFetch(path, { method: "PUT", body: JSON.stringify(body) }),
   delete: (path) => _apiFetch(path, { method: "DELETE" }),
+  upload: _apiUpload,
 };
 
 window.api = api;

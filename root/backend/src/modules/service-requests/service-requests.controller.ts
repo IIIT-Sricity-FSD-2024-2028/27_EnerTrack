@@ -26,7 +26,7 @@ export class ServiceRequestsController {
   @ApiResponse({ status: 200, description: "Array of service request records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician", "Financial Analyst")
+  @Roles("System Administrator", "Technician", "Financial Analyst", "Campus Visitor")
   findAll() {
     return this.serviceRequestsService.findAll();
   }

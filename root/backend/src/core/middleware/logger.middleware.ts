@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import * as fs from 'fs';
-import * as path from 'path';
+import { redactSensitive, redactedJson } from '../utils/redact';
+import { logWriter } from '../utils/log-writer';
 
 /**
  * Custom Logger Middleware
@@ -17,56 +17,24 @@ import * as path from 'path';
  * This middleware is registered at the ROUTER level in AppModule.configure(),
  * satisfying the "Router-level middleware" evaluation criterion.
  *
- * Logs are written to:
- *   logs/custom-debug.log   (appended, not rotated — kept simple)
+ * Logs are written to logs/custom-debug-YYYY-MM-DD.log via the shared
+ * logWriter, which buffers entries and flushes them on a timer. Directory
+ * creation, daily filenames and 7-day retention are all handled there — see
+ * core/utils/log-writer.ts.
  */
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
   private readonly logger = new Logger('CustomMiddleware');
-  private readonly logDir = path.join(process.cwd(), 'logs');
-  private readonly MAX_LOG_AGE_DAYS = 7;
+
+  /** Filename prefix; logWriter appends the date and the .log extension. */
+  private readonly LOG_PREFIX = 'custom-debug-';
 
   /**
-   * Returns today's log file path, e.g. logs/custom-debug-2026-08-26.log
+   * Retention used to live here, but it only matched custom-debug-*.log, so
+   * the error, security, upload-audit and invoice-access logs were never
+   * cleaned. It now lives in logWriter.sweepOldLogs(), which covers every
+   * managed prefix and runs on a timer rather than only at startup.
    */
-  private get logFile(): string {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    return path.join(this.logDir, `custom-debug-${today}.log`);
-  }
-
-  constructor() {
-    // Ensure the logs directory exists on first load
-    if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir, { recursive: true });
-    }
-    // Clean up custom-debug log files older than 7 days
-    this.cleanOldLogs();
-  }
-
-  /**
-   * Delete custom-debug-*.log files that are older than MAX_LOG_AGE_DAYS.
-   */
-  private cleanOldLogs(): void {
-    try {
-      const files = fs.readdirSync(this.logDir);
-      const now = Date.now();
-      const maxAge = this.MAX_LOG_AGE_DAYS * 24 * 60 * 60 * 1000;
-
-      for (const file of files) {
-        if (!file.startsWith('custom-debug-') || !file.endsWith('.log')) {
-          continue;
-        }
-        const filePath = path.join(this.logDir, file);
-        const stats = fs.statSync(filePath);
-        if (now - stats.mtimeMs > maxAge) {
-          fs.unlinkSync(filePath);
-          this.logger.log(`Cleaned up old log file: ${file}`);
-        }
-      }
-    } catch (err) {
-      this.logger.error(`Failed to clean old logs: ${err}`);
-    }
-  }
 
   use(request: Request, response: Response, next: NextFunction): void {
     const { method, originalUrl, ip } = request;
@@ -74,16 +42,24 @@ export class LoggerMiddleware implements NestMiddleware {
     const role = request.get('x-role') || 'none';
     const contentType = request.get('content-type') || 'none';
     const startTime = Date.now();
-  const isUpload = request.headers['content-type']?.includes('multipart/form-data');
 
-const bodyKeys = Object.keys(request.body || {});
-const hasLoggableBody = !isUpload && bodyKeys.length > 0;
+    // ── Log the incoming request ────────────────────────────────────
+    // File uploads are skipped: a multipart body is binary, so stringifying
+    // it would dump megabytes of rubbish into the console and the log file.
+    const isUpload = request.headers['content-type']?.includes(
+      'multipart/form-data',
+    );
+    const bodyKeys = Object.keys(request.body || {});
+    const hasLoggableBody = !isUpload && bodyKeys.length > 0;
 
-const requestLine = hasLoggableBody
-  ? [REQUEST] ${method} ${originalUrl} | Role: ${role} | IP: ${ip} | Body: ${JSON.stringify(request.body)}
-  : [REQUEST] ${method} ${originalUrl} | Role: ${role} | IP: ${ip};
+    // Passwords and tokens are masked before anything is written. See
+    // core/utils/redact.ts — POST /api/users/login carries a plaintext
+    // password, which used to land in this log in the clear.
+    const requestLine = hasLoggableBody
+      ? `[REQUEST]  ${method} ${originalUrl} | Role: ${role} | IP: ${ip} | Body: ${redactedJson(request.body)}`
+      : `[REQUEST]  ${method} ${originalUrl} | Role: ${role} | IP: ${ip}`;
 
-this.logger.log(requestLine);
+    this.logger.log(requestLine);
 
     // Write structured request entry to file
     this.writeRequestToFile({
@@ -93,7 +69,7 @@ this.logger.log(requestLine);
       role,
       userAgent,
       contentType,
-      body: hasBody ? request.body : null,
+      body: hasLoggableBody ? redactSensitive(request.body) : null,
     });
 
     // ── Intercept the response to log status + body ─────────────────
@@ -103,8 +79,11 @@ this.logger.log(requestLine);
       const duration = Date.now() - startTime;
       const { statusCode } = response;
 
-      let bodyPreview: string =
-        typeof body === 'string' ? body : JSON.stringify(body);
+      // Responses are redacted too. Login returns the user record, and a
+      // future auth change that starts returning a token would otherwise
+      // begin leaking it into the log with nobody noticing.
+      const safeBody = this.safeParse(body);
+      let bodyPreview: string = redactedJson(safeBody);
 
       // Truncate large payloads to keep logs readable
       if (bodyPreview && bodyPreview.length > 500) {
@@ -128,7 +107,7 @@ this.logger.log(requestLine);
         url: originalUrl,
         statusCode,
         duration,
-        body: this.safeParse(body),
+        body: redactSensitive(safeBody),
         isError: statusCode >= 400,
       });
 
@@ -174,7 +153,7 @@ this.logger.log(requestLine);
 
     block += `${separator}\n`;
 
-    fs.appendFileSync(this.logFile, block, 'utf8');
+    logWriter.write(this.LOG_PREFIX, block);
   }
 
   /**
@@ -217,7 +196,7 @@ this.logger.log(requestLine);
 
     block += `${doubleSep}\n\n`;
 
-    fs.appendFileSync(this.logFile, block, 'utf8');
+    logWriter.write(this.LOG_PREFIX, block);
   }
 
   /**

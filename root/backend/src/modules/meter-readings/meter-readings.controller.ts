@@ -11,6 +11,7 @@ import {
   UseInterceptors,
   UploadedFile,
   UseFilters,
+  BadRequestException,
 } from "@nestjs/common";
 import { MeterReadingsService } from "./meter-readings.service";
 import { CreateMeterReadingDto } from "./dto/create-meter-reading.dto";
@@ -18,6 +19,7 @@ import { PutMeterReadingDto } from "./dto/put-meter-reading.dto";
 
 import { UpdateMeterReadingDto } from "./dto/update-meter-reading.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
+import { assertFileSignature } from "../../core/utils/file-signature";
 
 import { FileInterceptor } from "@nestjs/platform-express";
 import { spreadsheetUploadConfig } from "../../core/middleware/file-upload.middleware";
@@ -59,6 +61,14 @@ export class MeterReadingsController {
 @Roles("System Administrator", "Technician")
 @UseInterceptors(FileInterceptor("file", spreadsheetUploadConfig))
 uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
+  // Multer leaves `file` undefined when the request carries no file at all.
+  // Without this guard the service calls fs.readFileSync(undefined.path)
+  // and the caller gets a 500, contradicting the documented 400 above.
+  if (!file) {
+    throw new BadRequestException("No file was uploaded under the 'file' field");
+  }
+  // A .csv extension proves nothing — reject anything that is actually binary.
+  assertFileSignature(file, "csv");
   return this.meterReadingsService.importFromCsv(file);
 }
   @Get()

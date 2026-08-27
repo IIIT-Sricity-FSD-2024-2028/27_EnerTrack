@@ -32,40 +32,116 @@ export class MeterReadingsService {
       reading_id: generatedId,
       ...createDto,
       organization_id: createDto.organization_id ?? currentOrgId(),
-      timestamp: new Date().toISOString(),
+      // Honour a caller-supplied timestamp so historical data can be
+      // back-filled; fall back to now for live sensor pushes.
+      timestamp: createDto.timestamp ?? new Date().toISOString(),
     };
     this.database.meterReadings.push(newRecord as any);
     return newRecord;
-     }
+  }
 
+  /**
+   * Imports a CSV of meter readings.
+   *
+   * Validates every row BEFORE inserting any of them. The previous version
+   * inserted as it parsed, so one bad meter_id halfway down the file left the
+   * database holding a partial import with no way to tell what had landed.
+   * Now the file is either fully accepted or fully rejected, and the caller
+   * gets told exactly which rows were wrong.
+   *
+   * Expected header row: meter_id,value,unit[,timestamp]
+   */
   importFromCsv(file: Express.Multer.File) {
-    const raw = fs.readFileSync(file.path, "utf-8");
-    const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    try {
+      const raw = fs.readFileSync(file.path, "utf-8");
+      const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
 
-    if (lines.length < 2) {
-      throw new BadRequestException("CSV file has no data rows");
+      if (lines.length < 2) {
+        throw new BadRequestException("CSV file has no data rows");
+      }
+
+      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+      const required = ["meter_id", "value", "unit"];
+      const missing = required.filter((h) => !headers.includes(h));
+      if (missing.length > 0) {
+        throw new BadRequestException(
+          `CSV is missing required column(s): ${missing.join(", ")}. ` +
+            `Expected header row: meter_id,value,unit[,timestamp]`,
+        );
+      }
+
+      // ── Pass 1: parse and validate every row, collecting errors ──
+      const parsed: CreateMeterReadingDto[] = [];
+      const errors: string[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const rowNumber = i + 1; // 1-based, counting the header
+        const values = lines[i].split(",").map((v) => v.trim());
+        const row: Record<string, string> = {};
+        headers.forEach((header, idx) => {
+          row[header] = values[idx];
+        });
+
+        if (!row.meter_id) {
+          errors.push(`Row ${rowNumber}: meter_id is empty`);
+          continue;
+        }
+
+        const meterExists = this.database.meters.some(
+          (m) => m.meter_id === row.meter_id,
+        );
+        if (!meterExists) {
+          errors.push(`Row ${rowNumber}: no meter with id '${row.meter_id}'`);
+          continue;
+        }
+
+        const value = parseFloat(row.value);
+        if (Number.isNaN(value)) {
+          errors.push(
+            `Row ${rowNumber}: value '${row.value ?? ""}' is not a number`,
+          );
+          continue;
+        }
+
+        if (!row.unit) {
+          errors.push(`Row ${rowNumber}: unit is empty`);
+          continue;
+        }
+
+        parsed.push({
+          meter_id: row.meter_id,
+          value,
+          unit: row.unit,
+          // Optional column — falls back to now inside create()
+          timestamp: row.timestamp || undefined,
+        } as CreateMeterReadingDto);
+      }
+
+      if (errors.length > 0) {
+        throw new BadRequestException({
+          message: `CSV rejected — ${errors.length} invalid row(s), nothing was imported`,
+          errors,
+        });
+      }
+
+      // ── Pass 2: every row is known good, so insert them all ──
+      const created = parsed.map((dto) => this.create(dto));
+
+      return {
+        imported: created.length,
+        sourceFile: file.originalname,
+        records: created,
+      };
+    } finally {
+      // The CSV has been read into memory and is of no further use. Leaving
+      // it behind would grow uploads/ without bound. Runs on the error path
+      // too, which is exactly when a rejected file should not be kept.
+      try {
+        fs.unlinkSync(file.path);
+      } catch {
+        // Already gone, or locked — not worth failing the request over.
+      }
     }
-
-    const headers = lines[0].split(",").map((h) => h.trim());
-    const created: any[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map((v) => v.trim());
-      const row: any = {};
-      headers.forEach((header, idx) => {
-        row[header] = values[idx];
-      });
-
-      const dto: CreateMeterReadingDto = {
-        meter_id: row.meter_id,
-        value: parseFloat(row.value),
-        unit: row.unit,
-      } as CreateMeterReadingDto;
-
-      created.push(this.create(dto));
-    }
-
-    return { imported: created.length, records: created };
   }
 
   findAll() {

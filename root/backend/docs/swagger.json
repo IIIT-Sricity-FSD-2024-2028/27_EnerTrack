@@ -4231,6 +4231,44 @@
         "tags": [
           "invoices"
         ]
+      },
+      "get": {
+        "operationId": "InvoicesController_downloadDocument",
+        "summary": "Download Invoice Document",
+        "description": "Streams back the PDF previously attached to this invoice. The file path is read from the invoice record, never from the URL, and tenant ownership is checked before the file is served.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF file streamed."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Invoice not found, or it has no document attached."
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
       }
     },
     "/api/invoices/{id}": {

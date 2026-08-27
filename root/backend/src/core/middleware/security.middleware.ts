@@ -7,8 +7,8 @@ import {
 } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { UserRole } from '../database/database.service';
-import * as fs from 'fs';
-import * as path from 'path';
+import { isSensitiveKey, REDACTED } from '../utils/redact';
+import { logWriter } from '../utils/log-writer';
 
 /**
  * Custom Security Middleware
@@ -29,13 +29,8 @@ import * as path from 'path';
 export class SecurityMiddleware implements NestMiddleware {
   private readonly logger = new Logger('SecurityMiddleware');
   private readonly allowedRoles = Object.values(UserRole) as string[];
-  private readonly logDir = path.join(process.cwd(), 'logs');
-
-  /** Returns today's threat log path, e.g. logs/security-threats-2026-08-26.log */
-  private get threatLogFile(): string {
-    const today = new Date().toISOString().split('T')[0];
-    return path.join(this.logDir, `security-threats-${today}.log`);
-  }
+  /** Filename prefix; logWriter appends the date and the .log extension. */
+  private readonly LOG_PREFIX = 'security-threats-';
 
   /**
    * Patterns that indicate malicious intent.
@@ -50,12 +45,6 @@ export class SecurityMiddleware implements NestMiddleware {
     { label: 'HTML <object>/<embed> tag',    regex: /<(object|embed)\b/gi },
     { label: 'data: URI with script type',   regex: /data\s*:\s*text\/html/gi },
   ];
-
-  constructor() {
-    if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir, { recursive: true });
-    }
-  }
 
   use(req: Request, _res: Response, next: NextFunction): void {
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
@@ -118,7 +107,16 @@ export class SecurityMiddleware implements NestMiddleware {
         // Reset lastIndex because some regexes have the /g flag
         regex.lastIndex = 0;
         if (regex.test(value)) {
-          const preview = value.length > 80 ? value.substring(0, 80) + '…' : value;
+          // The threat log records WHAT was matched, so a rejected value from
+          // a credential field would otherwise be written to disk in the
+          // clear. `location` is a dotted path like "body.password", so the
+          // last segment is the field name.
+          const fieldName = location.split('.').pop() || location;
+          const preview = isSensitiveKey(fieldName)
+            ? REDACTED
+            : value.length > 80
+              ? value.substring(0, 80) + '…'
+              : value;
           return `${label} found in ${location}: "${preview}"`;
         }
       }
@@ -169,10 +167,8 @@ export class SecurityMiddleware implements NestMiddleware {
 
     this.logger.warn(`🛑 [${entry.type}] ${entry.method} ${entry.url} from ${entry.ip}`);
 
-    try {
-      fs.appendFileSync(this.threatLogFile, line, 'utf8');
-    } catch (err) {
-      this.logger.error(`Failed to write threat log: ${err}`);
-    }
+    // Blocked threats bypass the buffer: a security event is worth writing
+    // immediately, and they are rare enough that the cost is irrelevant.
+    logWriter.write(this.LOG_PREFIX, line, { immediate: true });
   }
 }

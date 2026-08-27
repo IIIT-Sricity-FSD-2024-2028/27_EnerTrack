@@ -11,15 +11,47 @@ import * as rfs from 'rotating-file-stream';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
+import { logWriter } from './core/utils/log-writer';
 
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
 
-  // ── Security Middleware (Express-level) ──────────────────────────
+  // ══ APPLICATION-LEVEL MIDDLEWARE (Express, runs before everything Nest) ══
+  //
+  // Registration order here IS execution order. The full request pipeline is:
+  //
+  //   morgan → helmet → rate-limit → body-parser → SecurityMiddleware
+  //     → TenantMiddleware → LoggerMiddleware → UploadAuditMiddleware
+  //     → RolesGuard → TransformInterceptor → ValidationPipe → controller
+  //     → AllExceptionsFilter (on throw)
+  //
+  // Morgan is deliberately FIRST so that requests rejected by helmet or the
+  // rate limiter still appear in the access log. Registering it after the
+  // rate limiter would make 429s invisible, which is precisely when you most
+  // want a record.
 
-  // A. Helmet — sets secure HTTP response headers
+  // ── A. Morgan — third-party HTTP access logger, daily rotating file ──
+  const logDir = path.join(process.cwd(), 'logs');
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
+
+  // Rotating write stream — a new file each day, keeping the last 7
+  const accessLogStream = rfs.createStream('access.log', {
+    interval: '1d',     // rotate daily
+    path: logDir,
+    maxFiles: 7,        // keep 7 days of logs
+  });
+
+  // Apache-combined access logs to the rotating file
+  app.use(morgan('combined', { stream: accessLogStream }));
+
+  // Short-format logs to the console for dev visibility
+  app.use(morgan('dev'));
+
+  // ── B. Helmet — sets secure HTTP response headers ──
   //    - Removes X-Powered-By (hides server tech stack from attackers)
   //    - Adds X-Frame-Options: SAMEORIGIN (prevents clickjacking)
   //    - Adds X-Content-Type-Options: nosniff (prevents MIME-type sniffing)
@@ -34,21 +66,57 @@ async function bootstrap() {
     }),
   );
 
-  // B. Rate Limiting — caps requests per IP to prevent brute-force / DoS
-  //    200 requests per 15-minute window per IP address
+  // ── C. Rate Limiting — caps requests per IP to prevent brute-force / DoS ──
+  //    1000 requests per 15-minute window per IP.
+  //    The dashboards fire 10-12 API calls per page load, so the original
+  //    limit of 200 locked a normal user out after roughly 16 page views.
+  //    Swagger UI is skipped entirely — loading the docs page pulls several
+  //    static assets and should not eat into a caller's API budget.
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000,
-      max: 200,
+      max: 1000,
       standardHeaders: true,
       legacyHeaders: false,
-      message: {
-        statusCode: 429,
-        error: 'Too Many Requests',
-        message: 'You have exceeded the rate limit. Please try again later.',
+      skip: (req) => req.originalUrl.startsWith('/api/docs'),
+      // express-rate-limit answers at the Express layer, BEFORE Nest's
+      // exception filter exists in the chain. Without this handler a 429
+      // would appear in access.log but never in error-*.log, so the one
+      // rejection an operator most wants to find would be missing from the
+      // error record. Written immediately: a client being rate limited is
+      // often a client about to cause more trouble.
+      handler: (req, res) => {
+        const body = {
+          success: false,
+          statusCode: 429,
+          error: 'Too Many Requests',
+          message: 'You have exceeded the rate limit. Please try again later.',
+          path: req.originalUrl,
+          method: req.method,
+          timestamp: new Date().toISOString(),
+        };
+
+        const separator = '─'.repeat(80);
+        logWriter.write(
+          'error-',
+          `\n${separator}\n` +
+            `  ⚠ RATE LIMIT EXCEEDED\n` +
+            `${separator}\n` +
+            `  Timestamp   : ${body.timestamp}\n` +
+            `  Status Code : 429\n` +
+            `  Route       : ${req.method} ${req.originalUrl}\n` +
+            `  IP          : ${req.ip || 'unknown'}\n` +
+            `  Role        : ${(req.headers['x-role'] as string) || 'none'}\n` +
+            `${separator}\n`,
+          { immediate: true },
+        );
+
+        res.status(429).json(body);
       },
     }),
   );
+
+  // ══ NEST-LEVEL ENHANCERS ═════════════════════════════════════════════
 
   // 1. ValidationPipe globally
   app.useGlobalPipes(
@@ -63,34 +131,15 @@ async function bootstrap() {
   const reflector = app.get(Reflector);
   app.useGlobalGuards(new RolesGuard(reflector));
 
-  // 3. TransformInterceptor globally (LoggingInterceptor removed — replaced by Morgan + custom middleware)
+  // 3. TransformInterceptor globally — wraps every success response as
+  //    { success, data, timestamp }. Request/response logging is handled by
+  //    Morgan plus LoggerMiddleware, so no logging interceptor is needed.
   app.useGlobalInterceptors(
     new TransformInterceptor(),
   );
 
-
-  app.useGlobalFilters(new AllExceptionsFilter());
-  // 3b. Morgan — third-party HTTP access logger with daily rotating file
-  const logDir = path.join(process.cwd(), 'logs');
-  if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir, { recursive: true });
-  }
-
-  // Create a rotating write stream — rotates daily, keeps 14 days of logs
-  const accessLogStream = rfs.createStream('access.log', {
-    interval: '1d',     // rotate daily
-    path: logDir,
-    maxFiles: 7,        // keep 7 days of logs
-  });
-
-  // Morgan writes standard Apache-combined access logs to the rotating file
-  app.use(morgan('combined', { stream: accessLogStream }));
-
-  // Morgan also writes short-format logs to the console for dev visibility
-  app.use(morgan('dev'));
-
-  // 4. CORS enabled for all origins
-  // 4. Exception filter globally
+  // 4. Exception filter globally — catches everything thrown anywhere in the
+  //    pipeline, including inside middleware, and writes it to logs/error-*.log
   app.useGlobalFilters(new AllExceptionsFilter());
 
   // 5. CORS enabled for all origins
