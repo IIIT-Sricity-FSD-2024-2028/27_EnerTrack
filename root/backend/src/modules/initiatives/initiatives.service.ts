@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateInitiativeDto } from "./dto/create-initiative.dto";
 import { PutInitiativeDto } from "./dto/put-initiative.dto";
 
@@ -26,7 +30,7 @@ export class InitiativesService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { initiative_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { initiative_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.initiatives.push(newRecord as any);
     return newRecord;
   }
@@ -36,9 +40,9 @@ export class InitiativesService {
   }
 
   findOne(id: string) {
-    const record = this.database.initiatives.find(
+    const record = assertTenantOwns(this.database.initiatives.find(
       (item) => item.initiative_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(`Initiative with ID ${id} not found`);
     return record;
@@ -48,20 +52,25 @@ export class InitiativesService {
     const index = this.database.initiatives.findIndex(
       (item) => item.initiative_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.initiatives[index]))
       throw new NotFoundException(`Initiative with ID ${id} not found`);
-    this.database.initiatives[index] = { initiative_id: id, ...putDto } as any;
+    this.database.initiatives[index] = {
+      initiative_id: id,
+      ...putDto,
+      organization_id: this.database.initiatives[index].organization_id,
+    } as any;
     return this.database.initiatives[index];
   }
   update(id: string, updateDto: UpdateInitiativeDto) {
     const index = this.database.initiatives.findIndex(
       (item) => item.initiative_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.initiatives[index]))
       throw new NotFoundException(`Initiative with ID ${id} not found`);
     this.database.initiatives[index] = {
       ...this.database.initiatives[index],
       ...updateDto,
+      organization_id: this.database.initiatives[index].organization_id,
     };
     return this.database.initiatives[index];
   }
@@ -70,7 +79,7 @@ export class InitiativesService {
     const index = this.database.initiatives.findIndex(
       (item) => item.initiative_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.initiatives[index]))
       throw new NotFoundException(`Initiative with ID ${id} not found`);
     const removed = this.database.initiatives.splice(index, 1);
     return removed[0];

@@ -317,6 +317,6 @@ Worth stating plainly rather than being caught out by:
 - **Three `*_archives.html` pages still read a legacy `enertrack_universal_v1` localStorage
   store** rather than the API, so they populate only after a flow that writes that key has
   been used. Pre-existing, unrelated to middleware.
-- **The six B2B roles** (Platform Admin, Certified Energy Auditor, Account Officer, Economic
+- **The six B2B roles** (Super Admin, Certified Energy Auditor, Account Officer, Economic
   Buyer, Facility Manager, Department Head) have no dashboard pages, so signing in as one
   lands on the landing page. The API supports them; the UI does not yet.

@@ -9,6 +9,7 @@
   const passwordInput = document.getElementById("password");
   const confirmPwInput = document.getElementById("confirmPassword");
   const roleSelect = document.getElementById("role");
+  const orgSelect = document.getElementById("organization");
 
   const nameError = document.getElementById("nameError");
   const emailError = document.getElementById("emailError");
@@ -16,6 +17,7 @@
   const passwordError = document.getElementById("passwordError");
   const confirmPwError = document.getElementById("confirmPasswordError");
   const roleError = document.getElementById("roleError");
+  const orgError = document.getElementById("organizationError");
 
   /* ───────── Constants ───────── */
   const NAME_MIN = 2;
@@ -537,6 +539,56 @@
     e.preventDefault();
   });
 
+  /* ───────── Organisation selector ─────────
+   *
+   * Filled from /organizations/public, which returns id and name only and
+   * needs no auth headers — the visitor has no account yet. The value posted
+   * is the organization_id, and the backend re-checks it, so tampering with
+   * the option list in devtools gains nothing.
+   */
+  async function loadOrganisations() {
+    try {
+      const orgs = await window.api.get("/organizations/public");
+      orgSelect.innerHTML =
+        '<option value="" disabled selected hidden>Select your organisation</option>';
+      orgs.forEach(function (o) {
+        const opt = document.createElement("option");
+        opt.value = o.organization_id;
+        // textContent, not innerHTML: the name is server data and must never
+        // be parsed as markup.
+        opt.textContent = o.name;
+        orgSelect.appendChild(opt);
+      });
+    } catch (err) {
+      console.error("Could not load organisations:", err);
+      orgSelect.innerHTML =
+        '<option value="" disabled selected>Could not load organisations</option>';
+      showError(
+        orgError,
+        "Could not reach the server. Please refresh and try again.",
+        orgSelect,
+      );
+    }
+  }
+  loadOrganisations();
+
+  /*
+   * validateOrganisation — Red until an organisation is chosen, then green.
+   */
+  function validateOrganisation(isSubmit) {
+    if (!orgSelect.value) {
+      if (isSubmit) {
+        showError(orgError, "Please select your organisation.", orgSelect);
+      } else {
+        resetField(orgSelect, orgError);
+      }
+      return false;
+    }
+    markValid(orgSelect, orgError);
+    return true;
+  }
+  orgSelect.addEventListener("change", validateOrganisation);
+
   /* ───────── Form submission ───────── */
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -550,6 +602,7 @@
     if (!validatePassword(true)) isValid = false;
     if (!validateConfirmPassword(true)) isValid = false;
     if (!validateRole(true)) isValid = false;
+    if (!validateOrganisation(true)) isValid = false;
 
     if (!isValid) {
       var firstErr = form.querySelector(".field-error[style*='block']");
@@ -570,6 +623,7 @@
       phone: phoneInput.value.trim(),
       password: passwordInput.value,
       role: roleSelect.value,
+      organization_id: orgSelect.value,
     };
 
     try {
@@ -581,8 +635,7 @@
         if (res && !res.error) {
           /* Save current user to localStorage for persistence */
           // Add the backend-generated ID to the session
-          if (res.user_id) newUser.user_id = res.user_id;
-          localStorage.setItem("currentUser", JSON.stringify(newUser));
+          localStorage.setItem("currentUser", JSON.stringify(res));
           window.location.href = "../landing/landing.html";
           return;
         }

@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateSustainabilityMetricDto } from "./dto/create-sustainability-metric.dto";
 import { PutSustainabilityMetricDto } from "./dto/put-sustainability-metric.dto";
 
@@ -17,7 +21,7 @@ export class SustainabilityMetricsService {
 
   create(createDto: CreateSustainabilityMetricDto) {
     const generatedId = crypto.randomUUID();
-    const newRecord = { sustainability_metric_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { sustainability_metric_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.sustainabilityMetrics.push(newRecord as any);
     return newRecord;
   }
@@ -27,9 +31,9 @@ export class SustainabilityMetricsService {
   }
 
   findOne(id: string) {
-    const record = this.database.sustainabilityMetrics.find(
+    const record = assertTenantOwns(this.database.sustainabilityMetrics.find(
       (item) => item.sustainability_metric_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(
         `SustainabilityMetric with ID ${id} not found`,
@@ -41,7 +45,7 @@ export class SustainabilityMetricsService {
     const index = this.database.sustainabilityMetrics.findIndex(
       (item) => item.sustainability_metric_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.sustainabilityMetrics[index]))
       throw new NotFoundException(
         `Sustainability Metric with ID ${id} not found`,
       );
@@ -55,13 +59,14 @@ export class SustainabilityMetricsService {
     const index = this.database.sustainabilityMetrics.findIndex(
       (item) => item.sustainability_metric_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.sustainabilityMetrics[index]))
       throw new NotFoundException(
         `SustainabilityMetric with ID ${id} not found`,
       );
     this.database.sustainabilityMetrics[index] = {
       ...this.database.sustainabilityMetrics[index],
       ...updateDto,
+      organization_id: this.database.sustainabilityMetrics[index].organization_id,
     };
     return this.database.sustainabilityMetrics[index];
   }
@@ -70,7 +75,7 @@ export class SustainabilityMetricsService {
     const index = this.database.sustainabilityMetrics.findIndex(
       (item) => item.sustainability_metric_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.sustainabilityMetrics[index]))
       throw new NotFoundException(
         `SustainabilityMetric with ID ${id} not found`,
       );

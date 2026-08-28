@@ -49,7 +49,7 @@ export class InvoicesService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { invoice_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { invoice_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.invoices.push(newRecord as any);
     return newRecord;
   }
@@ -57,7 +57,7 @@ export class InvoicesService {
     const index = this.database.invoices.findIndex(
       (item) => item.invoice_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.invoices[index]))
       throw new NotFoundException(`Invoice with ID ${id} not found`);
 
     // Ownership is checked on the way IN as well as on the way out. Without
@@ -116,9 +116,9 @@ export class InvoicesService {
   }
 
   findOne(id: string) {
-    const record = this.database.invoices.find(
+    const record = assertTenantOwns(this.database.invoices.find(
       (item) => item.invoice_id === id,
-    );
+    ));
     if (!record) throw new NotFoundException(`Invoice with ID ${id} not found`);
     return record;
   }
@@ -127,20 +127,25 @@ export class InvoicesService {
     const index = this.database.invoices.findIndex(
       (item) => item.invoice_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.invoices[index]))
       throw new NotFoundException(`Invoice with ID ${id} not found`);
-    this.database.invoices[index] = { invoice_id: id, ...putDto } as any;
+    this.database.invoices[index] = {
+      invoice_id: id,
+      ...putDto,
+      organization_id: this.database.invoices[index].organization_id,
+    } as any;
     return this.database.invoices[index];
   }
   update(id: string, updateDto: UpdateInvoiceDto) {
     const index = this.database.invoices.findIndex(
       (item) => item.invoice_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.invoices[index]))
       throw new NotFoundException(`Invoice with ID ${id} not found`);
     this.database.invoices[index] = {
       ...this.database.invoices[index],
       ...updateDto,
+      organization_id: this.database.invoices[index].organization_id,
     };
     return this.database.invoices[index];
   }
@@ -149,7 +154,7 @@ export class InvoicesService {
     const index = this.database.invoices.findIndex(
       (item) => item.invoice_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.invoices[index]))
       throw new NotFoundException(`Invoice with ID ${id} not found`);
     const removed = this.database.invoices.splice(index, 1);
     return removed[0];

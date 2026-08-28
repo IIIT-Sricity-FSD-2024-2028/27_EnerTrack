@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateEnergyCostDto } from "./dto/create-energy-cost.dto";
 import { PutEnergyCostDto } from "./dto/put-energy-cost.dto";
 
@@ -35,7 +39,7 @@ export class EnergyCostsService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { energy_cost_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { energy_cost_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.energyCosts.push(newRecord as any);
     return newRecord;
   }
@@ -45,9 +49,9 @@ export class EnergyCostsService {
   }
 
   findOne(id: string) {
-    const record = this.database.energyCosts.find(
+    const record = assertTenantOwns(this.database.energyCosts.find(
       (item) => item.energy_cost_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(`EnergyCost with ID ${id} not found`);
     return record;
@@ -57,20 +61,25 @@ export class EnergyCostsService {
     const index = this.database.energyCosts.findIndex(
       (item) => item.energy_cost_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.energyCosts[index]))
       throw new NotFoundException(`Energy Cost with ID ${id} not found`);
-    this.database.energyCosts[index] = { energy_cost_id: id, ...putDto } as any;
+    this.database.energyCosts[index] = {
+      energy_cost_id: id,
+      ...putDto,
+      organization_id: this.database.energyCosts[index].organization_id,
+    } as any;
     return this.database.energyCosts[index];
   }
   update(id: string, updateDto: UpdateEnergyCostDto) {
     const index = this.database.energyCosts.findIndex(
       (item) => item.energy_cost_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.energyCosts[index]))
       throw new NotFoundException(`EnergyCost with ID ${id} not found`);
     this.database.energyCosts[index] = {
       ...this.database.energyCosts[index],
       ...updateDto,
+      organization_id: this.database.energyCosts[index].organization_id,
     };
     return this.database.energyCosts[index];
   }
@@ -79,13 +88,15 @@ export class EnergyCostsService {
     const index = this.database.energyCosts.findIndex(
       (item) => item.energy_cost_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.energyCosts[index]))
       throw new NotFoundException(`EnergyCost with ID ${id} not found`);
     const removed = this.database.energyCosts.splice(index, 1);
     return removed[0];
   }
 
   getByPeriod(period: string) {
-    return this.database.energyCosts.filter((item) => item.period === period);
+    return scopeToTenant(
+      this.database.energyCosts.filter((item) => item.period === period),
+    );
   }
 }

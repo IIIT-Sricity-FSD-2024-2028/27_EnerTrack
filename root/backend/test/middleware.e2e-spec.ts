@@ -366,6 +366,10 @@ describe('Middleware (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/invoices/vvvv0000-0001-4000-8000-000000000000/document')
         .set('x-role', 'Financial Analyst')
+        // This invoice belongs to org-001. Tenant scoping fails closed, so a
+        // caller who is neither inside a tenant nor EnerTrack staff gets a 404
+        // here, exactly as an outsider should.
+        .set('x-org-id', 'org-001')
         .attach('file', realPdf, {
           filename: 'invoice.pdf',
           contentType: 'application/pdf',

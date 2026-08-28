@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateFinancialReportDto } from "./dto/create-financial-report.dto";
 import { PutFinancialReportDto } from "./dto/put-financial-report.dto";
 
@@ -44,7 +48,7 @@ export class FinancialReportsService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { financial_report_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { financial_report_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.financialReports.push(newRecord as any);
     return newRecord;
   }
@@ -54,9 +58,9 @@ export class FinancialReportsService {
   }
 
   findOne(id: string) {
-    const record = this.database.financialReports.find(
+    const record = assertTenantOwns(this.database.financialReports.find(
       (item) => item.financial_report_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(`FinancialReport with ID ${id} not found`);
     return record;
@@ -66,7 +70,7 @@ export class FinancialReportsService {
     const index = this.database.financialReports.findIndex(
       (item) => item.financial_report_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.financialReports[index]))
       throw new NotFoundException(`Financial Report with ID ${id} not found`);
     this.database.financialReports[index] = {
       financial_report_id: id,
@@ -78,11 +82,12 @@ export class FinancialReportsService {
     const index = this.database.financialReports.findIndex(
       (item) => item.financial_report_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.financialReports[index]))
       throw new NotFoundException(`FinancialReport with ID ${id} not found`);
     this.database.financialReports[index] = {
       ...this.database.financialReports[index],
       ...updateDto,
+      organization_id: this.database.financialReports[index].organization_id,
     };
     return this.database.financialReports[index];
   }
@@ -91,7 +96,7 @@ export class FinancialReportsService {
     const index = this.database.financialReports.findIndex(
       (item) => item.financial_report_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.financialReports[index]))
       throw new NotFoundException(`FinancialReport with ID ${id} not found`);
     const removed = this.database.financialReports.splice(index, 1);
     return removed[0];

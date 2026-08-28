@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateDepartmentDto } from "./dto/create-department.dto";
 import { PutDepartmentDto } from "./dto/put-department.dto";
 
@@ -26,7 +30,7 @@ export class DepartmentsService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { department_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { department_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.departments.push(newRecord as any);
     return newRecord;
   }
@@ -36,9 +40,9 @@ export class DepartmentsService {
   }
 
   findOne(id: string) {
-    const record = this.database.departments.find(
+    const record = assertTenantOwns(this.database.departments.find(
       (item) => item.department_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(`Department with ID ${id} not found`);
     return record;
@@ -48,20 +52,25 @@ export class DepartmentsService {
     const index = this.database.departments.findIndex(
       (item) => item.department_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.departments[index]))
       throw new NotFoundException(`Department with ID ${id} not found`);
-    this.database.departments[index] = { department_id: id, ...putDto } as any;
+    this.database.departments[index] = {
+      department_id: id,
+      ...putDto,
+      organization_id: this.database.departments[index].organization_id,
+    } as any;
     return this.database.departments[index];
   }
   update(id: string, updateDto: UpdateDepartmentDto) {
     const index = this.database.departments.findIndex(
       (item) => item.department_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.departments[index]))
       throw new NotFoundException(`Department with ID ${id} not found`);
     this.database.departments[index] = {
       ...this.database.departments[index],
       ...updateDto,
+      organization_id: this.database.departments[index].organization_id,
     };
     return this.database.departments[index];
   }
@@ -70,13 +79,13 @@ export class DepartmentsService {
     const index = this.database.departments.findIndex(
       (item) => item.department_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.departments[index]))
       throw new NotFoundException(`Department with ID ${id} not found`);
     const removed = this.database.departments.splice(index, 1);
     return removed[0];
   }
 
   getInvoices(id: string) {
-    return this.database.invoices.filter((item) => item.department_id === id);
+    return scopeToTenant(this.database.invoices.filter((item) => item.department_id === id));
   }
 }

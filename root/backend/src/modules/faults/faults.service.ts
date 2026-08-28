@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateFaultDto } from "./dto/create-fault.dto";
 import { PutFaultDto } from "./dto/put-fault.dto";
 
@@ -36,7 +40,7 @@ export class FaultsService {
     }
     const nextId = this.database.faults.length + 1;
     const generatedId = `FLT-${nextId.toString().padStart(3, "0")}`;
-    const newRecord = { fault_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { fault_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.faults.push(newRecord as any);
     return newRecord;
   }
@@ -46,7 +50,7 @@ export class FaultsService {
   }
 
   findOne(id: string) {
-    const record = this.database.faults.find((item) => item.fault_id === id);
+    const record = assertTenantOwns(this.database.faults.find((item) => item.fault_id === id));
     if (!record) throw new NotFoundException(`Fault with ID ${id} not found`);
     return record;
   }
@@ -55,20 +59,25 @@ export class FaultsService {
     const index = this.database.faults.findIndex(
       (item) => item.fault_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.faults[index]))
       throw new NotFoundException(`Fault with ID ${id} not found`);
-    this.database.faults[index] = { fault_id: id, ...putDto } as any;
+    this.database.faults[index] = {
+      fault_id: id,
+      ...putDto,
+      organization_id: this.database.faults[index].organization_id,
+    } as any;
     return this.database.faults[index];
   }
   update(id: string, updateDto: UpdateFaultDto) {
     const index = this.database.faults.findIndex(
       (item) => item.fault_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.faults[index]))
       throw new NotFoundException(`Fault with ID ${id} not found`);
     this.database.faults[index] = {
       ...this.database.faults[index],
       ...updateDto,
+      organization_id: this.database.faults[index].organization_id,
     };
     return this.database.faults[index];
   }
@@ -77,15 +86,15 @@ export class FaultsService {
     const index = this.database.faults.findIndex(
       (item) => item.fault_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.faults[index]))
       throw new NotFoundException(`Fault with ID ${id} not found`);
     const removed = this.database.faults.splice(index, 1);
     return removed[0];
   }
 
   getWorkOrders(id: string) {
-    return this.database.workOrders.filter(
+    return scopeToTenant(this.database.workOrders.filter(
       (item) => item.linked_fault_id === id,
-    );
+    ));
   }
 }

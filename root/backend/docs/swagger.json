@@ -21,7 +21,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -61,7 +61,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -74,6 +74,22 @@
           },
           "403": {
             "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/organizations/public": {
+      "get": {
+        "operationId": "OrganizationsController_listPublic",
+        "summary": "Public Organization Directory",
+        "description": "Returns id and name only, for populating the organisation selector on the public sign-up page. No authorization headers required.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Array of { organization_id, name }."
           }
         },
         "tags": [
@@ -98,7 +114,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -136,7 +152,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -184,7 +200,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -232,7 +248,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -275,7 +291,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -312,7 +328,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"

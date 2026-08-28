@@ -10,7 +10,7 @@ export enum UserRole {
   CAMPUS_VISITOR = "Campus Visitor",
 
   // ── EnerTrack-side roles (B2B model) ─────────────────────
-  PLATFORM_ADMIN = "Platform Admin",
+  SUPER_ADMIN = "Super Admin",
   CERTIFIED_ENERGY_AUDITOR = "Certified Energy Auditor",
   ACCOUNT_OFFICER = "Account Officer",
 
@@ -32,7 +32,7 @@ export enum UserRole {
  * their behaviour is byte-for-byte unchanged.
  */
 export const ROLE_EQUIVALENTS: Record<string, string[]> = {
-  [UserRole.PLATFORM_ADMIN]: [UserRole.SYSTEM_ADMINISTRATOR],
+  [UserRole.SUPER_ADMIN]: [UserRole.SYSTEM_ADMINISTRATOR],
   [UserRole.ACCOUNT_OFFICER]: [
     UserRole.FINANCIAL_ANALYST,
     UserRole.SUSTAINABILITY_OFFICER,
@@ -45,10 +45,33 @@ export const ROLE_EQUIVALENTS: Record<string, string[]> = {
 
 /** Roles that belong to EnerTrack itself and may work across all tenants. */
 export const PLATFORM_SIDE_ROLES: string[] = [
-  UserRole.PLATFORM_ADMIN,
+  UserRole.SUPER_ADMIN,
   UserRole.CERTIFIED_ENERGY_AUDITOR,
   UserRole.ACCOUNT_OFFICER,
-  UserRole.SYSTEM_ADMINISTRATOR,
+  // System Administrator is deliberately absent. It is a *client's* own admin,
+  // scoped to one organisation. While it sat here, any System Administrator
+  // record with a null organization_id received the full cross-tenant view,
+  // which made the tenant boundary depend on seed data rather than on the role.
+];
+
+/**
+ * The only roles a visitor may give themselves through public sign-up.
+ *
+ * An allowlist rather than "anything not in PLATFORM_SIDE_ROLES". A denylist
+ * silently opens a hole whenever a role leaves PLATFORM_SIDE_ROLES for an
+ * unrelated reason, which is exactly what happened when System Administrator
+ * was removed above. Anything not named here is refused, so a role added to
+ * the enum later is safe by default.
+ */
+export const SELF_REGISTERABLE_ROLES: string[] = [
+  UserRole.CAMPUS_VISITOR,
+  UserRole.FINANCIAL_ANALYST,
+  UserRole.TECHNICIAN,
+  UserRole.TECHNICIAN_ADMINISTRATOR,
+  UserRole.SUSTAINABILITY_OFFICER,
+  UserRole.FACILITY_MANAGER,
+  UserRole.ECONOMIC_BUYER,
+  UserRole.DEPARTMENT_HEAD,
 ];
 
 export enum OrganizationStatus {
@@ -498,7 +521,7 @@ export class DatabaseService {
       email: "priya@enertrack.com",
       phone: "9800000001",
       password: "Priya@123",
-      role: UserRole.PLATFORM_ADMIN,
+      role: UserRole.SUPER_ADMIN,
       specialization: null,
     },
     {

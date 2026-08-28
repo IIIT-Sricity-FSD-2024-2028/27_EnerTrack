@@ -343,27 +343,6 @@ a { color: inherit; }
 /* Sections separate themselves through the label motif and whitespace */
 .section-divider { display: none; }
 
-.section-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-family: "Public Sans", sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--primary-green);
-  margin-bottom: var(--space-2);
-}
-
-.section-label::before {
-  content: "";
-  width: 24px;
-  height: 2px;
-  background: var(--primary-green);
-  flex-shrink: 0;
-}
-
 .section-title {
   font-size: clamp(28px, 3.3vw, 38px);
   line-height: 1.16;

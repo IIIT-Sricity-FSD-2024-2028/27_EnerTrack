@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
     state: {
       session: null,
       users: [],
+      organizations: [],
       campuses: [],
       buildings: [],
       departments: [],
@@ -64,9 +65,12 @@ document.addEventListener("DOMContentLoaded", () => {
         this.loading = true;
         this.render(); // render loading skeleton
 
-        const [users, campuses, buildings, departments, meters] =
+        const [users, organizations, campuses, buildings, departments, meters] =
           await Promise.all([
             window.api.get("/users"),
+            // Tenant-scoped by the backend: a client admin gets only their own
+            // organisation, EnerTrack staff get every client.
+            window.api.get("/organizations").catch(() => []),
             window.api.get("/campus"),
             window.api.get("/buildings"),
             window.api.get("/departments"),
@@ -74,6 +78,9 @@ document.addEventListener("DOMContentLoaded", () => {
           ]);
 
         this.state.users = Array.isArray(users) ? users : [];
+        this.state.organizations = Array.isArray(organizations)
+          ? organizations
+          : [];
         this.state.campuses = Array.isArray(campuses) ? campuses : [];
         this.state.buildings = Array.isArray(buildings) ? buildings : [];
         this.state.departments = Array.isArray(departments) ? departments : [];

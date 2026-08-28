@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateMeterDto } from "./dto/create-meter.dto";
 import { PutMeterDto } from "./dto/put-meter.dto";
 
@@ -35,7 +39,7 @@ export class MetersService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { meter_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { meter_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.meters.push(newRecord as any);
     return newRecord;
   }
@@ -45,7 +49,9 @@ export class MetersService {
   }
 
   findOne(id: string) {
-    const record = this.database.meters.find((item) => item.meter_id === id);
+    const record = assertTenantOwns(
+      this.database.meters.find((item) => item.meter_id === id),
+    );
     if (!record) throw new NotFoundException(`Meter with ID ${id} not found`);
     return record;
   }
@@ -54,20 +60,25 @@ export class MetersService {
     const index = this.database.meters.findIndex(
       (item) => item.meter_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.meters[index]))
       throw new NotFoundException(`Meter with ID ${id} not found`);
-    this.database.meters[index] = { meter_id: id, ...putDto } as any;
+    this.database.meters[index] = {
+      meter_id: id,
+      ...putDto,
+      organization_id: this.database.meters[index].organization_id,
+    } as any;
     return this.database.meters[index];
   }
   update(id: string, updateDto: UpdateMeterDto) {
     const index = this.database.meters.findIndex(
       (item) => item.meter_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.meters[index]))
       throw new NotFoundException(`Meter with ID ${id} not found`);
     this.database.meters[index] = {
       ...this.database.meters[index],
       ...updateDto,
+      organization_id: this.database.meters[index].organization_id,
     };
     return this.database.meters[index];
   }
@@ -76,17 +87,17 @@ export class MetersService {
     const index = this.database.meters.findIndex(
       (item) => item.meter_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.meters[index]))
       throw new NotFoundException(`Meter with ID ${id} not found`);
     const removed = this.database.meters.splice(index, 1);
     return removed[0];
   }
 
   getReadings(id: string) {
-    return this.database.meterReadings.filter((item) => item.meter_id === id);
+    return scopeToTenant(this.database.meterReadings.filter((item) => item.meter_id === id));
   }
 
   getAlerts(id: string) {
-    return this.database.alerts.filter((item) => item.meter_id === id);
+    return scopeToTenant(this.database.alerts.filter((item) => item.meter_id === id));
   }
 }
