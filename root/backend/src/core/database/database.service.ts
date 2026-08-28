@@ -299,6 +299,13 @@ export interface EnergyCost {
   gas: number;
   water: number;
   status: EnergyCostStatus;
+  wastewater?: number;
+  demand?: number;
+  total?: number;
+  budget?: number;
+  variance?: number;
+  scope?: string;
+  scope_label?: string;
 }
 export interface Invoice {
   invoice_id: string;
@@ -309,6 +316,11 @@ export interface Invoice {
   vendor: string;
   amount: number;
   status: InvoiceStatus;
+  type?: string;
+  due_date?: string | null;
+  issued_date?: string | null;
+  department_label?: string;
+  archived?: boolean;
 }
 export interface FinancialReport {
   financial_report_id: string;
@@ -320,6 +332,14 @@ export interface FinancialReport {
   period: string;
   roi: string | null;
   npv: number | null;
+  category?: string;
+  format?: string;
+  status?: string;
+  scope?: string;
+  scope_label?: string;
+  payback_years?: number | null;
+  notes?: string;
+  archived?: boolean;
 }
 export interface SustainabilityMetric {
   sustainability_metric_id: string;
@@ -1501,81 +1521,121 @@ export class DatabaseService {
       invoice_id: "vvvv0000-0001-4000-8000-000000000000",
       organization_id: "org-001",
       department_id: "dddd0000-0002-4000-8000-000000000000",
+      department_label: "Academic Affairs",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0001",
-      vendor: "Vendor 1",
+      vendor: "City Power Corp",
       amount: 500,
+      type: "electricity",
+      issued_date: "2025-02-01",
+      due_date: "2025-03-15",
       status: InvoiceStatus.APPROVED,
+      archived: false,
     },
     {
       invoice_id: "vvvv0000-0002-4000-8000-000000000000",
       organization_id: "org-001",
       department_id: "dddd0000-0003-4000-8000-000000000000",
+      department_label: "Computer Science",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0002",
-      vendor: "Vendor 2",
+      vendor: "National Gas Grid",
       amount: 1000,
+      type: "gas",
+      issued_date: "2025-02-05",
+      due_date: "2025-03-20",
       status: InvoiceStatus.OVERDUE,
+      archived: false,
     },
     {
       invoice_id: "vvvv0000-0003-4000-8000-000000000000",
       organization_id: "org-001",
       department_id: "dddd0000-0004-4000-8000-000000000000",
+      department_label: "Mechanical Engineering",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0003",
-      vendor: "Vendor 3",
+      vendor: "Aqua Pure Water",
       amount: 1500,
+      type: "water",
+      issued_date: "2025-02-10",
+      due_date: "2025-03-25",
       status: InvoiceStatus.PAID,
+      archived: false,
     },
     {
       invoice_id: "vvvv0000-0004-4000-8000-000000000000",
       organization_id: "org-001",
       department_id: "dddd0000-0005-4000-8000-000000000000",
+      department_label: "Civil Engineering",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0004",
-      vendor: "Vendor 4",
+      vendor: "Power Grid Solutions",
       amount: 2000,
+      type: "electricity",
+      issued_date: "2025-02-12",
+      due_date: "2025-03-28",
       status: InvoiceStatus.PENDING,
+      archived: false,
     },
     {
       invoice_id: "vvvv0000-0005-4000-8000-000000000000",
       organization_id: "org-001",
       department_id: "dddd0000-0006-4000-8000-000000000000",
+      department_label: "Biotechnology",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0005",
-      vendor: "Vendor 5",
+      vendor: "City Gas Services",
       amount: 2500,
+      type: "gas",
+      issued_date: "2025-02-15",
+      due_date: "2025-04-01",
       status: InvoiceStatus.APPROVED,
+      archived: false,
     },
     {
       invoice_id: "vvvv0000-0006-4000-8000-000000000000",
       organization_id: "org-001",
       department_id: "dddd0000-0007-4000-8000-000000000000",
+      department_label: "Chemical Engineering",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0006",
-      vendor: "Vendor 6",
+      vendor: "Municipal Water Board",
       amount: 3000,
+      type: "water",
+      issued_date: "2025-02-18",
+      due_date: "2025-04-05",
       status: InvoiceStatus.OVERDUE,
+      archived: false,
     },
     {
       invoice_id: "vvvv0000-0007-4000-8000-000000000000",
       organization_id: "org-001",
       department_id: "dddd0000-0008-4000-8000-000000000000",
+      department_label: "Student Affairs",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0007",
-      vendor: "Vendor 7",
+      vendor: "Eco Energy Tech",
       amount: 3500,
+      type: "demand",
+      issued_date: "2025-02-20",
+      due_date: "2025-04-10",
       status: InvoiceStatus.PAID,
+      archived: false,
     },
     {
       invoice_id: "vvvv0000-0008-4000-8000-000000000000",
       organization_id: "org-001",
       department_id: "dddd0000-0001-4000-8000-000000000000",
+      department_label: "Administration",
       approved_by_id: "550e8400-0002-4000-8000-000000000002",
       invoice_number: "INV-0008",
-      vendor: "Vendor 8",
+      vendor: "State Electricity Board",
       amount: 4000,
+      type: "electricity",
+      issued_date: "2025-02-22",
+      due_date: "2025-04-15",
       status: InvoiceStatus.PENDING,
+      archived: false,
     },
   ];
   public financialReports: FinancialReport[] = [

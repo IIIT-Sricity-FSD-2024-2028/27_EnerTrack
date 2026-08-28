@@ -11,4 +11,13 @@ export class CreateEnergyCostDto {
   @IsNumber() gas: number;
   @IsNumber() water: number;
   @IsEnum(EnergyCostStatus) status: EnergyCostStatus;
+  @IsOptional() @IsNumber() wastewater?: number;
+  @IsOptional() @IsNumber() demand?: number;
+  @IsOptional() @IsNumber() total?: number;
+  @IsOptional() @IsNumber() budget?: number;
+  @IsOptional() @IsNumber() variance?: number;
+  @IsOptional() @IsString() scope?: string;
+  @IsOptional() @IsString() scope_label?: string;
+  @IsOptional() @IsString() scopeRef?: string;
+  @IsOptional() @IsString() scopeLabel?: string;
 }

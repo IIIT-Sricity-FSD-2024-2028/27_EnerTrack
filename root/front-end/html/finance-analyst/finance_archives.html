@@ -318,6 +318,7 @@
       </div>
     </div>
 
+    <script src="../../js/shared/api.js"></script>
     <script type="module">
       import {
         openModal,
@@ -325,13 +326,59 @@
         badgeHTML,
         formatDate,
       } from "../../js/finance-analyst/utils/utils.js";
+      import universalDB from "../../js/shared/universalDB.js";
 
-      document.addEventListener("DOMContentLoaded", () => {
+      document.addEventListener("DOMContentLoaded", async () => {
         const stored = localStorage.getItem("currentUser");
         if (stored) {
           const user = JSON.parse(stored);
           document.getElementById("sidebarUserName").textContent = user.name;
           document.getElementById("sidebarUserRole").textContent = user.role;
+        }
+
+        // Hydrate from backend if available
+        if (window.api) {
+          try {
+            const [reports, invoices] = await Promise.all([
+              window.api.get("/financial-reports").catch(() => null),
+              window.api.get("/invoices").catch(() => null),
+            ]);
+            if (Array.isArray(reports)) {
+              universalDB.data.finance.financialReports = reports.map((r) => ({
+                id: r.financial_report_id || r.id,
+                title: r.title,
+                period: r.period,
+                category: r.category || "energy",
+                scope: r.scope || "department",
+                scopeLabel: r.scope_label || r.scopeLabel || (r.department_id ? "Dept " + r.department_id.slice(-4) : "Campus"),
+                roi: r.roi != null ? parseFloat(String(r.roi).replace("%", "")) : null,
+                npv: r.npv != null ? Number(r.npv) : null,
+                paybackYears: r.payback_years != null ? Number(r.payback_years) : null,
+                status: r.status || "viable",
+                format: r.format || "PDF",
+                notes: r.notes || "",
+                archived: r.archived === true || r.archived === "true",
+              }));
+            }
+            if (Array.isArray(invoices)) {
+              universalDB.data.finance.invoices = invoices.map((i) => ({
+                id: i.invoice_id || i.id,
+                invoiceNumber: i.invoice_number || i.invoiceNumber || "—",
+                vendor: i.vendor || "—",
+                amount: Number(i.amount) || 0,
+                department: i.department_id || "",
+                departmentLabel: i.department_label || i.departmentLabel || (i.department_id ? "Dept " + i.department_id.slice(-4) : "—"),
+                type: i.type || "utility",
+                dueDate: i.due_date || i.dueDate || null,
+                status: i.status || "pending",
+                approvedBy: i.approved_by_id || i.approvedBy || null,
+                archived: i.archived === true || i.archived === "true",
+              }));
+            }
+            universalDB.save();
+          } catch (e) {
+            console.warn("[Archives] Backend sync failed:", e);
+          }
         }
 
         const STATUS_MAP = {

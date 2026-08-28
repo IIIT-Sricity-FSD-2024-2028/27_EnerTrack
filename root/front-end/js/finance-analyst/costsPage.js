@@ -19,9 +19,78 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.api.get("/energy-costs").catch(() => null),
         window.api.get("/invoices").catch(() => null),
       ]);
-      if (Array.isArray(energyCosts))
-        universalDB.data.finance.energyCosts = energyCosts;
-      if (Array.isArray(invoices)) universalDB.data.finance.invoices = invoices;
+
+      // ── Normalize Energy Costs ──────────────────────────────────────────
+      // Backend sends: { energy_cost_id, period, electricity, gas, water,
+      //   status, building_id, department_id }
+      // Frontend needs: { id, period, scope, scopeRef, scopeLabel,
+      //   electricity, gas, water, wastewater, demand, total, budget, variance, status }
+      if (Array.isArray(energyCosts)) {
+        universalDB.data.finance.energyCosts = energyCosts.map((rec) => {
+          const elec      = Number(rec.electricity) || 0;
+          const gas       = Number(rec.gas)         || 0;
+          const water     = Number(rec.water)       || 0;
+          const wastewater= Number(rec.wastewater)  || 0;
+          const demand    = Number(rec.demand)      || 0;
+          const total     = elec + gas + water + wastewater + demand;
+
+          // Use existing budget if present, otherwise treat total as budget (on-budget)
+          const budget    = Number(rec.budget) > 0 ? Number(rec.budget) : total;
+          const variance  = budget - total;
+
+          // Derive scope info
+          const hasDept   = !!rec.department_id;
+          const scope     = rec.scope || (hasDept ? "department" : "building");
+          const scopeRef  = rec.scopeRef || rec.department_id || rec.building_id || "";
+          const scopeLabel= rec.scopeLabel
+                          || (hasDept
+                              ? "Dept " + (rec.department_id || "").slice(-4)
+                              : "Bldg " + (rec.building_id  || "").slice(-4));
+
+          // Normalize status string (backend uses UNDER_BUDGET / OVER_BUDGET / ON_BUDGET)
+          const rawStatus = (rec.status || "").toLowerCase().replace(/_/g, "-");
+          const status    = ["under-budget", "over-budget", "on-budget"].includes(rawStatus)
+                          ? rawStatus
+                          : variance > 0 ? "under-budget" : variance < 0 ? "over-budget" : "on-budget";
+
+          return {
+            id:          rec.energy_cost_id || rec.id,
+            period:      rec.period || "—",
+            scope,
+            scopeRef,
+            scopeLabel,
+            electricity: elec,
+            gas,
+            water,
+            wastewater,
+            demand,
+            total,
+            budget,
+            variance,
+            status,
+          };
+        });
+      }
+
+      // ── Normalize Invoices ──────────────────────────────────────────────
+      // Backend sends: { invoice_id, invoice_number, vendor, amount, status, department_id }
+      // Frontend needs: { id, invoiceNumber, vendor, amount, status, department, departmentLabel }
+      if (Array.isArray(invoices)) {
+        universalDB.data.finance.invoices = invoices.map((inv) => ({
+          id:             inv.invoice_id || inv.id,
+          invoiceNumber:  inv.invoice_number || inv.invoiceNumber || inv.invoice_id || "—",
+          vendor:         inv.vendor || "—",
+          amount:         Number(inv.amount) || 0,
+          department:     inv.department_id || inv.department || "",
+          departmentLabel: inv.departmentLabel
+                          || (inv.department_id ? "Dept " + inv.department_id.slice(-4) : "—"),
+          type:           inv.type || "utility",
+          dueDate:        inv.due_date || inv.dueDate || null,
+          issuedDate:     inv.issued_date || inv.issuedDate || null,
+          status:         inv.status || "pending",
+          approvedBy:     inv.approved_by_id || inv.approvedBy || null,
+        }));
+      }
     } catch (err) {
       console.warn(
         "[Finance] Backend fetch failed, using local data:",
@@ -121,19 +190,20 @@ function wireButtons() {
 
 function _runSimulation() {
   // Apply ±2% variance to every cost in FinanceDB
+  // Guard all fields against undefined/NaN — critical when data comes from backend
   FinanceDB.energyCosts.forEach((rec) => {
     const factor = 1 + (Math.random() * 0.04 - 0.02); // 0.98 to 1.02
 
-    rec.electricity = Math.round(rec.electricity * factor);
-    rec.gas = Math.round(rec.gas * factor);
-    rec.water = Math.round(rec.water * factor);
-    rec.wastewater = Math.round((rec.wastewater || 0) * factor);
-    rec.demand = Math.round(rec.demand * factor);
+    rec.electricity = Math.round((Number(rec.electricity) || 0) * factor);
+    rec.gas         = Math.round((Number(rec.gas)         || 0) * factor);
+    rec.water       = Math.round((Number(rec.water)       || 0) * factor);
+    rec.wastewater  = Math.round((Number(rec.wastewater)  || 0) * factor);
+    rec.demand      = Math.round((Number(rec.demand)      || 0) * factor);
 
-    rec.total =
-      rec.electricity + rec.gas + rec.water + rec.wastewater + rec.demand;
+    rec.total    = rec.electricity + rec.gas + rec.water + rec.wastewater + rec.demand;
+    rec.budget   = Number(rec.budget) > 0 ? rec.budget : rec.total; // keep original budget
     rec.variance = rec.budget - rec.total;
-    rec.status =
+    rec.status   =
       rec.variance > 0
         ? "under-budget"
         : rec.variance === 0
