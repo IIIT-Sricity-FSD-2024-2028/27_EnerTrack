@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateBuildingDto } from "./dto/create-building.dto";
 import { PutBuildingDto } from "./dto/put-building.dto";
 
@@ -26,7 +30,7 @@ export class BuildingsService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { building_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { building_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.buildings.push(newRecord as any);
     return newRecord;
   }
@@ -36,9 +40,9 @@ export class BuildingsService {
   }
 
   findOne(id: string) {
-    const record = this.database.buildings.find(
+    const record = assertTenantOwns(this.database.buildings.find(
       (item) => item.building_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(`Building with ID ${id} not found`);
     return record;
@@ -48,20 +52,25 @@ export class BuildingsService {
     const index = this.database.buildings.findIndex(
       (item) => item.building_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.buildings[index]))
       throw new NotFoundException(`Building with ID ${id} not found`);
-    this.database.buildings[index] = { building_id: id, ...putDto } as any;
+    this.database.buildings[index] = {
+      building_id: id,
+      ...putDto,
+      organization_id: this.database.buildings[index].organization_id,
+    } as any;
     return this.database.buildings[index];
   }
   update(id: string, updateDto: UpdateBuildingDto) {
     const index = this.database.buildings.findIndex(
       (item) => item.building_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.buildings[index]))
       throw new NotFoundException(`Building with ID ${id} not found`);
     this.database.buildings[index] = {
       ...this.database.buildings[index],
       ...updateDto,
+      organization_id: this.database.buildings[index].organization_id,
     };
     return this.database.buildings[index];
   }
@@ -70,17 +79,17 @@ export class BuildingsService {
     const index = this.database.buildings.findIndex(
       (item) => item.building_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.buildings[index]))
       throw new NotFoundException(`Building with ID ${id} not found`);
     const removed = this.database.buildings.splice(index, 1);
     return removed[0];
   }
 
   getDepartments(id: string) {
-    return this.database.departments.filter((item) => item.building_id === id);
+    return scopeToTenant(this.database.departments.filter((item) => item.building_id === id));
   }
 
   getMeters(id: string) {
-    return this.database.meters.filter((item) => item.building_id === id);
+    return scopeToTenant(this.database.meters.filter((item) => item.building_id === id));
   }
 }

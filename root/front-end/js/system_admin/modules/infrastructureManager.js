@@ -84,6 +84,16 @@ export function renderInfrastructureManager(container, app) {
   wireAllEvents(container, app, selCampus, selBuilding);
 }
 
+/* Organisation name for an id. Every infrastructure record carries
+   organization_id directly, so no lookup through campus -> org is needed. */
+function orgNameFor(app, id) {
+  if (!id) return "EnerTrack (staff)";
+  const org = (app.state.organizations || []).find(
+    (o) => o.organization_id === id,
+  );
+  return org ? org.name : id;
+}
+
 /* ── CAMPUS CARD ──────────────────────────────── */
 function renderCampusCard(campus, app) {
   const bCount = app.state.buildings.filter(
@@ -95,6 +105,7 @@ function renderCampusCard(campus, app) {
       <button class="building-select" type="button" data-select-campus="${escapeHtml(campus.campus_id)}">
         <h3>${escapeHtml(campus.name)}</h3>
         <div class="building-meta">${escapeHtml(campus.location || "—")} · ${formatCurrency(campus.total_budget)} · ${bCount} building(s)</div>
+        <div class="building-meta"><strong>${escapeHtml(orgNameFor(app, campus.organization_id))}</strong></div>
         <div class="muted-cell">${escapeHtml(campus.campus_id)}</div>
       </button>
       <div class="building-actions">

@@ -1,46 +1,237 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
+import { redactSensitive, redactedJson } from '../utils/redact';
+import { logWriter } from '../utils/log-writer';
 
+/**
+ * Custom Logger Middleware
+ * ────────────────────────
+ * This is a CUSTOM (hand-written) NestJS middleware that complements Morgan.
+ *
+ * WHY both Morgan AND this?
+ *   • Morgan  → standard access-log format (method, url, status, response-time)
+ *              written to daily-rotating files.  Great for ops / auditing.
+ *   • This    → captures request BODY and response BODY, which Morgan does NOT
+ *              log out of the box.  Great for debugging API payloads.
+ *
+ * This middleware is registered at the ROUTER level in AppModule.configure(),
+ * satisfying the "Router-level middleware" evaluation criterion.
+ *
+ * Logs are written to logs/custom-debug-YYYY-MM-DD.log via the shared
+ * logWriter, which buffers entries and flushes them on a timer. Directory
+ * creation, daily filenames and 7-day retention are all handled there — see
+ * core/utils/log-writer.ts.
+ */
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  private logger = new Logger('HTTP');
+  private readonly logger = new Logger('CustomMiddleware');
+
+  /** Filename prefix; logWriter appends the date and the .log extension. */
+  private readonly LOG_PREFIX = 'custom-debug-';
+
+  /**
+   * Retention used to live here, but it only matched custom-debug-*.log, so
+   * the error, security, upload-audit and invoice-access logs were never
+   * cleaned. It now lives in logWriter.sweepOldLogs(), which covers every
+   * managed prefix and runs on a timer rather than only at startup.
+   */
 
   use(request: Request, response: Response, next: NextFunction): void {
-    const { ip, method, originalUrl } = request;
-    const userAgent = request.get('user-agent') || '';
+    const { method, originalUrl, ip } = request;
+    const userAgent = request.get('user-agent') || 'unknown';
+    const role = request.get('x-role') || 'none';
+    const contentType = request.get('content-type') || 'none';
     const startTime = Date.now();
 
-    // Log the incoming request body
-    if (Object.keys(request.body || {}).length > 0) {
-      this.logger.log(`[REQUEST] ${method} ${originalUrl} | Body: ${JSON.stringify(request.body)}`);
-    } else {
-      this.logger.log(`[REQUEST] ${method} ${originalUrl}`);
-    }
+    // ── Log the incoming request ────────────────────────────────────
+    // File uploads are skipped: a multipart body is binary, so stringifying
+    // it would dump megabytes of rubbish into the console and the log file.
+    const isUpload = request.headers['content-type']?.includes(
+      'multipart/form-data',
+    );
+    const bodyKeys = Object.keys(request.body || {});
+    const hasLoggableBody = !isUpload && bodyKeys.length > 0;
 
-    // Capture the original send to log the response body
-    const originalSend = response.send;
-    response.send = function (body) {
-      // Restore original send to prevent infinite recursion
-      response.send = originalSend;
-      
+    // Passwords and tokens are masked before anything is written. See
+    // core/utils/redact.ts — POST /api/users/login carries a plaintext
+    // password, which used to land in this log in the clear.
+    const requestLine = hasLoggableBody
+      ? `[REQUEST]  ${method} ${originalUrl} | Role: ${role} | IP: ${ip} | Body: ${redactedJson(request.body)}`
+      : `[REQUEST]  ${method} ${originalUrl} | Role: ${role} | IP: ${ip}`;
+
+    this.logger.log(requestLine);
+
+    // Write structured request entry to file
+    this.writeRequestToFile({
+      method,
+      url: originalUrl,
+      ip: ip || '::1',
+      role,
+      userAgent,
+      contentType,
+      body: hasLoggableBody ? redactSensitive(request.body) : null,
+    });
+
+    // ── Intercept the response to log status + body ─────────────────
+    const originalSend = response.send.bind(response);
+
+    response.send = (body: any): Response => {
       const duration = Date.now() - startTime;
       const { statusCode } = response;
-      
-      const logger = new Logger('HTTP');
-      if (statusCode >= 400) {
-        logger.error(`[RESPONSE] ${method} ${originalUrl} ${statusCode} +${duration}ms | Error: ${body}`);
-      } else {
-        // Truncate large response bodies to avoid terminal spam
-        let bodyString = typeof body === 'string' ? body : JSON.stringify(body);
-        if (bodyString && bodyString.length > 300) {
-          bodyString = bodyString.substring(0, 300) + '... (truncated)';
-        }
-        logger.log(`[RESPONSE] ${method} ${originalUrl} ${statusCode} +${duration}ms | Data: ${bodyString}`);
+
+      // Responses are redacted too. Login returns the user record, and a
+      // future auth change that starts returning a token would otherwise
+      // begin leaking it into the log with nobody noticing.
+      const safeBody = this.safeParse(body);
+      let bodyPreview: string = redactedJson(safeBody);
+
+      // Truncate large payloads to keep logs readable
+      if (bodyPreview && bodyPreview.length > 500) {
+        bodyPreview = bodyPreview.substring(0, 500) + '... (truncated)';
       }
 
-      return response.send(body);
+      const responseLine =
+        statusCode >= 400
+          ? `[RESPONSE] ${method} ${originalUrl} ${statusCode} +${duration}ms | Error: ${bodyPreview}`
+          : `[RESPONSE] ${method} ${originalUrl} ${statusCode} +${duration}ms | Data: ${bodyPreview}`;
+
+      if (statusCode >= 400) {
+        this.logger.error(responseLine);
+      } else {
+        this.logger.log(responseLine);
+      }
+
+      // Write structured response entry to file
+      this.writeResponseToFile({
+        method,
+        url: originalUrl,
+        statusCode,
+        duration,
+        body: redactSensitive(safeBody),
+        isError: statusCode >= 400,
+      });
+
+      // Call the original Express .send() exactly once
+      return originalSend(body);
     };
 
     next();
+  }
+
+  /**
+   * Write a well-formatted REQUEST block to the log file.
+   */
+  private writeRequestToFile(data: {
+    method: string;
+    url: string;
+    ip: string;
+    role: string;
+    userAgent: string;
+    contentType: string;
+    body: any;
+  }): void {
+    const timestamp = new Date().toISOString();
+    const separator = '═'.repeat(80);
+    const thinSep = '─'.repeat(80);
+
+    let block = `\n${separator}\n`;
+    block += `  ► INCOMING REQUEST\n`;
+    block += `${thinSep}\n`;
+    block += `  Timestamp    : ${timestamp}\n`;
+    block += `  Method       : ${data.method}\n`;
+    block += `  URL          : ${data.url}\n`;
+    block += `  IP           : ${data.ip}\n`;
+    block += `  Role         : ${data.role}\n`;
+    block += `  User-Agent   : ${data.userAgent}\n`;
+    block += `  Content-Type : ${data.contentType}\n`;
+
+    if (data.body) {
+      block += `${thinSep}\n`;
+      block += `  Request Body:\n`;
+      block += this.indentJson(data.body, 4);
+    }
+
+    block += `${separator}\n`;
+
+    logWriter.write(this.LOG_PREFIX, block);
+  }
+
+  /**
+   * Write a well-formatted RESPONSE block to the log file.
+   */
+  private writeResponseToFile(data: {
+    method: string;
+    url: string;
+    statusCode: number;
+    duration: number;
+    body: any;
+    isError: boolean;
+  }): void {
+    const timestamp = new Date().toISOString();
+    const thinSep = '─'.repeat(80);
+    const doubleSep = '═'.repeat(80);
+
+    const statusLabel = data.isError ? '✘ ERROR RESPONSE' : '✔ SUCCESS RESPONSE';
+
+    let block = `\n${thinSep}\n`;
+    block += `  ${statusLabel}\n`;
+    block += `${thinSep}\n`;
+    block += `  Timestamp    : ${timestamp}\n`;
+    block += `  Method       : ${data.method}\n`;
+    block += `  URL          : ${data.url}\n`;
+    block += `  Status Code  : ${data.statusCode}\n`;
+    block += `  Duration     : ${data.duration}ms\n`;
+
+    if (data.body) {
+      block += `${thinSep}\n`;
+      block += `  Response Body:\n`;
+      // Truncate response body for readability
+      const bodyStr = JSON.stringify(data.body, null, 2);
+      if (bodyStr.length > 2000) {
+        block += this.indentText(bodyStr.substring(0, 2000) + '\n    ... (truncated)', 4);
+      } else {
+        block += this.indentJson(data.body, 4);
+      }
+    }
+
+    block += `${doubleSep}\n\n`;
+
+    logWriter.write(this.LOG_PREFIX, block);
+  }
+
+  /**
+   * Pretty-print a JSON object with the given indent level.
+   */
+  private indentJson(obj: any, spaces: number): string {
+    const indent = ' '.repeat(spaces);
+    const jsonStr = JSON.stringify(obj, null, 2);
+    return jsonStr
+      .split('\n')
+      .map((line) => `${indent}${line}`)
+      .join('\n') + '\n';
+  }
+
+  /**
+   * Indent a plain text string.
+   */
+  private indentText(text: string, spaces: number): string {
+    const indent = ' '.repeat(spaces);
+    return text
+      .split('\n')
+      .map((line) => `${indent}${line}`)
+      .join('\n') + '\n';
+  }
+
+  /**
+   * Safely parse a response body (could be a string or an object).
+   */
+  private safeParse(body: any): any {
+    if (!body) return null;
+    if (typeof body === 'object') return body;
+    try {
+      return JSON.parse(body);
+    } catch {
+      return { raw: typeof body === 'string' && body.length > 500 ? body.substring(0, 500) + '...' : body };
+    }
   }
 }

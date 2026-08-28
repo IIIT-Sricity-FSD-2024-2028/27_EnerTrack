@@ -1,0 +1,23 @@
+{
+  // Deliberately standalone rather than extending ../tsconfig.json: that file
+  // sets rootDir to ./src and excludes this folder, both of which fight an
+  // "extends" here. Tests are only ever type-checked, never emitted.
+  //
+  // NOTE: esModuleInterop is deliberately NOT set. Enabling it anywhere in the
+  // project makes the `import * as morgan` style used in main.ts stop being
+  // callable, which lights the editor up with false errors in a file that
+  // compiles fine. The specs use `import request = require("supertest")`
+  // instead, which is callable under plain commonjs without the flag.
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2021",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "noEmit": true,
+    "types": ["jest", "node"]
+  },
+  "include": ["./**/*.ts"]
+}

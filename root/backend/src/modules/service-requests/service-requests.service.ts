@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateServiceRequestDto } from "./dto/create-service-request.dto";
 import { PutServiceRequestDto } from "./dto/put-service-request.dto";
 
@@ -35,7 +39,7 @@ export class ServiceRequestsService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { service_request_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { service_request_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.serviceRequests.push(newRecord as any);
     return newRecord;
   }
@@ -45,9 +49,9 @@ export class ServiceRequestsService {
   }
 
   findOne(id: string) {
-    const record = this.database.serviceRequests.find(
+    const record = assertTenantOwns(this.database.serviceRequests.find(
       (item) => item.service_request_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(`ServiceRequest with ID ${id} not found`);
     return record;
@@ -57,7 +61,7 @@ export class ServiceRequestsService {
     const index = this.database.serviceRequests.findIndex(
       (item) => item.service_request_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.serviceRequests[index]))
       throw new NotFoundException(`Service Request with ID ${id} not found`);
     this.database.serviceRequests[index] = {
       service_request_id: id,
@@ -69,11 +73,12 @@ export class ServiceRequestsService {
     const index = this.database.serviceRequests.findIndex(
       (item) => item.service_request_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.serviceRequests[index]))
       throw new NotFoundException(`ServiceRequest with ID ${id} not found`);
     this.database.serviceRequests[index] = {
       ...this.database.serviceRequests[index],
       ...updateDto,
+      organization_id: this.database.serviceRequests[index].organization_id,
     };
     return this.database.serviceRequests[index];
   }
@@ -82,15 +87,15 @@ export class ServiceRequestsService {
     const index = this.database.serviceRequests.findIndex(
       (item) => item.service_request_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.serviceRequests[index]))
       throw new NotFoundException(`ServiceRequest with ID ${id} not found`);
     const removed = this.database.serviceRequests.splice(index, 1);
     return removed[0];
   }
 
   getWorkOrders(id: string) {
-    return this.database.workOrders.filter(
+    return scopeToTenant(this.database.workOrders.filter(
       (item) => item.source_request_id === id,
-    );
+    ));
   }
 }

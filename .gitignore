@@ -5,6 +5,7 @@ node_modules/
 .env.local
 .env.development.local
 *.log
+logs/
 .DS_Store
 dist/
 build/

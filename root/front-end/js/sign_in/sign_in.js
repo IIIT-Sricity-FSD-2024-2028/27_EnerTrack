@@ -44,6 +44,18 @@
       Technician: "../technician_jr/technician_jr_work_orders.html",
       "Sustainability Officer": "../sustainability_officer/sust_overview.html",
       "Campus Visitor": "../enduser/enduser_dashboard.html",
+
+      // EnerTrack's own staff. They send no x-org-id, so the same dashboard
+      // renders them the cross-tenant view rather than a single client's.
+      "Super Admin": "../system_admin/system_admin_overview.html",
+      "Certified Energy Auditor": "../technician/technician_overview.html",
+      "Account Officer": "../finance-analyst/finance_overview.html",
+
+      // Client-side B2B roles, routed to the legacy dashboard each one
+      // replaces. Mirrors ROLE_EQUIVALENTS in the backend.
+      "Facility Manager": "../technician/technician_overview.html",
+      "Economic Buyer": "../finance-analyst/finance_overview.html",
+      "Department Head": "../enduser/enduser_dashboard.html",
     };
     var path = routes[role] || "../landing/landing.html";
     window.location.href = path;

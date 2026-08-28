@@ -18,7 +18,7 @@ import { Roles } from "../../core/decorators/roles.decorator";
 const ROLE_HEADER = {
   name: "x-role",
   description:
-    "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+    "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
   required: false,
 };
 
@@ -37,7 +37,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 409, description: "An organization with that name already exists." })
   @ApiResponse({ status: 403, description: "Forbidden – caller is not EnerTrack platform staff." })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Platform Admin", "System Administrator")
+  @Roles("Super Admin")
   create(@Body() createDto: CreateOrganizationDto) {
     return this.organizationsService.create(createDto);
   }
@@ -51,9 +51,32 @@ export class OrganizationsController {
   @ApiResponse({ status: 200, description: "Array of all organization records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Platform Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
+  @Roles("Super Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
   findAll() {
     return this.organizationsService.findAll();
+  }
+
+  /**
+   * Public tenant directory for the sign-up page.
+   *
+   * Declared BEFORE @Get(":id") on purpose. Nest matches routes in the order
+   * they are declared, so if this sat lower, "/organizations/public" would be
+   * swallowed by the :id route and arrive as findOne("public").
+   *
+   * Carries no @Roles, so RolesGuard lets it through unauthenticated, which it
+   * has to be: the visitor has no account yet. It therefore returns id and
+   * name only. Status, tariff rate, floor area and contract dates stay behind
+   * the authenticated findAll().
+   */
+  @Get("public")
+  @ApiOperation({
+    summary: "Public Organization Directory",
+    description:
+      "Returns id and name only, for populating the organisation selector on the public sign-up page. No authorization headers required.",
+  })
+  @ApiResponse({ status: 200, description: "Array of { organization_id, name }." })
+  listPublic() {
+    return this.organizationsService.listPublic();
   }
 
   @Get(":id")
@@ -66,7 +89,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 404, description: "Organization with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Platform Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
+  @Roles("Super Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
   findOne(@Param("id") id: string) {
     return this.organizationsService.findOne(id);
   }
@@ -81,7 +104,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 404, description: "Organization with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Platform Admin", "System Administrator")
+  @Roles("Super Admin")
   put(@Param("id") id: string, @Body() putDto: PutOrganizationDto) {
     return this.organizationsService.put(id, putDto);
   }
@@ -96,7 +119,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 404, description: "Organization with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Platform Admin", "System Administrator", "Account Officer")
+  @Roles("Super Admin", "Account Officer")
   update(@Param("id") id: string, @Body() updateDto: UpdateOrganizationDto) {
     return this.organizationsService.update(id, updateDto);
   }
@@ -112,7 +135,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 409, description: "Organization still owns campus records." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Platform Admin", "System Administrator")
+  @Roles("Super Admin")
   remove(@Param("id") id: string) {
     return this.organizationsService.remove(id);
   }
@@ -126,7 +149,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 200, description: "Array of campus records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Platform Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
+  @Roles("Super Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
   getCampuses(@Param("id") id: string) {
     return this.organizationsService.getCampuses(id);
   }
@@ -140,7 +163,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 200, description: "Array of user records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Platform Admin", "System Administrator", "Account Officer")
+  @Roles("Super Admin", "System Administrator", "Account Officer")
   getUsers(@Param("id") id: string) {
     return this.organizationsService.getUsers(id);
   }

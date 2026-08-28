@@ -21,7 +21,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -61,7 +61,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -74,6 +74,22 @@
           },
           "403": {
             "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/organizations/public": {
+      "get": {
+        "operationId": "OrganizationsController_listPublic",
+        "summary": "Public Organization Directory",
+        "description": "Returns id and name only, for populating the organisation selector on the public sign-up page. No authorization headers required.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Array of { organization_id, name }."
           }
         },
         "tags": [
@@ -98,7 +114,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -136,7 +152,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -184,7 +200,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -232,7 +248,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -275,7 +291,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -312,7 +328,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Platform Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
             "required": false,
             "schema": {
               "type": "string"
@@ -2189,6 +2205,54 @@
         ]
       }
     },
+    "/api/meter-readings/upload": {
+      "post": {
+        "operationId": "MeterReadingsController_uploadSpreadsheet",
+        "summary": "Bulk Upload Meter Readings",
+        "description": "Uploads a CSV file of meter readings for sites without automatic sensors. The System Administrator and Technician can submit a batch of readings via file. Send a multipart/form-data POST request with the CSV file under the 'file' field.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Meter readings imported successfully from CSV."
+          },
+          "400": {
+            "description": "File missing, wrong type, or over the size limit."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not System Administrator or Technician."
+          }
+        },
+        "tags": [
+          "meter-readings"
+        ]
+      }
+    },
     "/api/meter-readings/{id}": {
       "get": {
         "operationId": "MeterReadingsController_findOne",
@@ -2422,6 +2486,68 @@
           },
           "403": {
             "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
+    "/api/wastage-reports/{id}/photos": {
+      "post": {
+        "operationId": "WastageReportsController_uploadPhotos",
+        "summary": "Attach Wastage Report Photos",
+        "description": "Uploads up to 4 photos as evidence for a wastage report. Any authenticated user can attach photos. Send a multipart/form-data POST request with images under the 'files' field.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Photos attached successfully."
+          },
+          "400": {
+            "description": "File missing, wrong type, or over the size limit."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Wastage report with the given ID not found."
           }
         },
         "tags": [
@@ -4057,6 +4183,103 @@
           },
           "403": {
             "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/invoices/{id}/document": {
+      "post": {
+        "operationId": "InvoicesController_uploadDocument",
+        "summary": "Attach Invoice Document",
+        "description": "Uploads a scanned PDF and attaches it to an existing invoice so the approver can review it. Financial Analyst and System Administrator can attach documents. Send a multipart/form-data POST request with the PDF under the 'file' field.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document attached successfully."
+          },
+          "400": {
+            "description": "File missing, wrong type, or over the size limit."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Invoice with the given ID not found."
+          }
+        },
+        "tags": [
+          "invoices"
+        ]
+      },
+      "get": {
+        "operationId": "InvoicesController_downloadDocument",
+        "summary": "Download Invoice Document",
+        "description": "Streams back the PDF previously attached to this invoice. The file path is read from the invoice record, never from the URL, and tenant ownership is checked before the file is served.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF file streamed."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Invoice not found, or it has no document attached."
           }
         },
         "tags": [

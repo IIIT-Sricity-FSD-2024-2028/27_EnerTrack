@@ -7,6 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
+import { logWriter } from "../utils/log-writer";
 
 type HttpExceptionResponse = {
   message?: string | string[];
@@ -17,6 +18,8 @@ type HttpExceptionResponse = {
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
+  /** Filename prefix; logWriter appends the date and the .log extension. */
+  private readonly LOG_PREFIX = "error-";
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -47,6 +50,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
+    // Persist EVERY error to a dated file, not just 5xx. The console is lost
+    // on restart, and the brief requires error information to be stored in
+    // files — a 404 or a blocked 403 is exactly the kind of thing worth
+    // being able to look up after the fact.
+    this.writeErrorToFile({
+      statusCode,
+      message,
+      error,
+      method: request.method,
+      url: request.originalUrl,
+      role: (request.headers["x-role"] as string) || "none",
+      ip: request.ip || "unknown",
+      stack: exception instanceof Error ? exception.stack : String(exception),
+      isServerError: statusCode >= HttpStatus.INTERNAL_SERVER_ERROR,
+    });
+
     response.status(statusCode).json({
       success: false,
       statusCode,
@@ -56,6 +75,56 @@ export class AllExceptionsFilter implements ExceptionFilter {
       method: request.method,
       timestamp: new Date().toISOString(),
     });
+  }
+
+  /**
+   * Appends a structured error entry to the daily error log.
+   *
+   * Wrapped in try/catch because a failure to write a log must never turn a
+   * handled 404 into an unhandled crash inside the exception filter itself.
+   */
+  private writeErrorToFile(entry: {
+    statusCode: number;
+    message: string;
+    error: string;
+    method: string;
+    url: string;
+    role: string;
+    ip: string;
+    stack: string;
+    isServerError: boolean;
+  }): void {
+    const separator = "─".repeat(80);
+    let block = `\n${separator}\n`;
+    block += `  ${entry.isServerError ? "✘ SERVER ERROR" : "⚠ HANDLED ERROR"}\n`;
+    block += `${separator}\n`;
+    block += `  Timestamp   : ${new Date().toISOString()}\n`;
+    block += `  Status Code : ${entry.statusCode}\n`;
+    block += `  Error       : ${entry.error}\n`;
+    block += `  Message     : ${entry.message}\n`;
+    block += `  Route       : ${entry.method} ${entry.url}\n`;
+    block += `  Role        : ${entry.role}\n`;
+    block += `  IP          : ${entry.ip}\n`;
+
+    // Stack traces are only useful for genuine crashes. Printing one for
+    // every 404 would bury the real failures.
+    if (entry.isServerError && entry.stack) {
+      block += `${separator}\n`;
+      block += `  Stack Trace:\n`;
+      block +=
+        entry.stack
+          .split("\n")
+          .map((line) => `    ${line}`)
+          .join("\n") + "\n";
+    }
+
+    block += `${separator}\n`;
+
+    // Server errors bypass the buffer. If the process is about to die, the
+    // record of WHY must already be on disk — a 500 flushed five seconds
+    // later is a 500 that never gets written. Handled 4xx entries are
+    // routine and can wait for the next flush.
+    logWriter.write(this.LOG_PREFIX, block, { immediate: entry.isServerError });
   }
 
   private normalizeExceptionResponse(

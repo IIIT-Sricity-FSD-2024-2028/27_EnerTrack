@@ -72,7 +72,6 @@
     <!-- HERO SECTION -->
     <header class="hero" id="hero">
       <div class="hero-content">
-        <span class="section-label">Energy Services for Organisations</span>
         <h1>We audit.<br />We monitor.<br />You save.</h1>
         <p>
           EnerTrack partners with universities, campuses and corporate offices
@@ -97,7 +96,6 @@
 
     <!-- ABOUT SECTION -->
     <section class="section about" id="about">
-      <span class="section-label">What We Do</span>
       <div class="about-grid">
         <div class="about-text">
           <h2 class="section-title">
@@ -133,7 +131,6 @@
 
     <!-- ROLES SECTION -->
     <section class="section roles" id="roles">
-      <span class="section-label">Who Does What</span>
       <h2 class="section-title">Two teams, one platform.</h2>
       <p class="roles-intro">
         An EnerTrack engagement has people on both sides. We bring the
@@ -166,7 +163,7 @@
         </div>
         <div class="team-card">
           <span class="team-tag">EnerTrack</span>
-          <h4>Platform Administrator</h4>
+          <h4>Super Admin</h4>
           <p>
             Provisions your organisation, sets up your users, and keeps the
             platform running. Never touches another client's data without
@@ -267,7 +264,6 @@
     <!-- ENGAGEMENT LIFECYCLE SECTION -->
     <section class="section engagement" id="engagement">
       <div class="cap-header">
-        <span class="section-label">How An Engagement Works</span>
         <h2 class="section-title">From first site visit to verified savings.</h2>
         <p>
           Every client follows the same six stages. Stage one is a fixed fee.
@@ -333,7 +329,6 @@
     <!-- COMMERCIAL MODEL SECTION -->
     <section class="section pricing" id="pricing">
       <div class="cap-header">
-        <span class="section-label">Commercial Model</span>
         <h2 class="section-title">You pay for outcomes, not licences.</h2>
         <p>
           Three components. The first is fixed, the second scales with the size
@@ -383,7 +378,6 @@
     <!-- CAPABILITIES SECTION -->
     <section class="section capabilities" id="capabilities">
       <div class="cap-header">
-        <span class="section-label">Core Capabilities</span>
         <h2 class="section-title">
           Real-time Insights. Automated Alerts. Sustainable Data.
         </h2>
@@ -432,7 +426,6 @@
     <!-- FEATURE CAROUSEL SECTION -->
     <section class="section feature-carousel-container" id="features">
       <div class="carousel-header">
-        <span class="section-label">Beyond the Dashboard</span>
         <h2 class="section-title">Enterprise Features</h2>
       </div>
 
@@ -569,7 +562,6 @@
 
     <!-- RESULTS SECTION -->
     <section class="section results" id="results">
-      <span class="section-label">Proven Impact</span>
       <div class="results-grid">
         <div class="results-text">
           <h2 class="section-title">Measurable results for smart campuses.</h2>
@@ -698,6 +690,7 @@
             var link = allLinks[l];
             var isAdmin =
               user.role === "System Administrator" ||
+              user.role === "Super Admin" ||
               user.role === "System Admin";
             // System Admin sees all links; others see only their own role's link
             if (isAdmin || user.role === link.role) {
@@ -748,6 +741,7 @@
 
             var isAllowed =
               user.role === "System Administrator" ||
+              user.role === "Super Admin" ||
               user.role === "System Admin" ||
               effectiveRole === cardRole ||
               (cardRole === "System Admin" &&

@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateWorkOrderDto } from "./dto/create-work-order.dto";
 import { PutWorkOrderDto } from "./dto/put-work-order.dto";
 
@@ -44,7 +48,7 @@ export class WorkOrdersService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { work_order_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { work_order_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.workOrders.push(newRecord as any);
     return newRecord;
   }
@@ -54,9 +58,9 @@ export class WorkOrdersService {
   }
 
   findOne(id: string) {
-    const record = this.database.workOrders.find(
+    const record = assertTenantOwns(this.database.workOrders.find(
       (item) => item.work_order_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(`WorkOrder with ID ${id} not found`);
     return record;
@@ -66,20 +70,25 @@ export class WorkOrdersService {
     const index = this.database.workOrders.findIndex(
       (item) => item.work_order_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.workOrders[index]))
       throw new NotFoundException(`Work Order with ID ${id} not found`);
-    this.database.workOrders[index] = { work_order_id: id, ...putDto } as any;
+    this.database.workOrders[index] = {
+      work_order_id: id,
+      ...putDto,
+      organization_id: this.database.workOrders[index].organization_id,
+    } as any;
     return this.database.workOrders[index];
   }
   update(id: string, updateDto: UpdateWorkOrderDto) {
     const index = this.database.workOrders.findIndex(
       (item) => item.work_order_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.workOrders[index]))
       throw new NotFoundException(`WorkOrder with ID ${id} not found`);
     this.database.workOrders[index] = {
       ...this.database.workOrders[index],
       ...updateDto,
+      organization_id: this.database.workOrders[index].organization_id,
     };
     return this.database.workOrders[index];
   }
@@ -88,7 +97,7 @@ export class WorkOrdersService {
     const index = this.database.workOrders.findIndex(
       (item) => item.work_order_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.workOrders[index]))
       throw new NotFoundException(`WorkOrder with ID ${id} not found`);
     const removed = this.database.workOrders.splice(index, 1);
     return removed[0];

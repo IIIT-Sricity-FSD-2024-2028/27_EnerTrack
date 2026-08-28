@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateActivityLogDto } from "./dto/create-activity-log.dto";
 import { PutActivityLogDto } from "./dto/put-activity-log.dto";
 
@@ -29,7 +33,7 @@ export class ActivityLogsService {
     const newRecord = {
       activity_log_id: generatedId,
       ...createDto,
-      organization_id: createDto.organization_id ?? currentOrgId(),
+      organization_id: currentOrgId() ?? createDto.organization_id ?? null,
       timestamp: new Date().toISOString(),
     };
     this.database.activityLogs.push(newRecord as any);
@@ -41,9 +45,9 @@ export class ActivityLogsService {
   }
 
   findOne(id: string) {
-    const record = this.database.activityLogs.find(
+    const record = assertTenantOwns(this.database.activityLogs.find(
       (item) => item.activity_log_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(`ActivityLog with ID ${id} not found`);
     return record;
@@ -53,7 +57,7 @@ export class ActivityLogsService {
     const index = this.database.activityLogs.findIndex(
       (item) => item.activity_log_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.activityLogs[index]))
       throw new NotFoundException(`Activity Log with ID ${id} not found`);
     this.database.activityLogs[index] = {
       activity_log_id: id,
@@ -65,11 +69,12 @@ export class ActivityLogsService {
     const index = this.database.activityLogs.findIndex(
       (item) => item.activity_log_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.activityLogs[index]))
       throw new NotFoundException(`ActivityLog with ID ${id} not found`);
     this.database.activityLogs[index] = {
       ...this.database.activityLogs[index],
       ...updateDto,
+      organization_id: this.database.activityLogs[index].organization_id,
     };
     return this.database.activityLogs[index];
   }
@@ -78,7 +83,7 @@ export class ActivityLogsService {
     const index = this.database.activityLogs.findIndex(
       (item) => item.activity_log_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.activityLogs[index]))
       throw new NotFoundException(`ActivityLog with ID ${id} not found`);
     const removed = this.database.activityLogs.splice(index, 1);
     return removed[0];

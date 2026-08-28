@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateCampusDto } from "./dto/create-campus.dto";
 import { PutCampusDto } from "./dto/put-campus.dto";
 
@@ -17,7 +21,7 @@ export class CampusService {
 
   create(createDto: CreateCampusDto) {
     const generatedId = crypto.randomUUID();
-    const newRecord = { campus_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { campus_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.campus.push(newRecord as any);
     return newRecord;
   }
@@ -27,7 +31,7 @@ export class CampusService {
   }
 
   findOne(id: string) {
-    const record = this.database.campus.find((item) => item.campus_id === id);
+    const record = assertTenantOwns(this.database.campus.find((item) => item.campus_id === id));
     if (!record) throw new NotFoundException(`Campus with ID ${id} not found`);
     return record;
   }
@@ -36,20 +40,25 @@ export class CampusService {
     const index = this.database.campus.findIndex(
       (item) => item.campus_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.campus[index]))
       throw new NotFoundException(`Campus with ID ${id} not found`);
-    this.database.campus[index] = { campus_id: id, ...putDto } as any;
+    this.database.campus[index] = {
+      campus_id: id,
+      ...putDto,
+      organization_id: this.database.campus[index].organization_id,
+    } as any;
     return this.database.campus[index];
   }
   update(id: string, updateDto: UpdateCampusDto) {
     const index = this.database.campus.findIndex(
       (item) => item.campus_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.campus[index]))
       throw new NotFoundException(`Campus with ID ${id} not found`);
     this.database.campus[index] = {
       ...this.database.campus[index],
       ...updateDto,
+      organization_id: this.database.campus[index].organization_id,
     };
     return this.database.campus[index];
   }
@@ -58,13 +67,13 @@ export class CampusService {
     const index = this.database.campus.findIndex(
       (item) => item.campus_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.campus[index]))
       throw new NotFoundException(`Campus with ID ${id} not found`);
     const removed = this.database.campus.splice(index, 1);
     return removed[0];
   }
 
   getBuildings(id: string) {
-    return this.database.buildings.filter((item) => item.campus_id === id);
+    return scopeToTenant(this.database.buildings.filter((item) => item.campus_id === id));
   }
 }

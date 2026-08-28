@@ -36,8 +36,22 @@ export function scopeToTenant<T extends { organization_id?: string | null }>(
   records: T[],
 ): T[] {
   const ctx = getTenantContext();
-  if (!ctx || !ctx.orgId) return records;
-  return records.filter((r) => r.organization_id === ctx.orgId);
+  // No context at all means the middleware never ran, which happens when a
+  // service is called directly from a unit test. Left untouched deliberately.
+  if (!ctx) return records;
+
+  // Acting inside a tenant: that tenant's records only.
+  if (ctx.orgId) return records.filter((r) => r.organization_id === ctx.orgId);
+
+  // No tenant. Only EnerTrack's own staff get the cross-tenant view, and that
+  // is decided by their role, never by the mere absence of an x-org-id header.
+  if (ctx.isPlatformSide) return records;
+
+  // Anyone else with no tenant belongs nowhere, so they see nothing. This
+  // fails closed on purpose: a self-registered account arrives with a null
+  // organization_id, and the old "no org means show everything" rule handed
+  // it the whole platform.
+  return [];
 }
 
 /**
@@ -50,8 +64,11 @@ export function assertTenantOwns<T extends { organization_id?: string | null }>(
 ): T | undefined {
   if (!record) return undefined;
   const ctx = getTenantContext();
-  if (!ctx || !ctx.orgId) return record;
-  return record.organization_id === ctx.orgId ? record : undefined;
+  if (!ctx) return record;
+  if (ctx.orgId)
+    return record.organization_id === ctx.orgId ? record : undefined;
+  if (ctx.isPlatformSide) return record;
+  return undefined;
 }
 
 /** Organisation the current request is acting within, if any. */
