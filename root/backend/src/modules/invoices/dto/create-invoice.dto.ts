@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsOptional, IsNumber, IsEnum } from "class-validator";
+import { IsString, IsUUID, IsOptional, IsNumber, IsEnum, IsBoolean } from "class-validator";
 import { InvoiceStatus } from "../../../core/database/database.service";
 
 export class CreateInvoiceDto {
@@ -10,4 +10,9 @@ export class CreateInvoiceDto {
   @IsString() vendor: string;
   @IsNumber() amount: number;
   @IsEnum(InvoiceStatus) status: InvoiceStatus;
+  @IsOptional() @IsString() type?: string;
+  @IsOptional() @IsString() due_date?: string;
+  @IsOptional() @IsString() issued_date?: string;
+  @IsOptional() @IsString() department_label?: string;
+  @IsOptional() @IsBoolean() archived?: boolean;
 }

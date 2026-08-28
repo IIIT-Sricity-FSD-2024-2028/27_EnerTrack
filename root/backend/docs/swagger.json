@@ -6212,11 +6212,16 @@
         "example": {
           "organization_id": "org-001",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "department_label": "Academic Affairs",
           "approved_by_id": "550e8400-0002-4000-8000-000000000002",
           "invoice_number": "INV-0001",
-          "vendor": "Vendor 1",
+          "vendor": "City Power Corp",
           "amount": 500,
-          "status": "approved"
+          "type": "electricity",
+          "issued_date": "2025-02-01",
+          "due_date": "2025-03-15",
+          "status": "approved",
+          "archived": false
         }
       },
       "PutInvoiceDto": {
@@ -6229,11 +6234,16 @@
         "example": {
           "organization_id": "org-001",
           "department_id": "dddd0000-0002-4000-8000-000000000000",
+          "department_label": "Academic Affairs",
           "approved_by_id": "550e8400-0002-4000-8000-000000000002",
           "invoice_number": "INV-0001",
-          "vendor": "Vendor 1",
+          "vendor": "City Power Corp",
           "amount": 500,
-          "status": "approved"
+          "type": "electricity",
+          "issued_date": "2025-02-01",
+          "due_date": "2025-03-15",
+          "status": "approved",
+          "archived": false
         }
       },
       "CreateFinancialReportDto": {

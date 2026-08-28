@@ -48,7 +48,7 @@ export function renderInvoiceList(filter = {}) {
     .map(
       (inv) => `
     <tr data-id="${inv.id}">
-      <td>${inv.invoiceNumber}</td>
+      <td>${inv.invoiceNumber || "—"}</td>
       <td>${inv.vendor}</td>
       <td>${inv.departmentLabel}</td>
       <td>${formatCurrency(inv.amount)}</td>
@@ -221,32 +221,61 @@ function _submitAddInvoice() {
   }
 
   const dept = FinanceDB.departments.find((d) => d.id === data.dept);
+  const deptMap = {
+    "dept-001": "dddd0000-0001-4000-8000-000000000000",
+    "dept-002": "dddd0000-0002-4000-8000-000000000000",
+    "dept-003": "dddd0000-0003-4000-8000-000000000000",
+    "dept-004": "dddd0000-0004-4000-8000-000000000000",
+    "dept-005": "dddd0000-0005-4000-8000-000000000000",
+    "dept-006": "dddd0000-0006-4000-8000-000000000000",
+    "dept-007": "dddd0000-0007-4000-8000-000000000000",
+    "dept-008": "dddd0000-0008-4000-8000-000000000000",
+  };
+  const deptUUID = deptMap[data.dept] || (data.dept.includes("-") && data.dept.length > 20 ? data.dept : "dddd0000-0001-4000-8000-000000000000");
+
+  const payload = {
+    invoice_number: data.number.trim(),
+    vendor: data.vendor.trim(),
+    amount: Number(data.amount),
+    department_id: deptUUID,
+    department_label: dept?.name ?? data.dept,
+    due_date: data.due,
+    issued_date: data.issued,
+    type: data.type,
+    status: "pending",
+    archived: false,
+  };
+
   const newInv = {
     invoiceNumber: data.number.trim(),
     vendor: data.vendor.trim(),
     amount: Number(data.amount),
-    department: data.dept,
+    department: deptUUID,
     departmentLabel: dept?.name ?? data.dept,
     dueDate: data.due,
     issuedDate: data.issued,
     type: data.type,
     status: "pending",
+    archived: false,
   };
 
   if (window.api) {
     window.api
-      .post("/invoices", newInv)
+      .post("/invoices", payload)
       .then((res) => {
         if (res) {
           const invWithId = {
             ...newInv,
-            id: res.invoice_id || generateId("inv"),
+            id: res.invoice_id || res.id || generateId("inv"),
           };
           FinanceDB.invoices.push(invWithId);
           _finishAdd(invWithId);
         }
       })
-      .catch(console.warn);
+      .catch((err) => {
+        console.error("Failed to add invoice:", err);
+        showToast("Error saving invoice to server: " + err.message, "error");
+      });
   } else {
     const invWithId = { ...newInv, id: generateId("inv") };
     FinanceDB.invoices.push(invWithId);
@@ -279,7 +308,7 @@ export function editInvoice(id) {
   const deptOptions = FinanceDB.departments
     .map(
       (d) =>
-        `<option value="${d.id}" ${d.id === inv.department ? "selected" : ""}>${d.name}</option>`,
+        `<option value="${d.id}" ${d.id === inv.department || d.name === inv.departmentLabel ? "selected" : ""}>${d.name}</option>`,
     )
     .join("");
 
@@ -321,7 +350,7 @@ export function editInvoice(id) {
           </div>
           <div class="fm-group">
             <label>Due Date *</label>
-            <input id="ei-due" type="date" value="${inv.dueDate}">
+            <input id="ei-due" type="date" value="${inv.dueDate || inv.due_date || ""}">
           </div>
         </div>
         <div class="fm-group">
@@ -399,13 +428,36 @@ function _submitEditInvoice(id) {
 
   const idx = FinanceDB.invoices.findIndex((i) => i.id === id);
   if (idx < 0) return;
+
   const dept = FinanceDB.departments.find((d) => d.id === data.dept);
+  const deptMap = {
+    "dept-001": "dddd0000-0001-4000-8000-000000000000",
+    "dept-002": "dddd0000-0002-4000-8000-000000000000",
+    "dept-003": "dddd0000-0003-4000-8000-000000000000",
+    "dept-004": "dddd0000-0004-4000-8000-000000000000",
+    "dept-005": "dddd0000-0005-4000-8000-000000000000",
+    "dept-006": "dddd0000-0006-4000-8000-000000000000",
+    "dept-007": "dddd0000-0007-4000-8000-000000000000",
+    "dept-008": "dddd0000-0008-4000-8000-000000000000",
+  };
+  const deptUUID = deptMap[data.dept] || (data.dept.includes("-") && data.dept.length > 20 ? data.dept : "dddd0000-0001-4000-8000-000000000000");
 
   const payload = {
+    invoice_number: data.number.trim(),
+    vendor: data.vendor.trim(),
+    amount: Number(data.amount),
+    department_id: deptUUID,
+    department_label: dept?.name ?? data.dept,
+    due_date: data.due,
+    type: data.type,
+    status: data.status,
+  };
+
+  const localUpdate = {
     invoiceNumber: data.number.trim(),
     vendor: data.vendor.trim(),
     amount: Number(data.amount),
-    department: data.dept,
+    department: deptUUID,
     departmentLabel: dept?.name ?? data.dept,
     dueDate: data.due,
     type: data.type,
@@ -416,12 +468,15 @@ function _submitEditInvoice(id) {
     window.api
       .patch(`/invoices/${id}`, payload)
       .then(() => {
-        Object.assign(FinanceDB.invoices[idx], payload);
+        Object.assign(FinanceDB.invoices[idx], localUpdate);
         _finishEdit();
       })
-      .catch(console.warn);
+      .catch((err) => {
+        console.error("Failed to edit invoice:", err);
+        showToast("Error updating invoice: " + err.message, "error");
+      });
   } else {
-    Object.assign(FinanceDB.invoices[idx], payload);
+    Object.assign(FinanceDB.invoices[idx], localUpdate);
     _finishEdit();
   }
 
@@ -453,20 +508,27 @@ export function approveInvoice(id) {
     bodyHTML: `<p>Approve <strong>${inv.invoiceNumber}</strong> from <strong>${inv.vendor}</strong> for <strong>${formatCurrency(inv.amount)}</strong>?</p>`,
     confirmLabel: "Approve",
     onConfirm: () => {
-      const payload = {
+      const apiPayload = {
         status: "approved",
-        approvedBy: window.FinanceDB?.session?.user?.name ?? "Analyst",
+        approved_by_id: "550e8400-0002-4000-8000-000000000002",
+      };
+      const localUpdate = {
+        status: "approved",
+        approvedBy: window.FinanceDB?.session?.user?.name ?? "Husaam",
       };
       if (window.api) {
         window.api
-          .patch(`/invoices/${id}`, payload)
+          .patch(`/invoices/${id}`, apiPayload)
           .then(() => {
-            Object.assign(inv, payload);
+            Object.assign(inv, localUpdate);
             _finishApprove();
           })
-          .catch(console.warn);
+          .catch((err) => {
+            console.error("Approve invoice failed:", err);
+            showToast("Failed to approve invoice: " + err.message, "error");
+          });
       } else {
-        Object.assign(inv, payload);
+        Object.assign(inv, localUpdate);
         _finishApprove();
       }
 
@@ -503,7 +565,10 @@ export function archiveInvoice(id) {
             inv.archived = true;
             _finishArchive();
           })
-          .catch(console.warn);
+          .catch((err) => {
+            console.error("Archive invoice failed:", err);
+            showToast("Failed to archive invoice: " + err.message, "error");
+          });
       } else {
         inv.archived = true;
         _finishArchive();
@@ -549,7 +614,10 @@ export function deleteInvoice(id) {
             );
             _finishDelete();
           })
-          .catch(console.warn);
+          .catch((err) => {
+            console.error("Delete invoice failed:", err);
+            showToast("Failed to delete invoice: " + err.message, "error");
+          });
       } else {
         universalDB.data.finance.invoices = FinanceDB.invoices.filter(
           (i) => i.id !== id,

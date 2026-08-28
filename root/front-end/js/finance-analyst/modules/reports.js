@@ -237,40 +237,65 @@ function _submitAddReport() {
     return false;
   }
 
+  const roiNum = data.roi !== "" ? Number(data.roi) : null;
+  const npvNum = data.npv !== "" ? Number(data.npv) : null;
+  const paybackNum = data.payback !== "" ? Number(data.payback) : null;
+  const scopeType = data.scope.includes("Campus")
+    ? "campus"
+    : data.scope.includes("Dept")
+      ? "department"
+      : "building";
+
+  const payload = {
+    title: data.title.trim(),
+    period: data.period.trim(),
+    category: data.category,
+    scope: scopeType,
+    scope_label: data.scope,
+    format: data.format,
+    roi: roiNum != null ? `${roiNum}%` : undefined,
+    npv: npvNum != null ? npvNum : undefined,
+    payback_years: paybackNum != null ? paybackNum : undefined,
+    status: data.status,
+    notes: data.notes.trim() || undefined,
+    generated_by_id: "550e8400-0002-4000-8000-000000000002",
+    archived: false,
+  };
+
   const newRep = {
     title: data.title.trim(),
     period: data.period.trim(),
     category: data.category,
-    scope: data.scope.includes("Campus")
-      ? "campus"
-      : data.scope.includes("Dept")
-        ? "department"
-        : "building",
+    scope: scopeType,
     scopeLabel: data.scope,
     generatedAt: new Date().toISOString(),
     generatedBy: window.FinanceDB?.session?.user?.name ?? "Analyst",
     format: data.format,
-    roi: data.roi !== "" ? Number(data.roi) : null,
-    npv: data.npv !== "" ? Number(data.npv) : null,
-    paybackYears: data.payback !== "" ? Number(data.payback) : null,
+    roi: roiNum,
+    npv: npvNum,
+    paybackYears: paybackNum,
     status: data.status,
     notes: data.notes.trim(),
+    archived: false,
   };
 
   if (window.api) {
     window.api
-      .post("/financial-reports", newRep)
+      .post("/financial-reports", payload)
       .then((res) => {
         if (res) {
           const repWithId = {
             ...newRep,
-            id: res.report_id || generateId("rep"),
+            id: res.financial_report_id || res.id || generateId("rep"),
           };
           FinanceDB.financialReports.unshift(repWithId);
           _finishAdd(repWithId);
         }
       })
-      .catch(console.warn);
+      .catch((err) => {
+        console.error("Failed to generate report:", err);
+        showToast("Error saving report to server: " + err.message, "error");
+      });
   } else {
     const repWithId = { ...newRep, id: generateId("rep") };
     FinanceDB.financialReports.unshift(repWithId);
@@ -385,11 +410,24 @@ function _submitEditReport(id) {
   const idx = FinanceDB.financialReports.findIndex((r) => r.id === id);
   if (idx < 0) return;
 
+  const roiNum = data.roi !== "" ? Number(data.roi) : null;
+  const npvNum = data.npv !== "" ? Number(data.npv) : null;
+  const paybackNum = data.payback !== "" ? Number(data.payback) : null;
+
   const payload = {
     title: data.title.trim(),
-    roi: data.roi !== "" ? Number(data.roi) : null,
-    npv: data.npv !== "" ? Number(data.npv) : null,
-    paybackYears: data.payback !== "" ? Number(data.payback) : null,
+    roi: roiNum != null ? `${roiNum}%` : undefined,
+    npv: npvNum != null ? npvNum : undefined,
+    payback_years: paybackNum != null ? paybackNum : undefined,
+    status: data.status,
+    notes: data.notes.trim() || undefined,
+  };
+
+  const localUpdate = {
+    title: data.title.trim(),
+    roi: roiNum,
+    npv: npvNum,
+    paybackYears: paybackNum,
     status: data.status,
     notes: data.notes.trim(),
   };
@@ -398,12 +436,15 @@ function _submitEditReport(id) {
     window.api
       .patch(`/financial-reports/${id}`, payload)
       .then(() => {
-        Object.assign(FinanceDB.financialReports[idx], payload);
+        Object.assign(FinanceDB.financialReports[idx], localUpdate);
         _finishEdit();
       })
-      .catch(console.warn);
+      .catch((err) => {
+        console.error("Failed to edit report:", err);
+        showToast("Error updating report: " + err.message, "error");
+      });
   } else {
-    Object.assign(FinanceDB.financialReports[idx], payload);
+    Object.assign(FinanceDB.financialReports[idx], localUpdate);
     _finishEdit();
   }
 
@@ -482,7 +523,10 @@ export function archiveReport(id) {
             rep.archived = true;
             _finishArchive();
           })
-          .catch(console.warn);
+          .catch((err) => {
+            console.error("Archive report failed:", err);
+            showToast("Failed to archive report: " + err.message, "error");
+          });
       } else {
         rep.archived = true;
         _finishArchive();

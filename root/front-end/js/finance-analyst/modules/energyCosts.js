@@ -141,31 +141,31 @@ export function openAddCostModal() {
         </div>
         <div class="fm-row">
           <div class="fm-group">
-            <label>Electricity ($) *</label>
+            <label>Electricity (₹) *</label>
             <input id="ac-elec" type="number" placeholder="0" min="0">
           </div>
           <div class="fm-group">
-            <label>Gas ($) *</label>
+            <label>Gas (₹) *</label>
             <input id="ac-gas" type="number" placeholder="0" min="0">
           </div>
         </div>
         <div class="fm-row">
           <div class="fm-group">
-            <label>Water ($) *</label>
+            <label>Water (₹) *</label>
             <input id="ac-water" type="number" placeholder="0" min="0">
           </div>
           <div class="fm-group">
-            <label>Wastewater ($) *</label>
+            <label>Wastewater (₹) *</label>
             <input id="ac-wastewater" type="number" placeholder="0" min="0">
           </div>
         </div>
         <div class="fm-row">
           <div class="fm-group">
-            <label>Demand Charge ($) *</label>
+            <label>Demand Charge (₹) *</label>
             <input id="ac-demand" type="number" placeholder="0" min="0">
           </div>
           <div class="fm-group">
-            <label>Budget ($) *</label>
+            <label>Budget (₹) *</label>
             <input id="ac-budget" type="number" placeholder="0" min="1">
           </div>
         </div>
@@ -264,6 +264,51 @@ function _submitAddCost() {
   const budget = Number(fields.budget.value);
   const variance = budget - total;
 
+  const deptMap = {
+    "dept-001": "dddd0000-0001-4000-8000-000000000000",
+    "dept-002": "dddd0000-0002-4000-8000-000000000000",
+    "dept-003": "dddd0000-0003-4000-8000-000000000000",
+    "dept-004": "dddd0000-0004-4000-8000-000000000000",
+    "dept-005": "dddd0000-0005-4000-8000-000000000000",
+    "dept-006": "dddd0000-0006-4000-8000-000000000000",
+    "dept-007": "dddd0000-0007-4000-8000-000000000000",
+    "dept-008": "dddd0000-0008-4000-8000-000000000000",
+  };
+  const bldgMap = {
+    "bldg-001": "660e8800-0001-4000-8000-000000000000",
+    "bldg-002": "660e8800-0002-4000-8000-000000000000",
+    "bldg-003": "660e8800-0003-4000-8000-000000000000",
+    "bldg-004": "660e8800-0004-4000-8000-000000000000",
+    "bldg-005": "660e8800-0005-4000-8000-000000000000",
+  };
+
+  const building_id = scopeType === "building" ? (bldgMap[scopeId] || (scopeId?.includes("-") && scopeId.length > 20 ? scopeId : "660e8800-0001-4000-8000-000000000000")) : undefined;
+  const department_id = scopeType === "department" ? (deptMap[scopeId] || (scopeId?.includes("-") && scopeId.length > 20 ? scopeId : "dddd0000-0001-4000-8000-000000000000")) : undefined;
+
+  const payload = {
+    period: periodVal,
+    electricity: elec,
+    gas,
+    water,
+    wastewater,
+    demand,
+    total,
+    budget,
+    variance,
+    scope: scopeType,
+    scope_label: scopeLabel,
+    scopeRef: scopeId,
+    scopeLabel: scopeLabel,
+    building_id,
+    department_id,
+    status:
+      variance > 0
+        ? "under-budget"
+        : variance === 0
+          ? "on-budget"
+          : "over-budget",
+  };
+
   const newRec = {
     period: periodVal,
     scope: scopeType,
@@ -277,28 +322,26 @@ function _submitAddCost() {
     total,
     budget,
     variance,
-    status:
-      variance > 0
-        ? "under-budget"
-        : variance === 0
-          ? "on-budget"
-          : "over-budget",
+    status: payload.status,
   };
 
   if (window.api) {
     window.api
-      .post("/energy-costs", newRec)
+      .post("/energy-costs", payload)
       .then((res) => {
         if (res) {
           const recWithId = {
             ...newRec,
-            id: res.energy_cost_id || generateId("ec"),
+            id: res.energy_cost_id || res.id || generateId("ec"),
           };
           FinanceDB.energyCosts.push(recWithId);
           _finishAdd(recWithId);
         }
       })
-      .catch(console.warn);
+      .catch((err) => {
+        console.error("Failed to add energy cost:", err);
+        showToast("Error saving cost record: " + err.message, "error");
+      });
   } else {
     const recWithId = { ...newRec, id: generateId("ec") };
     FinanceDB.energyCosts.push(recWithId);
@@ -335,31 +378,31 @@ export function editCostRecord(id) {
         <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Period: <strong>${rec.period}</strong> — Scope: <strong>${rec.scopeLabel}</strong></p>
         <div class="fm-row">
           <div class="fm-group">
-            <label>Electricity ($) *</label>
+            <label>Electricity (₹) *</label>
             <input id="ecc-elec" type="number" value="${rec.electricity}" min="0">
           </div>
           <div class="fm-group">
-            <label>Gas ($) *</label>
+            <label>Gas (₹) *</label>
             <input id="ecc-gas" type="number" value="${rec.gas}" min="0">
           </div>
         </div>
         <div class="fm-row">
           <div class="fm-group">
-            <label>Water ($) *</label>
+            <label>Water (₹) *</label>
             <input id="ecc-water" type="number" value="${rec.water}" min="0">
           </div>
           <div class="fm-group">
-            <label>Wastewater ($) *</label>
+            <label>Wastewater (₹) *</label>
             <input id="ecc-wastewater" type="number" value="${rec.wastewater || 0}" min="0">
           </div>
         </div>
         <div class="fm-row">
           <div class="fm-group">
-            <label>Demand Charge ($) *</label>
+            <label>Demand Charge (₹) *</label>
             <input id="ecc-demand" type="number" value="${rec.demand}" min="0">
           </div>
           <div class="fm-group">
-            <label>Budget ($) *</label>
+            <label>Budget (₹) *</label>
             <input id="ecc-budget" type="number" value="${rec.budget}" min="1">
           </div>
         </div>

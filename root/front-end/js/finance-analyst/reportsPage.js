@@ -21,9 +21,84 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.api.get("/financial-reports").catch(() => null),
         window.api.get("/invoices").catch(() => null),
       ]);
-      if (Array.isArray(reports))
-        universalDB.data.finance.financialReports = reports;
-      if (Array.isArray(invoices)) universalDB.data.finance.invoices = invoices;
+
+      // ── Normalize Financial Reports ─────────────────────────────────────
+      // Backend sends: { financial_report_id, title, period, roi (string), npv,
+      //   building_id, department_id, generated_by_id }
+      // Frontend needs: { id, title, period, category, scopeLabel, roi (number),
+      //   npv, paybackYears, status, format, generatedBy, notes }
+      if (Array.isArray(reports)) {
+        universalDB.data.finance.financialReports = reports.map((rep) => {
+          // Parse ROI — backend stores as "15%" string or number
+          const roiRaw = rep.roi;
+          const roiNum = roiRaw != null
+            ? parseFloat(String(roiRaw).replace("%", ""))
+            : null;
+          // Derive viability status from ROI
+          const status = roiNum == null ? "marginal"
+            : roiNum >= 15 ? "viable"
+            : roiNum >= 8  ? "marginal"
+            : "not-viable";
+          // Derive scopeLabel from available IDs
+          const scopeLabel = rep.department_id
+            ? "Department (" + rep.department_id.slice(-8) + ")"
+            : rep.building_id
+            ? "Building (" + rep.building_id.slice(-8) + ")"
+            : "Campus";
+
+          return {
+            id:           rep.financial_report_id || rep.id,
+            title:        rep.title || "Untitled Report",
+            period:       rep.period || "—",
+            category:     rep.category || "energy",
+            scope:        rep.scope || (rep.department_id ? "department" : rep.building_id ? "building" : "campus"),
+            scopeLabel:   rep.scope_label || rep.scopeLabel || scopeLabel,
+            generatedAt:  rep.generated_at || rep.generatedAt || new Date().toISOString(),
+            generatedBy:  rep.generated_by_id || rep.generatedBy || "System",
+            format:       rep.format || "PDF",
+            roi:          roiNum,
+            npv:          rep.npv != null ? Number(rep.npv) : null,
+            paybackYears: rep.payback_years != null ? Number(rep.payback_years)
+                          : rep.paybackYears != null ? Number(rep.paybackYears)
+                          : null,
+            status:       rep.status || status,
+            notes:        rep.notes || "",
+            archived:     rep.archived === true || rep.archived === "true",
+          };
+        });
+      }
+
+      // ── Normalize Invoices ──────────────────────────────────────────────
+      // Backend sends: { invoice_id, invoice_number, vendor, amount, status,
+      //   department_id, approved_by_id }
+      // Frontend needs: { id, invoiceNumber, vendor, amount, status,
+      //   department, departmentLabel, type, dueDate, issuedDate, approvedBy, archived }
+      if (Array.isArray(invoices)) {
+        // Build a quick dept-label lookup from local mock data (has short IDs)
+        // Backend uses UUID dept IDs, so we fall back gracefully
+        const deptLookup = {};
+        (universalDB.data.finance.departments || []).forEach((d) => {
+          deptLookup[d.id] = d.name;
+        });
+
+        universalDB.data.finance.invoices = invoices.map((inv) => ({
+          id:             inv.invoice_id || inv.id,
+          invoiceNumber:  inv.invoice_number || inv.invoiceNumber || inv.invoice_id || "—",
+          vendor:         inv.vendor || "—",
+          amount:         Number(inv.amount) || 0,
+          department:     inv.department_id || inv.department || "",
+          departmentLabel: deptLookup[inv.department_id]
+                          || inv.department_label
+                          || inv.departmentLabel
+                          || (inv.department_id ? "Dept " + inv.department_id.slice(-4) : "—"),
+          type:           inv.type || "utility",
+          dueDate:        inv.due_date || inv.dueDate || null,
+          issuedDate:     inv.issued_date || inv.issuedDate || null,
+          status:         inv.status || "pending",
+          approvedBy:     inv.approved_by_id || inv.approvedBy || null,
+          archived:       inv.archived === true || inv.archived === "true",
+        }));
+      }
     } catch (err) {
       console.warn(
         "[Finance] Backend fetch failed, using local data:",

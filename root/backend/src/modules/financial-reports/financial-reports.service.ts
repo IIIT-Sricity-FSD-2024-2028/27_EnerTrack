@@ -48,7 +48,15 @@ export class FinancialReportsService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { financial_report_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
+    const generated_by_id = createDto.generated_by_id || "550e8400-0002-4000-8000-000000000002";
+    const orgId = currentOrgId() ?? createDto.organization_id ?? "org-001";
+    const newRecord = {
+      financial_report_id: generatedId,
+      ...createDto,
+      generated_by_id,
+      organization_id: orgId,
+      archived: createDto.archived ?? false,
+    };
     this.database.financialReports.push(newRecord as any);
     return newRecord;
   }
