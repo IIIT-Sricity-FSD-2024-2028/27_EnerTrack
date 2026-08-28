@@ -11,6 +11,10 @@ import {
 import universalDB from "../../shared/universalDB.js";
 
 export function renderUserManagement(container, app) {
+  ORG_NAMES = Object.fromEntries(
+    (app.state.organizations || []).map((o) => [o.organization_id, o.name]),
+  );
+
   const rows = app.state.users.map(renderUserRow).join("");
 
   container.innerHTML = `
@@ -31,13 +35,14 @@ export function renderUserManagement(container, app) {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
+                <th>Organisation</th>
                 <th>Role</th>
                 <th>Specialization</th>
                 <th class="actions-col">Actions</th>
               </tr>
             </thead>
             <tbody>
-              ${rows || `<tr><td colspan="6"><div class="empty-state">No users found.</div></td></tr>`}
+              ${rows || `<tr><td colspan="7"><div class="empty-state">No users found.</div></td></tr>`}
             </tbody>
           </table>
         </div>
@@ -60,6 +65,15 @@ export function renderUserManagement(container, app) {
   });
 }
 
+/* Organisation names, filled on each render so rows can show a name instead
+   of a raw id. EnerTrack's own staff have no organisation, hence the dash. */
+let ORG_NAMES = {};
+
+function orgName(id) {
+  if (!id) return "EnerTrack (staff)";
+  return ORG_NAMES[id] || id;
+}
+
 function renderUserRow(user) {
   let isCurrentUser = false;
   try {
@@ -74,6 +88,7 @@ function renderUserRow(user) {
       <td><strong>${escapeHtml(user.name)}</strong><div class="muted-cell">${escapeHtml(user.user_id)}</div></td>
       <td>${escapeHtml(user.email)}</td>
       <td>${escapeHtml(user.phone || "-")}</td>
+      <td>${escapeHtml(orgName(user.organization_id))}</td>
       <td>${escapeHtml(formatLabel(user.role))}</td>
       <td>${escapeHtml(user.specialization || "-")}</td>
       <td>

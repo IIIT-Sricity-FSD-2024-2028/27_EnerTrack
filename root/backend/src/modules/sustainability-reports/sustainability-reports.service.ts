@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateSustainabilityReportDto } from "./dto/create-sustainability-report.dto";
 import { PutSustainabilityReportDto } from "./dto/put-sustainability-report.dto";
 
@@ -29,7 +33,7 @@ export class SustainabilityReportsService {
     const newRecord = {
       report_id: generatedId,
       ...createDto,
-      organization_id: createDto.organization_id ?? currentOrgId(),
+      organization_id: currentOrgId() ?? createDto.organization_id ?? null,
       generated_at: new Date().toISOString(),
     };
     this.database.sustainabilityReports.push(newRecord as any);
@@ -41,9 +45,9 @@ export class SustainabilityReportsService {
   }
 
   findOne(id: string) {
-    const record = this.database.sustainabilityReports.find(
+    const record = assertTenantOwns(this.database.sustainabilityReports.find(
       (item) => item.report_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(
         `SustainabilityReport with ID ${id} not found`,
@@ -55,7 +59,7 @@ export class SustainabilityReportsService {
     const index = this.database.sustainabilityReports.findIndex(
       (item) => item.report_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.sustainabilityReports[index]))
       throw new NotFoundException(
         `Sustainability Report with ID ${id} not found`,
       );
@@ -69,13 +73,14 @@ export class SustainabilityReportsService {
     const index = this.database.sustainabilityReports.findIndex(
       (item) => item.report_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.sustainabilityReports[index]))
       throw new NotFoundException(
         `SustainabilityReport with ID ${id} not found`,
       );
     this.database.sustainabilityReports[index] = {
       ...this.database.sustainabilityReports[index],
       ...updateDto,
+      organization_id: this.database.sustainabilityReports[index].organization_id,
     };
     return this.database.sustainabilityReports[index];
   }
@@ -84,7 +89,7 @@ export class SustainabilityReportsService {
     const index = this.database.sustainabilityReports.findIndex(
       (item) => item.report_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.sustainabilityReports[index]))
       throw new NotFoundException(
         `SustainabilityReport with ID ${id} not found`,
       );

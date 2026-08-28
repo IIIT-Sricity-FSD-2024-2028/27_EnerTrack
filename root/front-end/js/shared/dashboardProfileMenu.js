@@ -18,8 +18,11 @@
         name: nameEl.textContent.trim(),
         role: roleEl.textContent.trim(),
       };
-      localStorage.setItem("currentUser", JSON.stringify(fallbackUser));
-      userData = localStorage.getItem("currentUser");
+      // Deliberately NOT persisted. Writing this to localStorage fabricates a
+      // reusable session out of the sidebar's placeholder markup, and api.js
+      // reads localStorage.currentUser for the x-role header on every request
+      // from then on, on every page. Keep it local to this render.
+      userData = JSON.stringify(fallbackUser);
     } else {
       return;
     }

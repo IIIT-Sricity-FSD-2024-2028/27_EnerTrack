@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateWastageReportDto } from "./dto/create-wastage-report.dto";
 import { PutWastageReportDto } from "./dto/put-wastage-report.dto";
 
@@ -35,7 +39,7 @@ export class WastageReportsService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { wastage_report_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { wastage_report_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.wastageReports.push(newRecord as any);
     return newRecord;
   }
@@ -43,7 +47,7 @@ export class WastageReportsService {
     const index = this.database.wastageReports.findIndex(
       (item) => item.wastage_report_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.wastageReports[index]))
       throw new NotFoundException(`Wastage Report with ID ${id} not found`);
 
     const photoPaths = files.map((f) => f.path);
@@ -67,9 +71,9 @@ export class WastageReportsService {
   }
 
   findOne(id: string) {
-    const record = this.database.wastageReports.find(
+    const record = assertTenantOwns(this.database.wastageReports.find(
       (item) => item.wastage_report_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(`WastageReport with ID ${id} not found`);
     return record;
@@ -79,7 +83,7 @@ export class WastageReportsService {
     const index = this.database.wastageReports.findIndex(
       (item) => item.wastage_report_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.wastageReports[index]))
       throw new NotFoundException(`Wastage Report with ID ${id} not found`);
     this.database.wastageReports[index] = {
       wastage_report_id: id,
@@ -91,11 +95,12 @@ export class WastageReportsService {
     const index = this.database.wastageReports.findIndex(
       (item) => item.wastage_report_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.wastageReports[index]))
       throw new NotFoundException(`WastageReport with ID ${id} not found`);
     this.database.wastageReports[index] = {
       ...this.database.wastageReports[index],
       ...updateDto,
+      organization_id: this.database.wastageReports[index].organization_id,
     };
     return this.database.wastageReports[index];
   }
@@ -104,7 +109,7 @@ export class WastageReportsService {
     const index = this.database.wastageReports.findIndex(
       (item) => item.wastage_report_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.wastageReports[index]))
       throw new NotFoundException(`WastageReport with ID ${id} not found`);
     const removed = this.database.wastageReports.splice(index, 1);
     return removed[0];

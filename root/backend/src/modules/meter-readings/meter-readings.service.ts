@@ -7,7 +7,11 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateMeterReadingDto } from "./dto/create-meter-reading.dto";
 import { PutMeterReadingDto } from "./dto/put-meter-reading.dto";
 
@@ -31,7 +35,7 @@ export class MeterReadingsService {
     const newRecord = {
       reading_id: generatedId,
       ...createDto,
-      organization_id: createDto.organization_id ?? currentOrgId(),
+      organization_id: currentOrgId() ?? createDto.organization_id ?? null,
       // Honour a caller-supplied timestamp so historical data can be
       // back-filled; fall back to now for live sensor pushes.
       timestamp: createDto.timestamp ?? new Date().toISOString(),
@@ -149,9 +153,9 @@ export class MeterReadingsService {
   }
 
   findOne(id: string) {
-    const record = this.database.meterReadings.find(
+    const record = assertTenantOwns(this.database.meterReadings.find(
       (item) => item.reading_id === id,
-    );
+    ));
     if (!record)
       throw new NotFoundException(`MeterReading with ID ${id} not found`);
     return record;
@@ -161,20 +165,25 @@ export class MeterReadingsService {
     const index = this.database.meterReadings.findIndex(
       (item) => item.reading_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.meterReadings[index]))
       throw new NotFoundException(`Meter Reading with ID ${id} not found`);
-    this.database.meterReadings[index] = { reading_id: id, ...putDto } as any;
+    this.database.meterReadings[index] = {
+      reading_id: id,
+      ...putDto,
+      organization_id: this.database.meterReadings[index].organization_id,
+    } as any;
     return this.database.meterReadings[index];
   }
   update(id: string, updateDto: UpdateMeterReadingDto) {
     const index = this.database.meterReadings.findIndex(
       (item) => item.reading_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.meterReadings[index]))
       throw new NotFoundException(`MeterReading with ID ${id} not found`);
     this.database.meterReadings[index] = {
       ...this.database.meterReadings[index],
       ...updateDto,
+      organization_id: this.database.meterReadings[index].organization_id,
     };
     return this.database.meterReadings[index];
   }
@@ -183,7 +192,7 @@ export class MeterReadingsService {
     const index = this.database.meterReadings.findIndex(
       (item) => item.reading_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.meterReadings[index]))
       throw new NotFoundException(`MeterReading with ID ${id} not found`);
     const removed = this.database.meterReadings.splice(index, 1);
     return removed[0];

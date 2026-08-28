@@ -1,6 +1,18 @@
 import { renderInfrastructureManager } from "./infrastructureManager.js";
+import { renderOrganizationsManager } from "./organizationsManager.js";
 import { renderUserManagement } from "./UserManagement.js";
 import { formatLabel } from "../utils/ui.js";
+
+/** The signed-in user, or null. Session first, localStorage as the fallback. */
+function currentUser(app) {
+  const stored = localStorage.getItem("currentUser");
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (_) {}
+  }
+  return app.state.session?.user || null;
+}
 
 export function renderAdminLayout(root, app) {
   // Show a loading skeleton while backend data is being fetched
@@ -21,8 +33,21 @@ export function renderAdminLayout(root, app) {
   wireTabs(app);
 
   const view = root.querySelector("#adminView");
+
+  // activeTab is restored from localStorage, so a client admin sitting on a
+  // machine where a Super Admin was last signed in would otherwise land
+  // straight on a tab they cannot use. Fall back rather than render it.
+  if (
+    app.activeTab === "organizations" &&
+    currentUser(app)?.role !== "Super Admin"
+  ) {
+    app.activeTab = "users";
+  }
+
   if (app.activeTab === "infrastructure") {
     renderInfrastructureManager(view, app);
+  } else if (app.activeTab === "organizations") {
+    renderOrganizationsManager(view, app);
   } else {
     renderUserManagement(view, app);
   }
@@ -37,6 +62,14 @@ function syncChrome(app) {
       user = JSON.parse(currentUserData);
     } catch (_) {}
   }
+  // Runs before the early return below: with no session at all the tab must
+  // be hidden, not left visible by default. Convenience only, since every rule
+  // behind these tabs is enforced by the backend.
+  document.querySelectorAll("[data-requires-role]").forEach((button) => {
+    button.style.display =
+      user && user.role === button.dataset.requiresRole ? "" : "none";
+  });
+
   if (!user) return; // nothing to render yet
 
   const firstName = user.name?.split(" ")[0] || "Admin";
@@ -46,9 +79,12 @@ function syncChrome(app) {
   setText("welcomeHeading", `Welcome back, ${firstName}`);
   setText(
     "pageSubheading",
-    app.activeTab === "infrastructure"
-      ? "Maintain campuses, buildings, departments, and meter inventory."
-      : "Manage campus users, roles, and login access.",
+    {
+      infrastructure:
+        "Maintain campuses, buildings, departments, and meter inventory.",
+      organizations:
+        "Client organisations. Each one is a separate tenant with its own isolated data.",
+    }[app.activeTab] || "Manage campus users, roles, and login access.",
   );
 
   document.querySelectorAll("[data-admin-tab]").forEach((button) => {

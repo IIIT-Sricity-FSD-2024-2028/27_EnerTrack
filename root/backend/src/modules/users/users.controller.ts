@@ -40,7 +40,7 @@ export class UsersController {
   })
   @ApiResponse({ status: 201, description: 'User created successfully.' })
   register(@Body() createDto: CreateUserDto) {
-    return this.usersService.create(createDto);
+    return this.usersService.register(createDto);
   }
 
   @Post()

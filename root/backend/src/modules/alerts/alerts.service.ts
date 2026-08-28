@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
-import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
+import {
+  scopeToTenant,
+  currentOrgId,
+  assertTenantOwns,
+} from "../../core/tenancy/tenant-context";
 import { CreateAlertDto } from "./dto/create-alert.dto";
 import { PutAlertDto } from "./dto/put-alert.dto";
 
@@ -36,7 +40,7 @@ export class AlertsService {
     }
     const nextId = this.database.alerts.length + 1;
     const generatedId = `ALT-${nextId.toString().padStart(3, "0")}`;
-    const newRecord = { alert_id: generatedId, ...createDto, organization_id: createDto.organization_id ?? currentOrgId() };
+    const newRecord = { alert_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.alerts.push(newRecord as any);
     return newRecord;
   }
@@ -46,7 +50,7 @@ export class AlertsService {
   }
 
   findOne(id: string) {
-    const record = this.database.alerts.find((item) => item.alert_id === id);
+    const record = assertTenantOwns(this.database.alerts.find((item) => item.alert_id === id));
     if (!record) throw new NotFoundException(`Alert with ID ${id} not found`);
     return record;
   }
@@ -55,20 +59,25 @@ export class AlertsService {
     const index = this.database.alerts.findIndex(
       (item) => item.alert_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.alerts[index]))
       throw new NotFoundException(`Alert with ID ${id} not found`);
-    this.database.alerts[index] = { alert_id: id, ...putDto } as any;
+    this.database.alerts[index] = {
+      alert_id: id,
+      ...putDto,
+      organization_id: this.database.alerts[index].organization_id,
+    } as any;
     return this.database.alerts[index];
   }
   update(id: string, updateDto: UpdateAlertDto) {
     const index = this.database.alerts.findIndex(
       (item) => item.alert_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.alerts[index]))
       throw new NotFoundException(`Alert with ID ${id} not found`);
     this.database.alerts[index] = {
       ...this.database.alerts[index],
       ...updateDto,
+      organization_id: this.database.alerts[index].organization_id,
     };
     return this.database.alerts[index];
   }
@@ -77,14 +86,14 @@ export class AlertsService {
     const index = this.database.alerts.findIndex(
       (item) => item.alert_id === id,
     );
-    if (index === -1)
+    if (index === -1 || !assertTenantOwns(this.database.alerts[index]))
       throw new NotFoundException(`Alert with ID ${id} not found`);
     const removed = this.database.alerts.splice(index, 1);
     return removed[0];
   }
 
   getFaults(id: string) {
-    return this.database.faults.filter((item) => item.alert_id === id);
+    return scopeToTenant(this.database.faults.filter((item) => item.alert_id === id));
   }
 
   addMessage(id: string, message: any) {

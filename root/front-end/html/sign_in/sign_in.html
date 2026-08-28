@@ -3,24 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EnerTrack Login</title>
-    <link rel="stylesheet" href="../../css/sign_in/sign_in.css" />
+    <title>EnerTrack | Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="../../css/sign_in/sign_in.css" />
   </head>
 
   <body>
     <!-- BACKGROUND -->
     <div class="background">
-      <img src="../../assets/Background_image.png" alt="background" />
+      <img src="../../assets/hero.png" alt="" aria-hidden="true" />
     </div>
 
-    <!-- TOP BAR (logo overlaid on background) -->
+    <!-- TOP BAR -->
     <div class="top-bar">
       <a href="../landing/landing.html" class="logo">
-        <img src="../../assets/logo.png" alt="EnerTrack Logo" />
+        <img src="../../assets/logo.png" alt="EnerTrack" />
+      </a>
+      <a href="../landing/landing.html" class="back-link">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+        Back to site
       </a>
     </div>
 
@@ -28,80 +46,86 @@
     <div class="main">
       <!-- CARD -->
       <div class="card">
-        <h1>Sign In</h1>
-        <p class="sub">
-          or
-          <a href="../sign_up/sign_up.html" class="create-link"
-            >create an account</a
-          >
-        </p>
+        <h1>Welcome back</h1>
+        <p class="sub">Sign in to reach your EnerTrack dashboard.</p>
 
         <form id="signInForm" novalidate>
-          <input
-            type="email"
-            id="email"
-            placeholder="yourname@gmail.com"
-            class="input"
-            autocomplete="off"
-            required
-            autofocus
-            maxlength="50"
-          />
-          <span class="field-error" id="emailError"></span>
-
-          <div class="password-wrap">
+          <div class="field">
+            <label for="email">Email address</label>
             <input
-              type="password"
-              id="password"
-              placeholder="··········"
+              type="email"
+              id="email"
+              placeholder="yourname@gmail.com"
               class="input"
-              autocomplete="new-password"
-              minlength="8"
+              autocomplete="off"
               required
+              autofocus
               maxlength="50"
             />
-            <span class="eye" id="togglePassword" onclick="togglePass()">
-              <!-- Crossed-out eye (password hidden) -->
-              <svg
-                id="eyeClosed"
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="rgba(255,255,255,0.7)"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M17.94 17.94A10.94 10.94 0 0 1 12 20C6 20 1.73 14 1.73 12c0-.9.6-2.3 1.7-3.7"
-                />
-                <path
-                  d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10.27 6 10.27 8 0 .73-.22 1.6-.67 2.5"
-                />
-                <line x1="1" y1="1" x2="23" y2="23" />
-              </svg>
-              <!-- Open eye (password visible) -->
-              <svg
-                id="eyeOpen"
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="rgba(255,255,255,0.7)"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                style="display: none"
-              >
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </span>
+            <span class="field-error" id="emailError"></span>
           </div>
-          <span class="field-error" id="passwordError"></span>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="password-wrap">
+              <input
+                type="password"
+                id="password"
+                placeholder="Enter your password"
+                class="input"
+                autocomplete="new-password"
+                minlength="8"
+                required
+                maxlength="50"
+              />
+              <span
+                class="eye"
+                id="togglePassword"
+                onclick="togglePass()"
+                aria-label="Show or hide password"
+              >
+                <!-- Crossed-out eye (password hidden) -->
+                <svg
+                  id="eyeClosed"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M17.94 17.94A10.94 10.94 0 0 1 12 20C6 20 1.73 14 1.73 12c0-.9.6-2.3 1.7-3.7"
+                  />
+                  <path
+                    d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10.27 6 10.27 8 0 .73-.22 1.6-.67 2.5"
+                  />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+                <!-- Open eye (password visible) -->
+                <svg
+                  id="eyeOpen"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  style="display: none"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </span>
+            </div>
+            <span class="field-error" id="passwordError"></span>
+          </div>
 
           <button type="submit" class="btn" id="signInBtn">Sign In</button>
         </form>
