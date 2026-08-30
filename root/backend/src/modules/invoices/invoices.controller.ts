@@ -21,6 +21,7 @@ export class InvoicesController {
   @ApiResponse({ status: 201, description: "Invoice created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-org-id", description: "Organization/tenant ID for multi-tenant scoping.", required: false })
   @Roles("Financial Analyst", "System Administrator")
   create(@Body() createDto: CreateInvoiceDto) {
     return this.invoicesService.create(createDto);
@@ -42,6 +43,7 @@ export class InvoicesController {
   @ApiResponse({ status: 404, description: "Invoice with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-org-id", description: "Organization/tenant ID for multi-tenant scoping.", required: false })
   @Roles("Financial Analyst", "System Administrator")
   @UseInterceptors(FileInterceptor("file", documentUploadConfig))
   uploadDocument(@Param("id") id: string, @UploadedFile() file: Express.Multer.File) {
@@ -63,6 +65,7 @@ export class InvoicesController {
   @ApiResponse({ status: 404, description: "Invoice not found, or it has no document attached." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-org-id", description: "Organization/tenant ID for multi-tenant scoping.", required: false })
   @Roles("Financial Analyst", "System Administrator")
   downloadDocument(@Param("id") id: string, @Res() res: Response) {
     const { path, filename } = this.invoicesService.getDocument(id);
@@ -87,6 +90,7 @@ export class InvoicesController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-org-id", description: "Organization/tenant ID for multi-tenant scoping.", required: false })
   @Roles("Financial Analyst", "System Administrator")
   findOne(@Param("id") id: string) {
     return this.invoicesService.findOne(id);

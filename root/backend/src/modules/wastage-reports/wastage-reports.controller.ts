@@ -20,6 +20,7 @@ export class WastageReportsController {
   @ApiResponse({ status: 201, description: "Wastage report created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+ @ApiHeader({ name: "x-org-id", description: "Organization/tenant ID for multi-tenant scoping.", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   create(@Body() createDto: CreateWastageReportDto) {
     return this.wastageReportsService.create(createDto);
@@ -44,6 +45,7 @@ export class WastageReportsController {
   @ApiResponse({ status: 404, description: "Wastage report with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+ @ApiHeader({ name: "x-org-id", description: "Organization/tenant ID for multi-tenant scoping.", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   @UseInterceptors(FilesInterceptor("files", 4, photoUploadConfig))
   uploadPhotos(@Param("id") id: string, @UploadedFiles() files: Express.Multer.File[]) {
@@ -73,6 +75,7 @@ export class WastageReportsController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+ @ApiHeader({ name: "x-org-id", description: "Organization/tenant ID for multi-tenant scoping.", required: false })
   @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findOne(@Param("id") id: string) {
     return this.wastageReportsService.findOne(id);

@@ -2434,6 +2434,15 @@
         "description": "Submits a new wastage report. Any authenticated user (including Campus Visitor) can report wastage. Send a POST with a CreateWastageReportDto JSON body.",
         "parameters": [
           {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organization/tenant ID for multi-tenant scoping.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
             "in": "header",
             "description": "User role for RBAC.",
@@ -2508,6 +2517,15 @@
             }
           },
           {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organization/tenant ID for multi-tenant scoping.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
             "in": "header",
             "description": "User role for RBAC.",
@@ -2565,6 +2583,15 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organization/tenant ID for multi-tenant scoping.",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -4131,6 +4158,15 @@
         "description": "Creates a new invoice for a department. Financial Analyst and System Administrator can submit invoices.",
         "parameters": [
           {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organization/tenant ID for multi-tenant scoping.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
             "in": "header",
             "description": "User role for RBAC.",
@@ -4205,6 +4241,15 @@
             }
           },
           {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organization/tenant ID for multi-tenant scoping.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
             "in": "header",
             "description": "User role for RBAC.",
@@ -4262,6 +4307,15 @@
             }
           },
           {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organization/tenant ID for multi-tenant scoping.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
             "in": "header",
             "description": "User role for RBAC.",
@@ -4297,6 +4351,15 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organization/tenant ID for multi-tenant scoping.",
+            "required": false,
             "schema": {
               "type": "string"
             }
