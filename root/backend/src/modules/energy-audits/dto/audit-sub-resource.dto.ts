@@ -15,8 +15,6 @@ import {
 
 /** Body for PATCH /energy-audits/:id/survey. */
 export class UpdateSurveyDto {
-  @IsOptional() @IsNumber() @Min(0) buildings_surveyed?: number;
-  @IsOptional() @IsNumber() @Min(0) meters_found?: number;
   @IsOptional() @IsString() data_source_tier?: string;
   @IsOptional() @IsNumber() @Min(0) floor_area_sqm?: number;
   @IsOptional() @IsString() notes?: string;

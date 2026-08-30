@@ -24,6 +24,7 @@ import {
   requireAuditor,
   showToast,
 } from "./utils/utils.js";
+import { renderInfrastructureManager } from "../system_admin/modules/infrastructureManager.js";
 
 const STATUSES = ["proposed", "accepted", "implemented", "rejected"];
 const SEVERITIES = ["low", "moderate", "high"];
@@ -34,9 +35,102 @@ const state = {
   audits: [],
   orgs: [],
   buildings: [],
+  meters: [],
   plans: [],
   selectedId: null,
 };
+
+/**
+ * Campus/building/department/meter data for whichever audit is open.
+ *
+ * Kept separate from `state.buildings` (used elsewhere on this page for the
+ * findings' building picker) rather than as one shared cross-tenant cache,
+ * because commissioning only ever concerns one organisation at a time —
+ * reloading it fresh on every audit switch is simpler than keeping a
+ * multi-tenant cache in sync with per-org filtered views.
+ */
+const infra = {
+  orgId: null,
+  loading: false,
+  campuses: [],
+  buildings: [],
+  departments: [],
+  meters: [],
+  selectedCampusId: null,
+  selectedBuildingId: null,
+};
+
+function ensureInfraLoaded(audit) {
+  if (infra.orgId === audit.organization_id || infra.loading) return;
+  infra.loading = true;
+  Promise.all([
+    window.api.get("/campus"),
+    window.api.get("/buildings"),
+    window.api.get("/departments"),
+    window.api.get("/meters"),
+  ])
+    .then(([campuses, buildings, departments, meters]) => {
+      const orgId = audit.organization_id;
+      infra.orgId = orgId;
+      infra.campuses = campuses.filter((c) => c.organization_id === orgId);
+      infra.buildings = buildings.filter((b) => b.organization_id === orgId);
+      infra.departments = departments.filter((d) => d.organization_id === orgId);
+      infra.meters = meters.filter((m) => m.organization_id === orgId);
+      infra.selectedCampusId = null;
+      infra.selectedBuildingId = null;
+      infra.loading = false;
+      render();
+    })
+    .catch((err) => {
+      infra.loading = false;
+      showToast(err.message || "Could not load infrastructure.", "error");
+    });
+}
+
+/**
+ * Adapts this page's plain `state`/`render()` pair to the shape
+ * `renderInfrastructureManager` expects from the Organisation Admin's own
+ * dashboard (`app.state`, `app.selectedCampusId`, `app.update()`). Building
+ * a fresh one per render keeps it trivial to reason about — it's a thin
+ * view over `infra`, not a second copy of it.
+ */
+function infraApp(audit) {
+  const appState = {
+    get campuses() { return infra.campuses; },
+    set campuses(v) { infra.campuses = v; },
+    get buildings() { return infra.buildings; },
+    set buildings(v) { infra.buildings = v; },
+    get departments() { return infra.departments; },
+    set departments(v) { infra.departments = v; },
+    get meters() { return infra.meters; },
+    set meters(v) { infra.meters = v; },
+    get organizations() { return state.orgs; },
+  };
+
+  return {
+    // Signals to infrastructureManager.js's fetchOrgScoped() that every
+    // refresh must be filtered to this one organisation — a Certified
+    // Energy Auditor has no x-org-id of their own to scope requests by.
+    auditOrgId: audit.organization_id,
+    state: appState,
+    get selectedCampusId() { return infra.selectedCampusId; },
+    set selectedCampusId(v) { infra.selectedCampusId = v; },
+    get selectedBuildingId() { return infra.selectedBuildingId; },
+    set selectedBuildingId(v) { infra.selectedBuildingId = v; },
+    render() { render(); },
+    async update(mutator, message) {
+      const result = mutator(appState);
+      if (result instanceof Promise) await result;
+      // The findings' building picker and the survey's live counts read
+      // from state.buildings/state.meters, not from `infra` — refresh both
+      // so a building just added here shows up there without a reload.
+      state.buildings = await window.api.get("/buildings").catch(() => state.buildings);
+      state.meters = await window.api.get("/meters").catch(() => state.meters);
+      render();
+      if (message) showToast(message, "success");
+    },
+  };
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   state.user = requireAuditor();
@@ -45,10 +139,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const root = document.getElementById("auditorApp");
   root.innerHTML = `<div class="card"><p class="muted">Loading engagements…</p></div>`;
 
-  const [audits, orgs, buildings, plans] = await Promise.all([
+  const [audits, orgs, buildings, meters, plans] = await Promise.all([
     loadOrFail(() => window.api.get("/energy-audits"), "audits"),
     loadOrFail(() => window.api.get("/organizations"), "organisations"),
     loadOrFail(() => window.api.get("/buildings"), "buildings"),
+    loadOrFail(() => window.api.get("/meters"), "meters"),
     loadOrFail(() => window.api.get("/subscription-plans"), "tiers"),
   ]);
 
@@ -60,6 +155,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   state.audits = audits;
   state.orgs = orgs || [];
   state.buildings = buildings || [];
+  state.meters = meters || [];
   // Only live tiers can be proposed; a retired one would be refused server side.
   state.plans = (plans || []).filter((p) => p.is_active);
 
@@ -89,6 +185,7 @@ const tenantBuildings = (audit) =>
 function render() {
   const root = document.getElementById("auditorApp");
   const audit = selected();
+  if (audit) ensureInfraLoaded(audit);
 
   root.innerHTML = `
     <div class="grid2" style="grid-template-columns:300px 1fr;align-items:start">
@@ -97,6 +194,11 @@ function render() {
     </div>`;
 
   wire();
+
+  if (audit && infra.orgId === audit.organization_id) {
+    const mount = document.getElementById("infraMount");
+    if (mount) renderInfrastructureManager(mount, infraApp(audit));
+  }
 }
 
 function renderList() {
@@ -145,6 +247,7 @@ function renderWorkspace(audit) {
     </div>
 
     ${renderSurvey(audit)}
+    ${renderInfrastructureSection(audit)}
     ${renderFindings(audit)}
     ${renderProposal(audit)}
     ${renderStatus(audit)}`;
@@ -152,18 +255,23 @@ function renderWorkspace(audit) {
 
 function renderSurvey(audit) {
   const s = audit.survey || {};
+  const buildingCount = tenantBuildings(audit).length;
+  const meterCount = state.meters.filter(
+    (m) => m.organization_id === audit.organization_id,
+  ).length;
+
   return `
     <div class="card">
       <h2>Site survey</h2>
       <p class="sub">What you found walking the estate.</p>
       <div class="grid4" style="margin-top:14px">
         <div class="field">
-          <label for="svBuildings">Buildings surveyed</label>
-          <input id="svBuildings" type="number" min="0" value="${s.buildings_surveyed ?? 0}" />
+          <label>Buildings recorded</label>
+          <div style="font-size:22px;font-weight:700;padding:6px 0">${buildingCount}</div>
         </div>
         <div class="field">
-          <label for="svMeters">Meters located</label>
-          <input id="svMeters" type="number" min="0" value="${s.meters_found ?? 0}" />
+          <label>Meters recorded</label>
+          <div style="font-size:22px;font-weight:700;padding:6px 0">${meterCount}</div>
         </div>
         <div class="field">
           <label for="svTier">Existing metering</label>
@@ -183,7 +291,36 @@ function renderSurvey(audit) {
         <label for="svNotes">Notes</label>
         <textarea id="svNotes">${escapeHtml(s.notes ?? "")}</textarea>
       </div>
+      <p class="muted" style="font-size:12px">
+        Buildings and meters come from the Infrastructure section below —
+        record them there as you walk the site, and these counts follow on
+        their own.
+      </p>
       <button class="btn btn-dark" type="button" id="saveSurvey">Save survey</button>
+    </div>`;
+}
+
+/**
+ * The same Campus → Building → Department → Meter manager the Organisation
+ * Admin uses, mounted here so the auditor commissions the real estate while
+ * walking it instead of typing a guessed headcount. Findings' building
+ * picker reads from the same records, so a brand-new prospect with nothing
+ * yesterday has real buildings to reference by the time a recommendation is
+ * written up.
+ */
+function renderInfrastructureSection(audit) {
+  const loaded = infra.orgId === audit.organization_id;
+  return `
+    <div class="card">
+      <h2>Infrastructure</h2>
+      <p class="sub">
+        Record campuses, buildings, departments and meters as you walk the
+        site — exactly what the client will see on their own dashboard once
+        they're onboard.
+      </p>
+      <div id="infraMount" style="margin-top:14px">
+        ${loaded ? "" : `<p class="muted">Loading…</p>`}
+      </div>
     </div>`;
 }
 
@@ -446,8 +583,6 @@ async function sendProposal(audit) {
 
 async function saveSurvey(audit) {
   const body = {
-    buildings_surveyed: Number(document.getElementById("svBuildings").value || 0),
-    meters_found: Number(document.getElementById("svMeters").value || 0),
     floor_area_sqm: Number(document.getElementById("svArea").value || 0),
     notes: document.getElementById("svNotes").value.trim(),
   };

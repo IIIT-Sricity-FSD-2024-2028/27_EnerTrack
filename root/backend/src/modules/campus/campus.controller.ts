@@ -26,7 +26,7 @@ export class CampusController {
   @ApiResponse({ status: 201, description: "Campus created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Certified Energy Auditor")
   create(@Body() createDto: CreateCampusDto) {
     return this.campusService.create(createDto);
   }
@@ -58,7 +58,7 @@ export class CampusController {
   @ApiResponse({ status: 404, description: "Campus with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Certified Energy Auditor")
   put(@Param("id") id: string, @Body() putDto: PutCampusDto) {
     return this.campusService.put(id, putDto);
   }
@@ -68,7 +68,7 @@ export class CampusController {
   @ApiResponse({ status: 404, description: "Campus with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Certified Energy Auditor")
   update(@Param("id") id: string, @Body() updateDto: UpdateCampusDto) {
     return this.campusService.update(id, updateDto);
   }
@@ -79,7 +79,7 @@ export class CampusController {
   @ApiResponse({ status: 404, description: "Campus with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Certified Energy Auditor")
   remove(@Param("id") id: string) {
     return this.campusService.remove(id);
   }

@@ -556,9 +556,14 @@ export interface AuditProposal {
   response_note: string | null;
 }
 
+/**
+ * What the auditor typed by hand about the estate. Buildings-surveyed and
+ * meters-found used to live here too, as plain numbers — now that the
+ * auditor has real infrastructure CRUD (see campus/buildings/meters
+ * modules), those counts are derived live from the actual records instead,
+ * so there's nothing here that can drift from what was really commissioned.
+ */
 export interface AuditSurvey {
-  buildings_surveyed: number;
-  meters_found: number;
   data_source_tier: DataSourceTier | null;
   floor_area_sqm: number | null;
   notes: string | null;
@@ -2683,8 +2688,6 @@ export class DatabaseService {
       scheduled_on: "2025-09-05",
       conducted_on: "2025-09-12",
       survey: {
-        buildings_surveyed: 5,
-        meters_found: 10,
         data_source_tier: DataSourceTier.BMS_INTEGRATION,
         floor_area_sqm: 42000,
         notes:
@@ -2754,8 +2757,6 @@ export class DatabaseService {
       scheduled_on: "2026-01-15",
       conducted_on: "2026-01-22",
       survey: {
-        buildings_surveyed: 1,
-        meters_found: 1,
         data_source_tier: DataSourceTier.MANUAL_UPLOAD,
         floor_area_sqm: 68000,
         notes:
@@ -2796,8 +2797,6 @@ export class DatabaseService {
       scheduled_on: "2026-09-14",
       conducted_on: null,
       survey: {
-        buildings_surveyed: 0,
-        meters_found: 0,
         data_source_tier: null,
         floor_area_sqm: null,
         notes: null,
@@ -2816,8 +2815,6 @@ export class DatabaseService {
       scheduled_on: "2026-08-10",
       conducted_on: "2026-08-18",
       survey: {
-        buildings_surveyed: 2,
-        meters_found: 3,
         data_source_tier: DataSourceTier.MANUAL_UPLOAD,
         floor_area_sqm: 24000,
         notes:

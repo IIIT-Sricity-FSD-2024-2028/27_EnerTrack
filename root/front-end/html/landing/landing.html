@@ -14,56 +14,58 @@
   <body>
     <!-- NAVBAR -->
     <nav class="navbar" id="navbar">
-      <div class="left-nav">
-        <a href="#" class="logo">
-          <img src="../../assets/logo3.png" alt="EnerTrack Logo" />
-          <span>EnerTrack</span>
-        </a>
-        <div class="nav-links">
-          <a href="#hero">Home</a>
-          <a href="#about">What We Do</a>
-          <a href="#engagement">How It Works</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#roles">Roles</a>
+      <div class="nav-inner">
+        <div class="left-nav">
+          <a href="#" class="logo">
+            <img src="../../assets/logo3.png" alt="EnerTrack Logo" />
+            <span>EnerTrack</span>
+          </a>
+          <div class="nav-links">
+            <a href="#hero">Home</a>
+            <a href="#about">What We Do</a>
+            <a href="#engagement">How It Works</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#roles">Roles</a>
+          </div>
         </div>
-      </div>
-      <div class="right-nav">
-        <a href="../sign_up/sign_up.html" class="btn-primary" id="navSignUp"
-          >Sign Up</a
-        >
+        <div class="right-nav">
+          <a href="../sign_up/sign_up.html" class="btn-primary" id="navSignUp"
+            >Sign Up</a
+          >
 
-        <!-- Profile with dropdown for System Admin -->
-        <div class="profile-wrapper" id="profileWrapper" style="display: none">
-          <button class="profile-circle" id="navProfile" type="button">
-            <img src="https://i.pravatar.cc/100" alt="User Profile" />
-          </button>
-          <div class="profile-dropdown" id="profileDropdown">
-            <div class="dropdown-header" id="dropdownUserName">User</div>
-            <div class="dropdown-role" id="dropdownUserRole">Role</div>
-            <div class="dropdown-divider"></div>
-            <div id="dropdownLinks"><!-- dynamically populated --></div>
-            <div class="dropdown-divider"></div>
-            <button
-              class="dropdown-item dropdown-logout"
-              id="logoutBtn"
-              type="button"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
-              Sign Out
+          <!-- Profile with dropdown, populated by role once signed in -->
+          <div class="profile-wrapper" id="profileWrapper" style="display: none">
+            <button class="profile-circle" id="navProfile" type="button">
+              <img src="https://i.pravatar.cc/100" alt="User Profile" />
             </button>
+            <div class="profile-dropdown" id="profileDropdown">
+              <div class="dropdown-header" id="dropdownUserName">User</div>
+              <div class="dropdown-role" id="dropdownUserRole">Role</div>
+              <div class="dropdown-divider"></div>
+              <div id="dropdownLinks"><!-- dynamically populated --></div>
+              <div class="dropdown-divider"></div>
+              <button
+                class="dropdown-item dropdown-logout"
+                id="logoutBtn"
+                type="button"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -90,8 +92,14 @@
           organisation from a list it was not in. This is the funnel's mouth.
         -->
         <div class="hero-cta">
-          <a href="../sign_up/register_organisation.html" class="btn-primary"
+          <a
+            href="../sign_up/register_organisation.html"
+            class="btn-primary"
+            id="heroRequestAudit"
             >Request an audit</a
+          >
+          <a href="#" class="btn-primary" id="heroDashboard" hidden
+            >Go to your dashboard</a
           >
           <a href="#engagement" class="btn-secondary">See how it works</a>
         </div>
@@ -134,7 +142,7 @@
         <div class="about-image">
           <img
             src="../../assets/logo5.jpeg"
-            alt="Sustainable Campus Architecture"
+            alt="A hand holding a small globe with a plant sprouting from it"
           />
         </div>
       </div>
@@ -144,55 +152,25 @@
 
     <!-- ROLES SECTION -->
     <section class="section roles" id="roles">
-      <h2 class="section-title">Two teams, one platform.</h2>
+      <h2 class="section-title">One login. The right dashboard, every time.</h2>
       <p class="roles-intro">
-        An EnerTrack engagement has people on both sides. We bring the
-        certification and the analysis. You bring the buildings and the
-        people who maintain them.
+        Every account on your side is scoped to one role and nothing else.
+        Sign in, and EnerTrack already knows whether you're approving a
+        proposal, closing a work order, or reporting a leak.
       </p>
 
-      <h3 class="roles-group-heading">Our team</h3>
-      <p class="roles-group-sub">
-        EnerTrack staff, working across every client we serve.
-      </p>
-      <div class="team-grid">
-        <div class="team-card">
-          <span class="team-tag">EnerTrack</span>
-          <h4>Certified Energy Auditor</h4>
-          <p>
-            Visits your site, surveys your buildings and metering, and
-            establishes the verified baseline everything else is measured
-            against. Signs off the savings recommendations.
-          </p>
-        </div>
-        <div class="team-card">
-          <span class="team-tag">EnerTrack</span>
-          <h4>Super Admin</h4>
-          <p>
-            Provisions your organisation, sets up your users, and keeps the
-            platform running. Never touches another client's data without
-            reason.
-          </p>
-        </div>
-      </div>
-
-      <h3 class="roles-group-heading">Your team</h3>
-      <p class="roles-group-sub">
-        Your own staff, working only within your organisation's data. Sign in
-        to open your dashboard.
-      </p>
       <div class="roles-grid">
         <div
           class="role-card"
-          data-role="System Admin"
+          data-role="Organization Admin"
           data-href="../system_admin/system_admin_overview.html"
         >
-          <h3>System Admin</h3>
+          <h3>Organisation Admin</h3>
           <ul>
-            <li>Monitors and maintains energy management infrastructure.</li>
-            <li>Manages system configuration and sensor data setup.</li>
-            <li>Tracks real-time system performance and analytics.</li>
-            <li>Ensures 24/7 mission-critical operations.</li>
+            <li>Your organisation's first account and main point of contact.</li>
+            <li>Approves EnerTrack's proposals and manages your subscription.</li>
+            <li>Adds your staff and assigns them their roles.</li>
+            <li>Oversees infrastructure setup across your campuses.</li>
           </ul>
         </div>
 
@@ -349,183 +327,98 @@
     <!-- CAPABILITIES SECTION -->
     <section class="section capabilities" id="capabilities">
       <div class="cap-header">
-        <h2 class="section-title">
-          Real-time Insights. Automated Alerts. Sustainable Data.
-        </h2>
+        <h2 class="section-title">What's running once you're live.</h2>
         <p>
-          Our modular approach provides complete visibility into energy
-          consumption, renewable generation, and cost impact across all campus
-          buildings.
+          The audit tells you what to fix. This is what happens every day
+          after that.
         </p>
       </div>
 
       <div class="cap-grid">
         <div class="cap-card">
-          <img
-            src="../../assets/monitoring.png"
-            alt="Live Monitoring Dashboard"
-          />
-          <h4>Live Monitoring</h4>
+          <div class="cap-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2 3 14h9l-1 8 10-12h-9z"></path>
+            </svg>
+          </div>
+          <h4>Live monitoring</h4>
           <p>
-            Track energy use across campus instantly. See exactly where energy
-            flows and consumption patterns emerge in real-time.
+            Every meter reports in continuously. See consumption change in
+            real time, building by building.
           </p>
         </div>
 
         <div class="cap-card">
-          <img src="../../assets/anomaly.png" alt="Anomaly Detection Alert" />
-          <h4>Anomaly Detection</h4>
+          <div class="cap-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+          </div>
+          <h4>Faults become work orders</h4>
           <p>
-            Unusual energy patterns are spotted automatically. Alerts notify
-            technicians instantly when systems deviate from benchmarks.
+            An anomaly doesn't just raise an alert — it opens a work order
+            for a technician automatically. Nobody re-keys anything.
           </p>
         </div>
 
         <div class="cap-card">
-          <img src="../../assets/reporting.png" alt="Cost Insights Dashboard" />
-          <h4>Cost Insights</h4>
+          <div class="cap-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
+            </svg>
+          </div>
+          <h4>Cost and carbon, broken down</h4>
           <p>
-            Detailed utility cost analysis by building, month, and system.
-            Identify where efficiency upgrades matter most.
+            Utility cost and emissions tracked by building, by month, by
+            system — so you know exactly where the next upgrade should go.
           </p>
         </div>
-      </div>
-    </section>
 
-    <hr class="section-divider" />
-
-    <!-- FEATURE CAROUSEL SECTION -->
-    <section class="section feature-carousel-container" id="features">
-      <div class="carousel-header">
-        <h2 class="section-title">Enterprise Features</h2>
-      </div>
-
-      <div class="carousel-track-wrapper">
-        <div class="carousel-track" id="carouselTrack">
-          <div class="carousel-card">
-            <div class="icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-            </div>
-            <h4>Multi-Role Access</h4>
-            <p>
-              Secure, role-based portals for administrators, finance teams,
-              technicians, and sustainability officers to ensure data integrity.
-            </p>
+        <div class="cap-card">
+          <div class="cap-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
           </div>
-
-          <div class="carousel-card">
-            <div class="icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-            </div>
-            <h4>Carbon Tracking</h4>
-            <p>
-              Real-time carbon footprint monitoring with automated emission
-              reporting and sustainability milestone tracking.
-            </p>
-          </div>
-
-          <div class="carousel-card">
-            <div class="icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
-                ></path>
-              </svg>
-            </div>
-            <h4>FDD Diagnostics</h4>
-            <p>
-              Advanced Fault Detection & Diagnostics simulate and simulate
-              equipment issues to prevent downtime before it occurs.
-            </p>
-          </div>
-
-          <div class="carousel-card">
-            <div class="icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-                <line x1="2" y1="10" x2="22" y2="10"></line>
-              </svg>
-            </div>
-            <h4>Automated Billing</h4>
-            <p>
-              Automated utility cost allocation and billing cycles integrated
-              directly with campus financial management systems.
-            </p>
-          </div>
-
-          <div class="carousel-card">
-            <div class="icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-            </div>
-            <h4>Predictive Alerts</h4>
-            <p>
-              Machine learning algorithms predict energy spikes and potential
-              equipment failure 24 hours in advance.
-            </p>
-          </div>
+          <h4>One dashboard per role</h4>
+          <p>
+            Admins, finance, sustainability, technicians and visitors each
+            see only what their own role needs.
+          </p>
         </div>
-      </div>
 
-      <div class="carousel-nav" id="carouselNav">
-        <span class="dot active" data-index="0"></span>
-        <span class="dot" data-index="1"></span>
-        <span class="dot" data-index="2"></span>
+        <div class="cap-card">
+          <div class="cap-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11l3 3L22 4"></path>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+          </div>
+          <h4>Recommendations tracked to done</h4>
+          <p>
+            Every finding from the audit carries a status — proposed,
+            accepted, implemented — so nothing recommended is quietly
+            forgotten.
+          </p>
+        </div>
+
+        <div class="cap-card">
+          <div class="cap-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </div>
+          <h4>Free for anyone on campus</h4>
+          <p>
+            A Campus Visitor account costs nothing. Anyone who spots a leak
+            or a fault can report it in seconds.
+          </p>
+        </div>
       </div>
     </section>
 
@@ -533,31 +426,47 @@
 
     <!-- RESULTS SECTION -->
     <section class="section results" id="results">
-      <div class="results-grid">
-        <div class="results-text">
-          <h2 class="section-title">Measurable results for smart campuses.</h2>
-          <p>
-            Campuses using EnerTrack achieve measurable reductions in operations
-            costs and carbon emissions while improving reliability.
-          </p>
+      <div class="cap-header">
+        <h2 class="section-title">How we prove it, not promise it.</h2>
+        <p>
+          Every saving is checked the same way: this month against the same
+          month a year earlier. No weather model to argue about and no
+          baseline to negotiate — July is compared to July.
+        </p>
+      </div>
+
+      <!--
+        This is one real client's numbers from the seed data, not an
+        invented industry-average stat — the point of this section is that
+        the figure is checkable, so it has to be an actual comparison.
+      -->
+      <div class="proof-panel">
+        <div class="proof-compare">
+          <div class="proof-bar">
+            <div class="proof-bar-row">
+              <span class="proof-bar-label">Mar–Aug, last year</span>
+              <span class="proof-bar-value">583,800 kWh</span>
+            </div>
+            <div class="proof-bar-track">
+              <div class="proof-bar-fill proof-bar-fill--before"></div>
+            </div>
+          </div>
+          <div class="proof-bar">
+            <div class="proof-bar-row">
+              <span class="proof-bar-label">Mar–Aug, this year</span>
+              <span class="proof-bar-value">513,744 kWh</span>
+            </div>
+            <div class="proof-bar-track">
+              <div class="proof-bar-fill proof-bar-fill--after"></div>
+            </div>
+          </div>
         </div>
-        <div class="stats-container">
-          <div class="stat-box">
-            <span>25%</span>
-            <p>Average Cost Reduction</p>
-          </div>
-          <div class="stat-box">
-            <span>40%</span>
-            <p>Carbon Emission Cut</p>
-          </div>
-          <div class="stat-box">
-            <span>15%</span>
-            <p>Efficiency Gain</p>
-          </div>
-          <div class="stat-box">
-            <span>2+ Years</span>
-            <p>Avg. ROI Period</p>
-          </div>
+        <div class="proof-result">
+          <span class="proof-delta">&minus;12%</span>
+          <p>
+            70,056 kWh less over six months — &#8377;5.95 lakh saved, against
+            &#8377;2.34 lakh of subscription over the same period.
+          </p>
         </div>
       </div>
     </section>
@@ -580,23 +489,6 @@
         }
       });
 
-      // Carousel Scroll/Dot Logic
-      const track = document.getElementById("carouselTrack");
-      const dots = document.querySelectorAll(".dot");
-
-      track.addEventListener("scroll", () => {
-        const index = Math.round(track.scrollLeft / 336);
-        dots.forEach((dot, i) => {
-          dot.classList.toggle("active", i === index);
-        });
-      });
-
-      dots.forEach((dot, i) => {
-        dot.addEventListener("click", () => {
-          track.scrollTo({ left: i * 336, behavior: "smooth" });
-        });
-      });
-
       // Auth-aware navbar: show Sign Up or Profile
       (function () {
         var userData = localStorage.getItem("currentUser");
@@ -610,6 +502,33 @@
           signUpBtn.style.display = "none";
           profileWrapper.style.display = "";
 
+          // "Request an audit" starts the funnel for a prospect with no
+          // organisation yet. A signed-in visitor already has one — showing
+          // it to them is either useless or, worse, invites them to spin up
+          // a second organisation by mistake. Send them to their dashboard
+          // instead.
+          var heroRequestAudit = document.getElementById("heroRequestAudit");
+          var heroDashboard = document.getElementById("heroDashboard");
+          if (heroRequestAudit) heroRequestAudit.hidden = true;
+          if (heroDashboard) {
+            var dashboardHref =
+              user.role === "Super Admin"
+                ? "../system_admin/system_admin_overview.html"
+                : user.role === "Technician"
+                  ? "../technician_jr/technician_jr_work_orders.html"
+                  : {
+                      "Organization Admin": "../system_admin/system_admin_overview.html",
+                      "Sustainability Officer": "../sustainability_officer/sust_overview.html",
+                      "Technician Administrator": "../technician/technician_overview.html",
+                      "Financial Analyst": "../finance-analyst/finance_overview.html",
+                      "Campus Visitor": "../enduser/enduser_dashboard.html",
+                    }[user.role];
+            if (dashboardHref) {
+              heroDashboard.href = dashboardHref;
+              heroDashboard.hidden = false;
+            }
+          }
+
           // Populate dropdown header
           document.getElementById("dropdownUserName").textContent = user.name;
           document.getElementById("dropdownUserRole").textContent = user.role;
@@ -617,8 +536,8 @@
           // Dynamically build dropdown links based on role
           var allLinks = [
             {
-              role: "System Admin",
-              label: "System Administration",
+              role: "Organization Admin",
+              label: "Organisation Dashboard",
               href: "../system_admin/system_admin_overview.html",
               icon: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
             },
@@ -659,11 +578,11 @@
           var linksHTML = "";
           for (var l = 0; l < allLinks.length; l++) {
             var link = allLinks[l];
-            var isAdmin =
-              user.role === "Organization Admin" ||
-              user.role === "Super Admin" ||
-              user.role === "System Admin";
-            // System Admin sees all links; others see only their own role's link
+            // Only Super Admin sees every dashboard link. An Organisation
+            // Admin is a client's own admin, scoped to their organisation's
+            // workflows — not a second super-user — so they see only their
+            // own link, same as everyone else.
+            var isAdmin = user.role === "Super Admin";
             if (isAdmin || user.role === link.role) {
               linksHTML +=
                 '<a href="' +
@@ -710,13 +629,11 @@
             if (user.role === "Technician Administrator")
               effectiveRole = "Technician";
 
+            // Same principle for the role cards below: Super Admin can see
+            // through every role, an Organisation Admin only unlocks their
+            // own ("Organization Admin" === cardRole already covers that).
             var isAllowed =
-              user.role === "Organization Admin" ||
-              user.role === "Super Admin" ||
-              user.role === "System Admin" ||
-              effectiveRole === cardRole ||
-              (cardRole === "System Admin" &&
-                user.role === "Organization Admin");
+              user.role === "Super Admin" || effectiveRole === cardRole;
 
             var targetHref = cardHref;
             if (cardRole === "Technician") {

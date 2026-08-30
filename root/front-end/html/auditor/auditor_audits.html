@@ -12,6 +12,18 @@
     -->
     <link rel="stylesheet" href="../../css/shared/tech_shared.css" />
     <link rel="stylesheet" href="../../css/shared/platform_shared.css" />
+    <!--
+      This page reuses the Organisation Admin's Campus/Building/Department/
+      Meter manager directly for the auditor's commissioning step. Its
+      component classes (.infra-layout, .panel, .campus-panel, modals,
+      etc.) live in system_admin_overview.css, but that file also carries
+      that dashboard's own page chrome (a `*` reset, `body`, and a
+      `.sidebar { position: fixed }` rule) which collided with this page's
+      own sidebar and broke the whole layout. infrastructure_shared.css is
+      the scoped subset — component classes only, nothing that touches an
+      element selector or a name this page's own chrome already owns.
+    -->
+    <link rel="stylesheet" href="../../css/shared/infrastructure_shared.css" />
   </head>
   <body>
     <div class="layout">

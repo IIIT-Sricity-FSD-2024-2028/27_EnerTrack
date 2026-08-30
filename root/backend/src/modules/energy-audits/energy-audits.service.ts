@@ -83,8 +83,6 @@ export class EnergyAuditsService {
       scheduled_on: createDto.scheduled_on ?? null,
       conducted_on: createDto.conducted_on ?? null,
       survey: (createDto.survey as any) ?? {
-        buildings_surveyed: 0,
-        meters_found: 0,
         data_source_tier: null,
         floor_area_sqm: null,
         notes: null,
@@ -304,8 +302,6 @@ export class EnergyAuditsService {
       scheduled_on: null,
       conducted_on: null,
       survey: {
-        buildings_surveyed: 0,
-        meters_found: 0,
         data_source_tier: null,
         floor_area_sqm: org.floor_area_sqm,
         notes: note?.trim() || null,

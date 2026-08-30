@@ -14,6 +14,26 @@ import {
    Infrastructure Manager — Campus → Building → Department → Meter
    ══════════════════════════════════════════════════════ */
 
+/**
+ * An Organisation Admin's GET calls already come back scoped to their own
+ * tenant via the x-org-id header, so filtering again here is a no-op for
+ * them. A Certified Energy Auditor has no tenant of their own — platform
+ * staff, cross-tenant by default — so when `app.auditOrgId` is set (only
+ * true while an auditor is commissioning one organisation's estate from
+ * the audit workspace), every refresh is filtered down to that one org,
+ * so this page never mixes another client's infrastructure into a survey.
+ */
+async function fetchOrgScoped(path, app, fallback) {
+  try {
+    const list = await window.api.get(path);
+    return app.auditOrgId
+      ? list.filter((r) => r.organization_id === app.auditOrgId)
+      : list;
+  } catch (_) {
+    return fallback;
+  }
+}
+
 export function renderInfrastructureManager(container, app) {
   ensureSelections(app);
 
@@ -345,6 +365,7 @@ function openCampusModal(app, campusId = null) {
             name: vals.name,
             location: vals.location || null,
             total_budget: Number(vals.total_budget),
+            ...(app.auditOrgId ? { organization_id: app.auditOrgId } : {}),
           };
           try {
             if (window.api) {
@@ -354,9 +375,7 @@ function openCampusModal(app, campusId = null) {
                 const res = await window.api.post("/campus", payload);
                 if (res && res.campus_id) app.selectedCampusId = res.campus_id;
               }
-              state.campuses = await window.api
-                .get("/campus")
-                .catch(() => state.campuses);
+              state.campuses = await fetchOrgScoped("/campus", app, state.campuses);
             } else {
               if (campusId) {
                 const t = state.campuses.find((c) => c.campus_id === campusId);
@@ -405,18 +424,10 @@ function deleteCampus(app, campusId) {
         try {
           if (window.api) {
             await window.api.delete("/campus/" + campusId);
-            state.campuses = await window.api
-              .get("/campus")
-              .catch(() => state.campuses);
-            state.buildings = await window.api
-              .get("/buildings")
-              .catch(() => state.buildings);
-            state.departments = await window.api
-              .get("/departments")
-              .catch(() => state.departments);
-            state.meters = await window.api
-              .get("/meters")
-              .catch(() => state.meters);
+            state.campuses = await fetchOrgScoped("/campus", app, state.campuses);
+            state.buildings = await fetchOrgScoped("/buildings", app, state.buildings);
+            state.departments = await fetchOrgScoped("/departments", app, state.departments);
+            state.meters = await fetchOrgScoped("/meters", app, state.meters);
           } else {
             state.meters = state.meters.filter(
               (m) => !bIds.includes(m.building_id),
@@ -496,6 +507,7 @@ function openBuildingModal(app, buildingId = null) {
             name: vals.name,
             campus_id: vals.campus_id,
             budget: Number(vals.budget),
+            ...(app.auditOrgId ? { organization_id: app.auditOrgId } : {}),
           };
           try {
             if (window.api) {
@@ -506,9 +518,7 @@ function openBuildingModal(app, buildingId = null) {
                 if (res && res.building_id)
                   app.selectedBuildingId = res.building_id;
               }
-              state.buildings = await window.api
-                .get("/buildings")
-                .catch(() => state.buildings);
+              state.buildings = await fetchOrgScoped("/buildings", app, state.buildings);
             } else {
               if (buildingId) {
                 const t = state.buildings.find(
@@ -564,15 +574,9 @@ function deleteBuilding(app, buildingId) {
         try {
           if (window.api) {
             await window.api.delete("/buildings/" + buildingId);
-            state.buildings = await window.api
-              .get("/buildings")
-              .catch(() => state.buildings);
-            state.departments = await window.api
-              .get("/departments")
-              .catch(() => state.departments);
-            state.meters = await window.api
-              .get("/meters")
-              .catch(() => state.meters);
+            state.buildings = await fetchOrgScoped("/buildings", app, state.buildings);
+            state.departments = await fetchOrgScoped("/departments", app, state.departments);
+            state.meters = await fetchOrgScoped("/meters", app, state.meters);
           } else {
             state.departments = state.departments.filter(
               (d) => d.building_id !== buildingId,
@@ -649,6 +653,7 @@ function openDeptModal(app, deptId = null) {
             name: vals.name,
             building_id: vals.building_id,
             budget: Number(vals.budget),
+            ...(app.auditOrgId ? { organization_id: app.auditOrgId } : {}),
           };
           try {
             if (window.api) {
@@ -657,9 +662,7 @@ function openDeptModal(app, deptId = null) {
               } else {
                 await window.api.post("/departments", payload);
               }
-              state.departments = await window.api
-                .get("/departments")
-                .catch(() => state.departments);
+              state.departments = await fetchOrgScoped("/departments", app, state.departments);
             } else {
               if (deptId) {
                 const t = state.departments.find(
@@ -700,9 +703,7 @@ function deleteDept(app, deptId) {
         try {
           if (window.api) {
             await window.api.delete("/departments/" + deptId);
-            state.departments = await window.api
-              .get("/departments")
-              .catch(() => state.departments);
+            state.departments = await fetchOrgScoped("/departments", app, state.departments);
           } else {
             state.departments = state.departments.filter(
               (d) => d.department_id !== deptId,
@@ -787,6 +788,7 @@ function openMeterModal(app, buildingId, meterId = null) {
             meter_type: vals.meter_type,
             zone: vals.zone || null,
             status: vals.status,
+            ...(app.auditOrgId ? { organization_id: app.auditOrgId } : {}),
           };
           try {
             if (window.api) {
@@ -795,9 +797,7 @@ function openMeterModal(app, buildingId, meterId = null) {
               } else {
                 await window.api.post("/meters", payload);
               }
-              state.meters = await window.api
-                .get("/meters")
-                .catch(() => state.meters);
+              state.meters = await fetchOrgScoped("/meters", app, state.meters);
             } else {
               if (meterId) {
                 const t = state.meters.find((m) => m.meter_id === meterId);
@@ -833,9 +833,7 @@ function deleteMeter(app, meterId) {
         try {
           if (window.api) {
             await window.api.delete("/meters/" + meterId);
-            state.meters = await window.api
-              .get("/meters")
-              .catch(() => state.meters);
+            state.meters = await fetchOrgScoped("/meters", app, state.meters);
           } else {
             state.meters = state.meters.filter((m) => m.meter_id !== meterId);
           }

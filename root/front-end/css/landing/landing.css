@@ -43,6 +43,13 @@
      inside a fixed measure, so wide screens do not sit in empty margins. */
   --gutter: clamp(20px, 5vw, 120px);
 
+  /* Rows below (hero, about) split into a fixed-width text column and a
+     capped image, rather than letting the image stretch to fill whatever
+     is left. Past this width that leftover space was outgrowing the
+     content and reading as a hole in the layout, so the row itself is
+     capped and centered instead. */
+  --page-max: 1400px;
+
   --ease: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -50,6 +57,16 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* Author rules like `.btn-primary { display: inline-block }` normally beat
+   the browser's own `[hidden] { display: none }` UA rule, so an element
+   that is both `.btn-primary` and `hidden` would render anyway — this is
+   what was leaving "Request an audit" and "Go to your dashboard" showing
+   at the same time. Restoring `hidden` here means the attribute always
+   wins, regardless of what other display value a class sets. */
+[hidden] {
+  display: none !important;
 }
 
 body {
@@ -82,11 +99,6 @@ a { color: inherit; }
 
 /* ── Navbar ──────────────────────────────────────────────────── */
 .navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-4);
-  padding: 14px var(--gutter);
   /* Opaque rather than blurred: the bar sits on its own colour anyway,
      and backdrop-filter forces a costly repaint on every scroll frame. */
   background: var(--bg-main);
@@ -97,8 +109,21 @@ a { color: inherit; }
   transition: padding var(--ease), box-shadow var(--ease);
 }
 
-.navbar.scrolled {
+.nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: 14px var(--gutter);
+}
+
+.navbar.scrolled .nav-inner {
   padding: 9px var(--gutter);
+}
+
+.navbar.scrolled {
   box-shadow: var(--shadow-card);
 }
 
@@ -296,6 +321,8 @@ a { color: inherit; }
   grid-template-columns: minmax(0, 580px) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-8);
+  max-width: var(--page-max);
+  margin-inline: auto;
   padding: var(--space-6) var(--gutter) var(--space-8);
 }
 
@@ -324,9 +351,17 @@ a { color: inherit; }
   color: var(--text-muted);
 }
 
+.hero-image {
+  max-width: 520px;
+  margin-left: auto;
+}
+
 .hero-image img {
+  /* hero.png is a 1:1 render. Matching that ratio here means cover has
+     nothing to crop — a mismatched box was cutting the solar panels and
+     the entrance sign off the edges. */
   width: 100%;
-  height: clamp(340px, 46vh, 480px);
+  aspect-ratio: 1 / 1;
   object-fit: cover;
   display: block;
   border-radius: var(--radius);
@@ -335,6 +370,8 @@ a { color: inherit; }
 
 /* ── Section scaffolding ─────────────────────────────────────── */
 .section {
+  max-width: var(--page-max);
+  margin-inline: auto;
   padding: 60px var(--gutter);
   /* keeps headings clear of the sticky navbar on anchor jumps */
   scroll-margin-top: 72px;
@@ -352,12 +389,9 @@ a { color: inherit; }
 
 /* ── One card system ─────────────────────────────────────────── */
 .role-card,
-.team-card,
 .stage-card,
 .cap-card,
-.carousel-card,
-.price-card,
-.stat-box {
+.price-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -367,12 +401,9 @@ a { color: inherit; }
 }
 
 .role-card:hover,
-.team-card:hover,
 .stage-card:hover,
 .cap-card:hover,
-.carousel-card:hover,
-.price-card:hover,
-.stat-box:hover {
+.price-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-card);
   border-color: var(--primary-green);
@@ -391,68 +422,45 @@ a { color: inherit; }
   margin-bottom: var(--space-2);
 }
 
+.about-image {
+  max-width: 360px;
+  margin-left: auto;
+}
+
 .about-image img {
+  /* logo5.jpeg is a tall portrait (698x818). The old fixed, wide-short box
+     forced a landscape crop onto it and cut the leaf sprout at the top —
+     the entire point of the photo. Matching its real ratio here removes
+     the crop instead of fighting it. */
   width: 100%;
-  height: clamp(260px, 34vh, 380px);
+  aspect-ratio: 698 / 818;
   object-fit: cover;
   display: block;
   border-radius: var(--radius);
   border: 1px solid var(--line);
 }
 
-/* ── Roles: two sides ────────────────────────────────────────── */
+/* ── Roles ───────────────────────────────────────────────────── */
 .roles-intro {
   color: var(--text-secondary);
-  max-width: 58ch;
-  margin-bottom: var(--space-6);
+  max-width: 62ch;
+  margin-bottom: var(--space-5);
 }
 
-.roles-group-heading {
-  font-size: 21px;
-  margin-bottom: 2px;
-}
-
-.roles-group-sub {
-  color: var(--text-muted);
-  font-size: 15px;
-  margin-bottom: var(--space-3);
-  max-width: 58ch;
-}
-
-.team-grid,
+/* Fixed card widths + wrap + center, rather than a grid with a fixed column
+   count: 5 role cards across 3 columns leaves an empty slot on the last row
+   (2 cards under 3 tracks). Flexbox lets that remainder row center itself
+   as a pair instead of hugging the left edge with a void beside it. */
 .roles-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-3);
 }
 
-.team-grid { margin-bottom: var(--space-8); }
-
-/* EnerTrack-side cards carry a green top rule; client-side cards do not.
-   The distinction is the point of this section, so it earns the mark. */
-.team-card {
-  padding: var(--space-4);
-  border-top: 3px solid var(--primary-green);
-}
-
-.team-tag {
-  display: inline-block;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--primary-dark);
-  margin-bottom: 10px;
-}
-
-.team-card h4 {
-  font-size: 19px;
-  margin-bottom: 6px;
-}
-
-.team-card p {
-  font-size: 15px;
-  color: var(--text-secondary);
+.roles-grid .role-card {
+  flex: 1 1 300px;
+  max-width: 340px;
 }
 
 .role-card {
@@ -670,17 +678,17 @@ a { color: inherit; }
 
 .cap-card {
   padding: var(--space-4);
-  overflow: hidden;
 }
 
-.cap-card img {
-  width: 100%;
-  height: 160px;
-  object-fit: cover;
+.cap-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
-  border: 1px solid var(--line-soft);
+  background: var(--bg-main);
+  color: var(--primary-green);
   margin-bottom: var(--space-2);
-  display: block;
 }
 
 .cap-card h4 {
@@ -693,115 +701,97 @@ a { color: inherit; }
   color: var(--text-secondary);
 }
 
-/* ── Feature carousel ────────────────────────────────────────── */
-.carousel-header { margin-bottom: var(--space-5); }
-
-.carousel-track-wrapper { overflow: hidden; }
-
-.carousel-track {
-  display: flex;
-  gap: var(--space-3);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  padding: 4px 4px var(--space-3);
-  scrollbar-width: none;
-}
-
-.carousel-track::-webkit-scrollbar { display: none; }
-
-.carousel-card {
-  flex: 0 0 312px;
-  scroll-snap-align: start;
-  padding: var(--space-4);
-}
-
-.carousel-card .icon {
+/* ── Results: the year-over-year proof, made visible ────────────
+   The product's one real differentiator is that its savings figure is a
+   checkable comparison rather than a claimed percentage, so this section
+   is built as that comparison rather than a stat-card grid. */
+.proof-panel {
   display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: var(--space-6);
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-5);
+}
+
+.proof-compare {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.proof-bar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  gap: var(--space-2);
+}
+
+.proof-bar-label {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.proof-bar-value {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.proof-bar-track {
+  height: 14px;
+  border-radius: var(--radius-full);
   background: var(--bg-main);
+  overflow: hidden;
+}
+
+.proof-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+}
+
+/* Widths are the actual ratio of the two figures (513,744 / 583,800),
+   not decoration — the shorter bar is shorter by exactly as much as the
+   consumption dropped. */
+.proof-bar-fill--before {
+  width: 100%;
+  background: var(--line);
+}
+
+.proof-bar-fill--after {
+  width: 88%;
+  background: var(--primary-green);
+}
+
+.proof-result {
+  text-align: center;
+  border-left: 1px solid var(--line);
+  padding-left: var(--space-6);
+}
+
+.proof-delta {
+  display: block;
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
   color: var(--primary-green);
   margin-bottom: var(--space-2);
 }
 
-.carousel-card h4 {
-  font-size: 18px;
-  margin-bottom: 6px;
-}
-
-.carousel-card p {
-  font-size: 15px;
+.proof-result p {
+  font-size: 14px;
   color: var(--text-secondary);
-}
-
-.carousel-nav {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: var(--space-3);
-}
-
-.dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  border: none;
-  padding: 0;
-  background: var(--line);
-  cursor: pointer;
-  transition: background var(--ease), width var(--ease);
-}
-
-.dot.active {
-  background: var(--primary-green);
-  width: 20px;
-  border-radius: var(--radius-full);
-}
-
-/* ── Results ─────────────────────────────────────────────────── */
-.results-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
-  gap: var(--space-8);
-  align-items: center;
-}
-
-.results-text p {
-  color: var(--text-secondary);
-}
-
-.stats-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-}
-
-.stat-box {
-  padding: var(--space-4) var(--space-3);
-  text-align: center;
-}
-
-.stat-box span {
-  display: block;
-  font-family: "Source Serif 4", Georgia, serif;
-  font-size: 34px;
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--primary-green);
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-box p {
-  font-size: 13.5px;
-  color: var(--text-muted);
-  margin-top: 4px;
 }
 
 /* ── Footer ──────────────────────────────────────────────────── */
 .footer {
+  max-width: var(--page-max);
+  margin-inline: auto;
   padding: var(--space-5) var(--gutter);
   border-top: 1px solid var(--line);
 }
@@ -813,8 +803,6 @@ a { color: inherit; }
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 1000px) {
-  .roles-grid,
-  .team-grid,
   .stage-grid,
   .stage-grid-4,
   .price-grid,
@@ -829,19 +817,28 @@ a { color: inherit; }
     grid-template-columns: 1fr;
     padding-bottom: var(--space-6);
   }
-  .hero-image { order: -1; }
-  .about-grid,
-  .results-grid {
+  .hero-image { order: -1; max-width: none; margin-left: 0; }
+  .about-grid {
     grid-template-columns: 1fr;
     gap: var(--space-4);
+  }
+  .about-image { max-width: 280px; margin: 0 auto; }
+  .proof-panel {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+  .proof-result {
+    text-align: left;
+    border-left: none;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+    padding-top: var(--space-4);
   }
   .section { padding: 56px var(--gutter); }
   .nav-links { display: none; }
 }
 
 @media (max-width: 660px) {
-  .roles-grid,
-  .team-grid,
   .stage-grid,
   .stage-grid-4,
   .price-grid,
@@ -849,10 +846,12 @@ a { color: inherit; }
   .cap-grid {
     grid-template-columns: 1fr;
   }
+  .roles-grid .role-card {
+    max-width: none;
+  }
 }
 
 @media (max-width: 520px) {
-  .stats-container { grid-template-columns: 1fr; }
   .section-title { max-width: none; }
 }
 

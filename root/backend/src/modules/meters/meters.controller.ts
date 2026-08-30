@@ -26,7 +26,7 @@ export class MetersController {
   @ApiResponse({ status: 201, description: "Meter created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Certified Energy Auditor")
   create(@Body() createDto: CreateMeterDto) {
     return this.metersService.create(createDto);
   }
@@ -58,7 +58,7 @@ export class MetersController {
   @ApiResponse({ status: 404, description: "Meter with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Certified Energy Auditor")
   put(@Param("id") id: string, @Body() putDto: PutMeterDto) {
     return this.metersService.put(id, putDto);
   }
@@ -68,7 +68,7 @@ export class MetersController {
   @ApiResponse({ status: 404, description: "Meter with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Certified Energy Auditor")
   update(@Param("id") id: string, @Body() updateDto: UpdateMeterDto) {
     return this.metersService.update(id, updateDto);
   }
@@ -79,7 +79,7 @@ export class MetersController {
   @ApiResponse({ status: 404, description: "Meter with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Certified Energy Auditor")
   remove(@Param("id") id: string) {
     return this.metersService.remove(id);
   }
