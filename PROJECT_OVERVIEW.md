@@ -384,3 +384,77 @@ Ordered by impact.
 | What does the legacy store hold? | `root/front-end/js/shared/universalDB.js` |
 | What do the terms mean? | `definitions.yml` (24 entries), `DomainExpertInteraction.md` |
 | What was the intended DB design? | `Database/dbschema.sql` + `Database/Er Diagram.pdf` |
+
+---
+
+## 12. The revenue model and the platform-side actors
+
+> Added after the original analysis above, which predates this work. Where the two disagree,
+> this section is current. In particular §10 lists gaps that have since been closed: the
+> Sustainability Officer redirect, and the pages that called `window.api` without loading
+> `api.js`.
+
+### 12.1 Two sides, not six roles
+
+The system is no longer best described as six roles. It is **two sides**:
+
+| | Client side | Platform side |
+|---|---|---|
+| Roles | System Administrator, Financial Analyst, Technician Administrator, Technician, Sustainability Officer, Campus Visitor | Super Admin, Certified Energy Auditor, Account Officer |
+| `organization_id` | set | `null` |
+| Scope | one tenant, via `scopeToTenant()` | every tenant |
+| Owns | the campus: meters, alerts, work orders, costs, sustainability | the business: audits, contracts, billing |
+
+Every entity added by this work is **platform-owned**: it carries an `organization_id` but the
+record belongs to EnerTrack *about* the client, not to the client. The existing
+`scopeToTenant()` needed no change to handle that correctly — staff send no `x-org-id` and get
+the cross-tenant view, a client sends theirs and sees only its own rows.
+
+### 12.2 Four new backend modules
+
+| Module | Purpose |
+|---|---|
+| `subscription-plans` | The price catalogue. The only entity with **no** `organization_id`, so `scopeToTenant()` must never be applied to it. |
+| `subscriptions` | One contract per tenant: plan, cycle, renewal, negotiated share, linked baseline audit. |
+| `energy-audits` | The auditor's engagement: survey, locked baseline, `findings[]` and `verifications[]` folded in as JSON arrays, matching `Alert.messages`. |
+| `platform-invoices` | What EnerTrack bills. **Not** `Invoice`, which is the client's utility bill from their supplier — two money flows in opposite directions. |
+
+Plus `src/modules/billing/pricing.ts`: the whole revenue model as pure functions, with no Nest
+and no database, so the rules can be read and tested in one file.
+
+### 12.3 The rule that carries the most weight
+
+`performanceShareLine()` returns nothing unless a verification is `client-accepted`.
+
+The auditor who locks the baseline works for the party paid a share of the gap between that
+baseline and actual consumption; without a counterparty, that is a loop the vendor controls
+from both ends. Client acceptance is the counterparty, and the guard lives in the pricing
+engine rather than a controller so that no route added later can bypass it.
+
+Three supporting rules: the baseline is **adjusted** for the period's weather, occupancy and
+floor area before anything is claimed; a claim is **attributed** only to findings actually
+marked implemented, scoped to their buildings and dates; and the share is **capped** as a
+multiple of the subscription fee.
+
+### 12.4 New frontend
+
+```
+html/auditor/            4 pages — overview, audits & baselines, findings, verification
+html/account_officer/    4 pages — book of accounts, account detail, billing, savings reporting
+html/finance-analyst/finance_subscription.html
+                         client-side: plan, invoices, and the accept/dispute queue
+css/shared/platform_shared.css
+                         shared skin for both EnerTrack-side dashboards
+js/system_admin/modules/plansManager.js, revenueManager.js
+                         two new Super Admin tabs, gated on data-requires-role
+```
+
+`css/shared/tech_shared.css` is reused wholesale by the new dashboards rather than cloned.
+Despite its name nothing in it is technician-specific: it is this project's generic dashboard
+system.
+
+### 12.5 One client-side write, on purpose
+
+`PATCH /energy-audits/:id/verifications/:vid/accept` and `/dispute` are the only revenue-model
+routes a client role may call. The service asserts the caller's `x-org-id` matches the audited
+organisation, so the concession stays narrow.

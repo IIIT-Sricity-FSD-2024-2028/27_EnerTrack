@@ -1,0 +1,19 @@
+{
+  // Live Server reloads the browser whenever a file under the workspace
+  // changes. The backend writes to logs/ on every request, so without this
+  // the two feed each other: page loads -> request -> log line written ->
+  // Live Server reloads the page -> request -> ... forever.
+  //
+  // These are runtime outputs and build artefacts. Nothing here is a source
+  // file, so ignoring them costs nothing and stops the loop.
+  "liveServer.settings.ignoreFiles": [
+    "**/logs/**",
+    "**/uploads/**",
+    "**/docs/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/*.log",
+    "**/*.map"
+  ]
+}

@@ -1,7 +1,19 @@
 import { renderInfrastructureManager } from "./infrastructureManager.js";
 import { renderOrganizationsManager } from "./organizationsManager.js";
+import { renderPlansManager } from "./plansManager.js";
+import { renderRevenueManager } from "./revenueManager.js";
 import { renderUserManagement } from "./UserManagement.js";
 import { formatLabel } from "../utils/ui.js";
+
+/**
+ * Tabs only EnerTrack's own operator may open.
+ *
+ * activeTab is restored from localStorage, so a client's admin sitting at a
+ * machine where a Super Admin was last signed in would otherwise land
+ * straight on a tab whose every request answers 403. Convenience only —
+ * every rule behind these tabs is enforced by the backend.
+ */
+const PLATFORM_ONLY_TABS = ["organizations", "plans", "revenue"];
 
 /** The signed-in user, or null. Session first, localStorage as the fallback. */
 function currentUser(app) {
@@ -34,11 +46,8 @@ export function renderAdminLayout(root, app) {
 
   const view = root.querySelector("#adminView");
 
-  // activeTab is restored from localStorage, so a client admin sitting on a
-  // machine where a Super Admin was last signed in would otherwise land
-  // straight on a tab they cannot use. Fall back rather than render it.
   if (
-    app.activeTab === "organizations" &&
+    PLATFORM_ONLY_TABS.includes(app.activeTab) &&
     currentUser(app)?.role !== "Super Admin"
   ) {
     app.activeTab = "users";
@@ -48,6 +57,10 @@ export function renderAdminLayout(root, app) {
     renderInfrastructureManager(view, app);
   } else if (app.activeTab === "organizations") {
     renderOrganizationsManager(view, app);
+  } else if (app.activeTab === "plans") {
+    renderPlansManager(view, app);
+  } else if (app.activeTab === "revenue") {
+    renderRevenueManager(view, app);
   } else {
     renderUserManagement(view, app);
   }
@@ -84,6 +97,10 @@ function syncChrome(app) {
         "Maintain campuses, buildings, departments, and meter inventory.",
       organizations:
         "Client organisations. Each one is a separate tenant with its own isolated data.",
+      plans:
+        "EnerTrack's price catalogue. Every figure the billing engine uses lives on these rows.",
+      revenue:
+        "Platform revenue across every client. MRR reflects live contracts and current meter counts.",
     }[app.activeTab] || "Manage campus users, roles, and login access.",
   );
 

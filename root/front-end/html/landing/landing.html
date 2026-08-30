@@ -366,6 +366,16 @@
         </div>
       </div>
 
+      <!--
+        Live tiers, pulled from GET /api/subscription-plans/public.
+        The three cards above describe the shape of the model; this row is
+        what a client is actually charged today. It reads from the same
+        catalogue the billing engine prices from, so the marketing copy and
+        the running system cannot drift apart. Hidden entirely when the API
+        is unreachable, rather than showing stale numbers.
+      -->
+      <div class="plan-row" id="planRow" hidden></div>
+
       <p class="pricing-note">
         Pricing depends on estate size and existing metering. Your audit
         proposal includes projected savings and an estimated payback period
@@ -798,6 +808,60 @@
             roleCards[i].style.cursor = "default";
           }
         }
+      })();
+    </script>
+    <!--
+      Pricing tiers are fetched rather than hardcoded, so the landing page and
+      the billing engine read the same catalogue. Kept as a plain script (not
+      a module) to match the rest of this page, and deliberately silent on
+      failure: a marketing page with no tiers is better than one showing
+      prices the system would not actually charge.
+    -->
+    <script>
+      (function () {
+        var row = document.getElementById("planRow");
+        if (!row) return;
+
+        var inr = function (v) {
+          return new Intl.NumberFormat("en-IN", {
+            style: "currency",
+            currency: "INR",
+            maximumFractionDigits: 0,
+          }).format(Number(v || 0));
+        };
+
+        var esc = function (v) {
+          return String(v == null ? "" : v).replace(/[&<>"]/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+          });
+        };
+
+        fetch("http://localhost:3000/api/subscription-plans/public")
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (body) {
+            var plans = body && body.data;
+            if (!plans || !plans.length) return;
+
+            row.innerHTML = plans
+              .map(function (p) {
+                return (
+                  '<div class="plan-card">' +
+                  '<h4>' + esc(p.name) + '</h4>' +
+                  '<div class="plan-price">' + inr(p.price_per_meter_month) +
+                  '<span> per meter / month</span></div>' +
+                  '<div class="plan-min">Minimum ' + inr(p.min_monthly_fee) +
+                  ' / month &middot; ' + p.performance_share_pct +
+                  '% of verified savings</div>' +
+                  '<p>' + esc(p.tagline) + '</p>' +
+                  '<ul>' +
+                  (p.features || []).map(function (f) { return '<li>' + esc(f) + '</li>'; }).join("") +
+                  '</ul></div>'
+                );
+              })
+              .join("");
+            row.hidden = false;
+          })
+          .catch(function () { /* API down: leave the row hidden. */ });
       })();
     </script>
   </body>

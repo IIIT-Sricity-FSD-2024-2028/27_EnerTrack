@@ -45,16 +45,23 @@
       "Sustainability Officer": "../sustainability_officer/sust_overview.html",
       "Campus Visitor": "../enduser/enduser_dashboard.html",
 
-      // EnerTrack's own staff. They send no x-org-id, so the same dashboard
-      // renders them the cross-tenant view rather than a single client's.
+      // EnerTrack's own staff. They send no x-org-id, so their dashboards
+      // render the cross-tenant view rather than a single client's.
+      //
+      // The auditor and account officer used to be pointed at a client's
+      // technician and finance pages, which was wrong in kind rather than in
+      // detail: those are a tenant's operational dashboards, and these two
+      // roles run EnerTrack's side of the commercial relationship.
       "Super Admin": "../system_admin/system_admin_overview.html",
-      "Certified Energy Auditor": "../technician/technician_overview.html",
-      "Account Officer": "../finance-analyst/finance_overview.html",
+      "Certified Energy Auditor": "../auditor/auditor_overview.html",
+      "Account Officer": "../account_officer/ao_overview.html",
 
       // Client-side B2B roles, routed to the legacy dashboard each one
-      // replaces. Mirrors ROLE_EQUIVALENTS in the backend.
+      // replaces. Mirrors ROLE_EQUIVALENTS in the backend. The Economic
+      // Buyer is the exception: they are the person who signs the cheque, so
+      // they land on the subscription page rather than on utility costs.
       "Facility Manager": "../technician/technician_overview.html",
-      "Economic Buyer": "../finance-analyst/finance_overview.html",
+      "Economic Buyer": "../finance-analyst/finance_subscription.html",
       "Department Head": "../enduser/enduser_dashboard.html",
     };
     var path = routes[role] || "../landing/landing.html";

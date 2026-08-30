@@ -348,6 +348,2209 @@
         ]
       }
     },
+    "/api/subscription-plans": {
+      "post": {
+        "operationId": "SubscriptionPlansController_create",
+        "summary": "Create Subscription Plan",
+        "description": "Adds a price tier to EnerTrack's catalogue. Adding a tier is a data change, not a code change: the billing engine reads every pricing knob off this row.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin for any write.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionPlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Plan created successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "A plan with that name already exists."
+          }
+        },
+        "tags": [
+          "subscription-plans"
+        ]
+      },
+      "get": {
+        "operationId": "SubscriptionPlansController_findAll",
+        "summary": "List All Subscription Plans",
+        "description": "The full catalogue including inactive tiers and every pricing knob. Not tenant-scoped: the catalogue is global, so a client sees the same list EnerTrack staff do.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin for any write.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of all plan records."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "subscription-plans"
+        ]
+      }
+    },
+    "/api/subscription-plans/public": {
+      "get": {
+        "operationId": "SubscriptionPlansController_listPublic",
+        "summary": "Public Pricing Catalogue",
+        "description": "Active tiers with name, price, share percentage and features, for the landing page pricing section. No authorization required. Deliberately omits the audit fee formula and the share cap.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Array of public plan summaries."
+          }
+        },
+        "tags": [
+          "subscription-plans"
+        ]
+      }
+    },
+    "/api/subscription-plans/{id}": {
+      "get": {
+        "operationId": "SubscriptionPlansController_findOne",
+        "summary": "Get Subscription Plan by ID",
+        "description": "Retrieves a single price tier by its plan_id.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin for any write.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Plan with the given ID not found."
+          }
+        },
+        "tags": [
+          "subscription-plans"
+        ]
+      },
+      "put": {
+        "operationId": "SubscriptionPlansController_put",
+        "summary": "Replace Subscription Plan",
+        "description": "Completely replaces a price tier. Send a full body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin for any write.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutSubscriptionPlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Plan replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Plan with the given ID not found."
+          }
+        },
+        "tags": [
+          "subscription-plans"
+        ]
+      },
+      "patch": {
+        "operationId": "SubscriptionPlansController_update",
+        "summary": "Update Subscription Plan",
+        "description": "Partially updates a tier — a price change, or retiring it with is_active: false. Takes effect on the next invoice generated, with no redeploy.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin for any write.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubscriptionPlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Plan updated successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Plan with the given ID not found."
+          }
+        },
+        "tags": [
+          "subscription-plans"
+        ]
+      },
+      "delete": {
+        "operationId": "SubscriptionPlansController_remove",
+        "summary": "Delete Subscription Plan",
+        "description": "Permanently removes a tier. Refused while any subscription still references it, since the billing engine would then fail to resolve a plan_id.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin for any write.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Plan with the given ID not found."
+          },
+          "409": {
+            "description": "Plan is still in use by a subscription."
+          }
+        },
+        "tags": [
+          "subscription-plans"
+        ]
+      }
+    },
+    "/api/subscription-plans/{id}/subscribers": {
+      "get": {
+        "operationId": "SubscriptionPlansController_getSubscribers",
+        "summary": "Get Plan Subscribers",
+        "description": "Organisations currently contracted on this tier. Used by the Super Admin revenue console to show plan distribution.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin for any write.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of subscriber summaries."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "subscription-plans"
+        ]
+      }
+    },
+    "/api/subscriptions": {
+      "post": {
+        "operationId": "SubscriptionsController_create",
+        "summary": "Create Subscription",
+        "description": "Opens a contract between EnerTrack and a client organisation. Refused if that organisation already has a live one.",
+        "parameters": [
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Subscription created successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Organization or plan not found."
+          },
+          "409": {
+            "description": "Organization already has a live subscription."
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      },
+      "get": {
+        "operationId": "SubscriptionsController_findAll",
+        "summary": "List Subscriptions",
+        "description": "Tenant-scoped by the backend: EnerTrack staff get every client's contract, a client gets only its own.",
+        "parameters": [
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of subscription records."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions/by-organization/{orgId}": {
+      "get": {
+        "operationId": "SubscriptionsController_findByOrganization",
+        "summary": "Get Subscription by Organization",
+        "description": "The organisation's live (non-cancelled) contract with its plan inlined. This is what the client-side billing page loads first.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription with plan returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "No active subscription for that organization."
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions/{id}": {
+      "get": {
+        "operationId": "SubscriptionsController_findOne",
+        "summary": "Get Subscription by ID",
+        "description": "Retrieves a single contract by its subscription_id.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Subscription with the given ID not found."
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      },
+      "put": {
+        "operationId": "SubscriptionsController_put",
+        "summary": "Replace Subscription",
+        "description": "Completely replaces a contract. Send a full body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Subscription with the given ID not found."
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      },
+      "patch": {
+        "operationId": "SubscriptionsController_update",
+        "summary": "Update Subscription",
+        "description": "Partially updates a contract, for example moving it from trial to active. organization_id cannot be changed.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription updated successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Subscription with the given ID not found."
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      },
+      "delete": {
+        "operationId": "SubscriptionsController_remove",
+        "summary": "Delete Subscription",
+        "description": "Permanently removes a contract. Refused once any platform invoice references it — cancel it instead.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Subscription with the given ID not found."
+          },
+          "409": {
+            "description": "Invoices still reference this subscription."
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions/{id}/invoices": {
+      "get": {
+        "operationId": "SubscriptionsController_getInvoices",
+        "summary": "Get Subscription Invoices",
+        "description": "Platform invoices raised against this contract, newest period first. These are EnerTrack's bills to the client, not the client's utility bills.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of platform invoice records."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions/{id}/change-plan": {
+      "patch": {
+        "operationId": "SubscriptionsController_changePlan",
+        "summary": "Change Subscription Plan",
+        "description": "Moves a contract onto a different tier. Takes effect on the next invoice generated; invoices already raised are not restated.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan changed successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Subscription or plan not found."
+          },
+          "409": {
+            "description": "Target plan is retired."
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions/{id}/renew": {
+      "patch": {
+        "operationId": "SubscriptionsController_renew",
+        "summary": "Renew Subscription",
+        "description": "Extends the term. Defaults to one year past the current renewal date and clears a past-due status.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription renewed successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Subscription with the given ID not found."
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions/{id}/cancel": {
+      "patch": {
+        "operationId": "SubscriptionsController_cancel",
+        "summary": "Cancel Subscription",
+        "description": "Marks a contract cancelled. Kept rather than deleted, so its invoice history stays intact and reportable.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription cancelled successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Subscription with the given ID not found."
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions/{id}/waive-audit-fee": {
+      "patch": {
+        "operationId": "SubscriptionsController_waiveAuditFee",
+        "summary": "Waive Audit Fee",
+        "description": "Waives the one-time site audit fee on signature, which suppresses that line from the contract's first invoice.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit fee waived."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Subscription with the given ID not found."
+          }
+        },
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/api/energy-audits": {
+      "post": {
+        "operationId": "EnergyAuditsController_create",
+        "summary": "Create Energy Audit",
+        "description": "Opens a certified audit engagement against a client organisation. Stage one of the six-stage lifecycle: everything the revenue model measures starts here.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnergyAuditDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Audit created successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Organization or auditor not found."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      },
+      "get": {
+        "operationId": "EnergyAuditsController_findAll",
+        "summary": "List Energy Audits",
+        "description": "Tenant-scoped: EnerTrack staff see every engagement, a client sees only its own.",
+        "parameters": [
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of audit records."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/verifications": {
+      "get": {
+        "operationId": "EnergyAuditsController_listVerifications",
+        "summary": "List Savings Verifications",
+        "description": "Every verification across every audit the caller can see, flattened with its organisation. Filter with ?status=auditor-signed to get the queue waiting on client acceptance — that queue is unbillable revenue, so it is the Account Officer's worklist.",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "draft | auditor-signed | client-accepted | disputed",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of verifications."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}": {
+      "get": {
+        "operationId": "EnergyAuditsController_findOne",
+        "summary": "Get Energy Audit by ID",
+        "description": "One audit with its survey, baseline, findings and verifications.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Audit with the given ID not found."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      },
+      "put": {
+        "operationId": "EnergyAuditsController_put",
+        "summary": "Replace Energy Audit",
+        "description": "Completely replaces an audit record. Send a full body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutEnergyAuditDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audit replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Audit not found."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      },
+      "patch": {
+        "operationId": "EnergyAuditsController_update",
+        "summary": "Update Energy Audit",
+        "description": "Partially updates an audit, for example submitting it for approval or approving it.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEnergyAuditDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audit updated successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Audit not found."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      },
+      "delete": {
+        "operationId": "EnergyAuditsController_remove",
+        "summary": "Delete Energy Audit",
+        "description": "Permanently removes an audit. Refused while a subscription measures against its baseline, or once it holds client-accepted verifications that have been billed.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "Audit is referenced by a contract or a billed verification."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/baseline-suggestion": {
+      "get": {
+        "operationId": "EnergyAuditsController_baselineSuggestion",
+        "summary": "Suggest Baseline From Readings",
+        "description": "Aggregates the organisation's live electricity meters across a window and returns the average monthly consumption plus the weather and occupancy averages for the same window. The auditor confirms these figures rather than typing their own: a hand-entered baseline is the easiest place to quietly inflate every future savings claim.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "description": "Window start, YYYY-MM",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "description": "Window end, YYYY-MM",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Suggested baseline and factors."
+          },
+          "400": {
+            "description": "Missing/invalid range, or no readings in it."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/verification-suggestion": {
+      "get": {
+        "operationId": "EnergyAuditsController_verificationSuggestion",
+        "summary": "Compute Claimable Savings For a Period",
+        "description": "Runs attribution and baseline adjustment for one month without saving anything. Returns the adjusted baseline, the actual consumption, the claimable saving, and — for comparison — what a naive baseline-minus-actual would have claimed. The gap between those two is the weather and occupancy the client is not billed for.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "required": true,
+            "in": "query",
+            "description": "YYYY-MM",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Computed draft verification."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "Audit has no locked baseline."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/survey": {
+      "patch": {
+        "operationId": "EnergyAuditsController_updateSurvey",
+        "summary": "Update Site Survey",
+        "description": "Records what the auditor found on site: buildings walked, meters located, existing metering tier and floor area.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSurveyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Survey updated."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Audit not found."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/baseline": {
+      "patch": {
+        "operationId": "EnergyAuditsController_lockBaseline",
+        "summary": "Lock Baseline",
+        "description": "Freezes the figures every future savings claim is measured against. Refused if a baseline is already locked — one that can be edited after claims have been made against it is not a baseline. Normalisation factors are mandatory: without them a later period cannot be adjusted.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LockBaselineDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Baseline locked."
+          },
+          "400": {
+            "description": "Normalisation factors missing."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "Baseline already locked."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/findings": {
+      "post": {
+        "operationId": "EnergyAuditsController_addFinding",
+        "summary": "Add Audit Finding",
+        "description": "Records a recommendation with its estimated saving, capex and the buildings it touches. Those buildings scope which meters a later verification may credit, so a finding with no buildings can never contribute to a bill.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFindingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Finding added."
+          },
+          "400": {
+            "description": "Building belongs to another organisation."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/findings/{findingId}": {
+      "patch": {
+        "operationId": "EnergyAuditsController_updateFinding",
+        "summary": "Update Audit Finding",
+        "description": "Moves a recommendation along proposed → accepted → implemented → verified. Setting status to implemented stamps implemented_on, which is the date that decides from which month savings may be claimed for this measure.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "findingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFindingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Finding updated."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Audit or finding not found."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      },
+      "delete": {
+        "operationId": "EnergyAuditsController_removeFinding",
+        "summary": "Delete Audit Finding",
+        "description": "Removes a recommendation. Refused once a savings verification credits it.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "findingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Finding deleted."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "A verification credits this finding."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/verifications": {
+      "post": {
+        "operationId": "EnergyAuditsController_addVerification",
+        "summary": "Create Savings Verification",
+        "description": "Saves a draft claim for one month. Every figure is recomputed server-side from the locked baseline and the period's readings — nothing is accepted from the request body, because the party submitting works for the party being paid the share. Refused when no implemented finding covered the period.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft verification created."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "Period already verified, or nothing implemented to claim."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/verifications/{vid}/sign": {
+      "patch": {
+        "operationId": "EnergyAuditsController_signVerification",
+        "summary": "Sign Savings Verification",
+        "description": "The auditor's sign-off. Still not billable: the pricing engine ignores anything short of client acceptance, so signing alone cannot enlarge an invoice.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vid",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification signed."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "Already accepted by the client."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/verifications/{vid}/accept": {
+      "patch": {
+        "operationId": "EnergyAuditsController_acceptVerification",
+        "summary": "Accept Savings Verification (client)",
+        "description": "The client's counter-signature, and the only point at which a savings claim becomes billable. One of two writes in the revenue model a client-side role may perform. The caller's x-org-id must match the audited organisation.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vid",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification accepted; now billable."
+          },
+          "403": {
+            "description": "Caller belongs to another organisation."
+          },
+          "409": {
+            "description": "Not yet signed, or already accepted."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/verifications/{vid}/dispute": {
+      "patch": {
+        "operationId": "EnergyAuditsController_disputeVerification",
+        "summary": "Dispute Savings Verification (client)",
+        "description": "The client's rejection, with a reason. A disputed claim never reaches an invoice; the subscription still bills, since that service was delivered regardless.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vid",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisputeVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification disputed."
+          },
+          "403": {
+            "description": "Caller belongs to another organisation."
+          },
+          "409": {
+            "description": "Already accepted."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/platform-invoices/generate": {
+      "post": {
+        "operationId": "PlatformInvoicesController_generate",
+        "summary": "Generate Platform Invoice",
+        "description": "Runs the pricing engine for one organisation and one period, and saves the result as a draft. Nothing is typed by hand: the subscription line reads the live meter count, the audit line reads the contract start date, and the performance share reads a verification the client has accepted. Change a plan's price and regenerate — the total moves with no code change.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft invoice generated."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Organization, subscription or plan not found."
+          },
+          "409": {
+            "description": "An invoice for that period already exists."
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      }
+    },
+    "/api/platform-invoices/preview": {
+      "get": {
+        "operationId": "PlatformInvoicesController_preview",
+        "summary": "Preview Platform Invoice",
+        "description": "Computes a period's invoice without saving it, and explains in plain English why the performance-share line is present or absent — no verification, not signed, not accepted, or disputed. Declared before :id so the literal path is not read as an invoice id.",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "required": true,
+            "in": "query",
+            "description": "YYYY-MM",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Computed invoice preview."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      }
+    },
+    "/api/platform-invoices/revenue-summary": {
+      "get": {
+        "operationId": "PlatformInvoicesController_revenueSummary",
+        "summary": "Platform Revenue Summary",
+        "description": "MRR, ARR, revenue mix, collection status, and a breakdown by organisation and by plan. Aggregates across every tenant, so it is restricted to EnerTrack staff. The recurring-versus-outcome split says how much of the business is predictable.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revenue summary returned."
+          },
+          "403": {
+            "description": "Forbidden – caller is not EnerTrack platform staff."
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      }
+    },
+    "/api/platform-invoices": {
+      "post": {
+        "operationId": "PlatformInvoicesController_create",
+        "summary": "Create Platform Invoice",
+        "description": "Records an invoice with line items supplied by the caller. Prefer POST /generate, which derives every figure from platform state instead.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlatformInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invoice created successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      },
+      "get": {
+        "operationId": "PlatformInvoicesController_findAll",
+        "summary": "List Platform Invoices",
+        "description": "Tenant-scoped, newest period first. EnerTrack staff see every client's bills; a client sees only its own.",
+        "parameters": [
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of platform invoice records."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      }
+    },
+    "/api/platform-invoices/{id}": {
+      "get": {
+        "operationId": "PlatformInvoicesController_findOne",
+        "summary": "Get Platform Invoice by ID",
+        "description": "One invoice with its line items. Every line carries a source_ref naming the subscription or verification it was derived from, so any figure can be traced back.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice record returned."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Invoice with the given ID not found."
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      },
+      "put": {
+        "operationId": "PlatformInvoicesController_put",
+        "summary": "Replace Platform Invoice",
+        "description": "Completely replaces an invoice record. Send a full body.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutPlatformInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice replaced successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Invoice with the given ID not found."
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      },
+      "patch": {
+        "operationId": "PlatformInvoicesController_update",
+        "summary": "Update Platform Invoice",
+        "description": "Partially updates an invoice, for example flagging it overdue.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlatformInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice updated successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Invoice with the given ID not found."
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      },
+      "delete": {
+        "operationId": "PlatformInvoicesController_remove",
+        "summary": "Delete Platform Invoice",
+        "description": "Permanently removes an invoice. Refused once it has been paid — raise a credit note instead of erasing settled billing history.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "Invoice has been paid."
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      }
+    },
+    "/api/platform-invoices/{id}/issue": {
+      "patch": {
+        "operationId": "PlatformInvoicesController_issue",
+        "summary": "Issue Platform Invoice",
+        "description": "Moves a draft to issued and sets the due date 30 days out. Issuing is a deliberate act, separate from generating, so a draft can be reviewed first.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice issued."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "Invoice is not a draft."
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      }
+    },
+    "/api/platform-invoices/{id}/mark-paid": {
+      "patch": {
+        "operationId": "PlatformInvoicesController_markPaid",
+        "summary": "Mark Platform Invoice Paid",
+        "description": "Records payment against an issued or overdue invoice.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice marked paid."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "Invoice is still a draft, or already paid."
+          }
+        },
+        "tags": [
+          "platform-invoices"
+        ]
+      }
+    },
     "/api/users/login": {
       "post": {
         "operationId": "UsersController_loginUser",
@@ -5796,6 +7999,82 @@
           "tariff_rate": 8.5,
           "contract_start": "2025-01-01"
         }
+      },
+      "CreateSubscriptionPlanDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PutSubscriptionPlanDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateSubscriptionPlanDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateSubscriptionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PutSubscriptionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateSubscriptionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateEnergyAuditDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateSurveyDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "LockBaselineDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateFindingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateFindingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateVerificationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DisputeVerificationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PutEnergyAuditDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateEnergyAuditDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GenerateInvoiceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePlatformInvoiceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PutPlatformInvoiceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdatePlatformInvoiceDto": {
+        "type": "object",
+        "properties": {}
       },
       "LoginDto": {
         "type": "object",

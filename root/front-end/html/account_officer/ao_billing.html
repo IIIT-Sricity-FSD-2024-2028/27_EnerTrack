@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EnerTrack – Account Officer Billing</title>
+    <!--
+      tech_shared.css is the project's generic dashboard system; it is reused
+      rather than cloned. platform_shared.css adds the components EnerTrack-side
+      dashboards need on top of it, and is shared with the auditor pages.
+    -->
+    <link rel="stylesheet" href="../../css/shared/tech_shared.css" />
+    <link rel="stylesheet" href="../../css/shared/platform_shared.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div>
+          <a href="../landing/landing.html" class="logo">
+            <img src="../../assets/SVG.png" alt="" class="logo-icon" />
+            <img
+              src="../../assets/EnerTrack_text.png"
+              alt="EnerTrack"
+              class="logo-text"
+            />
+          </a>
+          <div class="nav-title">Account Officer</div>
+          <ul class="nav">
+            <a href="ao_overview.html"
+              ><li>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+                </svg>
+                Book of Accounts
+              </li></a
+            >
+            <a href="ao_accounts.html"
+              ><li>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Account Detail
+              </li></a
+            >
+            <a href="ao_billing.html"
+              ><li class="active">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/>
+                </svg>
+                Billing
+              </li></a
+            >
+            <a href="ao_reports.html"
+              ><li>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 17v-3"/><path d="M12 17v-6"/><path d="M16 17v-4"/>
+                </svg>
+                Savings Reporting
+              </li></a
+            >
+          </ul>
+        </div>
+
+        <div class="profile">
+          <img src="../../assets/logo.png" alt="" />
+          <div>
+            <div class="profile-name" id="sidebarUserName">Account Officer</div>
+            <div class="profile-role" id="sidebarUserRole">Account Officer</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="page-header">
+          <span class="platform-tag">EnerTrack staff · all tenants</span>
+          <h1 style="margin-top: 10px">Billing</h1>
+          <p>Generate a period's invoice from platform state, review each line and where it came from, then issue it. Nothing on an invoice is typed in by hand.</p>
+        </header>
+
+        <section id="aoApp" aria-live="polite"></section>
+      </main>
+    </div>
+
+    <!-- api.js first: it defines window.api, which every module below uses. -->
+    <script src="../../js/shared/api.js"></script>
+    <script type="module" src="../../js/account_officer/billingPage.js"></script>
+    <script src="../../js/shared/dashboardProfileMenu.js"></script>
+  </body>
+</html>

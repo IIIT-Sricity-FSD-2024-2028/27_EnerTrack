@@ -388,6 +388,486 @@ export interface Notification {
   is_read: boolean;
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   B2B REVENUE MODEL — EnerTrack's own business, not the client's
+
+   Everything from here to the end of the interfaces describes the
+   commercial relationship between EnerTrack and a client organisation:
+   what we audited, what they subscribe to, and what we bill them.
+
+   Read one distinction before anything else. PlatformInvoice is NOT
+   Invoice. Invoice (above) is the client's utility bill from their
+   electricity supplier — a cost their Financial Analyst manages.
+   PlatformInvoice is what EnerTrack charges the client for the service.
+   Two money flows, opposite directions; they never share a page.
+   ══════════════════════════════════════════════════════════════════════ */
+
+export enum SubscriptionStatus {
+  TRIAL = "trial",
+  ACTIVE = "active",
+  PAST_DUE = "past-due",
+  CANCELLED = "cancelled",
+}
+
+export enum BillingCycle {
+  MONTHLY = "monthly",
+  ANNUAL = "annual",
+}
+
+export enum AuditStatus {
+  SCHEDULED = "scheduled",
+  IN_PROGRESS = "in-progress",
+  SUBMITTED = "submitted",
+  APPROVED = "approved",
+  REJECTED = "rejected",
+}
+
+export enum FindingSeverity {
+  LOW = "low",
+  MODERATE = "moderate",
+  HIGH = "high",
+}
+
+/**
+ * A recommendation's journey. IMPLEMENTED is the one that matters
+ * commercially: the landing page promises the performance share is
+ * payable "only where recommendations were implemented", so a finding
+ * that has not reached this state contributes nothing to a bill.
+ */
+export enum FindingStatus {
+  PROPOSED = "proposed",
+  ACCEPTED = "accepted",
+  IMPLEMENTED = "implemented",
+  VERIFIED = "verified",
+  REJECTED = "rejected",
+}
+
+/**
+ * Lifecycle of a savings verification, and the reason the performance
+ * share is billable at all.
+ *
+ * The auditor who locks the baseline works for EnerTrack, and EnerTrack
+ * is paid a share of the gap between that baseline and actual
+ * consumption. Left alone that is a self-dealing loop with no
+ * counterparty: lower the baseline, raise the invoice.
+ *
+ * CLIENT_ACCEPTED is the counterparty. The pricing engine refuses to
+ * emit a performance-share line for a verification in any other state,
+ * so no EnerTrack employee can enlarge their own employer's invoice
+ * without the client agreeing to that specific number first.
+ */
+export enum VerificationStatus {
+  DRAFT = "draft",
+  AUDITOR_SIGNED = "auditor-signed",
+  CLIENT_ACCEPTED = "client-accepted",
+  DISPUTED = "disputed",
+}
+
+export enum PlatformInvoiceStatus {
+  DRAFT = "draft",
+  ISSUED = "issued",
+  PAID = "paid",
+  OVERDUE = "overdue",
+}
+
+export enum InvoiceLineType {
+  SUBSCRIPTION = "subscription",
+  AUDIT_FEE = "audit-fee",
+  PERFORMANCE_SHARE = "performance-share",
+}
+
+/**
+ * The three things that move consumption for reasons EnerTrack had
+ * nothing to do with. Held together because a baseline is only
+ * comparable to a later period once all three have been equalised.
+ */
+export interface PeriodFactorValues {
+  cooling_degree_days: number;
+  occupancy_index: number;
+  floor_area_sqm: number;
+}
+
+/**
+ * A price tier in EnerTrack's catalogue.
+ *
+ * The only entity in the system with NO organization_id. It is a global
+ * catalogue, identical for every tenant, so scopeToTenant() must never
+ * be applied to it — the same exception already made for
+ * GET /api/organizations/public.
+ *
+ * Every knob the billing engine reads lives on this row, and that is the
+ * whole scalability argument: adding a tier is a new row, changing a
+ * price is a PATCH, and neither needs a code change or a redeploy.
+ */
+export interface SubscriptionPlan {
+  plan_id: string;
+  name: string;
+  tagline: string;
+  /** Recurring fee per billed meter per month. */
+  price_per_meter_month: number;
+  /** Floor, so a very small estate still covers the cost to serve it. */
+  min_monthly_fee: number;
+  /** One-time site audit: a fixed component plus a per-square-metre one. */
+  audit_fee_base: number;
+  audit_fee_per_sqm: number;
+  /** Share of *verified* savings EnerTrack invoices, as a percentage. */
+  performance_share_pct: number;
+  /**
+   * Ceiling on the performance share, as a percentage of that period's
+   * subscription fee. Stops an unusual season producing an invoice the
+   * client cannot budget for, and encodes the honest position that the
+   * subscription is the primary revenue and the share is an alignment
+   * signal — EnerTrack measures and reports, the client's own
+   * technicians do the implementing.
+   */
+  share_cap_pct_of_subscription: number;
+  features: string[];
+  is_active: boolean;
+}
+
+export interface Subscription {
+  subscription_id: string;
+  organization_id: string;
+  plan_id: string;
+  status: SubscriptionStatus;
+  billing_cycle: BillingCycle;
+  started_on: string | null;
+  renews_on: string | null;
+  cancelled_on: string | null;
+  /** Negotiated share percentage. Falls back to the plan's when null. */
+  performance_share_pct_override: number | null;
+  /** Set when the fee was waived on signature; suppresses the audit line. */
+  audit_fee_waived_on: string | null;
+  /** EnerTrack Account Officer who owns this relationship. */
+  account_officer_id: string | null;
+  /** The audit whose locked baseline this contract measures against. */
+  baseline_audit_id: string | null;
+}
+
+/**
+ * Normalisation figures for one organisation in one month.
+ *
+ * Consumption moves for reasons that have nothing to do with EnerTrack: a
+ * milder summer, a bigger intake, a new block coming online. Billing a
+ * share of raw baseline-minus-actual would charge the client for the
+ * weather. These are the figures adjustBaseline() uses to strip that out
+ * before anything is claimed as a saving.
+ */
+export interface PeriodFactors extends PeriodFactorValues {
+  organization_id: string;
+  /** "YYYY-MM" */
+  period: string;
+}
+
+export interface AuditFinding {
+  finding_id: string;
+  title: string;
+  category: string;
+  severity: FindingSeverity;
+  est_annual_saving: number;
+  capex: number;
+  payback_months: number;
+  status: FindingStatus;
+  /** Null until the client's own team actually does the work. */
+  implemented_on: string | null;
+  /** Buildings this measure touches. Scopes which meters may be credited. */
+  building_ids: string[];
+}
+
+export interface SavingsVerification {
+  verification_id: string;
+  /** "YYYY-MM" — matches the PlatformInvoice period it can be billed on. */
+  period: string;
+  status: VerificationStatus;
+  /** Implemented findings being credited. Empty means nothing is claimable. */
+  finding_ids: string[];
+  /** Meters those findings cover, after decommissioned ones are dropped. */
+  meter_ids: string[];
+  actual_factors: PeriodFactorValues;
+  /**
+   * Both baselines are stored on purpose. The raw figure is what a naive
+   * calculation would have claimed; the adjusted one is what is actually
+   * billable. Keeping the pair makes the size of the adjustment visible
+   * to the client who has to sign it, instead of hiding it inside a
+   * single number they cannot check.
+   */
+  raw_baseline_kwh: number;
+  adjusted_baseline_kwh: number;
+  actual_kwh: number;
+  saved_kwh: number;
+  saved_amount: number;
+  signed_by: string | null;
+  signed_on: string | null;
+  accepted_by: string | null;
+  accepted_on: string | null;
+  dispute_reason: string | null;
+  disputed_on: string | null;
+}
+
+export interface AuditBaseline {
+  /** "YYYY-MM" bounds of the window the baseline was measured over. */
+  period_from: string;
+  period_to: string;
+  /** Once locked the figures are frozen: the contract measures against them. */
+  locked: boolean;
+  locked_on: string | null;
+  locked_by: string | null;
+  /** Average monthly consumption across the baseline window. */
+  baseline_kwh: number;
+  baseline_water_kl: number;
+  baseline_cost: number;
+  baseline_co2_kg: number;
+  /** Averages across the same window, so any later period normalises to it. */
+  factors: PeriodFactorValues;
+}
+
+export interface AuditSurvey {
+  buildings_surveyed: number;
+  meters_found: number;
+  data_source_tier: DataSourceTier | null;
+  floor_area_sqm: number | null;
+  notes: string | null;
+}
+
+/**
+ * A certified auditor's site visit and everything that flows from it.
+ *
+ * Findings and verifications are folded in as JSON arrays rather than
+ * given their own tables, matching how Alert.messages and
+ * Initiative.outcomes already work in this schema.
+ */
+export interface EnergyAudit {
+  audit_id: string;
+  organization_id: string;
+  auditor_id: string;
+  status: AuditStatus;
+  scheduled_on: string | null;
+  conducted_on: string | null;
+  approved_on: string | null;
+  survey: AuditSurvey;
+  baseline: AuditBaseline | null;
+  findings: AuditFinding[];
+  verifications: SavingsVerification[];
+  recommended_plan_id: string | null;
+  projected_annual_saving: number;
+  summary: string | null;
+}
+
+export interface PlatformInvoiceLine {
+  type: InvoiceLineType;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  amount: number;
+  /** Record this line was derived from, so any figure on a bill is traceable. */
+  source_ref: string | null;
+}
+
+export interface PlatformInvoice {
+  platform_invoice_id: string;
+  organization_id: string;
+  subscription_id: string;
+  /** "YYYY-MM" */
+  period: string;
+  line_items: PlatformInvoiceLine[];
+  subtotal: number;
+  tax_pct: number;
+  tax_amount: number;
+  total: number;
+  status: PlatformInvoiceStatus;
+  issued_on: string | null;
+  due_on: string | null;
+  paid_on: string | null;
+}
+
+/* ── Seed generators ──────────────────────────────────────────────────
+
+   The revenue model only means something against a run of history: a
+   baseline window, an implementation date, and enough months after it to
+   verify savings against. Writing ~60 reading literals by hand would bury
+   the rest of the seed, so the monthly series is generated instead —
+   deterministically, with no Math.random, so every demo produces the same
+   figures and the numbers quoted in the docs stay true.
+   ───────────────────────────────────────────────────────────────────── */
+
+/**
+ * Cooling degree days by calendar month for Sri City / coastal Andhra.
+ * The Mar–Jun peak is what actually drives campus electricity demand
+ * here, which is why CDD is the normalisation factor that matters most.
+ */
+const BASE_CDD_BY_MONTH: Record<number, number> = {
+  1: 60, 2: 90, 3: 150, 4: 200, 5: 230, 6: 200,
+  7: 170, 8: 160, 9: 150, 10: 120, 11: 80, 12: 60,
+};
+
+/**
+ * Two things happened to org-001 in 2026, and both are seeded on purpose.
+ *
+ * The hot season ran ~15% milder than 2025, which makes the post-retrofit
+ * consumption drop look larger than the retrofit earned. Intake grew ~3%,
+ * which pushes the other way. Seeding both is what lets the baseline
+ * adjustment be shown moving in each direction rather than looking like a
+ * decorative multiplier — the mild weather is clawed back, the extra
+ * students are credited.
+ */
+const MILD_YEAR_FACTOR = 0.85;
+const OCCUPANCY_2026 = 1.03;
+
+/** How strongly consumption tracks cooling degree days, per CDD. */
+const CDD_SENSITIVITY = 0.006;
+/** CDD at which a meter runs at exactly its base demand. */
+const CDD_REFERENCE = 120;
+
+/** Inclusive bounds of the generated monthly series. */
+const SERIES_FROM = { year: 2025, month: 1 };
+const SERIES_TO = { year: 2026, month: 8 };
+
+/** Floor area per tenant, used as the third normalisation factor. */
+const ORG_FLOOR_AREA: Record<string, number> = {
+  "org-001": 42000,
+  "org-002": 68000,
+  "org-004": 24000,
+};
+
+/**
+ * Meters whose monthly electricity series is generated, and the base
+ * demand each runs at before weather and occupancy are applied.
+ *
+ * Only meters that are actually live. M-006 sits in the same building as
+ * M-001 but is DECOMMISSIONED, and is deliberately excluded so the
+ * attribution code has to filter on meter status rather than trusting
+ * the building alone.
+ */
+const GENERATED_SERIES: {
+  meter_id: string;
+  code: string;
+  organization_id: string;
+  base_kwh: number;
+}[] = [
+  {
+    meter_id: "mmmm0000-0001-4000-8000-000000000000",
+    code: "M001",
+    organization_id: "org-001",
+    base_kwh: 42000,
+  },
+  {
+    meter_id: "mmmm0000-000a-4000-8000-000000000000",
+    code: "M010",
+    organization_id: "org-001",
+    base_kwh: 28000,
+  },
+  {
+    meter_id: "mmmm0000-0f02-4000-8000-000000000000",
+    code: "CVM001",
+    organization_id: "org-002",
+    base_kwh: 55000,
+  },
+  {
+    meter_id: "mmmm0000-0f04-4000-8000-000000000000",
+    code: "HPM001",
+    organization_id: "org-004",
+    base_kwh: 31000,
+  },
+  {
+    meter_id: "mmmm0000-0f05-4000-8000-000000000000",
+    code: "HPM002",
+    organization_id: "org-004",
+    base_kwh: 19000,
+  },
+];
+
+/**
+ * org-001 implemented its two accepted findings at the end of February
+ * 2026, cutting real demand on the affected meters by 12%. org-002 has an
+ * approved audit but has implemented nothing, so it has no claimable
+ * saving at all — which is the case the billing engine has to handle
+ * without producing a performance-share line.
+ */
+const RETROFIT_FROM_PERIOD = "2026-03";
+const RETROFIT_FACTOR = 0.88;
+const RETROFIT_METER_IDS = [
+  "mmmm0000-0001-4000-8000-000000000000",
+  "mmmm0000-000a-4000-8000-000000000000",
+];
+
+/** Every "YYYY-MM" in the generated series, in order. */
+function eachSeriesMonth(): { year: number; month: number; period: string }[] {
+  const months: { year: number; month: number; period: string }[] = [];
+  let year = SERIES_FROM.year;
+  let month = SERIES_FROM.month;
+  while (year < SERIES_TO.year || (year === SERIES_TO.year && month <= SERIES_TO.month)) {
+    months.push({ year, month, period: `${year}-${String(month).padStart(2, "0")}` });
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return months;
+}
+
+/** Cooling degree days for a month, with 2026's mild hot season applied. */
+function cddFor(year: number, month: number): number {
+  const base = BASE_CDD_BY_MONTH[month];
+  return year === 2026 && month >= 3 ? Math.round(base * MILD_YEAR_FACTOR) : base;
+}
+
+/** Occupancy index for a year, relative to the 2025 baseline of 1.0. */
+function occupancyFor(year: number): number {
+  return year === 2026 ? OCCUPANCY_2026 : 1.0;
+}
+
+function buildPeriodFactors(): PeriodFactors[] {
+  const rows: PeriodFactors[] = [];
+  for (const orgId of Object.keys(ORG_FLOOR_AREA)) {
+    for (const { year, month, period } of eachSeriesMonth()) {
+      rows.push({
+        organization_id: orgId,
+        period,
+        cooling_degree_days: cddFor(year, month),
+        occupancy_index: occupancyFor(year),
+        floor_area_sqm: ORG_FLOOR_AREA[orgId],
+      });
+    }
+  }
+  return rows;
+}
+
+/**
+ * One monthly electricity reading per generated meter.
+ *
+ * Consumption is a deterministic function of the same factors the
+ * adjustment later divides back out, which is what makes the whole
+ * demonstration honest: the savings the engine reports are exactly the
+ * part of the drop that weather and occupancy cannot explain.
+ */
+function buildMonthlyElectricityReadings(): MeterReading[] {
+  const readings: MeterReading[] = [];
+  for (const meter of GENERATED_SERIES) {
+    for (const { year, month, period } of eachSeriesMonth()) {
+      const cdd = cddFor(year, month);
+      const weather = 1 + CDD_SENSITIVITY * (cdd - CDD_REFERENCE);
+      const occupancy = occupancyFor(year);
+      const retrofit =
+        period >= RETROFIT_FROM_PERIOD && RETROFIT_METER_IDS.includes(meter.meter_id)
+          ? RETROFIT_FACTOR
+          : 1;
+
+      readings.push({
+        reading_id: `gen-${meter.code}-${period}`,
+        organization_id: meter.organization_id,
+        meter_id: meter.meter_id,
+        value: Math.round(meter.base_kwh * weather * occupancy * retrofit),
+        unit: "kWh",
+        // Month-end stamp: these are monthly totals, not spot readings.
+        timestamp: new Date(Date.UTC(year, month, 0, 23, 59, 0)).toISOString(),
+      });
+    }
+  }
+  return readings;
+}
+
 @Injectable({ scope: Scope.DEFAULT })
 export class DatabaseService {
   /**
@@ -427,6 +907,21 @@ export class DatabaseService {
       data_source_tier: DataSourceTier.NO_METERING,
       floor_area_sqm: 31000,
       tariff_rate: null,
+      contract_start: null,
+    },
+    {
+      // Mid-onboarding: metered and reporting, but not yet baselined. This is
+      // the state an auditor actually works in — org-003 above is a genuine
+      // no-metering prospect, where a baseline is impossible until meters
+      // exist, and the API correctly refuses to invent one.
+      organization_id: "org-004",
+      name: "Harbour Point Polytechnic",
+      type: "Polytechnic",
+      location: "Kakinada, Andhra Pradesh",
+      status: OrganizationStatus.AUDITED,
+      data_source_tier: DataSourceTier.MANUAL_UPLOAD,
+      floor_area_sqm: 24000,
+      tariff_rate: 8.9,
       contract_start: null,
     },
   ];
@@ -701,6 +1196,13 @@ export class DatabaseService {
       location: "Visakhapatnam",
       total_budget: 2400000,
     },
+    {
+      campus_id: "660e8700-0f04-4000-8000-000000000000",
+      organization_id: "org-004",
+      name: "Harbour Point Campus",
+      location: "Kakinada",
+      total_budget: 1400000,
+    },
   ];
   public buildings: Building[] = [
     {
@@ -744,6 +1246,20 @@ export class DatabaseService {
       campus_id: "660e8700-0f02-4000-8000-000000000000",
       name: "Marine Sciences Block",
       budget: 900000,
+    },
+    {
+      building_id: "660e8800-0f04-4000-8000-000000000000",
+      organization_id: "org-004",
+      campus_id: "660e8700-0f04-4000-8000-000000000000",
+      name: "Engineering Workshop",
+      budget: 520000,
+    },
+    {
+      building_id: "660e8800-0f05-4000-8000-000000000000",
+      organization_id: "org-004",
+      campus_id: "660e8700-0f04-4000-8000-000000000000",
+      name: "Central Library",
+      budget: 380000,
     },
   ];
   public departments: Department[] = [
@@ -902,6 +1418,33 @@ export class DatabaseService {
       meter_code: "CV-M-001",
       meter_type: MeterType.ELECTRICITY,
       zone: "Block A",
+      status: MeterStatus.ACTIVE,
+    },
+    {
+      meter_id: "mmmm0000-0f04-4000-8000-000000000000",
+      organization_id: "org-004",
+      building_id: "660e8800-0f04-4000-8000-000000000000",
+      meter_code: "HP-M-001",
+      meter_type: MeterType.ELECTRICITY,
+      zone: "Workshop",
+      status: MeterStatus.ACTIVE,
+    },
+    {
+      meter_id: "mmmm0000-0f05-4000-8000-000000000000",
+      organization_id: "org-004",
+      building_id: "660e8800-0f05-4000-8000-000000000000",
+      meter_code: "HP-M-002",
+      meter_type: MeterType.ELECTRICITY,
+      zone: "Library",
+      status: MeterStatus.ACTIVE,
+    },
+    {
+      meter_id: "mmmm0000-0f06-4000-8000-000000000000",
+      organization_id: "org-004",
+      building_id: "660e8800-0f05-4000-8000-000000000000",
+      meter_code: "HP-M-003",
+      meter_type: MeterType.WATER,
+      zone: "Library",
       status: MeterStatus.ACTIVE,
     },
   ];
@@ -1963,5 +2506,570 @@ export class DatabaseService {
       generated_at: "2024-12-10T09:15:00.000Z",
     }
   ];
+
+  /* ══════════════════════════════════════════════════════════════════
+     REVENUE MODEL SEED
+
+     Read the three streams in the order a client meets them: an audit
+     produces a locked baseline, a contract picks a plan, and monthly
+     invoices bill the subscription plus whatever savings the client has
+     agreed were real.
+     ══════════════════════════════════════════════════════════════════ */
+
+  /**
+   * The price catalogue. Global — no organization_id, so scopeToTenant()
+   * must never touch it.
+   *
+   * Note the two ends of the range behave differently on purpose, and
+   * both cases are live in this seed. org-001 has nine billed meters on
+   * Professional, so its per-meter price is what binds. org-002 has one
+   * meter on Essential, so its floor is what binds. Any pricing change
+   * either client sees is a PATCH to a row below, never a code change.
+   */
+  public subscriptionPlans: SubscriptionPlan[] = [
+    {
+      plan_id: "plan-essential",
+      name: "Essential",
+      tagline: "Metered monitoring and monthly variance reporting.",
+      price_per_meter_month: 1800,
+      min_monthly_fee: 15000,
+      audit_fee_base: 75000,
+      audit_fee_per_sqm: 4,
+      performance_share_pct: 10,
+      share_cap_pct_of_subscription: 200,
+      features: [
+        "Consumption dashboards",
+        "Monthly variance report",
+        "Email anomaly alerts",
+      ],
+      is_active: true,
+    },
+    {
+      plan_id: "plan-professional",
+      name: "Professional",
+      tagline: "Full workflow, verified savings and account management.",
+      price_per_meter_month: 3500,
+      min_monthly_fee: 25000,
+      audit_fee_base: 150000,
+      audit_fee_per_sqm: 6,
+      performance_share_pct: 15,
+      share_cap_pct_of_subscription: 300,
+      features: [
+        "Everything in Essential",
+        "Fault and work order workflow",
+        "Verified savings reporting",
+        "Named account officer",
+      ],
+      is_active: true,
+    },
+    {
+      plan_id: "plan-enterprise",
+      name: "Enterprise",
+      tagline: "Multi-campus estates with compliance reporting obligations.",
+      price_per_meter_month: 5200,
+      min_monthly_fee: 60000,
+      audit_fee_base: 300000,
+      audit_fee_per_sqm: 9,
+      performance_share_pct: 20,
+      share_cap_pct_of_subscription: 300,
+      features: [
+        "Everything in Professional",
+        "Multi-campus rollup",
+        "BRSR and ESG report packs",
+        "Quarterly on-site review",
+      ],
+      is_active: true,
+    },
+  ];
+
+  /**
+   * Live contracts. org-003 deliberately has none: it is a prospect whose
+   * audit is still in progress, which is the state the auditor dashboard
+   * opens on.
+   */
+  public subscriptions: Subscription[] = [
+    {
+      subscription_id: "sub-001",
+      organization_id: "org-001",
+      plan_id: "plan-professional",
+      status: SubscriptionStatus.ACTIVE,
+      billing_cycle: BillingCycle.MONTHLY,
+      started_on: "2025-01-01",
+      renews_on: "2027-01-01",
+      cancelled_on: null,
+      performance_share_pct_override: null,
+      // Waived on signature, so no audit-fee line appears on their invoices.
+      audit_fee_waived_on: "2025-01-01",
+      account_officer_id: "550e8400-00f3-4000-8000-0000000000f3",
+      baseline_audit_id: "audit-001",
+    },
+    {
+      subscription_id: "sub-002",
+      organization_id: "org-002",
+      plan_id: "plan-essential",
+      status: SubscriptionStatus.ACTIVE,
+      billing_cycle: BillingCycle.MONTHLY,
+      started_on: "2025-06-01",
+      renews_on: "2026-12-01",
+      cancelled_on: null,
+      performance_share_pct_override: null,
+      // Not waived: this client paid the audit fee up front.
+      audit_fee_waived_on: null,
+      account_officer_id: "550e8400-00f3-4000-8000-0000000000f3",
+      baseline_audit_id: "audit-002",
+    },
+  ];
+
+  /** Weather and occupancy per tenant per month. Generated, see below. */
+  public periodFactors: PeriodFactors[] = buildPeriodFactors();
+
+  /**
+   * Certified auditor engagements.
+   *
+   * audit-001 is the fully worked example: baseline locked, two findings
+   * implemented, and three verifications sitting in three different
+   * states so the billing gate is visible without touching anything —
+   * one accepted and already invoiced, one disputed, one waiting on the
+   * client. A fourth period (2026-07) is deliberately left unverified so
+   * there is real work to do in a demo.
+   */
+  public energyAudits: EnergyAudit[] = [
+    {
+      audit_id: "audit-001",
+      organization_id: "org-001",
+      auditor_id: "550e8400-00f2-4000-8000-0000000000f2",
+      status: AuditStatus.APPROVED,
+      scheduled_on: "2025-09-05",
+      conducted_on: "2025-09-12",
+      approved_on: "2025-09-30",
+      survey: {
+        buildings_surveyed: 5,
+        meters_found: 10,
+        data_source_tier: DataSourceTier.BMS_INTEGRATION,
+        floor_area_sqm: 42000,
+        notes:
+          "BMS already in place across all five blocks. Chiller plant runs on a fixed schedule with no load feedback; lighting in Buildings 1 and 2 is still fluorescent.",
+      },
+      baseline: {
+        period_from: "2025-03",
+        period_to: "2025-08",
+        locked: true,
+        locked_on: "2025-09-30",
+        locked_by: "550e8400-00f2-4000-8000-0000000000f2",
+        // Average monthly electricity across the six-month window, over
+        // the two live meters in the buildings the findings touch.
+        baseline_kwh: 97300,
+        baseline_water_kl: 3200,
+        baseline_cost: 827050,
+        baseline_co2_kg: 79786,
+        factors: {
+          cooling_degree_days: 185,
+          occupancy_index: 1.0,
+          floor_area_sqm: 42000,
+        },
+      },
+      findings: [
+        {
+          finding_id: "find-001",
+          title: "Chiller plant sequencing on return-water temperature",
+          category: "HVAC",
+          severity: FindingSeverity.HIGH,
+          est_annual_saving: 620000,
+          capex: 850000,
+          payback_months: 17,
+          status: FindingStatus.IMPLEMENTED,
+          implemented_on: "2026-02-24",
+          building_ids: ["660e8800-0002-4000-8000-000000000000"],
+        },
+        {
+          finding_id: "find-002",
+          title: "LED retrofit, Building 1 corridors and lecture halls",
+          category: "Lighting",
+          severity: FindingSeverity.MODERATE,
+          est_annual_saving: 240000,
+          capex: 310000,
+          payback_months: 16,
+          status: FindingStatus.IMPLEMENTED,
+          implemented_on: "2026-02-27",
+          building_ids: ["660e8800-0001-4000-8000-000000000000"],
+        },
+        {
+          finding_id: "find-003",
+          title: "Rooftop solar, 180 kWp across Buildings 3 and 5",
+          category: "Generation",
+          severity: FindingSeverity.HIGH,
+          est_annual_saving: 1450000,
+          capex: 9200000,
+          payback_months: 76,
+          // Accepted but not done, so it credits nothing. Flipping this to
+          // IMPLEMENTED is the fastest way to show attribution working.
+          status: FindingStatus.ACCEPTED,
+          implemented_on: null,
+          building_ids: [
+            "660e8800-0003-4000-8000-000000000000",
+            "660e8800-0005-4000-8000-000000000000",
+          ],
+        },
+      ],
+      verifications: [
+        {
+          verification_id: "ver-001",
+          period: "2026-04",
+          status: VerificationStatus.CLIENT_ACCEPTED,
+          finding_ids: ["find-001", "find-002"],
+          meter_ids: [
+            "mmmm0000-0001-4000-8000-000000000000",
+            "mmmm0000-000a-4000-8000-000000000000",
+          ],
+          actual_factors: {
+            cooling_degree_days: 170,
+            occupancy_index: 1.03,
+            floor_area_sqm: 42000,
+          },
+          // A naive baseline-minus-actual would have claimed 14,818 kWh
+          // here. April 2026 ran cooler than the baseline average, and
+          // that difference is not a saving anyone earned.
+          raw_baseline_kwh: 97300,
+          adjusted_baseline_kwh: 92093,
+          actual_kwh: 82482,
+          saved_kwh: 9611,
+          saved_amount: 81694,
+          signed_by: "550e8400-00f2-4000-8000-0000000000f2",
+          signed_on: "2026-05-04",
+          accepted_by: "550e8400-0002-4000-8000-000000000002",
+          accepted_on: "2026-05-09",
+          dispute_reason: null,
+          disputed_on: null,
+        },
+        {
+          verification_id: "ver-002",
+          period: "2026-05",
+          status: VerificationStatus.DISPUTED,
+          finding_ids: ["find-001", "find-002"],
+          meter_ids: [
+            "mmmm0000-0001-4000-8000-000000000000",
+            "mmmm0000-000a-4000-8000-000000000000",
+          ],
+          actual_factors: {
+            cooling_degree_days: 196,
+            occupancy_index: 1.03,
+            floor_area_sqm: 42000,
+          },
+          // The adjustment runs the other way in May: the month was
+          // hotter than the baseline average, so the adjusted baseline
+          // rises and the claim is larger than a naive one would be.
+          // That is exactly the case a client pushes back on, and it is
+          // seeded disputed to prove a disputed claim never reaches a bill.
+          raw_baseline_kwh: 97300,
+          adjusted_baseline_kwh: 106178,
+          actual_kwh: 92380,
+          saved_kwh: 13798,
+          saved_amount: 117283,
+          signed_by: "550e8400-00f2-4000-8000-0000000000f2",
+          signed_on: "2026-06-03",
+          accepted_by: null,
+          accepted_on: null,
+          dispute_reason:
+            "Two lecture blocks were closed for exams in May; we do not accept the occupancy index of 1.03 for this period.",
+          disputed_on: "2026-06-08",
+        },
+        {
+          verification_id: "ver-003",
+          period: "2026-06",
+          status: VerificationStatus.AUDITOR_SIGNED,
+          finding_ids: ["find-001", "find-002"],
+          meter_ids: [
+            "mmmm0000-0001-4000-8000-000000000000",
+            "mmmm0000-000a-4000-8000-000000000000",
+          ],
+          actual_factors: {
+            cooling_degree_days: 170,
+            occupancy_index: 1.03,
+            floor_area_sqm: 42000,
+          },
+          raw_baseline_kwh: 97300,
+          adjusted_baseline_kwh: 92093,
+          actual_kwh: 82482,
+          saved_kwh: 9611,
+          saved_amount: 81694,
+          signed_by: "550e8400-00f2-4000-8000-0000000000f2",
+          signed_on: "2026-07-02",
+          // Signed but not accepted, so it is worth nothing on an invoice
+          // until the client agrees. This is the Account Officer's worklist.
+          accepted_by: null,
+          accepted_on: null,
+          dispute_reason: null,
+          disputed_on: null,
+        },
+      ],
+      recommended_plan_id: "plan-professional",
+      projected_annual_saving: 2310000,
+      summary:
+        "Well instrumented estate with no control strategy behind the instrumentation. Chiller sequencing and the Building 1 lighting retrofit pay back inside eighteen months; solar is sound but long-dated.",
+    },
+    {
+      audit_id: "audit-002",
+      organization_id: "org-002",
+      auditor_id: "550e8400-00f2-4000-8000-0000000000f2",
+      status: AuditStatus.APPROVED,
+      scheduled_on: "2026-01-15",
+      conducted_on: "2026-01-22",
+      approved_on: "2026-02-05",
+      survey: {
+        buildings_surveyed: 1,
+        meters_found: 1,
+        data_source_tier: DataSourceTier.MANUAL_UPLOAD,
+        floor_area_sqm: 68000,
+        notes:
+          "Single sub-meter for the whole Marine Sciences Block. Readings are uploaded monthly from a spreadsheet; sub-metering is the precondition for anything else.",
+      },
+      baseline: {
+        period_from: "2025-03",
+        period_to: "2025-08",
+        locked: true,
+        locked_on: "2026-02-05",
+        locked_by: "550e8400-00f2-4000-8000-0000000000f2",
+        baseline_kwh: 76450,
+        baseline_water_kl: 2600,
+        baseline_cost: 703340,
+        baseline_co2_kg: 62689,
+        factors: {
+          cooling_degree_days: 185,
+          occupancy_index: 1.0,
+          floor_area_sqm: 68000,
+        },
+      },
+      findings: [
+        {
+          finding_id: "find-011",
+          title: "Sub-meter the four wings of the Marine Sciences Block",
+          category: "Metering",
+          severity: FindingSeverity.HIGH,
+          est_annual_saving: 0,
+          capex: 480000,
+          payback_months: 0,
+          status: FindingStatus.PROPOSED,
+          implemented_on: null,
+          building_ids: ["660e8800-0f02-4000-8000-000000000000"],
+        },
+      ],
+      // Nothing implemented, so nothing verifiable and no share to bill.
+      // The engine has to produce a clean subscription-only invoice here.
+      verifications: [],
+      recommended_plan_id: "plan-essential",
+      projected_annual_saving: 0,
+      summary:
+        "Cannot recommend savings measures against a single whole-block meter. Sub-metering first, then re-baseline after two quarters of clean data.",
+    },
+    {
+      audit_id: "audit-003",
+      organization_id: "org-003",
+      auditor_id: "550e8400-00f2-4000-8000-0000000000f2",
+      status: AuditStatus.IN_PROGRESS,
+      scheduled_on: "2026-08-24",
+      conducted_on: "2026-08-27",
+      approved_on: null,
+      survey: {
+        buildings_surveyed: 0,
+        meters_found: 0,
+        data_source_tier: null,
+        floor_area_sqm: null,
+        notes: null,
+      },
+      // No baseline, and none is possible: a site with no metering has no
+      // readings to establish one from, and the API refuses to invent a
+      // figure rather than letting an auditor type one in. Metering is the
+      // first finding on an engagement like this.
+      baseline: null,
+      findings: [],
+      verifications: [],
+      recommended_plan_id: null,
+      projected_annual_saving: 0,
+      summary: null,
+    },
+    {
+      // The engagement the auditor dashboard is meant to be worked through
+      // end to end: metered and reporting, surveyed, but not yet baselined.
+      // Survey → suggest baseline from readings → lock → add findings →
+      // submit for approval.
+      audit_id: "audit-004",
+      organization_id: "org-004",
+      auditor_id: "550e8400-00f2-4000-8000-0000000000f2",
+      status: AuditStatus.IN_PROGRESS,
+      scheduled_on: "2026-08-10",
+      conducted_on: "2026-08-18",
+      approved_on: null,
+      survey: {
+        buildings_surveyed: 2,
+        meters_found: 3,
+        data_source_tier: DataSourceTier.MANUAL_UPLOAD,
+        floor_area_sqm: 24000,
+        notes:
+          "Workshop extraction runs continuously regardless of occupancy. Library HVAC has no setback schedule outside term time.",
+      },
+      baseline: null,
+      findings: [],
+      verifications: [],
+      recommended_plan_id: null,
+      projected_annual_saving: 0,
+      summary: null,
+    },
+  ];
+
+  /**
+   * What EnerTrack has billed so far. Again: this is not Invoice, which
+   * is the client's electricity bill from their utility.
+   *
+   * Every line carries the record it came from in source_ref, so any
+   * figure on a bill can be traced back to the meter count or the
+   * verification that produced it.
+   */
+  public platformInvoices: PlatformInvoice[] = [
+    {
+      platform_invoice_id: "pinv-001",
+      organization_id: "org-001",
+      subscription_id: "sub-001",
+      period: "2026-04",
+      line_items: [
+        {
+          type: InvoiceLineType.SUBSCRIPTION,
+          description: "Professional — monitoring subscription, 9 metered points",
+          quantity: 9,
+          unit_price: 3500,
+          amount: 31500,
+          source_ref: "sub-001",
+        },
+        {
+          type: InvoiceLineType.PERFORMANCE_SHARE,
+          description:
+            "Performance share, 15% of verified savings (9,611 kWh, weather-adjusted)",
+          quantity: 1,
+          unit_price: 12254,
+          amount: 12254,
+          source_ref: "ver-001",
+        },
+      ],
+      subtotal: 43754,
+      tax_pct: 18,
+      tax_amount: 7876,
+      total: 51630,
+      status: PlatformInvoiceStatus.PAID,
+      issued_on: "2026-05-10",
+      due_on: "2026-06-09",
+      paid_on: "2026-05-28",
+    },
+    {
+      platform_invoice_id: "pinv-002",
+      organization_id: "org-001",
+      subscription_id: "sub-001",
+      period: "2026-05",
+      // The May verification is disputed, so no performance-share line.
+      // Subscription still bills: the service was delivered either way.
+      line_items: [
+        {
+          type: InvoiceLineType.SUBSCRIPTION,
+          description: "Professional — monitoring subscription, 9 metered points",
+          quantity: 9,
+          unit_price: 3500,
+          amount: 31500,
+          source_ref: "sub-001",
+        },
+      ],
+      subtotal: 31500,
+      tax_pct: 18,
+      tax_amount: 5670,
+      total: 37170,
+      status: PlatformInvoiceStatus.PAID,
+      issued_on: "2026-06-10",
+      due_on: "2026-07-10",
+      paid_on: "2026-06-24",
+    },
+    {
+      platform_invoice_id: "pinv-003",
+      organization_id: "org-001",
+      subscription_id: "sub-001",
+      period: "2026-06",
+      // June is signed but not yet accepted, so it is not billable either.
+      line_items: [
+        {
+          type: InvoiceLineType.SUBSCRIPTION,
+          description: "Professional — monitoring subscription, 9 metered points",
+          quantity: 9,
+          unit_price: 3500,
+          amount: 31500,
+          source_ref: "sub-001",
+        },
+      ],
+      subtotal: 31500,
+      tax_pct: 18,
+      tax_amount: 5670,
+      total: 37170,
+      status: PlatformInvoiceStatus.OVERDUE,
+      issued_on: "2026-07-10",
+      due_on: "2026-08-09",
+      paid_on: null,
+    },
+    {
+      platform_invoice_id: "pinv-011",
+      organization_id: "org-002",
+      subscription_id: "sub-002",
+      period: "2026-05",
+      // One live meter at 1,800 would be 1,800; the plan floor is what
+      // actually bills. The small end of the catalogue, working.
+      line_items: [
+        {
+          type: InvoiceLineType.SUBSCRIPTION,
+          description: "Essential — monitoring subscription, minimum monthly fee",
+          quantity: 1,
+          unit_price: 15000,
+          amount: 15000,
+          source_ref: "sub-002",
+        },
+      ],
+      subtotal: 15000,
+      tax_pct: 18,
+      tax_amount: 2700,
+      total: 17700,
+      status: PlatformInvoiceStatus.PAID,
+      issued_on: "2026-06-10",
+      due_on: "2026-07-10",
+      paid_on: "2026-07-02",
+    },
+    {
+      platform_invoice_id: "pinv-012",
+      organization_id: "org-002",
+      subscription_id: "sub-002",
+      period: "2026-06",
+      line_items: [
+        {
+          type: InvoiceLineType.SUBSCRIPTION,
+          description: "Essential — monitoring subscription, minimum monthly fee",
+          quantity: 1,
+          unit_price: 15000,
+          amount: 15000,
+          source_ref: "sub-002",
+        },
+      ],
+      subtotal: 15000,
+      tax_pct: 18,
+      tax_amount: 2700,
+      total: 17700,
+      status: PlatformInvoiceStatus.ISSUED,
+      issued_on: "2026-07-10",
+      due_on: "2026-08-09",
+      paid_on: null,
+    },
+  ];
+
+  /**
+   * The generated monthly electricity series is appended here rather than
+   * declared inline, because field initialisers run in declaration order
+   * and meterReadings is declared well above this point. By the time the
+   * constructor body runs every seed array exists, so the generated rows
+   * simply extend the hand-written ones.
+   */
+  constructor() {
+    this.meterReadings.push(...buildMonthlyElectricityReadings());
+  }
 }
 

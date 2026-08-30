@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EnerTrack – Auditor Savings verification</title>
+    <!--
+      tech_shared.css is the project's generic dashboard system (layout,
+      cards, badges, buttons, tables, forms). It is reused rather than
+      cloned; platform_shared.css adds the components EnerTrack-side
+      dashboards need on top of it.
+    -->
+    <link rel="stylesheet" href="../../css/shared/tech_shared.css" />
+    <link rel="stylesheet" href="../../css/shared/platform_shared.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div>
+          <a href="../landing/landing.html" class="logo">
+            <img
+              src="../../assets/SVG.png"
+              alt=""
+              class="logo-icon"
+            />
+            <img
+              src="../../assets/EnerTrack_text.png"
+              alt="EnerTrack"
+              class="logo-text"
+            />
+          </a>
+          <div class="nav-title">Certified Energy Auditor</div>
+          <ul class="nav">
+            <a href="auditor_overview.html"
+              ><li>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                </svg>
+                Overview
+              </li></a
+            >
+            <a href="auditor_audits.html"
+              ><li>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="12" y2="11"/>
+                </svg>
+                Audits &amp; Baselines
+              </li></a
+            >
+            <a href="auditor_findings.html"
+              ><li>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>
+                </svg>
+                Findings
+              </li></a
+            >
+            <a href="auditor_verification.html"
+              ><li class="active">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Savings Verification
+              </li></a
+            >
+          </ul>
+        </div>
+
+        <div class="profile">
+          <img src="../../assets/logo.png" alt="" />
+          <div>
+            <div class="profile-name" id="sidebarUserName">Auditor</div>
+            <div class="profile-role" id="sidebarUserRole">
+              Certified Energy Auditor
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="page-header">
+          <span class="platform-tag">EnerTrack staff · all tenants</span>
+          <h1 style="margin-top: 10px">Verify savings</h1>
+          <p>Compare a month's consumption against the locked baseline, normalised for weather and occupancy. Sign what is real; the client counter-signs before anything is billed.</p>
+        </header>
+
+        <section id="auditorApp" aria-live="polite"></section>
+      </main>
+    </div>
+
+    <!-- api.js first: it defines window.api, which every module below uses. -->
+    <script src="../../js/shared/api.js"></script>
+    <script type="module" src="../../js/auditor/verificationPage.js"></script>
+    <script src="../../js/shared/dashboardProfileMenu.js"></script>
+  </body>
+</html>

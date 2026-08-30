@@ -1,0 +1,346 @@
+/*
+ * platform_shared.css
+ * Shared skin and components for EnerTrack's own staff dashboards —
+ * the Certified Energy Auditor and the Account Officer.
+ *
+ * Loaded AFTER css/shared/tech_shared.css, which is reused wholesale rather
+ * than cloned. Despite its filename, nothing in that file is
+ * technician-specific: it is the generic dashboard system this project
+ * already has — .layout, .sidebar, .nav, .card, .badge, .btn, .grid*, table
+ * and form styling. Copying 590 lines to change one colour would leave two
+ * stylesheets to keep in step.
+ *
+ * This file adds only what platform-side work needs: an accent that marks a
+ * dashboard as spanning tenants rather than belonging to one, KPI tiles, the
+ * baseline comparison bars, and the pipeline and picker components both
+ * roles use.
+ */
+
+:root {
+  /* Slate rather than the technician green. EnerTrack staff work across
+     every client, so their dashboards deliberately do not wear a single
+     tenant's colour. */
+  --sidebar-bg: #cdd7e0;
+  --accent: #1e3a5f;
+  --accent-soft: #eaf0f6;
+  --pos: #15803d;
+  --neg: #b42318;
+}
+
+/* ─── Platform-side marker ────────────────────────────────────────
+   A visible reminder that this dashboard spans tenants. Getting the
+   wrong client's baseline is the expensive mistake in this role. */
+.platform-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid #c3d2e2;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+/* ─── KPI tiles ──────────────────────────────────────────────────── */
+.kpi {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+
+.kpi .kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.kpi .kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--dark);
+  line-height: 1.15;
+}
+
+.kpi .kpi-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.kpi-value.pos { color: var(--pos); }
+.kpi-value.neg { color: var(--neg); }
+
+/* ─── Pipeline columns ───────────────────────────────────────────── */
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.pipe-col {
+  background: #f9fafb;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 120px;
+}
+
+.pipe-col h4 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.pipe-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pipe-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.pipe-card .pc-org {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.pipe-card .pc-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ─── Baseline comparison ────────────────────────────────────────
+   The heart of the verification page: raw baseline, the normalisation
+   adjustment, and actual consumption shown against each other so the
+   size of the adjustment is impossible to miss. */
+.compare {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cmp-row {
+  display: grid;
+  grid-template-columns: 190px 1fr 130px;
+  align-items: center;
+  gap: 14px;
+}
+
+.cmp-label {
+  font-size: 13px;
+  color: var(--dark);
+  font-weight: 600;
+}
+
+.cmp-label small {
+  display: block;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.cmp-track {
+  background: #eef1f4;
+  border-radius: 6px;
+  height: 26px;
+  overflow: hidden;
+}
+
+.cmp-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.cmp-fill.raw { background: #94a3b8; }
+.cmp-fill.adjusted { background: var(--accent); }
+.cmp-fill.actual { background: #0f766e; }
+.cmp-fill.saved { background: var(--pos); }
+
+.cmp-value {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Callout ────────────────────────────────────────────────────── */
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #24384f;
+}
+
+.callout.warn {
+  border-left-color: #b45309;
+  background: var(--yellow-soft);
+  color: #6b3e05;
+}
+
+.callout.good {
+  border-left-color: var(--pos);
+  background: var(--green-soft);
+  color: #14532d;
+}
+
+.callout strong { font-weight: 700; }
+
+/* ─── Definition list ────────────────────────────────────────────── */
+.dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 20px;
+  font-size: 13px;
+}
+
+.dl dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.dl dd {
+  color: var(--dark);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Selectable list ────────────────────────────────────────────── */
+.pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.pick {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  background: #fafafa;
+  transition: all 0.15s;
+}
+
+.pick:hover { border-color: #9ca3af; }
+
+.pick.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.pick .pick-title {
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.pick .pick-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* ─── Toolbar ────────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.toolbar .field {
+  margin-bottom: 0;
+  min-width: 190px;
+}
+
+/* ─── Modal ──────────────────────────────────────────────────────── */
+.aud-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+  padding: 20px;
+}
+
+.aud-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 560px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.aud-modal h3 {
+  font-size: 17px;
+  margin-bottom: 14px;
+}
+
+.aud-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* ─── Misc ───────────────────────────────────────────────────────── */
+.muted { color: var(--muted); }
+.nowrap { white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; text-align: right; }
+
+.table-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 22px 0 10px;
+}
+
+@media (max-width: 1100px) {
+  .pipeline { grid-template-columns: repeat(2, 1fr); }
+  .cmp-row { grid-template-columns: 140px 1fr 110px; }
+}
