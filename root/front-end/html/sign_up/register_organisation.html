@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="format-detection" content="telephone=no, email=no, address=no" />
+    <title>EnerTrack | Register your organisation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!--
+      Reuses the sign-up stylesheet wholesale. This is the same kind of page —
+      a card on the hero background — and it is a different flow, not a
+      different look. Founding an organisation and joining one are separate
+      pages because the fields, the validation and the endpoint all differ.
+    -->
+    <link rel="stylesheet" href="../../css/sign_up/sign_up.css" />
+  </head>
+
+  <body>
+    <div class="background">
+      <img src="../../assets/hero.png" alt="" aria-hidden="true" />
+    </div>
+
+    <div class="top-bar">
+      <a href="../landing/landing.html" class="logo">
+        <img src="../../assets/logo.png" alt="EnerTrack" />
+      </a>
+      <a href="../landing/landing.html" class="back-link">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+        Back to site
+      </a>
+    </div>
+
+    <div class="main">
+      <div class="card">
+        <h1>Register your organisation</h1>
+        <p class="sub">
+          This creates your organisation and makes you its administrator. You
+          can then request a site audit — nothing is charged until you accept a
+          proposal.
+        </p>
+
+        <form id="registerOrgForm" novalidate>
+          <div class="field">
+            <label for="orgName">Organisation name</label>
+            <input
+              id="orgName"
+              class="input"
+              type="text"
+              placeholder="Deccan School of Engineering"
+              autocomplete="organization"
+            />
+            <span class="field-error" id="orgNameError"></span>
+          </div>
+
+          <div class="field">
+            <label for="orgType">Type</label>
+            <div class="select-wrap">
+              <select id="orgType" class="input select" autocomplete="off">
+                <option value="" disabled selected hidden>Select a type</option>
+                <option value="University">University</option>
+                <option value="Engineering College">Engineering College</option>
+                <option value="Polytechnic">Polytechnic</option>
+                <option value="School">School</option>
+                <option value="Corporate Campus">Corporate Campus</option>
+                <option value="Hospital">Hospital</option>
+                <option value="Other">Other</option>
+              </select>
+              <span class="chevron">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </span>
+            </div>
+            <span class="field-error" id="orgTypeError"></span>
+          </div>
+
+          <div class="field">
+            <label for="orgLocation">Location</label>
+            <input
+              id="orgLocation"
+              class="input"
+              type="text"
+              placeholder="Pune, Maharashtra"
+              autocomplete="address-level2"
+            />
+            <span class="field-error" id="orgLocationError"></span>
+          </div>
+
+          <div class="field">
+            <label for="orgArea">Approximate floor area in m² (optional)</label>
+            <input
+              id="orgArea"
+              class="input"
+              type="number"
+              min="0"
+              placeholder="18000"
+            />
+            <span class="field-error" id="orgAreaError"></span>
+          </div>
+
+          <hr
+            style="
+              border: none;
+              border-top: 1px solid rgba(0, 0, 0, 0.1);
+              margin: 22px 0 18px;
+            "
+          />
+          <p class="sub" style="margin-bottom: 16px">
+            You will be the organisation's administrator — the account that
+            receives EnerTrack's proposal and approves it.
+          </p>
+
+          <div class="field">
+            <label for="adminName">Your full name</label>
+            <input
+              id="adminName"
+              class="input"
+              type="text"
+              placeholder="Rohit Kale"
+              autocomplete="name"
+            />
+            <span class="field-error" id="adminNameError"></span>
+          </div>
+
+          <div class="field">
+            <label for="adminEmail">Work email</label>
+            <input
+              id="adminEmail"
+              class="input"
+              type="email"
+              placeholder="rohit@deccan.edu"
+              autocomplete="email"
+            />
+            <span class="field-error" id="adminEmailError"></span>
+          </div>
+
+          <div class="field">
+            <label for="adminPhone">Phone (optional)</label>
+            <input
+              id="adminPhone"
+              class="input"
+              type="tel"
+              placeholder="9876543210"
+              autocomplete="tel"
+            />
+            <span class="field-error" id="adminPhoneError"></span>
+          </div>
+
+          <div class="field">
+            <label for="adminPassword">Password</label>
+            <input
+              id="adminPassword"
+              class="input"
+              type="password"
+              placeholder="At least 6 characters"
+              autocomplete="new-password"
+            />
+            <span class="field-error" id="adminPasswordError"></span>
+          </div>
+
+          <button type="submit" class="btn" id="registerOrgBtn">
+            Register organisation
+          </button>
+        </form>
+
+        <div class="footer">
+          <p>Your organisation already on EnerTrack?</p>
+          <a href="sign_up.html" class="signin-link">Join it instead</a>
+        </div>
+      </div>
+    </div>
+
+    <script src="../../js/shared/api.js"></script>
+    <script src="../../js/shared/roleRoutes.js"></script>
+    <script src="../../js/sign_up/registerOrganisation.js"></script>
+  </body>
+</html>

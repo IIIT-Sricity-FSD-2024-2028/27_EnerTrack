@@ -9,6 +9,8 @@ import {
   DatabaseService,
   MeterStatus,
   MeterType,
+  OrganizationStatus,
+  UserRole,
 } from "../../core/database/database.service";
 
 /** Grid emissions factor for Indian electricity, kg CO2 per kWh. */
@@ -21,6 +23,7 @@ import {
 import { CreateOrganizationDto } from "./dto/create-organization.dto";
 import { PutOrganizationDto } from "./dto/put-organization.dto";
 import { UpdateOrganizationDto } from "./dto/update-organization.dto";
+import { RegisterOrganizationDto } from "./dto/register-organization.dto";
 
 @Injectable()
 export class OrganizationsService {
@@ -39,6 +42,78 @@ export class OrganizationsService {
     const newRecord = { organization_id: generatedId, ...createDto };
     this.database.organizations.push(newRecord as any);
     return newRecord;
+  }
+
+  /**
+   * An organisation signing itself up. This is where the engagement starts.
+   *
+   * Public, because the person doing it has no account yet — the same
+   * reasoning as POST /users/register. It creates the organisation as a
+   * PROSPECT and its first user as an Organization Admin, together, because
+   * either one alone is a dead record: an organisation with nobody in it
+   * cannot request an audit, and a user with no organisation belongs to no
+   * tenant and would see nothing.
+   *
+   * That first user being an Organization Admin is deliberate, and it is the
+   * one case where self-appointing as account owner is correct. Joining an
+   * *existing* organisation in that role is still refused by
+   * UsersService.register via SELF_REGISTERABLE_ROLES — you may own the
+   * organisation you just created, never one that already exists.
+   *
+   * Honest limitation: this is an unauthenticated write, so it is spammable.
+   * What limits the damage is that the record does nothing on its own — a
+   * prospect has no subscription, no data and no dashboards worth the name
+   * until an auditor engages with it — and duplicate names are refused
+   * outright.
+   */
+  registerSelfServe(dto: RegisterOrganizationDto) {
+    const nameTaken = this.database.organizations.find(
+      (o) => o.name.toLowerCase() === dto.name.trim().toLowerCase(),
+    );
+    if (nameTaken)
+      throw new ConflictException(
+        `An organisation named '${dto.name}' is already registered. If this is yours, ask its administrator to invite you.`,
+      );
+
+    const email = dto.admin_email.trim().toLowerCase();
+    const emailTaken = this.database.users.find(
+      (u) => u.email.toLowerCase() === email,
+    );
+    if (emailTaken)
+      throw new ConflictException(
+        `An account already exists for ${dto.admin_email}`,
+      );
+
+    const organization = {
+      organization_id: crypto.randomUUID(),
+      name: dto.name.trim(),
+      type: dto.type.trim(),
+      location: dto.location?.trim() || null,
+      status: OrganizationStatus.PROSPECT,
+      // All unknown until someone has walked the site. That is the audit's job.
+      data_source_tier: null,
+      floor_area_sqm: dto.floor_area_sqm ?? null,
+      tariff_rate: null,
+      contract_start: null,
+    };
+    this.database.organizations.push(organization as any);
+
+    const admin = {
+      user_id: crypto.randomUUID(),
+      organization_id: organization.organization_id,
+      name: dto.admin_name.trim(),
+      email,
+      phone: dto.admin_phone?.trim() || null,
+      password: dto.admin_password,
+      role: UserRole.ORGANIZATION_ADMIN,
+      specialization: null,
+    };
+    this.database.users.push(admin as any);
+
+    // Same shape as login, so the sign-up page can drop the caller straight
+    // into a session rather than making them type their password again.
+    const { password: _pw, ...safeAdmin } = admin;
+    return { organization, admin: safeAdmin };
   }
 
   /**

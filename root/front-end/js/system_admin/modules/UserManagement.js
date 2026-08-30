@@ -171,6 +171,17 @@ function renderUserRow(user) {
 }
 
 function openAddUserModal(app) {
+  // A Super Admin works across every tenant, so the request carries no
+  // x-org-id and the backend has nothing to fall back on — the dropdown
+  // below is what used to be missing, and its absence is exactly how an
+  // "Organization Admin" ended up created with no organisation at all. An
+  // Organization Admin managing their own team never needs this: the
+  // backend always resolves the tenant from their session's x-org-id
+  // regardless of anything sent in the body, so showing them a choice here
+  // would be a choice that does nothing.
+  const needsOrgPicker = isSuperAdmin();
+  const orgs = app.state.organizations || [];
+
   openModal({
     title: "Add User",
     confirmLabel: "Add User",
@@ -198,6 +209,23 @@ function openAddUserModal(app) {
           </select>
           <span class="field-error" data-error-for="role"></span>
         </div>
+        ${
+          needsOrgPicker
+            ? `<div class="form-field">
+                 <label for="userOrg">Organisation</label>
+                 <select id="userOrg">
+                   <option value="" disabled selected hidden>Select an organisation</option>
+                   ${orgs
+                     .map(
+                       (o) =>
+                         `<option value="${escapeHtml(o.organization_id)}">${escapeHtml(o.name)}</option>`,
+                     )
+                     .join("")}
+                 </select>
+                 <span class="field-error" data-error-for="organization_id"></span>
+               </div>`
+            : ""
+        }
         <div class="form-field">
           <label for="specialization">Specialization</label>
           <input id="specialization" placeholder="Required for Technicians">
@@ -216,10 +244,17 @@ function openAddUserModal(app) {
         email: "#userEmail",
         phone: "#userPhone",
         role: "#userRole",
+        // #userOrg only exists in the DOM for a Super Admin; querySelector
+        // simply finds nothing for anyone else, and values.organization_id
+        // comes back "" — which validateUser only requires when
+        // needsOrgPicker is true.
+        organization_id: "#userOrg",
         specialization: "#specialization",
         password: "#tempPassword",
       });
-      const errors = validateUser(values, app.state.users);
+      const errors = validateUser(values, app.state.users, {
+        requireOrg: needsOrgPicker,
+      });
 
       if (Object.keys(errors).length > 0) {
         showFormErrors(modal, errors);
@@ -236,6 +271,7 @@ function openAddUserModal(app) {
           specialization:
             values.role === "Technician" ? values.specialization : null,
         };
+        if (needsOrgPicker) payload.organization_id = values.organization_id;
         try {
           if (window.api) {
             await window.api.post("/users", payload);
@@ -261,6 +297,14 @@ function openEditUserModal(userId, app) {
     showToast("User not found.", "error");
     return;
   }
+
+  // organization_id can only ever be set once it is null — the backend
+  // pins it otherwise, the same way a Subscription's tenant is pinned, so
+  // an existing link can't be silently reassigned by a PATCH. This is
+  // therefore a repair control for a user created with none, not a general
+  // "move this account to another organisation" picker.
+  const needsOrgPicker = isSuperAdmin() && !user.organization_id;
+  const orgs = app.state.organizations || [];
 
   openModal({
     title: "Edit User",
@@ -293,6 +337,27 @@ function openEditUserModal(userId, app) {
           </select>
           <span class="field-error" data-error-for="role"></span>
         </div>
+        ${
+          needsOrgPicker
+            ? `<div class="form-field">
+                 <label for="editUserOrg">Organisation</label>
+                 <select id="editUserOrg">
+                   <option value="" disabled selected hidden>Select an organisation</option>
+                   ${orgs
+                     .map(
+                       (o) =>
+                         `<option value="${escapeHtml(o.organization_id)}">${escapeHtml(o.name)}</option>`,
+                     )
+                     .join("")}
+                 </select>
+                 <span class="field-error" data-error-for="organization_id"></span>
+                 <p class="muted-cell" style="margin-top:6px">
+                   This account has no organisation. Pick one to link it —
+                   this can only be done once.
+                 </p>
+               </div>`
+            : ""
+        }
         <div class="form-field">
           <label for="editSpecialization">Specialization</label>
           <input id="editSpecialization" value="${escapeHtml(user.specialization || "")}" placeholder="Required for Technicians">
@@ -311,10 +376,14 @@ function openEditUserModal(userId, app) {
         email: "#editUserEmail",
         phone: "#editUserPhone",
         role: "#editUserRole",
+        organization_id: "#editUserOrg",
         specialization: "#editSpecialization",
         password: "#editPassword",
       });
       const errors = validateUserEdit(values, app.state.users, userId);
+      if (needsOrgPicker && !values.organization_id) {
+        errors.organization_id = "Select an organisation to link this account to.";
+      }
 
       if (Object.keys(errors).length > 0) {
         showFormErrors(modal, errors);
@@ -331,6 +400,7 @@ function openEditUserModal(userId, app) {
           specialization:
             values.role === "Technician" ? values.specialization : null,
         };
+        if (needsOrgPicker) payload.organization_id = values.organization_id;
         try {
           if (window.api) {
             await window.api.patch("/users/" + userId, payload);
@@ -401,8 +471,15 @@ function deleteUser(userId, app) {
   });
 }
 
-function validateUser(values, existingUsers) {
+function validateUser(values, existingUsers, options = {}) {
   const errors = {};
+
+  // A Super Admin has no tenant of their own to fall back on, so this is
+  // the one place that link gets made. Skipping it silently is exactly
+  // what produced an Organization Admin belonging to no organisation.
+  if (options.requireOrg && !values.organization_id) {
+    errors.organization_id = "Select which organisation this user belongs to.";
+  }
 
   if (!values.name || values.name.length < 2)
     errors.name = "Enter a name with at least 2 characters.";

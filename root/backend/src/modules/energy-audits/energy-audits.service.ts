@@ -250,6 +250,81 @@ export class EnergyAuditsService {
   }
 
 
+  /**
+   * An Organization Admin asks EnerTrack to come and look at their site.
+   *
+   * This is the first move in the whole engagement, and it is the client's
+   * to make. Everything downstream — the survey, the recommendations, the
+   * proposal, the subscription — hangs off this one record.
+   *
+   * Refused while an engagement is already open, because two auditors
+   * surveying the same estate in parallel would produce two proposals and no
+   * way to say which one the client answered.
+   */
+  requestAudit(note?: string) {
+    const orgId = currentOrgId();
+    if (!orgId)
+      throw new BadRequestException(
+        "An audit is requested for an organisation, so the x-org-id header is required",
+      );
+
+    const org = this.database.organizations.find(
+      (o) => o.organization_id === orgId,
+    );
+    if (!org)
+      throw new NotFoundException(`Organization with ID ${orgId} not found`);
+
+    const open = this.database.energyAudits.find(
+      (a) =>
+        a.organization_id === orgId &&
+        a.status !== AuditStatus.ACCEPTED &&
+        a.status !== AuditStatus.DECLINED,
+    );
+    if (open)
+      throw new ConflictException(
+        `An audit is already underway for ${org.name} (currently ${open.status})`,
+      );
+
+    // One auditor in this deployment, so assignment is deterministic. A
+    // larger practice would queue here instead; refusing outright is better
+    // than creating an engagement nobody owns.
+    const auditor = this.database.users.find(
+      (u) => u.role === UserRole.CERTIFIED_ENERGY_AUDITOR,
+    );
+    if (!auditor)
+      throw new ConflictException(
+        "No certified energy auditor is available. EnerTrack will be in touch.",
+      );
+
+    const audit: EnergyAudit = {
+      audit_id: crypto.randomUUID(),
+      organization_id: orgId,
+      auditor_id: auditor.user_id,
+      status: AuditStatus.SCHEDULED,
+      scheduled_on: null,
+      conducted_on: null,
+      survey: {
+        buildings_surveyed: 0,
+        meters_found: 0,
+        data_source_tier: null,
+        floor_area_sqm: org.floor_area_sqm,
+        notes: note?.trim() || null,
+      },
+      findings: [],
+      proposal: null,
+      summary: null,
+    };
+    this.database.energyAudits.push(audit);
+
+    this.notify(
+      auditor.user_id,
+      audit,
+      `${org.name} has requested an energy audit${note ? `: ${note.trim()}` : ""}`,
+    );
+
+    return audit;
+  }
+
   /* ── Proposal ──────────────────────────────────────────────────── */
 
   /**

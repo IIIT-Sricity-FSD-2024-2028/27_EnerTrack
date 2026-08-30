@@ -143,10 +143,24 @@ export class UsersService {
     const index = this.database.users.findIndex((item) => item.user_id === id);
     if (index === -1 || !assertTenantOwns(this.database.users[index]))
       throw new NotFoundException(`User with ID ${id} not found`);
+
+    const current = this.database.users[index];
+
+    // organization_id is normally pinned, the same way Subscription's is:
+    // letting a PATCH move an already-tenanted account would silently
+    // reassign it to a different client. But that protection only means
+    // something once a tenant is actually set. A null organization_id has
+    // nothing to protect, so it may be filled in exactly once — the repair
+    // path for a user created without one (e.g. an Organization Admin
+    // added from the Super Admin's User Management before an organisation
+    // was picked). Once set, it reverts to pinned like every other user.
+    const organization_id =
+      current.organization_id ?? updateDto.organization_id ?? null;
+
     this.database.users[index] = {
-      ...this.database.users[index],
+      ...current,
       ...updateDto,
-      organization_id: this.database.users[index].organization_id,
+      organization_id,
     };
     return this.withoutPassword(this.database.users[index]);
   }

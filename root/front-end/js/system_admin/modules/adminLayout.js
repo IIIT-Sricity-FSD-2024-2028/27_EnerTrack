@@ -54,6 +54,16 @@ export function renderAdminLayout(root, app) {
     app.activeTab = "users";
   }
 
+  // The reverse case: "proposal" is CLIENT-only — it belongs to whichever
+  // organisation is answering EnerTrack's proposal, and a Super Admin has
+  // no organisation of their own to answer for. Without this, a tab left
+  // open by an Organization Admin session (or restored via localStorage on
+  // a shared browser) would render for a Super Admin too, and every action
+  // on it would 400 for the same reason: no x-org-id to scope the request.
+  if (app.activeTab === "proposal" && currentUser(app)?.role !== "Organization Admin") {
+    app.activeTab = "users";
+  }
+
   if (app.activeTab === "infrastructure") {
     renderInfrastructureManager(view, app);
   } else if (app.activeTab === "organizations") {

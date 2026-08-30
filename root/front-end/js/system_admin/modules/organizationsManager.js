@@ -188,11 +188,20 @@ function openOrgModal(app, orgId = null) {
           <input id="orgLocation" value="${escapeHtml(org?.location || "")}" placeholder="Pune, Maharashtra">
           <span class="field-error" data-error-for="location"></span>
         </div>
-        <div class="form-field">
-          <label for="orgStatus">Status</label>
-          <select id="orgStatus">${options(STATUSES, org?.status || "prospect")}</select>
-          <span class="field-error" data-error-for="status"></span>
-        </div>
+        ${
+          org
+            ? `<div class="form-field">
+                 <label for="orgStatus">Status</label>
+                 <select id="orgStatus">${options(STATUSES, org?.status || "prospect")}</select>
+                 <span class="field-error" data-error-for="status"></span>
+               </div>`
+            : // A new organisation is always a prospect. Status now moves on
+              // its own as the engagement progresses — audited once EnerTrack
+              // sends a proposal, active once the client accepts it — so
+              // picking it by hand here would just fight that automation the
+              // first time a proposal actually goes out.
+              ""
+        }
         <div class="form-field">
           <label for="orgTier">Data source tier</label>
           <select id="orgTier">${options(TIERS, org?.data_source_tier || "no-metering")}</select>
@@ -243,7 +252,10 @@ function openOrgModal(app, orgId = null) {
         name: vals.name,
         type: vals.type,
         location: vals.location || null,
-        status: vals.status,
+        // #orgStatus doesn't exist in the DOM on creation (see above), so
+        // vals.status would otherwise come back "" — not a valid
+        // OrganizationStatus and not what a new organisation should be.
+        status: orgId ? vals.status : "prospect",
         data_source_tier: vals.data_source_tier || null,
         floor_area_sqm:
           vals.floor_area_sqm === "" ? null : Number(vals.floor_area_sqm),

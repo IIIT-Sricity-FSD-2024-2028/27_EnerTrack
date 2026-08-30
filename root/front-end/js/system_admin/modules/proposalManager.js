@@ -47,19 +47,15 @@ export function renderProposalManager(container, app) {
         </div>
       </div>
 
-      ${
-        open.length === 0 && settled.length === 0
-          ? `<div class="table-card"><div class="empty-state">
-               No proposal has been sent to your organisation yet. Your auditor
-               sends one after the site visit.
-             </div></div>`
-          : ""
-      }
+      ${renderStage(audits)}
 
       ${open.map((a) => renderOpen(a, planOf(a.proposal.recommended_plan_id), app)).join("")}
       ${settled.length ? renderHistory(settled, planName) : ""}
     </section>`;
 
+  container.querySelector("[data-request-audit]")?.addEventListener("click", () =>
+    requestAudit(app),
+  );
   container.querySelectorAll("[data-accept]").forEach((b) => {
     b.addEventListener("click", () => respond(b.dataset.accept, "accept", app));
   });
@@ -69,6 +65,56 @@ export function renderProposalManager(container, app) {
   container.querySelectorAll("[data-decline]").forEach((b) => {
     b.addEventListener("click", () => respond(b.dataset.decline, "decline", app));
   });
+}
+
+/**
+ * Where this organisation is in the engagement, and what to do about it.
+ *
+ * The first state is the important one: an organisation that has never asked
+ * for an audit has nothing else on this page, so the request button IS the
+ * page. Everything downstream — survey, recommendations, proposal,
+ * subscription — hangs off that one click.
+ */
+function renderStage(audits) {
+  const open = audits.find(
+    (a) => a.status === "scheduled" || a.status === "in-progress",
+  );
+  const answered = audits.some((a) => a.proposal);
+
+  if (open) {
+    return `
+      <div class="table-card" style="padding:20px;margin-bottom:16px">
+        <h3 style="font-size:16px;margin-bottom:4px">
+          ${open.status === "scheduled" ? "Audit requested" : "Audit underway"}
+        </h3>
+        <p class="muted-cell">
+          ${
+            open.status === "scheduled"
+              ? "A certified energy auditor has been assigned and will be in touch to arrange the site visit."
+              : "Your auditor is writing up the site survey. A proposal follows once they are done."
+          }
+        </p>
+      </div>`;
+  }
+
+  if (answered) return "";
+
+  return `
+    <div class="table-card" style="padding:24px;margin-bottom:16px">
+      <h3 style="font-size:17px;margin-bottom:6px">Start with a site audit</h3>
+      <p class="muted-cell" style="max-width:60ch;line-height:1.6">
+        A certified energy auditor visits your campus, records what metering
+        you already have, and writes up where the savings are — each measure
+        with its cost, its saving and its payback. You then get one proposal
+        with the recommended tier and what it costs.
+      </p>
+      <p class="muted-cell" style="margin-top:10px">
+        Nothing is charged until you accept that proposal.
+      </p>
+      <button class="btn-dark" type="button" data-request-audit style="margin-top:16px">
+        Request an energy audit
+      </button>
+    </div>`;
 }
 
 function renderOpen(audit, plan, app) {
@@ -259,6 +305,40 @@ function respond(auditId, action, app) {
           showToast(err.message || "Could not send your answer.", "error");
         }
       }, copy.toast);
+      return true;
+    },
+  });
+}
+
+/** The client's first move, and the trigger for the whole engagement. */
+function requestAudit(app) {
+  openModal({
+    title: "Request an energy audit",
+    confirmLabel: "Request audit",
+    bodyHtml: `
+      <p>A certified auditor will be assigned and will contact you to arrange
+         the site visit.</p>
+      <p class="muted-cell">Nothing is charged for this. You only pay once you
+         accept the proposal that follows.</p>
+      <div class="form-field full" style="margin-top:12px">
+        <label for="auditNote">Anything they should know? (optional)</label>
+        <textarea id="auditNote" rows="3"
+          placeholder="e.g. two blocks, no sub-metering, bills have doubled since 2024"></textarea>
+      </div>`,
+    onConfirm: (modal) => {
+      const note = (modal.querySelector("#auditNote")?.value || "").trim();
+
+      app.update(async (state) => {
+        try {
+          await window.api.post("/energy-audits/request", note ? { note } : {});
+          state.audits = await window.api
+            .get("/energy-audits")
+            .catch(() => state.audits);
+        } catch (err) {
+          console.error("Audit request failed:", err);
+          showToast(err.message || "Could not request an audit.", "error");
+        }
+      }, "Audit requested. Your auditor has been notified.");
       return true;
     },
   });

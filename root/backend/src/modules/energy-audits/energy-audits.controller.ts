@@ -198,6 +198,23 @@ export class EnergyAuditsController {
   }
 
 
+  @Post('request')
+  @ApiOperation({
+    summary: 'Request an Audit (client)',
+    description:
+      "An Organization Admin asks EnerTrack to survey their site. This is the first move in the engagement and it belongs to the client — everything downstream hangs off the record it creates. An available certified auditor is assigned and notified. Refused while an engagement is already open for that organisation, since two parallel surveys would produce two proposals and no way to say which one was answered.",
+  })
+  @ApiResponse({ status: 201, description: 'Audit requested; an auditor has been notified.' })
+  @ApiResponse({ status: 400, description: 'x-org-id header missing.' })
+  @ApiResponse({ status: 409, description: 'An audit is already underway, or no auditor is available.' })
+  @ApiResponse({ status: 403, description: 'Forbidden (RBAC)' })
+  @ApiHeader(ROLE_HEADER)
+  @ApiHeader(ORG_HEADER)
+  @Roles('Organization Admin')
+  requestAudit(@Body() body: { note?: string }) {
+    return this.auditsService.requestAudit(body?.note);
+  }
+
   /* ── Proposal ──────────────────────────────────────────────────── */
 
   @Post(':id/proposal')
