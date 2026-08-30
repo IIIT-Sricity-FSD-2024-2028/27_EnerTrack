@@ -4,7 +4,7 @@
  *
  * Loaded after finance_overview.css and finance_shared.css, which supply the
  * sidebar and page chrome. Only the components this page adds live here:
- * the plan summary, the accept/dispute claim cards and the invoice table.
+ * the plan summary, the seat and campus usage bars, and the invoice table.
  */
 
 .sub-card {
@@ -14,13 +14,6 @@
   padding: 22px 24px;
   margin-bottom: 20px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 14px rgba(0, 0, 0, 0.04);
-}
-
-/* The claim queue is the one thing on this page that needs a decision, so
-   it is the one card that draws the eye. */
-.sub-card-attention {
-  border-color: #f0c36d;
-  background: #fffdf7;
 }
 
 .sub-card h2 {
@@ -140,58 +133,61 @@
   padding: 5px 10px;
 }
 
-/* ─── Claim card ─────────────────────────────────────────────────── */
-.claim {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #fff;
-  padding: 18px;
-  margin-top: 16px;
+/* ─── Usage bars ─────────────────────────────────────────────────
+   Seats and campuses against the tier allowance. A bar rather than a
+   number because "how close am I to paying more?" is the question, and a
+   ratio answers it faster than two figures side by side. */
+.usage-row {
+  display: grid;
+  grid-template-columns: 190px 1fr 110px;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
 }
 
-.claim-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 12px;
-}
-
-.claim-head strong {
-  font-size: 15px;
-}
-
-.claim-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.claim-table td {
-  padding: 8px 0;
-  border-top: 1px solid #f1f1f1;
+.usage-label {
   font-size: 13px;
-  color: #111827;
-  vertical-align: top;
-}
-
-.claim-table td.r {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
   font-weight: 600;
-  white-space: nowrap;
-  width: 130px;
+  color: #111827;
 }
 
-.claim-table td.n {
+.usage-label small {
+  display: block;
+  font-weight: 400;
   font-size: 12px;
   color: #6b7280;
-  padding-left: 18px;
-  line-height: 1.45;
+  margin-top: 2px;
 }
 
-.claim-table tr.claim-total td {
+.usage-track {
+  background: #eef1f4;
+  border-radius: 5px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.usage-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.4s ease;
+}
+
+.usage-value {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.sub-table tr.usage-total td {
   border-top: 2px solid #d1d5db;
   font-weight: 700;
-  color: #15803d;
+}
+
+.sub-card-good {
+  border-color: #bbe6c9;
+  background: #fbfefc;
 }
 
 .claim-note {
@@ -202,40 +198,7 @@
   border-left: 3px solid #94a3b8;
   border-radius: 0 6px 6px 0;
   padding: 10px 12px;
-  margin: 14px 0 0;
-}
-
-.claim-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-  flex-wrap: wrap;
-}
-
-.sub-btn {
-  padding: 9px 16px;
-  border-radius: 7px;
-  border: 1px solid transparent;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.15s;
-}
-
-.sub-btn:hover {
-  transform: translateY(-1px);
-}
-
-.sub-btn-accept {
-  background: #15803d;
-  color: #fff;
-}
-
-.sub-btn-dispute {
-  background: #fff;
-  color: #b91c1c;
-  border-color: #fca5a5;
+  margin: 16px 0 0;
 }
 
 /* ─── Invoice table ──────────────────────────────────────────────── */

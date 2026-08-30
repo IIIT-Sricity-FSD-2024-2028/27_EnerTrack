@@ -4,7 +4,10 @@ import {
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
-import { DatabaseService } from "../../core/database/database.service";
+import {
+  DatabaseService,
+  SubscriptionStatus,
+} from "../../core/database/database.service";
 import {
   scopeToTenant,
   currentOrgId,
@@ -20,10 +23,51 @@ export class CampusService {
   constructor(private database: DatabaseService) {}
 
   create(createDto: CreateCampusDto) {
+    const orgId = currentOrgId() ?? createDto.organization_id ?? null;
+    if (orgId) this.assertCampusAllowanceNotExceeded(orgId);
+
     const generatedId = crypto.randomUUID();
-    const newRecord = { campus_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
+    const newRecord = { campus_id: generatedId, ...createDto, organization_id: orgId };
     this.database.campus.push(newRecord as any);
     return newRecord;
+  }
+
+  /**
+   * The one hard limit in the subscription model.
+   *
+   * Seats are metered — going over the allowance bills an overage rather
+   * than blocking a hire, because refusing to let a client add staff would
+   * be hostile. Campuses are different: a campus is the top of the whole
+   * data hierarchy, so an extra one is a step change in what the platform
+   * is being asked to manage, and the tier is what that step is priced by.
+   *
+   * An organisation with no subscription is not blocked. Onboarding sets
+   * up infrastructure before the contract exists, and failing there would
+   * make a prospect impossible to demo.
+   */
+  private assertCampusAllowanceNotExceeded(organizationId: string) {
+    const subscription = this.database.subscriptions.find(
+      (s) =>
+        s.organization_id === organizationId &&
+        s.status !== SubscriptionStatus.CANCELLED,
+    );
+    if (!subscription) return;
+
+    const plan = this.database.subscriptionPlans.find(
+      (p) => p.plan_id === subscription.plan_id,
+    );
+    // null max_campuses means unlimited, which is what Enterprise buys.
+    if (!plan || plan.max_campuses === null) return;
+
+    const existing = this.database.campus.filter(
+      (c) => c.organization_id === organizationId,
+    ).length;
+
+    if (existing >= plan.max_campuses)
+      throw new ConflictException(
+        `The ${plan.name} plan covers ${plan.max_campuses} campus${plan.max_campuses === 1 ? "" : "es"} ` +
+          `and this organisation already has ${existing}. Upgrade the plan to add another.`,
+      );
   }
 
   findAll() {

@@ -1,6 +1,18 @@
 import * as crypto from "crypto";
-import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
-import { DatabaseService } from "../../core/database/database.service";
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from "@nestjs/common";
+import {
+  DatabaseService,
+  MeterStatus,
+  MeterType,
+} from "../../core/database/database.service";
+
+/** Grid emissions factor for Indian electricity, kg CO2 per kWh. */
+const GRID_CO2_KG_PER_KWH = 0.82;
 import {
   scopeToTenant,
   currentOrgId,
@@ -108,6 +120,126 @@ export class OrganizationsService {
   /** Campuses belonging to this organization. */
   getCampuses(id: string) {
     return scopeToTenant(this.database.campus.filter((c) => c.organization_id === id));
+  }
+
+  /**
+   * What an organisation has saved, by comparing a period against the same
+   * calendar month a year earlier.
+   *
+   * This is the whole savings story, and it is deliberately this simple.
+   * Comparing July against July cancels seasonality for free — a campus in
+   * coastal Andhra uses far more in May than in December, and the only way
+   * to compare fairly without a weather model is to compare like months.
+   *
+   * Note what this does NOT do: it does not feed an invoice. EnerTrack
+   * charges a subscription, not a share of savings, so this figure only
+   * ever has to be *useful* rather than *litigable*. That is why it can be
+   * sixty lines instead of six hundred — rigour is proportional to
+   * consequence.
+   *
+   * Accepts either a single `period`, or a `from`/`to` range that rolls
+   * several months up, which is what the ROI panels use.
+   */
+  savings(id: string, opts: { period?: string; from?: string; to?: string }) {
+    const org = assertTenantOwns(
+      this.database.organizations.find((o) => o.organization_id === id),
+    );
+    if (!org)
+      throw new NotFoundException(`Organization with ID ${id} not found`);
+
+    const periods = this.resolvePeriods(opts);
+    const meterIds = this.database.meters
+      .filter(
+        (m) =>
+          m.organization_id === id &&
+          m.meter_type === MeterType.ELECTRICITY &&
+          // A decommissioned meter stops reporting, so leaving it in would
+          // show its silence as a saving.
+          m.status !== MeterStatus.DECOMMISSIONED,
+      )
+      .map((m) => m.meter_id);
+
+    const tariff = org.tariff_rate ?? 0;
+    const months = periods.map((period) => {
+      const now = this.kwhIn(meterIds, period);
+      const before = this.kwhIn(meterIds, this.oneYearEarlier(period));
+      return { period, kwh: now, kwh_year_ago: before, saved_kwh: before - now };
+    });
+
+    const kwh = months.reduce((sum, m) => sum + m.kwh, 0);
+    const kwhYearAgo = months.reduce((sum, m) => sum + m.kwh_year_ago, 0);
+    const savedKwh = kwhYearAgo - kwh;
+
+    return {
+      organization_id: id,
+      organization_name: org.name,
+      from: periods[0],
+      to: periods[periods.length - 1],
+      months_compared: periods.length,
+      meter_ids: meterIds,
+      kwh,
+      kwh_year_ago: kwhYearAgo,
+      saved_kwh: savedKwh,
+      saved_amount: Math.round(savedKwh * tariff),
+      saved_co2_kg: Math.round(savedKwh * GRID_CO2_KG_PER_KWH),
+      change_pct:
+        kwhYearAgo > 0
+          ? Number(((-savedKwh / kwhYearAgo) * 100).toFixed(1))
+          : 0,
+      // A client with no comparison data yet is not a client with no
+      // savings, and the two must not read the same on a dashboard.
+      has_comparison: kwhYearAgo > 0,
+      months,
+    };
+  }
+
+  /** Total kWh recorded on a set of meters during one "YYYY-MM". */
+  private kwhIn(meterIds: string[], period: string): number {
+    if (meterIds.length === 0) return 0;
+    return Math.round(
+      this.database.meterReadings
+        .filter(
+          (r) =>
+            meterIds.includes(r.meter_id) &&
+            typeof r.timestamp === "string" &&
+            r.timestamp.slice(0, 7) === period,
+        )
+        .reduce((sum, r) => sum + Number(r.value || 0), 0),
+    );
+  }
+
+  private oneYearEarlier(period: string): string {
+    const [year, month] = period.split("-");
+    return `${Number(year) - 1}-${month}`;
+  }
+
+  /** Normalises the period/from/to arguments into a list of "YYYY-MM". */
+  private resolvePeriods(opts: { period?: string; from?: string; to?: string }) {
+    const valid = (p?: string) => !!p && /^\d{4}-\d{2}$/.test(p);
+
+    if (valid(opts.period)) return [opts.period as string];
+    if (!valid(opts.from) || !valid(opts.to))
+      throw new BadRequestException(
+        "Supply either period=YYYY-MM, or from=YYYY-MM&to=YYYY-MM",
+      );
+
+    const periods: string[] = [];
+    let [year, month] = (opts.from as string).split("-").map(Number);
+    const [endYear, endMonth] = (opts.to as string).split("-").map(Number);
+    if (year > endYear || (year === endYear && month > endMonth))
+      throw new BadRequestException(
+        `'from' (${opts.from}) must not be after 'to' (${opts.to})`,
+      );
+
+    while (year < endYear || (year === endYear && month <= endMonth)) {
+      periods.push(`${year}-${String(month).padStart(2, "0")}`);
+      month += 1;
+      if (month > 12) {
+        month = 1;
+        year += 1;
+      }
+    }
+    return periods;
   }
 
   /** User accounts belonging to this organization. */

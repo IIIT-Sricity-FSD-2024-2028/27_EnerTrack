@@ -74,7 +74,7 @@ The database is seeded on every start, so these always exist. Passwords follow t
 
 | Role | Email | Lands on |
 |---|---|---|
-| System Administrator | aadi@gmail.com | User and infrastructure management |
+| Organization Admin | aadi@gmail.com | User and infrastructure management |
 | Financial Analyst | husaam@gmail.com | Costs, invoices, financial reports |
 | Technician Administrator | chirag@gmail.com | Alerts, faults, work order dispatch |
 | Technician | teja@gmail.com | Assigned work orders |
@@ -85,9 +85,8 @@ EnerTrack's own staff, who have no organisation and work across every client:
 
 | Role | Email | Lands on |
 |---|---|---|
-| Super Admin | priya@enertrack.com | Organisations, pricing plans, platform revenue |
-| Certified Energy Auditor | arun@enertrack.com | Audits, baselines, findings, savings verification |
-| Account Officer | divya@enertrack.com | Book of accounts, billing, savings reporting |
+| Super Admin | priya@enertrack.com | Organisations, tiers, revenue, and acting as any user |
+| Certified Energy Auditor | arun@enertrack.com | Site surveys and recommendations |
 
 Data resets when the backend restarts, so anything you create during a session is temporary.
 
@@ -102,7 +101,7 @@ narrowed to it by `scopeToTenant()`, and nothing they do reaches another tenant.
 
 | Role | What they do |
 |---|---|
-| System Administrator | Manages users, campus infrastructure and system configuration. Reviews audit logs and system-wide reports. |
+| Organization Admin | Manages users, campus infrastructure and system configuration. Reviews audit logs and system-wide reports. |
 | Financial Analyst | Tracks utility spend, manages invoices and their approval, and evaluates return on energy efficiency measures. |
 | Technician Administrator | Triages real-time anomaly alerts and faults, then creates and assigns work orders. |
 | Technician | Executes assigned work orders and records completion. |
@@ -114,9 +113,8 @@ narrowed to it by `scopeToTenant()`, and nothing they do reaches another tenant.
 
 | Role | What they do | Lands on |
 |---|---|---|
-| Super Admin | Provisions client organisations and users, and owns the pricing catalogue and platform revenue. | `system_admin/` (Organisations, Pricing Plans, Revenue tabs) |
-| Certified Energy Auditor | Surveys a site, locks the verified baseline, records recommendations, and signs off savings. | `auditor/` |
-| Account Officer | Owns the client relationship: contracts, renewals, invoicing and savings reporting. | `account_officer/` |
+| Super Admin | Provisions client organisations and users; owns the tier catalogue, contracts and billing. Can act as any user. | `system_admin/` (Organisations, Pricing Plans, Revenue tabs) |
+| Certified Energy Auditor | Surveys a site and writes up what needs fixing. Nothing they record feeds an invoice. | `auditor/` |
 
 Three further B2B roles are client-side and map onto existing roles through `ROLE_EQUIVALENTS`:
 **Economic Buyer** (the person who signs the cheque — lands on the subscription page),
@@ -150,7 +148,7 @@ root/
     html/              31 pages, grouped by role
     js/                page logic, plus js/shared/api.js
       auditor/           Certified Energy Auditor pages
-      account_officer/   Account Officer pages
+      shared/roleRoutes.js   role → landing page, shared by sign-in and impersonation
       system_admin/modules/plansManager.js, revenueManager.js
     css/
     assets/
@@ -197,80 +195,88 @@ Two headers drive access control:
 
 ## Revenue model
 
-EnerTrack charges its clients three ways. The commercial shape is on the landing page; this is
-how it is implemented.
+One sentence: **each tier includes a number of staff seats and a number of campuses; go over
+the seat allowance and you pay per extra seat.**
 
-| Stream | When | Where it comes from |
-|---|---|---|
-| **Audit fee** | One-time, on the period the contract starts | `plan.audit_fee_base` + floor area × `plan.audit_fee_per_sqm`. Suppressed entirely once waived on signature. |
-| **Monitoring subscription** | Recurring, monthly | Meters under management × `plan.price_per_meter_month`, floored at `plan.min_monthly_fee`. |
-| **Performance share** | Only on savings the client has accepted | `plan.performance_share_pct` of a verified saving, capped at `plan.share_cap_pct_of_subscription` of that month's subscription fee. |
+| Tier | Campuses | Included staff | Per month | Extra seat |
+|---|---|---|---|---|
+| Starter | 1 | 5 | ₹12,000 | ₹1,200 |
+| Growth | 3 | 20 | ₹35,000 | ₹1,000 |
+| Enterprise | unlimited | 60 | ₹90,000 | ₹800 |
 
-### Why it is built this way
+```
+invoice = base_monthly_fee
+        + max(0, billable_staff − included_seats) × price_per_extra_seat
+        + 18% GST
+```
 
-The performance share is the hard one. "Savings" is a counterfactual — you cannot measure what a
-campus *would* have consumed, only what it did — and a naive `baseline − actual` bills the client
-for a mild season. Four safeguards address that, and each is a real piece of code rather than a
-policy statement:
+An invoice therefore has at most two lines. Both figures come from platform state — the tier
+from the contract, the headcount from the live user list — so nothing on a bill is typed in by
+hand, and every line carries a `source_ref` back to the record that produced it.
 
-1. **Adjusted baseline.** The locked baseline stores the cooling degree days, occupancy index and
-   floor area it was measured under. `adjustBaseline()` restates it for the conditions of the
-   month being claimed, so only the part of a drop that weather and occupancy cannot explain is
-   billable. On the seeded July 2026 example a raw comparison would claim ₹206,848; the adjusted
-   figure is ₹47,473. The correction runs both ways — a hotter month raises the baseline and
-   increases the claim.
+**A billable seat is any user in the organisation except a Campus Visitor.** That is the only
+carve-out. A campus may have thousands of students filing wastage reports, and billing per
+student would punish the client for opening the product up to the people who spot faults first.
 
-2. **Attribution.** The landing page promises the share is payable *only where recommendations
-   were implemented*, so a claim is scoped to findings whose status is `implemented`, using their
-   `implemented_on` date and the `building_ids` they touch. Only live meters in those buildings
-   count, and the baseline is pro-rated to the same set.
+Both tier limits are genuinely enforced, so the tiers differ in substance rather than in a
+feature list that gates nothing:
 
-3. **Client counter-signature.** The auditor who locks the baseline works for the party paid a
-   share of the gap. A verification therefore runs `draft → auditor-signed → client-accepted`,
-   and `performanceShareLine()` returns nothing for any other state. The guard is in the pricing
-   engine, not a controller, so no route can route around it. `disputed` is the exception state
-   and never reaches an invoice.
+- **Seats are metered.** Going over bills an overage rather than refusing the user — blocking a
+  hire to protect a price would be hostile.
+- **Campuses are blocked.** `CampusService.create` refuses past the tier limit with a message
+  naming the tier. A campus is the top of the whole data hierarchy, so an extra one is a step
+  change in what the platform is being asked to manage.
 
-4. **Cap.** The share is bounded as a multiple of the subscription fee, so an unusual season
-   cannot produce an invoice a client could not have budgeted for.
+Worked from the seed:
+
+```
+org-001  Growth   2 campuses (limit 3)   24 staff (20 included)
+         35,000 + (4 × 1,000) = 39,000  +18% GST = ₹46,020
+org-002  Starter  1 campus  (limit 1)     2 staff (5 included)
+         12,000 flat                    +18% GST = ₹14,160
+```
+
+### Savings are proved, not billed
+
+Nobody buys energy management without evidence it works, so the savings story matters — but
+EnerTrack does not charge a share of it. `GET /api/organizations/:id/savings` compares
+consumption against **the same calendar month a year earlier** and reports the difference in
+kWh, rupees and kg CO₂.
+
+Same-month year-on-year is the trick that keeps this simple: July against July needs no weather
+model, because July is July. From the seed, org-001 implemented two recommendations in February
+2026 and now runs 12% below the year before — ₹5.95 lakh over six months, against ₹2.34 lakh of
+subscription in the same period. A month *before* those measures reads roughly flat, which is
+the check that the figure tracks the work rather than the calendar.
+
+This is deliberately lighter machinery than a billed number would need. An earlier version of
+this project charged a performance share of verified savings, which required a locked baseline,
+weather and occupancy normalisation, attribution windows, a four-state verification workflow
+and a client counter-signature — roughly 1,800 lines whose only job was to make one revenue
+stream survive a dispute. Rigour is proportional to consequence: a number that is only reported
+needs none of that.
 
 ### Why it scales
 
-- **Pricing lives in data.** Every knob is a column on `SubscriptionPlan`. A new tier is a row; a
-  price change is a `PATCH` from the Super Admin's Pricing Plans tab. No redeploy, no code edit.
+- **Pricing lives in data.** Every figure is a column on `SubscriptionPlan`. A new tier is a
+  row; a price change is a `PATCH` from the Super Admin's Pricing Plans tab. No redeploy.
 - **One engine.** `src/modules/billing/pricing.ts` is pure — no Nest, no DI, no database — so
-  every organisation and period goes through the same testable code.
-- **Billing is derived, never typed.** The subscription line reads the live meter count, the
-  share line reads an accepted verification which reads meter readings against a locked baseline.
-  Every invoice line carries a `source_ref` naming the record it came from.
+  every organisation and every period goes through the same testable code.
 
-### Known trade-off
+---
 
-Pricing per meter gives a client a marginal reason not to add meters, which works against the
-`DataSourceTier` ladder (`no-metering` → `manual-upload` → `bms-integration`) the product wants
-them to climb. `min_monthly_fee` blunts it at the small end. This is a deliberate choice — it is
-the model the published pricing commits to — and it is recorded here rather than left unsaid.
+## Super Admin impersonation
 
-### The flow, end to end
+`POST /api/users/:id/impersonate` returns another user's session so a Super Admin can see the
+product as they see it, and writes an activity-log entry naming both parties. In the UI it is an
+**Act as** button in User Management; a banner then follows you across every dashboard with a
+way back.
 
-```
-Certified Energy Auditor          Client                    Account Officer
-──────────────────────            ──────                    ───────────────
-survey the site
-suggest baseline from readings
-lock baseline
-record findings
-                            →  implement measures
-compute savings for a month
-sign the verification
-                            →  accept  (or dispute)
-                                                        →  generate invoice
-                                                           issue · mark paid
-```
-
-Nothing between the auditor's signature and the client's acceptance is billable. That gap is
-visible as "unaccepted savings" on the Account Officer's overview, and it is deliberately the
-first number that page shows.
+**This is a support tool, not a security boundary, and the code says so.** Authorisation in this
+project is a client-supplied `x-role` header with no token, so anyone who can open devtools
+could already put any role into `localStorage`. The route does not grant a new capability — it
+makes an existing one deliberate, logged, and one click, and shapes it so it still makes sense
+once real authentication lands.
 
 ---
 
@@ -311,17 +317,17 @@ cd root/backend
 npx jest --config ./test/jest-e2e.json
 ```
 
-62 tests across three suites.
+56 tests across three suites.
 
 `middleware.e2e-spec.ts` (26) covers the middleware chain: role rejection, injection blocking,
 the error envelope, log persistence, credential redaction, upload validation and log flushing.
 
-`revenue.e2e-spec.ts` (36) covers the revenue model at both levels it can go wrong. A pure block
-tests `pricing.ts` directly — the baseline adjustment in both directions, the per-meter price
-against its floor, the annual discount, the cap, and the refusal to bill a claim the client has
-not accepted. An HTTP block then proves those rules are reachable and enforced through the real
-pipeline, including that an auditor cannot accept on the client's behalf, that a client cannot
-touch another tenant's claim, and that a locked baseline cannot be re-locked.
+`revenue.e2e-spec.ts` (30) covers the subscription model. A pure block tests `pricing.ts`
+directly — the seat overage, the annual discount, and the one-line invoice a small client gets.
+An HTTP block then proves the rules hold through the real pipeline: that adding a Campus Visitor
+does not move the bill while adding a technician does, that the campus limit is enforced, that
+savings read flat before the measures and 12% down after, and that only a Super Admin can act as
+another user.
 
 They drive real HTTP requests, so they verify the rules are actually wired up rather than only
 that they work in isolation.

@@ -75,7 +75,7 @@ function clone(value) {
 }
 
 export const USER_ROLES = [
-  "System Administrator",
+  "Organization Admin",
   "Financial Analyst",
   "Technician",
   "Sustainability Officer",

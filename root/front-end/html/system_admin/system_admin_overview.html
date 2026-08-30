@@ -89,6 +89,27 @@
             </span>
             Revenue
           </button>
+          <!--
+            Client-side, unlike the three tabs above: this is where an
+            Organization Admin answers the proposal their auditor sent.
+            data-requires-role hides it from EnerTrack's own staff, who have
+            no proposal of their own to answer.
+          -->
+          <button
+            class="nav-subitem"
+            type="button"
+            data-admin-tab="proposal"
+            data-requires-role="Organization Admin"
+          >
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <polyline points="9 15 11 17 15 13"></polyline>
+              </svg>
+            </span>
+            EnerTrack Proposal
+          </button>
           <button
             class="nav-subitem"
             type="button"
@@ -113,7 +134,7 @@
           <div class="profile-info">
             <strong id="sidebarUserName">Aadithya Mouli</strong>
             <br />
-            <span id="sidebarUserRole">System Administrator</span>
+            <span id="sidebarUserRole">Organization Admin</span>
           </div>
         </div>
       </aside>
@@ -136,6 +157,7 @@
 
     <script src="../../js/shared/api.js"></script>
     <script type="module" src="../../js/system_admin/overview.js"></script>
+    <script src="../../js/shared/roleRoutes.js"></script>
     <script src="../../js/shared/dashboardProfileMenu.js"></script>
   </body>
 </html>

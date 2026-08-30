@@ -2,14 +2,15 @@
  * overviewPage.js
  * Certified Energy Auditor — portfolio overview.
  *
- * Answers three questions in order of usefulness to the person doing the
- * job: what needs my attention, where is every engagement up to, and how
- * much of what I have signed has actually turned into revenue.
+ * Two questions, in the order they matter: where is every engagement up to,
+ * and did the recommendations actually work.
  *
- * That last one is the point of the page. An auditor signing a savings
- * claim is not the end of the process — the client has to accept it before
- * it can be billed — so this deliberately reports signed and accepted as
- * two different numbers rather than one flattering total.
+ * The second one is why this page exists. An auditor writing measures that
+ * nobody implements, or that get implemented and change nothing, has no way
+ * to know it — so the impact panel pulls each client's consumption against
+ * the same month a year earlier and shows the answer. That figure is
+ * reported, never billed: EnerTrack charges a subscription, so this is
+ * evidence the service works rather than the basis of an invoice.
  */
 import {
   badge,
@@ -18,7 +19,6 @@ import {
   formatCurrency,
   formatDate,
   formatKwh,
-  formatPeriod,
   loadOrFail,
   requireAuditor,
 } from "./utils/utils.js";
@@ -26,22 +26,22 @@ import {
 const STAGES = [
   { key: "scheduled", label: "Scheduled" },
   { key: "in-progress", label: "In progress" },
-  { key: "submitted", label: "Submitted" },
-  { key: "approved", label: "Approved" },
-  { key: "rejected", label: "Rejected" },
+  { key: "completed", label: "Completed" },
 ];
 
+/** Rolling window the impact panel compares over. */
+const IMPACT_FROM = "2026-03";
+const IMPACT_TO = "2026-08";
+
 document.addEventListener("DOMContentLoaded", async () => {
-  const user = requireAuditor();
-  if (!user) return;
+  if (!requireAuditor()) return;
 
   const root = document.getElementById("auditorApp");
   root.innerHTML = `<div class="card"><p class="muted">Loading portfolio…</p></div>`;
 
-  const [audits, orgs, verifications] = await Promise.all([
+  const [audits, orgs] = await Promise.all([
     loadOrFail(() => window.api.get("/energy-audits"), "audits"),
     loadOrFail(() => window.api.get("/organizations"), "organisations"),
-    loadOrFail(() => window.api.get("/energy-audits/verifications"), "verifications"),
   ]);
 
   if (!audits) {
@@ -52,54 +52,58 @@ document.addEventListener("DOMContentLoaded", async () => {
   const orgName = (id) =>
     (orgs || []).find((o) => o.organization_id === id)?.name ?? id;
 
+  // Savings are per-organisation, so only ask for the ones actually audited.
+  const auditedOrgs = [...new Set(audits.map((a) => a.organization_id))];
+  const savings = await Promise.all(
+    auditedOrgs.map((id) =>
+      window.api
+        .get(`/organizations/${id}/savings?from=${IMPACT_FROM}&to=${IMPACT_TO}`)
+        .catch(() => null),
+    ),
+  );
+  const savingsByOrg = Object.fromEntries(
+    auditedOrgs.map((id, i) => [id, savings[i]]),
+  );
+
   root.innerHTML = [
-    renderKpis(audits, verifications || []),
-    renderAwaitingClient(verifications || [], orgName),
+    renderKpis(audits, savingsByOrg),
+    renderImpact(audits, savingsByOrg, orgName),
     renderPipeline(audits, orgName),
-    renderRecentSignoffs(verifications || [], orgName),
+    renderOutstanding(audits, orgName),
   ].join("");
 
   root.querySelectorAll("[data-audit]").forEach((el) => {
     el.addEventListener("click", () => {
-      // Hand the chosen engagement to the workspace, so the next page opens
-      // on it rather than making the auditor find it again.
       localStorage.setItem("auditor_selected_audit", el.dataset.audit);
       window.location.href = "auditor_audits.html";
     });
   });
 });
 
-/* ─── KPI row ───────────────────────────────────────────────────── */
+function renderKpis(audits, savingsByOrg) {
+  const open = audits.filter((a) => a.status !== "completed").length;
+  const findings = audits.flatMap((a) => a.findings || []);
+  const implemented = findings.filter((f) => f.status === "implemented");
 
-function renderKpis(audits, verifications) {
-  const open = audits.filter(
-    (a) => a.status === "scheduled" || a.status === "in-progress",
-  ).length;
-  const locked = audits.filter((a) => a.baseline?.locked).length;
-
-  const accepted = verifications.filter((v) => v.status === "client-accepted");
-  const awaiting = verifications.filter((v) => v.status === "auditor-signed");
-  const disputed = verifications.filter((v) => v.status === "disputed");
-
-  const acceptedKwh = accepted.reduce((sum, v) => sum + (v.saved_kwh || 0), 0);
-  const awaitingValue = awaiting.reduce((sum, v) => sum + (v.saved_amount || 0), 0);
+  const savedKwh = Object.values(savingsByOrg).reduce(
+    (sum, s) => sum + Math.max(0, s?.saved_kwh || 0),
+    0,
+  );
+  const savedAmount = Object.values(savingsByOrg).reduce(
+    (sum, s) => sum + Math.max(0, s?.saved_amount || 0),
+    0,
+  );
 
   return `
     <div class="grid4" style="margin-bottom:20px">
       ${kpi("Open engagements", open, `${audits.length} in total`)}
-      ${kpi("Baselines locked", locked, "Frozen and billable against")}
       ${kpi(
-        "Savings accepted",
-        formatKwh(acceptedKwh),
-        `${accepted.length} claim(s) the client agreed`,
-        "pos",
+        "Recommendations",
+        findings.length,
+        `${implemented.length} carried out by clients`,
       )}
-      ${kpi(
-        "Awaiting acceptance",
-        formatCurrency(awaitingValue),
-        `${awaiting.length} signed, ${disputed.length} disputed — none of it billable yet`,
-        awaiting.length ? "neg" : "",
-      )}
+      ${kpi("Energy saved", formatKwh(savedKwh), "Against the same months last year", "pos")}
+      ${kpi("Worth to clients", formatCurrency(savedAmount), "At their own tariffs", "pos")}
     </div>`;
 }
 
@@ -107,76 +111,92 @@ function kpi(label, value, note, tone = "") {
   return `
     <div class="kpi">
       <div class="kpi-label">${escapeHtml(label)}</div>
-      <div class="kpi-value ${tone}">${value}</div>
+      <div class="kpi-value ${tone}" style="font-size:23px">${value}</div>
       <div class="kpi-note">${escapeHtml(note)}</div>
     </div>`;
 }
 
-/* ─── Worklist ──────────────────────────────────────────────────── */
-
 /**
- * Claims sitting between the auditor's signature and the client's.
+ * Did the work land?
  *
- * This is the auditor's real worklist. Work that stalls here is work
- * EnerTrack has done and cannot invoice, and the usual cause is a client
- * who has not been walked through the adjustment.
+ * Consumption for March–August 2026 against the same months of 2025. Like
+ * months against like months, which is what makes the comparison fair
+ * without any weather modelling — a campus uses far more in May than in
+ * December, so only May against May tells you anything.
  */
-function renderAwaitingClient(verifications, orgName) {
-  const stuck = verifications
-    .filter((v) => v.status === "auditor-signed" || v.status === "disputed")
-    .sort((a, b) => b.period.localeCompare(a.period));
-
-  if (stuck.length === 0) {
-    return `
-      <div class="card">
-        <h2>Nothing waiting on a client</h2>
-        <p class="sub">Every signed savings claim has been accepted.</p>
-      </div>`;
-  }
+function renderImpact(audits, savingsByOrg, orgName) {
+  const rows = audits
+    .filter((a) => a.status === "completed")
+    .map((a) => ({
+      audit: a,
+      s: savingsByOrg[a.organization_id],
+      done: (a.findings || []).filter((f) => f.status === "implemented").length,
+    }));
 
   return `
     <div class="card">
-      <h2>Waiting on the client</h2>
+      <h2>Did it work?</h2>
       <p class="sub">
-        Signed but not accepted, so not billable. A disputed claim needs the
-        adjustment explaining before it can move.
+        March–August 2026 against the same months of 2025. Comparing like
+        months cancels the seasons, so what is left is the change your
+        recommendations made.
       </p>
       <table style="margin-top:14px">
         <thead>
           <tr>
-            <th>Organisation</th><th>Period</th><th>Status</th>
-            <th class="num">Verified saving</th><th class="num">Value</th><th>Note</th>
+            <th>Client</th><th class="num">Measures done</th>
+            <th class="num">Last year</th><th class="num">This year</th>
+            <th class="num">Change</th><th class="num">Worth</th>
           </tr>
         </thead>
         <tbody>
-          ${stuck
-            .map(
-              (v) => `
-            <tr>
-              <td>${escapeHtml(v.organization_name || orgName(v.organization_id))}</td>
-              <td class="nowrap">${formatPeriod(v.period)}</td>
-              <td>${badge(v.status)}</td>
-              <td class="num">${formatKwh(v.saved_kwh)}</td>
-              <td class="num">${formatCurrency(v.saved_amount)}</td>
-              <td class="muted" style="font-size:12px">${escapeHtml(
-                v.dispute_reason || `Signed ${formatDate(v.signed_on)}`,
-              )}</td>
-            </tr>`,
-            )
-            .join("")}
+          ${
+            rows.length === 0
+              ? emptyRow(6, "No completed engagements yet.")
+              : rows
+                  .map(({ audit, s, done }) => {
+                    if (!s || !s.has_comparison)
+                      return `
+              <tr>
+                <td>${escapeHtml(orgName(audit.organization_id))}</td>
+                <td class="num">${done}</td>
+                <td colspan="4" class="muted" style="font-size:12px">
+                  Not enough history to compare year on year yet.
+                </td>
+              </tr>`;
+
+                    const improved = s.saved_kwh > 0;
+                    return `
+              <tr>
+                <td>${escapeHtml(orgName(audit.organization_id))}</td>
+                <td class="num">${done}</td>
+                <td class="num">${formatKwh(s.kwh_year_ago)}</td>
+                <td class="num">${formatKwh(s.kwh)}</td>
+                <td class="num" style="font-weight:700;color:${improved ? "var(--pos)" : "var(--muted)"}">
+                  ${s.change_pct}%
+                </td>
+                <td class="num" style="color:${improved ? "var(--pos)" : "var(--muted)"}">
+                  ${improved ? formatCurrency(s.saved_amount) : "—"}
+                </td>
+              </tr>`;
+                  })
+                  .join("")
+          }
         </tbody>
       </table>
+      <p class="muted" style="font-size:12px;margin-top:12px">
+        A client that has implemented nothing should read close to flat. That
+        is the check that this number tracks the work rather than the calendar.
+      </p>
     </div>`;
 }
-
-/* ─── Pipeline ──────────────────────────────────────────────────── */
 
 function renderPipeline(audits, orgName) {
   return `
     <div class="card">
       <h2>Engagement pipeline</h2>
-      <p class="sub">Click an engagement to open its survey and baseline.</p>
-      <div class="pipeline" style="margin-top:14px">
+      <p class="sub">Click an engagement to open its survey and recommendations.</p>
+      <div class="pipeline" style="margin-top:14px;grid-template-columns:repeat(3,1fr)">
         ${STAGES.map((stage) => {
           const inStage = audits.filter((a) => a.status === stage.key);
           return `
@@ -191,8 +211,8 @@ function renderPipeline(audits, orgName) {
                 <div class="pipe-card" data-audit="${escapeHtml(a.audit_id)}">
                   <div class="pc-org">${escapeHtml(orgName(a.organization_id))}</div>
                   <div class="pc-meta">
-                    ${a.baseline?.locked ? "Baseline locked" : "No baseline yet"} ·
-                    ${a.findings?.length || 0} finding(s)
+                    ${(a.findings || []).length} recommendation(s) ·
+                    ${a.conducted_on ? `visited ${formatDate(a.conducted_on)}` : `due ${formatDate(a.scheduled_on)}`}
                   </div>
                 </div>`,
                       )
@@ -204,45 +224,42 @@ function renderPipeline(audits, orgName) {
     </div>`;
 }
 
-/* ─── Recent sign-offs ──────────────────────────────────────────── */
-
-function renderRecentSignoffs(verifications, orgName) {
-  const accepted = verifications
-    .filter((v) => v.status === "client-accepted")
-    .sort((a, b) => (b.accepted_on || "").localeCompare(a.accepted_on || ""))
-    .slice(0, 8);
+/** Measures a client has agreed to but not yet acted on. */
+function renderOutstanding(audits, orgName) {
+  const rows = audits.flatMap((a) =>
+    (a.findings || [])
+      .filter((f) => f.status === "proposed" || f.status === "accepted")
+      .map((f) => ({ ...f, organization_id: a.organization_id })),
+  );
 
   return `
     <div class="card">
-      <h2>Accepted savings</h2>
+      <h2>Still to be done</h2>
       <p class="sub">
-        Claims the client agreed. These are the only ones the pricing engine
-        will bill a performance share against.
+        Recommendations no client has carried out yet — the savings sitting
+        unclaimed, and the thing worth raising at the next visit.
       </p>
       <table style="margin-top:14px">
         <thead>
           <tr>
-            <th>Organisation</th><th>Period</th>
-            <th class="num">Adjusted baseline</th><th class="num">Actual</th>
-            <th class="num">Verified saving</th><th>Accepted</th>
+            <th>Client</th><th>Measure</th><th>Severity</th><th>Status</th>
+            <th class="num">Est. annual saving</th><th class="num">Payback</th>
           </tr>
         </thead>
         <tbody>
           ${
-            accepted.length === 0
-              ? emptyRow(6, "No accepted savings yet.")
-              : accepted
+            rows.length === 0
+              ? emptyRow(6, "Every recommendation has been acted on.")
+              : rows
                   .map(
-                    (v) => `
+                    (f) => `
             <tr>
-              <td>${escapeHtml(v.organization_name || orgName(v.organization_id))}</td>
-              <td class="nowrap">${formatPeriod(v.period)}</td>
-              <td class="num">${formatKwh(v.adjusted_baseline_kwh)}</td>
-              <td class="num">${formatKwh(v.actual_kwh)}</td>
-              <td class="num" style="color:var(--pos);font-weight:700">
-                ${formatKwh(v.saved_kwh)}
-              </td>
-              <td class="nowrap">${formatDate(v.accepted_on)}</td>
+              <td>${escapeHtml(orgName(f.organization_id))}</td>
+              <td style="max-width:300px">${escapeHtml(f.title)}</td>
+              <td>${badge(f.severity)}</td>
+              <td>${badge(f.status)}</td>
+              <td class="num">${formatCurrency(f.est_annual_saving)}</td>
+              <td class="num">${f.payback_months || "—"} mo</td>
             </tr>`,
                   )
                   .join("")

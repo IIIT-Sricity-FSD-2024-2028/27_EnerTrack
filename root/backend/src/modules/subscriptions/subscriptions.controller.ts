@@ -18,7 +18,7 @@ import { Roles } from "../../core/decorators/roles.decorator";
 const ROLE_HEADER = {
   name: "x-role",
   description:
-    "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+    "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
   required: false,
 };
 
@@ -32,9 +32,8 @@ const ORG_HEADER = {
 /** Everyone allowed to read a contract: platform staff plus the client's own. */
 const READERS = [
   "Super Admin",
-  "Account Officer",
   "Certified Energy Auditor",
-  "System Administrator",
+  "Organization Admin",
   "Financial Analyst",
   "Economic Buyer",
 ] as const;
@@ -56,7 +55,7 @@ export class SubscriptionsController {
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
   @ApiHeader(ORG_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   create(@Body() createDto: CreateSubscriptionDto) {
     return this.subscriptionsService.create(createDto);
   }
@@ -147,7 +146,7 @@ export class SubscriptionsController {
   @ApiResponse({ status: 404, description: "Subscription with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   update(@Param("id") id: string, @Body() updateDto: UpdateSubscriptionDto) {
     return this.subscriptionsService.update(id, updateDto);
   }
@@ -163,7 +162,7 @@ export class SubscriptionsController {
   @ApiResponse({ status: 409, description: "Target plan is retired." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   changePlan(@Param("id") id: string, @Body() body: { plan_id: string }) {
     return this.subscriptionsService.changePlan(id, body.plan_id);
   }
@@ -178,7 +177,7 @@ export class SubscriptionsController {
   @ApiResponse({ status: 404, description: "Subscription with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   renew(@Param("id") id: string, @Body() body: { renews_on?: string }) {
     return this.subscriptionsService.renew(id, body?.renews_on);
   }
@@ -193,24 +192,9 @@ export class SubscriptionsController {
   @ApiResponse({ status: 404, description: "Subscription with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   cancel(@Param("id") id: string, @Body() body: { cancelled_on?: string }) {
     return this.subscriptionsService.cancel(id, body?.cancelled_on);
-  }
-
-  @Patch(":id/waive-audit-fee")
-  @ApiOperation({
-    summary: "Waive Audit Fee",
-    description:
-      "Waives the one-time site audit fee on signature, which suppresses that line from the contract's first invoice.",
-  })
-  @ApiResponse({ status: 200, description: "Audit fee waived." })
-  @ApiResponse({ status: 404, description: "Subscription with the given ID not found." })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
-  waiveAuditFee(@Param("id") id: string, @Body() body: { waived_on?: string }) {
-    return this.subscriptionsService.waiveAuditFee(id, body?.waived_on);
   }
 
   @Delete(":id")

@@ -17,11 +17,11 @@ export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
   @Post()
-  @ApiOperation({ summary: "Create Invoice", description: "Creates a new invoice for a department. Financial Analyst and System Administrator can submit invoices." })
+  @ApiOperation({ summary: "Create Invoice", description: "Creates a new invoice for a department. Financial Analyst and Organization Admin can submit invoices." })
   @ApiResponse({ status: 201, description: "Invoice created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Financial Analyst", "System Administrator")
+  @Roles("Financial Analyst", "Organization Admin")
   create(@Body() createDto: CreateInvoiceDto) {
     return this.invoicesService.create(createDto);
   }
@@ -36,13 +36,13 @@ export class InvoicesController {
     },
   },
 })
-  @ApiOperation({ summary: "Attach Invoice Document", description: "Uploads a scanned PDF and attaches it to an existing invoice so the approver can review it. Financial Analyst and System Administrator can attach documents. Send a multipart/form-data POST request with the PDF under the 'file' field." })
+  @ApiOperation({ summary: "Attach Invoice Document", description: "Uploads a scanned PDF and attaches it to an existing invoice so the approver can review it. Financial Analyst and Organization Admin can attach documents. Send a multipart/form-data POST request with the PDF under the 'file' field." })
   @ApiResponse({ status: 201, description: "Document attached successfully." })
   @ApiResponse({ status: 400, description: "File missing, wrong type, or over the size limit." })
   @ApiResponse({ status: 404, description: "Invoice with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Financial Analyst", "System Administrator")
+  @Roles("Financial Analyst", "Organization Admin")
   @UseInterceptors(FileInterceptor("file", documentUploadConfig))
   uploadDocument(@Param("id") id: string, @UploadedFile() file: Express.Multer.File) {
     // Multer leaves `file` undefined when the request carries no file at all.
@@ -63,7 +63,7 @@ export class InvoicesController {
   @ApiResponse({ status: 404, description: "Invoice not found, or it has no document attached." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Financial Analyst", "System Administrator")
+  @Roles("Financial Analyst", "Organization Admin")
   downloadDocument(@Param("id") id: string, @Res() res: Response) {
     const { path, filename } = this.invoicesService.getDocument(id);
     // res.download sets Content-Disposition so the browser saves it under the
@@ -72,55 +72,55 @@ export class InvoicesController {
   }
 
   @Get()
-  @ApiOperation({ summary: "List All Invoices", description: "Retrieves all invoices. Financial Analyst and System Administrator can view the invoice directory." })
+  @ApiOperation({ summary: "List All Invoices", description: "Retrieves all invoices. Financial Analyst and Organization Admin can view the invoice directory." })
   @ApiResponse({ status: 200, description: "Array of invoice records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Financial Analyst", "System Administrator")
+  @Roles("Financial Analyst", "Organization Admin")
   findAll() {
     return this.invoicesService.findAll();
   }
 
   @Get(":id")
-  @ApiOperation({ summary: "Get Invoice by ID", description: "Retrieves a single invoice by UUID. Financial Analyst and System Administrator can look up invoices." })
+  @ApiOperation({ summary: "Get Invoice by ID", description: "Retrieves a single invoice by UUID. Financial Analyst and Organization Admin can look up invoices." })
   @ApiResponse({ status: 200, description: "Invoice record returned." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Financial Analyst", "System Administrator")
+  @Roles("Financial Analyst", "Organization Admin")
   findOne(@Param("id") id: string) {
     return this.invoicesService.findOne(id);
   }
 
   @Put(":id")
-  @ApiOperation({ summary: "Replace Invoice", description: "Completely replaces an invoice record. Only System Administrator can perform full replacements." })
+  @ApiOperation({ summary: "Replace Invoice", description: "Completely replaces an invoice record. Only Organization Admin can perform full replacements." })
   @ApiResponse({ status: 200, description: "Replaced successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator")
+  @Roles("Organization Admin")
   put(@Param("id") id: string, @Body() putDto: PutInvoiceDto) {
     return this.invoicesService.put(id, putDto);
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update Invoice", description: "Partially updates an invoice (e.g., changing status to approved, setting approved_by_id). Financial Analyst and System Administrator can update." })
+  @ApiOperation({ summary: "Update Invoice", description: "Partially updates an invoice (e.g., changing status to approved, setting approved_by_id). Financial Analyst and Organization Admin can update." })
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Financial Analyst", "System Administrator")
+  @Roles("Financial Analyst", "Organization Admin")
   update(@Param("id") id: string, @Body() updateDto: UpdateInvoiceDto) {
     return this.invoicesService.update(id, updateDto);
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "Delete Invoice", description: "Permanently removes an invoice. Only System Administrator can delete." })
+  @ApiOperation({ summary: "Delete Invoice", description: "Permanently removes an invoice. Only Organization Admin can delete." })
   @ApiResponse({ status: 200, description: "Deleted successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator")
+  @Roles("Organization Admin")
   remove(@Param("id") id: string) {
     return this.invoicesService.remove(id);
   }

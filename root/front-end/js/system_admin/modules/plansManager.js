@@ -8,26 +8,29 @@ import {
 } from "../utils/ui.js";
 
 /* ══════════════════════════════════════════════════════
-   Plans Manager — EnerTrack's price catalogue
+   Plans Manager — EnerTrack's tier catalogue
 
-   This is the single most consequential table in the product, and the one
-   place the revenue model is actually configured. Every figure the billing
-   engine uses lives on a row here:
+   The one place the revenue model is configured, and small enough to hold
+   in your head. Each tier is four numbers:
 
-     price_per_meter_month          the recurring fee, per metered point
-     min_monthly_fee                the floor, so a tiny estate still pays
-     audit_fee_base / _per_sqm      the one-time site assessment
-     performance_share_pct          the cut of verified savings
-     share_cap_pct_of_subscription  the ceiling on that cut
+     base_monthly_fee       the flat fee
+     included_seats         staff accounts before overage starts
+     price_per_extra_seat   charged per staff account beyond that
+     max_campuses           hard limit; blank means unlimited
 
-   Editing a row here changes what every client on that tier is billed from
-   the next invoice generated — no redeploy, no code change. That is the
-   whole scalability argument, and it is why the write routes behind this
-   page are @Roles("Super Admin") and nothing wider.
+   An invoice is base + (staff over allowance × extra-seat price) + GST.
+   That is the entire model.
 
-   A plan has NO organization_id: the catalogue is global, identical for
-   every tenant, so unlike every other table in the admin area this one is
-   not tenant-scoped at all.
+   Both limits are real. Seats are metered — going over bills an overage
+   rather than blocking a hire, because refusing to let a client add staff
+   to protect a price would be hostile. Campuses are blocked, because a
+   campus is the top of the whole data hierarchy and an extra one is a step
+   change in what the platform is being asked to manage.
+
+   Editing a row here changes what every client on that tier pays from the
+   next invoice generated — no redeploy, no code change. That is why the
+   write routes behind this page are @Roles("Super Admin") and nothing
+   wider, and why a plan has NO organization_id: the catalogue is global.
    ══════════════════════════════════════════════════════ */
 
 export function renderPlansManager(container, app) {
@@ -36,19 +39,20 @@ export function renderPlansManager(container, app) {
   const canWrite = isSuperAdmin();
 
   const rows = plans.map((p) => renderRow(p, subs, canWrite)).join("");
-  const emptyRow = `<tr><td colspan="9"><div class="empty-state">No subscription plans defined.</div></td></tr>`;
+  const emptyRow = `<tr><td colspan="8"><div class="empty-state">No tiers defined.</div></td></tr>`;
 
   container.innerHTML = `
     <section class="panel">
       <div class="panel-header">
         <div>
-          <h2>Pricing plans</h2>
+          <h2>Pricing tiers</h2>
           <p>
-            EnerTrack's price catalogue. A change here takes effect on the next
+            An invoice is the tier fee, plus any staff over the seat
+            allowance, plus GST. A change here takes effect on the next
             invoice generated, for every client on that tier.
           </p>
         </div>
-        ${canWrite ? `<button class="btn-dark" type="button" data-action="add-plan">+ Add Plan</button>` : ""}
+        ${canWrite ? `<button class="btn-dark" type="button" data-action="add-plan">+ Add Tier</button>` : ""}
       </div>
 
       <div class="table-card">
@@ -56,13 +60,12 @@ export function renderPlansManager(container, app) {
           <table>
             <thead>
               <tr>
-                <th>Plan</th>
-                <th>Per meter / mo</th>
-                <th>Minimum / mo</th>
-                <th>Audit fee</th>
-                <th>Share</th>
-                <th>Share cap</th>
-                <th>Subscribers</th>
+                <th>Tier</th>
+                <th>Monthly fee</th>
+                <th>Included staff</th>
+                <th>Extra seat</th>
+                <th>Campuses</th>
+                <th>Clients</th>
                 <th>Status</th>
                 <th class="actions-col">Actions</th>
               </tr>
@@ -98,7 +101,7 @@ function isSuperAdmin() {
 }
 
 function renderRow(plan, subs, canWrite) {
-  const subscribers = subs.filter(
+  const clients = subs.filter(
     (s) => s.plan_id === plan.plan_id && s.status !== "cancelled",
   ).length;
 
@@ -108,18 +111,14 @@ function renderRow(plan, subs, canWrite) {
         <strong>${escapeHtml(plan.name)}</strong>
         <div class="muted-cell">${escapeHtml(plan.tagline || "")}</div>
       </td>
-      <td>${formatCurrency(plan.price_per_meter_month)}</td>
-      <td>${formatCurrency(plan.min_monthly_fee)}</td>
+      <td>${formatCurrency(plan.base_monthly_fee)}</td>
+      <td>${plan.included_seats}</td>
       <td>
-        ${formatCurrency(plan.audit_fee_base)}
-        <div class="muted-cell">+ ${formatCurrency(plan.audit_fee_per_sqm)} / m&sup2;</div>
+        ${formatCurrency(plan.price_per_extra_seat)}
+        <div class="muted-cell">per month, beyond the allowance</div>
       </td>
-      <td>${plan.performance_share_pct}%</td>
-      <td>
-        ${plan.share_cap_pct_of_subscription}%
-        <div class="muted-cell">of subscription</div>
-      </td>
-      <td>${subscribers}</td>
+      <td>${plan.max_campuses === null ? "Unlimited" : plan.max_campuses}</td>
+      <td>${clients}</td>
       <td>
         <span class="badge ${plan.is_active ? "active" : "churned"}">
           ${plan.is_active ? "Active" : "Retired"}
@@ -146,93 +145,79 @@ function openPlanModal(app, planId = null) {
     (app.state.subscriptionPlans || []).find((p) => p.plan_id === planId) || null;
 
   openModal({
-    title: plan ? "Edit Plan" : "Add Plan",
-    confirmLabel: plan ? "Save Plan" : "Add Plan",
+    title: plan ? "Edit Tier" : "Add Tier",
+    confirmLabel: plan ? "Save Tier" : "Add Tier",
     bodyHtml: `
       <form class="form-grid">
         <div class="form-field full">
           <label for="planName">Name</label>
-          <input id="planName" value="${escapeHtml(plan?.name || "")}" placeholder="Professional">
+          <input id="planName" value="${escapeHtml(plan?.name || "")}" placeholder="Growth">
           <span class="field-error" data-error-for="name"></span>
         </div>
         <div class="form-field full">
           <label for="planTagline">Tagline</label>
           <input id="planTagline" value="${escapeHtml(plan?.tagline || "")}"
-                 placeholder="Full workflow, verified savings and account management.">
+                 placeholder="Multi-campus estates with a dedicated facilities team.">
           <span class="field-error" data-error-for="tagline"></span>
         </div>
         <div class="form-field">
-          <label for="planPerMeter">Price per meter / month (&#8377;)</label>
-          <input id="planPerMeter" type="number" min="0" step="1" value="${escapeHtml(plan?.price_per_meter_month ?? "")}">
-          <span class="field-error" data-error-for="price_per_meter_month"></span>
+          <label for="planFee">Monthly fee (&#8377;)</label>
+          <input id="planFee" type="number" min="0" step="1" value="${escapeHtml(plan?.base_monthly_fee ?? "")}">
+          <span class="field-error" data-error-for="base_monthly_fee"></span>
         </div>
         <div class="form-field">
-          <label for="planMinFee">Minimum monthly fee (&#8377;)</label>
-          <input id="planMinFee" type="number" min="0" step="1" value="${escapeHtml(plan?.min_monthly_fee ?? "")}">
-          <span class="field-error" data-error-for="min_monthly_fee"></span>
+          <label for="planSeats">Included staff seats</label>
+          <input id="planSeats" type="number" min="0" step="1" value="${escapeHtml(plan?.included_seats ?? "")}">
+          <span class="field-error" data-error-for="included_seats"></span>
         </div>
         <div class="form-field">
-          <label for="planAuditBase">Audit fee, base (&#8377;)</label>
-          <input id="planAuditBase" type="number" min="0" step="1" value="${escapeHtml(plan?.audit_fee_base ?? "")}">
-          <span class="field-error" data-error-for="audit_fee_base"></span>
+          <label for="planExtra">Price per extra seat (&#8377;)</label>
+          <input id="planExtra" type="number" min="0" step="1" value="${escapeHtml(plan?.price_per_extra_seat ?? "")}">
+          <span class="field-error" data-error-for="price_per_extra_seat"></span>
         </div>
         <div class="form-field">
-          <label for="planAuditSqm">Audit fee, per m&sup2; (&#8377;)</label>
-          <input id="planAuditSqm" type="number" min="0" step="0.5" value="${escapeHtml(plan?.audit_fee_per_sqm ?? "")}">
-          <span class="field-error" data-error-for="audit_fee_per_sqm"></span>
-        </div>
-        <div class="form-field">
-          <label for="planShare">Performance share (%)</label>
-          <input id="planShare" type="number" min="0" max="100" step="0.5" value="${escapeHtml(plan?.performance_share_pct ?? "")}">
-          <span class="field-error" data-error-for="performance_share_pct"></span>
-        </div>
-        <div class="form-field">
-          <label for="planCap">Share cap (% of subscription)</label>
-          <input id="planCap" type="number" min="0" step="10" value="${escapeHtml(plan?.share_cap_pct_of_subscription ?? "")}">
-          <span class="field-error" data-error-for="share_cap_pct_of_subscription"></span>
+          <label for="planCampuses">Max campuses (blank = unlimited)</label>
+          <input id="planCampuses" type="number" min="1" step="1" value="${escapeHtml(plan?.max_campuses ?? "")}">
+          <span class="field-error" data-error-for="max_campuses"></span>
         </div>
         <div class="form-field full">
-          <label for="planFeatures">Features (one per line)</label>
+          <label for="planFeatures">What the tier includes (one per line)</label>
           <textarea id="planFeatures" rows="4">${escapeHtml((plan?.features || []).join("\n"))}</textarea>
           <span class="field-error" data-error-for="features"></span>
         </div>
       </form>
       <p class="muted-cell" style="margin-top:10px">
-        The share cap bounds the performance-share line as a multiple of that
-        period's subscription fee, so an unusual season cannot produce an
-        invoice a client could not have budgeted for.
+        A Campus Visitor never counts towards a seat. A campus may have
+        thousands of students reporting problems, and billing per student
+        would punish the client for opening the product up to the people who
+        spot faults first.
       </p>`,
     onConfirm: (modal) => {
       const vals = formValues(modal, {
         name: "#planName",
         tagline: "#planTagline",
-        price_per_meter_month: "#planPerMeter",
-        min_monthly_fee: "#planMinFee",
-        audit_fee_base: "#planAuditBase",
-        audit_fee_per_sqm: "#planAuditSqm",
-        performance_share_pct: "#planShare",
-        share_cap_pct_of_subscription: "#planCap",
+        base_monthly_fee: "#planFee",
+        included_seats: "#planSeats",
+        price_per_extra_seat: "#planExtra",
+        max_campuses: "#planCampuses",
         features: "#planFeatures",
       });
 
       const errors = {};
       if (!vals.name || vals.name.length < 3)
-        errors.name = "Enter a plan name (min 3 chars).";
+        errors.name = "Enter a tier name (min 3 chars).";
       if (!vals.tagline) errors.tagline = "Describe the tier in one line.";
 
       for (const key of [
-        "price_per_meter_month",
-        "min_monthly_fee",
-        "audit_fee_base",
-        "audit_fee_per_sqm",
-        "performance_share_pct",
-        "share_cap_pct_of_subscription",
+        "base_monthly_fee",
+        "included_seats",
+        "price_per_extra_seat",
       ]) {
         if (vals[key] === "" || Number(vals[key]) < 0)
           errors[key] = "Enter a number of zero or more.";
       }
-      if (Number(vals.performance_share_pct) > 100)
-        errors.performance_share_pct = "A share above 100% of savings is not a share.";
+      if (vals.max_campuses !== "" && Number(vals.max_campuses) < 1)
+        errors.max_campuses = "Leave blank for unlimited, or enter 1 or more.";
 
       if (Object.keys(errors).length) {
         showFormErrors(modal, errors);
@@ -242,12 +227,11 @@ function openPlanModal(app, planId = null) {
       const payload = {
         name: vals.name,
         tagline: vals.tagline,
-        price_per_meter_month: Number(vals.price_per_meter_month),
-        min_monthly_fee: Number(vals.min_monthly_fee),
-        audit_fee_base: Number(vals.audit_fee_base),
-        audit_fee_per_sqm: Number(vals.audit_fee_per_sqm),
-        performance_share_pct: Number(vals.performance_share_pct),
-        share_cap_pct_of_subscription: Number(vals.share_cap_pct_of_subscription),
+        base_monthly_fee: Number(vals.base_monthly_fee),
+        included_seats: Number(vals.included_seats),
+        price_per_extra_seat: Number(vals.price_per_extra_seat),
+        max_campuses:
+          vals.max_campuses === "" ? null : Number(vals.max_campuses),
         features: vals.features
           .split("\n")
           .map((line) => line.trim())
@@ -263,10 +247,10 @@ function openPlanModal(app, planId = null) {
           }
           state.subscriptionPlans = await window.api.get("/subscription-plans");
         } catch (err) {
-          console.error("Plan save failed:", err);
-          showToast(err.message || "Could not save plan.", "error");
+          console.error("Tier save failed:", err);
+          showToast(err.message || "Could not save tier.", "error");
         }
-      }, plan ? "Plan updated — effective from the next invoice." : "Plan added.");
+      }, plan ? "Tier updated — effective from the next invoice." : "Tier added.");
       return true;
     },
   });
@@ -288,10 +272,10 @@ function togglePlan(planId, app) {
       });
       state.subscriptionPlans = await window.api.get("/subscription-plans");
     } catch (err) {
-      console.error("Plan retire failed:", err);
-      showToast(err.message || "Could not change plan status.", "error");
+      console.error("Tier retire failed:", err);
+      showToast(err.message || "Could not change tier status.", "error");
     }
-  }, plan.is_active ? "Plan retired." : "Plan reactivated.");
+  }, plan.is_active ? "Tier retired." : "Tier reactivated.");
 }
 
 function deletePlan(planId, app) {
@@ -299,12 +283,12 @@ function deletePlan(planId, app) {
   if (!plan) return;
 
   openModal({
-    title: "Delete Plan",
-    // The backend refuses while any subscription still points at the plan,
+    title: "Delete Tier",
+    // The backend refuses while any subscription still points at the tier,
     // so this warning describes a rule that is genuinely enforced server side.
     bodyHtml: `<p>Delete <strong>${escapeHtml(plan.name)}</strong>?</p>
                <p class="muted-cell">
-                 A plan still used by a subscription cannot be deleted — the
+                 A tier still used by a contract cannot be deleted — the
                  billing engine would fail to resolve it. Retire it instead.
                </p>`,
     confirmLabel: "Delete",
@@ -315,10 +299,10 @@ function deletePlan(planId, app) {
           await window.api.delete("/subscription-plans/" + planId);
           state.subscriptionPlans = await window.api.get("/subscription-plans");
         } catch (err) {
-          console.error("Plan delete failed:", err);
-          showToast(err.message || "Could not delete plan.", "error");
+          console.error("Tier delete failed:", err);
+          showToast(err.message || "Could not delete tier.", "error");
         }
-      }, "Plan deleted.");
+      }, "Tier deleted.");
       return true;
     },
   });

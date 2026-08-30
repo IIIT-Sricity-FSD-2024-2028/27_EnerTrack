@@ -16,9 +16,8 @@ import { PutEnergyAuditDto } from "./dto/put-energy-audit.dto";
 import { UpdateEnergyAuditDto } from "./dto/update-energy-audit.dto";
 import {
   CreateFindingDto,
-  CreateVerificationDto,
-  DisputeVerificationDto,
-  LockBaselineDto,
+  RespondToProposalDto,
+  SendProposalDto,
   UpdateFindingDto,
   UpdateSurveyDto,
 } from "./dto/audit-sub-resource.dto";
@@ -27,14 +26,14 @@ import { Roles } from "../../core/decorators/roles.decorator";
 const ROLE_HEADER = {
   name: "x-role",
   description:
-    "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+    "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
   required: false,
 };
 
 const ORG_HEADER = {
   name: "x-org-id",
   description:
-    "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+    "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
   required: false,
 };
 
@@ -42,18 +41,25 @@ const ORG_HEADER = {
 const READERS = [
   "Super Admin",
   "Certified Energy Auditor",
-  "Account Officer",
-  "System Administrator",
+  "Organization Admin",
   "Financial Analyst",
   "Economic Buyer",
+  "Facility Manager",
+  "Technician Administrator",
   "Sustainability Officer",
 ] as const;
 
-/** Client-side roles that may sign off on a savings claim against them. */
+/**
+ * A certified auditor's site visits and the recommendations they produce.
+ *
+ * Nothing in this controller feeds an invoice. An audit is a service
+ * included in the subscription, not something charged for.
+ */
+/** Client-side roles that may answer a proposal about their own organisation. */
 const CLIENT_SIGNATORIES = [
-  "Economic Buyer",
-  "System Administrator",
-  "Financial Analyst",
+  'Organization Admin',
+  'Economic Buyer',
+  'Financial Analyst',
 ] as const;
 
 @ApiTags("energy-audits")
@@ -65,7 +71,7 @@ export class EnergyAuditsController {
   @ApiOperation({
     summary: "Create Energy Audit",
     description:
-      "Opens a certified audit engagement against a client organisation. Stage one of the six-stage lifecycle: everything the revenue model measures starts here.",
+      "Schedules a certified audit against a client organisation. The auditor then records a site survey and a list of recommendations.",
   })
   @ApiResponse({ status: 201, description: "Audit created successfully." })
   @ApiResponse({ status: 404, description: "Organization or auditor not found." })
@@ -76,23 +82,21 @@ export class EnergyAuditsController {
     return this.auditsService.create(createDto);
   }
 
-  /**
-   * Declared before @Get(":id") so the literal path is not matched as an id.
-   */
-  @Get("verifications")
+  /** Declared before @Get(":id") so the literal path is not read as an id. */
+  @Get("findings")
   @ApiOperation({
-    summary: "List Savings Verifications",
+    summary: "List Recommendations",
     description:
-      "Every verification across every audit the caller can see, flattened with its organisation. Filter with ?status=auditor-signed to get the queue waiting on client acceptance — that queue is unbillable revenue, so it is the Account Officer's worklist.",
+      "Every recommendation across every audit the caller can see, flattened with its organisation. Filter with ?status=accepted to get the measures a client has agreed to but not yet carried out.",
   })
-  @ApiQuery({ name: "status", required: false, description: "draft | auditor-signed | client-accepted | disputed" })
-  @ApiResponse({ status: 200, description: "Array of verifications." })
+  @ApiQuery({ name: "status", required: false, description: "proposed | accepted | implemented | rejected" })
+  @ApiResponse({ status: 200, description: "Array of findings." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
   @ApiHeader(ORG_HEADER)
   @Roles(...READERS)
-  listVerifications(@Query("status") status?: string) {
-    return this.auditsService.listVerifications(status);
+  listFindings(@Query("status") status?: string) {
+    return this.auditsService.listFindings(status);
   }
 
   @Get()
@@ -113,7 +117,7 @@ export class EnergyAuditsController {
   @Get(":id")
   @ApiOperation({
     summary: "Get Energy Audit by ID",
-    description: "One audit with its survey, baseline, findings and verifications.",
+    description: "One audit with its site survey and recommendations.",
   })
   @ApiResponse({ status: 200, description: "Audit record returned." })
   @ApiResponse({ status: 404, description: "Audit with the given ID not found." })
@@ -123,44 +127,6 @@ export class EnergyAuditsController {
   @Roles(...READERS)
   findOne(@Param("id") id: string) {
     return this.auditsService.findOne(id);
-  }
-
-  @Get(":id/baseline-suggestion")
-  @ApiOperation({
-    summary: "Suggest Baseline From Readings",
-    description:
-      "Aggregates the organisation's live electricity meters across a window and returns the average monthly consumption plus the weather and occupancy averages for the same window. The auditor confirms these figures rather than typing their own: a hand-entered baseline is the easiest place to quietly inflate every future savings claim.",
-  })
-  @ApiQuery({ name: "from", required: true, description: "Window start, YYYY-MM" })
-  @ApiQuery({ name: "to", required: true, description: "Window end, YYYY-MM" })
-  @ApiResponse({ status: 200, description: "Suggested baseline and factors." })
-  @ApiResponse({ status: 400, description: "Missing/invalid range, or no readings in it." })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader(ROLE_HEADER)
-  @Roles("Certified Energy Auditor", "Super Admin", "Account Officer")
-  baselineSuggestion(
-    @Param("id") id: string,
-    @Query("from") from: string,
-    @Query("to") to: string,
-  ) {
-    return this.auditsService.baselineSuggestion(id, from, to);
-  }
-
-  @Get(":id/verification-suggestion")
-  @ApiOperation({
-    summary: "Compute Claimable Savings For a Period",
-    description:
-      "Runs attribution and baseline adjustment for one month without saving anything. Returns the adjusted baseline, the actual consumption, the claimable saving, and — for comparison — what a naive baseline-minus-actual would have claimed. The gap between those two is the weather and occupancy the client is not billed for.",
-  })
-  @ApiQuery({ name: "period", required: true, description: "YYYY-MM" })
-  @ApiResponse({ status: 200, description: "Computed draft verification." })
-  @ApiResponse({ status: 409, description: "Audit has no locked baseline." })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader(ROLE_HEADER)
-  @ApiHeader(ORG_HEADER)
-  @Roles(...READERS)
-  verificationSuggestion(@Param("id") id: string, @Query("period") period: string) {
-    return this.auditsService.verificationSuggestion(id, period);
   }
 
   @Patch(":id/survey")
@@ -178,29 +144,13 @@ export class EnergyAuditsController {
     return this.auditsService.updateSurvey(id, dto);
   }
 
-  @Patch(":id/baseline")
-  @ApiOperation({
-    summary: "Lock Baseline",
-    description:
-      "Freezes the figures every future savings claim is measured against. Refused if a baseline is already locked — one that can be edited after claims have been made against it is not a baseline. Normalisation factors are mandatory: without them a later period cannot be adjusted.",
-  })
-  @ApiResponse({ status: 200, description: "Baseline locked." })
-  @ApiResponse({ status: 400, description: "Normalisation factors missing." })
-  @ApiResponse({ status: 409, description: "Baseline already locked." })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader(ROLE_HEADER)
-  @Roles("Certified Energy Auditor", "Super Admin")
-  lockBaseline(@Param("id") id: string, @Body() dto: LockBaselineDto) {
-    return this.auditsService.lockBaseline(id, dto);
-  }
-
   @Post(":id/findings")
   @ApiOperation({
-    summary: "Add Audit Finding",
+    summary: "Add Recommendation",
     description:
-      "Records a recommendation with its estimated saving, capex and the buildings it touches. Those buildings scope which meters a later verification may credit, so a finding with no buildings can never contribute to a bill.",
+      "Records a recommended measure with its estimated annual saving, capex and the buildings it affects. Payback is derived from capex and saving when not supplied.",
   })
-  @ApiResponse({ status: 201, description: "Finding added." })
+  @ApiResponse({ status: 201, description: "Recommendation added." })
   @ApiResponse({ status: 400, description: "Building belongs to another organisation." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
@@ -211,15 +161,21 @@ export class EnergyAuditsController {
 
   @Patch(":id/findings/:findingId")
   @ApiOperation({
-    summary: "Update Audit Finding",
+    summary: "Update Recommendation",
     description:
-      "Moves a recommendation along proposed → accepted → implemented → verified. Setting status to implemented stamps implemented_on, which is the date that decides from which month savings may be claimed for this measure.",
+      "Moves a measure along proposed → accepted → implemented. The client's own facilities roles may mark work done, since they are the ones who carry it out.",
   })
-  @ApiResponse({ status: 200, description: "Finding updated." })
+  @ApiResponse({ status: 200, description: "Recommendation updated." })
   @ApiResponse({ status: 404, description: "Audit or finding not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Certified Energy Auditor", "Super Admin", "Facility Manager", "Technician Administrator")
+  @Roles(
+    "Certified Energy Auditor",
+    "Super Admin",
+    "Facility Manager",
+    "Technician Administrator",
+    "Sustainability Officer",
+  )
   updateFinding(
     @Param("id") id: string,
     @Param("findingId") findingId: string,
@@ -230,12 +186,10 @@ export class EnergyAuditsController {
 
   @Delete(":id/findings/:findingId")
   @ApiOperation({
-    summary: "Delete Audit Finding",
-    description:
-      "Removes a recommendation. Refused once a savings verification credits it.",
+    summary: "Delete Recommendation",
+    description: "Removes a recommendation from an audit.",
   })
-  @ApiResponse({ status: 200, description: "Finding deleted." })
-  @ApiResponse({ status: 409, description: "A verification credits this finding." })
+  @ApiResponse({ status: 200, description: "Recommendation deleted." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
   @Roles("Certified Energy Auditor", "Super Admin")
@@ -243,81 +197,84 @@ export class EnergyAuditsController {
     return this.auditsService.removeFinding(id, findingId);
   }
 
-  @Post(":id/verifications")
+
+  /* ── Proposal ──────────────────────────────────────────────────── */
+
+  @Post(':id/proposal')
   @ApiOperation({
-    summary: "Create Savings Verification",
+    summary: 'Send Proposal',
     description:
-      "Saves a draft claim for one month. Every figure is recomputed server-side from the locked baseline and the period's readings — nothing is accepted from the request body, because the party submitting works for the party being paid the share. Refused when no implemented finding covered the period.",
+      "Sends the client one document carrying what they need and what it costs. The monthly figure is computed by the pricing engine from the tier and the surveyed headcount, never typed, so the quote is always a number the billing engine would really produce. Addressed to the organisation's Organization Admin, who is its first account and its owner. Moves the audit to proposed and the organisation from prospect to audited.",
   })
-  @ApiResponse({ status: 201, description: "Draft verification created." })
-  @ApiResponse({ status: 409, description: "Period already verified, or nothing implemented to claim." })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiResponse({ status: 201, description: 'Proposal sent; the client has been notified.' })
+  @ApiResponse({ status: 404, description: 'Audit or plan not found.' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'Already accepted, tier too small for the estate, or the organisation has no Organization Admin to send to.',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden (RBAC)' })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Certified Energy Auditor", "Super Admin")
-  addVerification(@Param("id") id: string, @Body() dto: CreateVerificationDto) {
-    return this.auditsService.addVerification(id, dto);
+  @Roles('Certified Energy Auditor', 'Super Admin')
+  sendProposal(@Param('id') id: string, @Body() dto: SendProposalDto) {
+    return this.auditsService.sendProposal(id, dto);
   }
 
-  @Patch(":id/verifications/:vid/sign")
+  @Patch(':id/proposal/accept')
   @ApiOperation({
-    summary: "Sign Savings Verification",
+    summary: 'Accept Proposal (client)',
     description:
-      "The auditor's sign-off. Still not billable: the pricing engine ignores anything short of client acceptance, so signing alone cannot enlarge an invoice.",
+      'The client agrees. This creates their subscription, moves the organisation to active, and notifies the auditor. It is the only path to a live contract other than a Super Admin creating one by hand, which is the point: a tier now comes from an audit somebody signed.',
   })
-  @ApiResponse({ status: 200, description: "Verification signed." })
-  @ApiResponse({ status: 409, description: "Already accepted by the client." })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader(ROLE_HEADER)
-  @Roles("Certified Energy Auditor", "Super Admin")
-  signVerification(
-    @Param("id") id: string,
-    @Param("vid") vid: string,
-    @Body() body: { signed_by: string },
-  ) {
-    return this.auditsService.signVerification(id, vid, body.signed_by);
-  }
-
-  @Patch(":id/verifications/:vid/accept")
-  @ApiOperation({
-    summary: "Accept Savings Verification (client)",
-    description:
-      "The client's counter-signature, and the only point at which a savings claim becomes billable. One of two writes in the revenue model a client-side role may perform. The caller's x-org-id must match the audited organisation.",
-  })
-  @ApiResponse({ status: 200, description: "Verification accepted; now billable." })
-  @ApiResponse({ status: 403, description: "Caller belongs to another organisation." })
-  @ApiResponse({ status: 409, description: "Not yet signed, or already accepted." })
+  @ApiResponse({ status: 200, description: 'Accepted; subscription created.' })
+  @ApiResponse({ status: 409, description: 'No open proposal, or a live subscription already exists.' })
+  @ApiResponse({ status: 403, description: 'Forbidden (RBAC)' })
   @ApiHeader(ROLE_HEADER)
   @ApiHeader(ORG_HEADER)
   @Roles(...CLIENT_SIGNATORIES)
-  acceptVerification(
-    @Param("id") id: string,
-    @Param("vid") vid: string,
-    @Body() body: { accepted_by: string },
-  ) {
-    return this.auditsService.acceptVerification(id, vid, body.accepted_by);
+  acceptProposal(@Param('id') id: string, @Body() body: { accepted_by: string }) {
+    return this.auditsService.acceptProposal(id, body?.accepted_by);
   }
 
-  @Patch(":id/verifications/:vid/dispute")
+  @Patch(':id/proposal/request-changes')
   @ApiOperation({
-    summary: "Dispute Savings Verification (client)",
+    summary: 'Request Changes (client)',
     description:
-      "The client's rejection, with a reason. A disputed claim never reaches an invoice; the subscription still bills, since that service was delivered regardless.",
+      'The client pushes back with a concern or a suggestion. The proposal stays on the audit with their note attached so the auditor revises it rather than starting again, and the auditor is notified.',
   })
-  @ApiResponse({ status: 200, description: "Verification disputed." })
-  @ApiResponse({ status: 403, description: "Caller belongs to another organisation." })
-  @ApiResponse({ status: 409, description: "Already accepted." })
+  @ApiResponse({ status: 200, description: 'Changes requested; the auditor has been notified.' })
+  @ApiResponse({ status: 409, description: 'No open proposal to respond to.' })
+  @ApiResponse({ status: 403, description: 'Forbidden (RBAC)' })
   @ApiHeader(ROLE_HEADER)
   @ApiHeader(ORG_HEADER)
   @Roles(...CLIENT_SIGNATORIES)
-  disputeVerification(
-    @Param("id") id: string,
-    @Param("vid") vid: string,
-    @Body() dto: DisputeVerificationDto,
+  requestChanges(
+    @Param('id') id: string,
+    @Body() dto: RespondToProposalDto & { responded_by?: string },
   ) {
-    return this.auditsService.disputeVerification(id, vid, dto);
+    return this.auditsService.requestChanges(id, dto, dto?.responded_by ?? '');
   }
 
-  @Put(":id")
+  @Patch(':id/proposal/decline')
+  @ApiOperation({
+    summary: 'Decline Proposal (client)',
+    description:
+      'The client says no. Kept as a state rather than deleted so the Super Admin revenue console can report conversion honestly.',
+  })
+  @ApiResponse({ status: 200, description: 'Declined; the auditor has been notified.' })
+  @ApiResponse({ status: 409, description: 'No open proposal to respond to.' })
+  @ApiResponse({ status: 403, description: 'Forbidden (RBAC)' })
+  @ApiHeader(ROLE_HEADER)
+  @ApiHeader(ORG_HEADER)
+  @Roles(...CLIENT_SIGNATORIES)
+  declineProposal(
+    @Param('id') id: string,
+    @Body() dto: RespondToProposalDto & { responded_by?: string },
+  ) {
+    return this.auditsService.declineProposal(id, dto, dto?.responded_by ?? '');
+  }
+
+  @Put(':id')
   @ApiOperation({
     summary: "Replace Energy Audit",
     description: "Completely replaces an audit record. Send a full body.",
@@ -335,7 +292,7 @@ export class EnergyAuditsController {
   @ApiOperation({
     summary: "Update Energy Audit",
     description:
-      "Partially updates an audit, for example submitting it for approval or approving it.",
+      "Partially updates an audit, for example moving it from scheduled to in-progress or completed.",
   })
   @ApiResponse({ status: 200, description: "Audit updated successfully." })
   @ApiResponse({ status: 404, description: "Audit not found." })
@@ -350,10 +307,10 @@ export class EnergyAuditsController {
   @ApiOperation({
     summary: "Delete Energy Audit",
     description:
-      "Permanently removes an audit. Refused while a subscription measures against its baseline, or once it holds client-accepted verifications that have been billed.",
+      "Permanently removes an audit. Refused once any of its recommendations have been implemented, since that is a record of work actually done.",
   })
   @ApiResponse({ status: 200, description: "Audit deleted successfully." })
-  @ApiResponse({ status: 409, description: "Audit is referenced by a contract or a billed verification." })
+  @ApiResponse({ status: 409, description: "Audit holds implemented recommendations." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
   @Roles("Super Admin")

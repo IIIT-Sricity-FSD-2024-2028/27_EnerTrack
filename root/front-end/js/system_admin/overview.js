@@ -32,6 +32,8 @@ document.addEventListener("DOMContentLoaded", () => {
       subscriptionPlans: [],
       subscriptions: [],
       revenueSummary: null,
+      // Audits carry the proposal an Organization Admin answers.
+      audits: [],
     },
     loading: true,
     activeTab: localStorage.getItem("admin_activeTab") || "users",
@@ -81,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
           subscriptionPlans,
           subscriptions,
           revenueSummary,
+          audits,
         ] = await Promise.all([
           window.api.get("/users"),
           // Tenant-scoped by the backend: a client admin gets only their own
@@ -95,6 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
           // 403 for a client admin by design — it aggregates across every
           // tenant. Null here makes the Revenue tab say so rather than break.
           window.api.get("/platform-invoices/revenue-summary").catch(() => null),
+          window.api.get("/energy-audits").catch(() => []),
         ]);
 
         this.state.users = Array.isArray(users) ? users : [];
@@ -110,6 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : [];
         this.state.subscriptions = Array.isArray(subscriptions) ? subscriptions : [];
         this.state.revenueSummary = revenueSummary || null;
+        this.state.audits = Array.isArray(audits) ? audits : [];
 
         // Restore or default selected campus/building from persisted UI prefs
         if (

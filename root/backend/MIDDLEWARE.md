@@ -279,10 +279,10 @@ producible with a wildcard.
 
 | What | How | Expected |
 |---|---|---|
-| Security headers | `curl -D- http://localhost:3000/api/invoices -H "x-role: System Administrator"` | `X-Frame-Options`, `X-Content-Type-Options`, `Strict-Transport-Security`, no `X-Powered-By` |
+| Security headers | `curl -D- http://localhost:3000/api/invoices -H "x-role: Organization Admin"` | `X-Frame-Options`, `X-Content-Type-Options`, `Strict-Transport-Security`, no `X-Powered-By` |
 | Role validation | same with `-H "x-role: Hacker"` | 403 JSON envelope + entry in `security-threats-*.log` |
 | XSS blocking | POST `{"vendor":"<script>alert(1)</script>"}` to `/api/invoices` | 400 + threat log entry |
-| Error persistence | `curl http://localhost:3000/api/invoices/nope -H "x-role: System Administrator"` | 404 JSON + entry in `error-*.log` |
+| Error persistence | `curl http://localhost:3000/api/invoices/nope -H "x-role: Organization Admin"` | 404 JSON + entry in `error-*.log` |
 | Password redaction | POST to `/api/users/login`, then grep the debug log for the password | zero matches; `[REDACTED]` present |
 | Password not exposed | `GET /api/users` | no `password` field on any record |
 | Rate limiting | 1001 requests in a window | 429 + entry in `error-*.log` |

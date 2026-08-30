@@ -3,38 +3,31 @@
  *
  * Deliberately free of Nest: no @Injectable, no DI, no DatabaseService.
  * Everything it needs arrives as an argument and everything it produces is
- * returned. That is what lets the rules below be unit-tested directly, and
- * it is why BillingService is thin — it gathers inputs and persists output,
- * it does not decide prices.
+ * returned, which is what lets the rules below be unit-tested directly and
+ * why BillingService is thin — it gathers inputs and persists output, it
+ * does not decide prices.
  *
- * Three revenue streams, in the order a client meets them:
+ * The model, in one sentence:
  *
- *   1. Audit fee          one-time, on the period the contract starts,
- *                         suppressed entirely when waived on signature
- *   2. Subscription       recurring, per billed meter, with a floor
- *   3. Performance share   a percentage of savings the client has accepted
- *                          as real, capped as a multiple of the subscription
+ *   Each tier includes a number of staff seats. Go over the allowance and
+ *   you pay per extra seat.
  *
- * Two rules in here carry more weight than the rest, and both exist because
- * outcome-based billing is easy to get wrong in a way that favours the
- * vendor:
- *
- *   · adjustBaseline() strips out consumption changes EnerTrack did not
- *     cause, so the client is never billed a share of the weather.
- *   · performanceShareLine() refuses to bill a verification the client has
- *     not accepted. The guard lives here rather than in a controller so no
- *     route, present or future, can route around it.
+ * That is the entire thing. A previous version charged a share of verified
+ * energy savings, which needed locked baselines, weather normalisation,
+ * attribution windows and a client counter-signature to be honest — about
+ * 250 lines here and 600 elsewhere. Savings are still reported to the
+ * client (see OrganizationsService.savings), because that is why anyone
+ * buys the product; they are simply never invoiced. A number that is only
+ * reported needs none of that machinery: rigour is proportional to
+ * consequence.
  */
 
 import {
   BillingCycle,
   InvoiceLineType,
-  PeriodFactorValues,
   PlatformInvoiceLine,
-  SavingsVerification,
   Subscription,
   SubscriptionPlan,
-  VerificationStatus,
 } from "../../core/database/database.service";
 
 /** Annual contracts pay twelve months up front at a 10% discount. */
@@ -48,12 +41,8 @@ export interface BillingInputs {
   period: string;
   subscription: Subscription;
   plan: SubscriptionPlan;
-  /** Meters under management this period. See BillingService for the rule. */
-  billedMeterCount: number;
-  /** Estate size, for the per-square-metre half of the audit fee. */
-  floorAreaSqm: number | null;
-  /** The period's verification, whatever state it is in. May be absent. */
-  verification: SavingsVerification | null;
+  /** Staff accounts in the organisation. See BillingService for the rule. */
+  billableStaff: number;
   taxPct?: number;
 }
 
@@ -70,208 +59,99 @@ function inr(value: number): number {
   return Math.round(value);
 }
 
-/**
- * Restates a baseline as what that same estate would have consumed under
- * the conditions actually seen in a later period.
- *
- * Savings are a counterfactual: you cannot measure what a campus *would*
- * have used, only what it did use against a model of what it would have.
- * A cool season, a smaller intake or a wing taken offline all move
- * consumption without anybody improving anything, so comparing raw
- * baseline against raw actual bills the client for all three.
- *
- * The correction is the simplest honest one — the ratio adjustment behind
- * IPMVP's routine adjustments. Each factor is applied as a ratio against
- * the baseline window's own average, so it cuts in both directions: a
- * hotter month raises the adjusted baseline and increases the claim, a
- * milder one lowers it and shrinks the claim.
- *
- * A zero or missing baseline factor is treated as "not measured" and
- * contributes a ratio of 1 rather than dividing by zero.
- */
-export function adjustBaseline(
-  baselineKwh: number,
-  baseline: PeriodFactorValues,
-  actual: PeriodFactorValues,
+/** Staff beyond the tier's allowance. Never negative. */
+export function seatsOverAllowance(
+  plan: SubscriptionPlan,
+  billableStaff: number,
 ): number {
-  const ratio = (base: number, now: number) =>
-    base && base > 0 && Number.isFinite(now) ? now / base : 1;
-
-  return (
-    baselineKwh *
-    ratio(baseline.cooling_degree_days, actual.cooling_degree_days) *
-    ratio(baseline.occupancy_index, actual.occupancy_index) *
-    ratio(baseline.floor_area_sqm, actual.floor_area_sqm)
-  );
+  return Math.max(0, billableStaff - plan.included_seats);
 }
 
-/**
- * Savings against an already-adjusted baseline, in kWh and in rupees.
- *
- * Clamped at zero. If a campus consumed more than its adjusted baseline
- * there is no saving to share, and EnerTrack does not invoice a negative
- * one — the downside sits with the client, which is the same asymmetry
- * every performance contract carries.
- */
-export function verifiedSaving(
-  adjustedBaselineKwh: number,
-  actualKwh: number,
-  tariffRate: number,
-): { savedKwh: number; savedAmount: number } {
-  const savedKwh = Math.max(0, adjustedBaselineKwh - actualKwh);
-  return { savedKwh: Math.round(savedKwh), savedAmount: inr(savedKwh * tariffRate) };
-}
-
-/**
- * The recurring line. Per metered point, with the plan's floor applied so
- * a very small estate still covers the cost to serve it.
- *
- * Known trade-off, recorded rather than hidden: pricing per meter gives a
- * client a marginal reason not to add meters, which works against the
- * data-source ladder the product wants them to climb. The floor blunts it
- * at the small end, and it is the model the published pricing commits to.
- */
+/** The flat tier fee, covering everything up to the included allowances. */
 export function subscriptionLine(
   plan: SubscriptionPlan,
-  billedMeterCount: number,
   cycle: BillingCycle,
   sourceRef: string,
 ): PlatformInvoiceLine {
-  const metered = billedMeterCount * plan.price_per_meter_month;
-  const atFloor = metered < plan.min_monthly_fee;
-  const monthly = Math.max(metered, plan.min_monthly_fee);
+  const annual = cycle === BillingCycle.ANNUAL;
+  const amount = annual
+    ? plan.base_monthly_fee * 12 * (1 - ANNUAL_DISCOUNT)
+    : plan.base_monthly_fee;
 
-  const amount =
-    cycle === BillingCycle.ANNUAL ? monthly * 12 * (1 - ANNUAL_DISCOUNT) : monthly;
+  const campuses =
+    plan.max_campuses === null ? "unlimited campuses" : `${plan.max_campuses} campus${plan.max_campuses === 1 ? "" : "es"}`;
 
   return {
     type: InvoiceLineType.SUBSCRIPTION,
-    description: atFloor
-      ? `${plan.name} — monitoring subscription, minimum monthly fee` +
-        (cycle === BillingCycle.ANNUAL ? " (annual, 10% discount)" : "")
-      : `${plan.name} — monitoring subscription, ${billedMeterCount} metered points` +
-        (cycle === BillingCycle.ANNUAL ? " (annual, 10% discount)" : ""),
-    quantity: atFloor ? 1 : billedMeterCount,
-    unit_price: atFloor ? plan.min_monthly_fee : plan.price_per_meter_month,
+    description:
+      `${plan.name} — ${annual ? "annual" : "monthly"} subscription ` +
+      `(${plan.included_seats} staff seats, ${campuses})` +
+      (annual ? ", 10% discount" : ""),
+    quantity: 1,
+    unit_price: inr(amount),
     amount: inr(amount),
     source_ref: sourceRef,
   };
 }
 
 /**
- * The one-time site audit, billed on the period the contract starts.
+ * The overage line, and the reason the model tracks headcount at all.
  *
- * Returns null when the fee was waived on signature, and null on every
- * period after the first — it is a one-time charge, not a recurring one.
+ * Seats are metered rather than blocked: a client going over its allowance
+ * is billed for the extra staff, not stopped from hiring them. Blocking a
+ * hire to protect a price would be hostile, and the overage is the honest
+ * way to say "a bigger team gets more out of this, so it costs more".
+ *
+ * Returns null when the client is inside its allowance, so an invoice for
+ * a small tenant carries exactly one line.
  */
-export function auditFeeLine(
+export function seatOverageLine(
   plan: SubscriptionPlan,
-  subscription: Subscription,
-  floorAreaSqm: number | null,
-  period: string,
+  billableStaff: number,
+  cycle: BillingCycle,
+  sourceRef: string,
 ): PlatformInvoiceLine | null {
-  if (subscription.audit_fee_waived_on) return null;
-  if (!subscription.started_on) return null;
-  if (subscription.started_on.slice(0, 7) !== period) return null;
+  const extra = seatsOverAllowance(plan, billableStaff);
+  if (extra === 0) return null;
 
-  const area = floorAreaSqm ?? 0;
-  const amount = plan.audit_fee_base + area * plan.audit_fee_per_sqm;
-  if (amount <= 0) return null;
+  const annual = cycle === BillingCycle.ANNUAL;
+  const unit = annual
+    ? plan.price_per_extra_seat * 12 * (1 - ANNUAL_DISCOUNT)
+    : plan.price_per_extra_seat;
 
   return {
-    type: InvoiceLineType.AUDIT_FEE,
-    description: `Certified energy audit — site assessment and baseline (${area.toLocaleString("en-IN")} m²)`,
-    quantity: 1,
-    unit_price: inr(amount),
-    amount: inr(amount),
-    source_ref: subscription.baseline_audit_id,
+    type: InvoiceLineType.SEAT_OVERAGE,
+    description: `Additional staff seats (${billableStaff} staff, ${plan.included_seats} included)`,
+    quantity: extra,
+    unit_price: inr(unit),
+    amount: inr(unit * extra),
+    source_ref: sourceRef,
   };
-}
-
-/**
- * The outcome-linked line, and the one with teeth in front of it.
- *
- * Two guards, in order:
- *
- *  1. The verification must be CLIENT_ACCEPTED. A draft is unfinished, an
- *     auditor-signed one is one party's opinion, and a disputed one is an
- *     open disagreement — none of those is a bill. This matters because
- *     the auditor who locks the baseline works for the party being paid
- *     the share; requiring the client's acceptance is what supplies the
- *     missing counterparty. Enforced here, in the engine, so it cannot be
- *     bypassed by adding a route later.
- *
- *  2. The result is capped as a percentage of the same period's
- *     subscription fee, so an unusual season cannot produce an invoice the
- *     client could not have budgeted for.
- */
-export function performanceShareLine(
-  verification: SavingsVerification | null,
-  sharePct: number,
-  subscriptionAmount: number,
-  capPctOfSubscription: number,
-): PlatformInvoiceLine | null {
-  if (!verification) return null;
-  if (verification.status !== VerificationStatus.CLIENT_ACCEPTED) return null;
-
-  const uncapped = verification.saved_amount * (sharePct / 100);
-  const cap = subscriptionAmount * (capPctOfSubscription / 100);
-  const amount = inr(Math.min(uncapped, cap));
-  if (amount <= 0) return null;
-
-  const capped = uncapped > cap;
-  const savings = verification.saved_kwh.toLocaleString("en-IN");
-
-  return {
-    type: InvoiceLineType.PERFORMANCE_SHARE,
-    description:
-      `Performance share, ${sharePct}% of verified savings ` +
-      `(${savings} kWh, weather-adjusted)` +
-      (capped ? ` — capped at ${capPctOfSubscription}% of subscription` : ""),
-    quantity: 1,
-    unit_price: amount,
-    amount,
-    source_ref: verification.verification_id,
-  };
-}
-
-/** The share percentage in force: a negotiated override, else the plan's. */
-export function effectiveSharePct(
-  subscription: Subscription,
-  plan: SubscriptionPlan,
-): number {
-  return subscription.performance_share_pct_override ?? plan.performance_share_pct;
 }
 
 /**
  * Assembles one period's invoice. Every organisation and every period goes
  * through this function, which is what keeps the model correct at three
  * tenants and at three thousand.
+ *
+ * At most two lines plus tax. That is the point.
  */
 export function buildInvoice(inputs: BillingInputs): InvoiceTotals {
-  const { period, subscription, plan, billedMeterCount, floorAreaSqm, verification } =
-    inputs;
+  const { subscription, plan, billableStaff } = inputs;
   const taxPct = inputs.taxPct ?? DEFAULT_TAX_PCT;
+  const ref = subscription.subscription_id;
 
-  const subscription_line = subscriptionLine(
+  const lines: PlatformInvoiceLine[] = [
+    subscriptionLine(plan, subscription.billing_cycle, ref),
+  ];
+
+  const overage = seatOverageLine(
     plan,
-    billedMeterCount,
+    billableStaff,
     subscription.billing_cycle,
-    subscription.subscription_id,
+    ref,
   );
-
-  const lines: PlatformInvoiceLine[] = [subscription_line];
-
-  const audit = auditFeeLine(plan, subscription, floorAreaSqm, period);
-  if (audit) lines.push(audit);
-
-  const share = performanceShareLine(
-    verification,
-    effectiveSharePct(subscription, plan),
-    subscription_line.amount,
-    plan.share_cap_pct_of_subscription,
-  );
-  if (share) lines.push(share);
+  if (overage) lines.push(overage);
 
   const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
   const tax_amount = inr(subtotal * (taxPct / 100));

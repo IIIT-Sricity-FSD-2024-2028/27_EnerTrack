@@ -1,4 +1,10 @@
-import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiHeader,
+  ApiQuery,
+} from "@nestjs/swagger";
 import {
   Controller,
   Get,
@@ -8,6 +14,7 @@ import {
   Param,
   Delete,
   Put,
+  Query,
 } from "@nestjs/common";
 import { OrganizationsService } from "./organizations.service";
 import { CreateOrganizationDto } from "./dto/create-organization.dto";
@@ -18,7 +25,7 @@ import { Roles } from "../../core/decorators/roles.decorator";
 const ROLE_HEADER = {
   name: "x-role",
   description:
-    "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
+    "Caller role for RBAC. Super Admin | Certified Energy Auditor | Organization Admin",
   required: false,
 };
 
@@ -51,7 +58,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 200, description: "Array of all organization records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
+  @Roles("Super Admin", "Organization Admin", "Certified Energy Auditor")
   findAll() {
     return this.organizationsService.findAll();
   }
@@ -89,7 +96,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 404, description: "Organization with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
+  @Roles("Super Admin", "Organization Admin", "Certified Energy Auditor")
   findOne(@Param("id") id: string) {
     return this.organizationsService.findOne(id);
   }
@@ -119,7 +126,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 404, description: "Organization with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   update(@Param("id") id: string, @Body() updateDto: UpdateOrganizationDto) {
     return this.organizationsService.update(id, updateDto);
   }
@@ -149,9 +156,41 @@ export class OrganizationsController {
   @ApiResponse({ status: 200, description: "Array of campus records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "System Administrator", "Certified Energy Auditor", "Account Officer")
+  @Roles("Super Admin", "Organization Admin", "Certified Energy Auditor")
   getCampuses(@Param("id") id: string) {
     return this.organizationsService.getCampuses(id);
+  }
+
+  @Get(":id/savings")
+  @ApiOperation({
+    summary: "Get Organization Savings",
+    description:
+      "Compares electricity consumption against the same calendar month a year earlier, and reports the difference in kWh, rupees and kg CO2. Comparing like months cancels seasonality without needing a weather model. This figure is reported, never billed — EnerTrack charges a subscription, not a share of savings.",
+  })
+  @ApiQuery({ name: "period", required: false, description: "Single month, YYYY-MM" })
+  @ApiQuery({ name: "from", required: false, description: "Range start, YYYY-MM" })
+  @ApiQuery({ name: "to", required: false, description: "Range end, YYYY-MM" })
+  @ApiResponse({ status: 200, description: "Savings comparison returned." })
+  @ApiResponse({ status: 400, description: "Supply period, or from and to." })
+  @ApiResponse({ status: 404, description: "Organization with the given ID not found." })
+  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiHeader(ROLE_HEADER)
+  @Roles(
+    "Super Admin",
+    "Certified Energy Auditor",
+    "Organization Admin",
+    "Financial Analyst",
+    "Economic Buyer",
+    "Sustainability Officer",
+    "Facility Manager",
+  )
+  getSavings(
+    @Param("id") id: string,
+    @Query("period") period?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+  ) {
+    return this.organizationsService.savings(id, { period, from, to });
   }
 
   @Get(":id/users")
@@ -163,7 +202,7 @@ export class OrganizationsController {
   @ApiResponse({ status: 200, description: "Array of user records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "System Administrator", "Account Officer")
+  @Roles("Super Admin", "Organization Admin")
   getUsers(@Param("id") id: string) {
     return this.organizationsService.getUsers(id);
   }

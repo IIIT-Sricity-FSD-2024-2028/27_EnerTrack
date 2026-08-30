@@ -17,7 +17,7 @@ The system models a campus hierarchy (`Campus → Building → Department → Me
 
 | Role | Landing page | Primary job |
 |---|---|---|
-| **System Administrator** | `system_admin/system_admin_overview.html` | Users, campus/building/department/meter infrastructure, system health, audit logs |
+| **Organization Admin** | `system_admin/system_admin_overview.html` | Users, campus/building/department/meter infrastructure, system health, audit logs |
 | **Financial Analyst** | `finance-analyst/finance_overview.html` | Energy costs, invoices, budgets, ROI/NPV financial reports |
 | **Technician Administrator** | `technician/technician_overview.html` | Triages alerts & faults, creates and assigns work orders |
 | **Technician** (junior) | `technician_jr/technician_jr_work_orders.html` | Executes assigned work orders on a Kanban board |
@@ -108,7 +108,7 @@ Seeded demo accounts (plaintext passwords, by design for the demo):
 
 | Name | Email | Role |
 |---|---|---|
-| Aadithya | aadi@gmail.com | System Administrator |
+| Aadithya | aadi@gmail.com | Organization Admin |
 | Husaam | husaam@gmail.com | Financial Analyst |
 | Chirag | chirag@gmail.com | Technician Administrator (Electrical) |
 | Teja | teja@gmail.com | Technician (Solar Installation) |
@@ -162,14 +162,14 @@ The sequential scheme is **not collision-safe**: deleting a record lowers `lengt
 |---|---|
 | `decorators/roles.decorator.ts` | `@Roles(...roles)` → `SetMetadata('roles', roles)` |
 | `guards/roles.guard.ts` | Reads the **`x-role` request header**; no `@Roles` on a handler ⇒ route is public; header missing or not in the allow-list ⇒ `403 Forbidden` |
-| `decorators/current-role.decorator.ts` | `@CurrentRole()` — reads **`x-user-role`** (note: *different header name*), defaults to `"System Administrator"` |
+| `decorators/current-role.decorator.ts` | `@CurrentRole()` — reads **`x-user-role`** (note: *different header name*), defaults to `"Organization Admin"` |
 | `interceptors/transform.interceptor.ts` | Wraps every success response as `{ success, data, timestamp }` |
 | `interceptors/logging.interceptor.ts` | Logs `[REQUEST]` / `[RESPONSE]` with method, URL, body, status and duration; truncates payloads at 300 chars |
 | `middleware/logger.middleware.ts` | Same idea at the Express layer by monkey-patching `response.send` — **written but never registered** in `AppModule` |
 
 ### 4.6 The security model, stated plainly
 
-Authentication is a **plaintext email/password lookup** against the in-memory array. Authorisation is **a client-supplied `x-role` header**. There is no session, no token, no password hashing, and nothing stops a caller from sending `x-role: System Administrator`. `LLM_Backend_Context .md` says passwords "must be hashed" — they are not.
+Authentication is a **plaintext email/password lookup** against the in-memory array. Authorisation is **a client-supplied `x-role` header**. There is no session, no token, no password hashing, and nothing stops a caller from sending `x-role: Organization Admin`. `LLM_Backend_Context .md` says passwords "must be hashed" — they are not.
 
 This is appropriate for a course demo, and it is the single largest gap between the project as built and anything deployable. Any production hardening starts here: hash with bcrypt/argon2, issue a JWT at login, and derive the role from the verified token instead of a header.
 
@@ -284,7 +284,7 @@ Two documented fields are **absent from the runtime interfaces**: `Alert` has no
 ### 6.3 Enum vocabulary (single source of truth: `database.service.ts`)
 
 ```
-UserRole                System Administrator | Financial Analyst | Technician |
+UserRole                Organization Admin | Financial Analyst | Technician |
                         Technician Administrator | Sustainability Officer | Campus Visitor
 MeterType               electricity | gas | water | emissions | food
 MeterStatus             active | faulty | calibrating | decommissioned
@@ -360,7 +360,7 @@ Ordered by impact.
 
 1. **No persistence.** Every write dies with the process. Migrating `DatabaseService` to TypeORM + Postgres is the natural next step, and the schema contract for doing so already exists.
 2. **Authentication is not authentication.** Plaintext passwords, no token, and a spoofable `x-role` header. See §4.6.
-3. **Header-name mismatch.** `RolesGuard` reads `x-role`; `CurrentRole` reads `x-user-role`, which is never sent by `api.js` and never allowed through CORS — so `@CurrentRole()` always silently returns its `"System Administrator"` default.
+3. **Header-name mismatch.** `RolesGuard` reads `x-role`; `CurrentRole` reads `x-user-role`, which is never sent by `api.js` and never allowed through CORS — so `@CurrentRole()` always silently returns its `"Organization Admin"` default.
 4. **Broken redirect for the Sustainability Officer.** `sign_in.js:46` sends the role to `sustainability_officer/sustainability_officer_overview.html`; the file on disk is `sust_overview.html`. That login lands on a 404.
 5. **Three pages call `window.api` without loading `api.js`.** `finance_costs.html`, `finance_reports.html` and `sust_monitoring.html` omit the `<script src=".../shared/api.js">` tag. Their `if (window.api)` guard makes this fail silently — the pages quietly serve stale mock data instead of live records.
 6. **Sequential alert IDs collide.** `ALT-${alerts.length + 1}` reuses an ID after any delete.
@@ -387,74 +387,75 @@ Ordered by impact.
 
 ---
 
-## 12. The revenue model and the platform-side actors
+## 12. The subscription model and the platform-side actors
 
 > Added after the original analysis above, which predates this work. Where the two disagree,
-> this section is current. In particular §10 lists gaps that have since been closed: the
-> Sustainability Officer redirect, and the pages that called `window.api` without loading
+> this section is current. §10 lists gaps that have since been closed, including the
+> Sustainability Officer redirect and the pages that called `window.api` without loading
 > `api.js`.
 
 ### 12.1 Two sides, not six roles
 
-The system is no longer best described as six roles. It is **two sides**:
+The system is best described as **two sides**:
 
 | | Client side | Platform side |
 |---|---|---|
-| Roles | System Administrator, Financial Analyst, Technician Administrator, Technician, Sustainability Officer, Campus Visitor | Super Admin, Certified Energy Auditor, Account Officer |
+| Roles | Organization Admin, Financial Analyst, Technician Administrator, Technician, Sustainability Officer, Campus Visitor | Super Admin, Certified Energy Auditor |
 | `organization_id` | set | `null` |
 | Scope | one tenant, via `scopeToTenant()` | every tenant |
-| Owns | the campus: meters, alerts, work orders, costs, sustainability | the business: audits, contracts, billing |
+| Owns | the campus: meters, alerts, work orders, costs, sustainability | the business: tiers, contracts, billing, audits |
 
-Every entity added by this work is **platform-owned**: it carries an `organization_id` but the
-record belongs to EnerTrack *about* the client, not to the client. The existing
-`scopeToTenant()` needed no change to handle that correctly — staff send no `x-org-id` and get
-the cross-tenant view, a client sends theirs and sees only its own rows.
+Everything added by this work is **platform-owned**: it carries an `organization_id` but the
+record belongs to EnerTrack *about* the client. The existing `scopeToTenant()` needed no change
+to handle that — staff send no `x-org-id` and get the cross-tenant view, a client sends theirs
+and sees only its own rows.
 
-### 12.2 Four new backend modules
+### 12.2 Four backend modules
 
 | Module | Purpose |
 |---|---|
-| `subscription-plans` | The price catalogue. The only entity with **no** `organization_id`, so `scopeToTenant()` must never be applied to it. |
-| `subscriptions` | One contract per tenant: plan, cycle, renewal, negotiated share, linked baseline audit. |
-| `energy-audits` | The auditor's engagement: survey, locked baseline, `findings[]` and `verifications[]` folded in as JSON arrays, matching `Alert.messages`. |
-| `platform-invoices` | What EnerTrack bills. **Not** `Invoice`, which is the client's utility bill from their supplier — two money flows in opposite directions. |
+| `subscription-plans` | The tier catalogue. The only entity with **no** `organization_id`, so `scopeToTenant()` must never be applied to it. |
+| `subscriptions` | One contract per tenant: tier, cycle, renewal. |
+| `energy-audits` | Site survey plus `findings[]`, folded in as a JSON array like `Alert.messages`. Carries no link to billing. |
+| `platform-invoices` | What EnerTrack bills. **Not** `Invoice`, which is the client's utility bill — two money flows in opposite directions. |
 
-Plus `src/modules/billing/pricing.ts`: the whole revenue model as pure functions, with no Nest
-and no database, so the rules can be read and tested in one file.
+Plus `src/modules/billing/pricing.ts`: the model as pure functions, with no Nest and no
+database, so the rules can be read and tested in one file.
 
-### 12.3 The rule that carries the most weight
+### 12.3 The model, and what it deliberately is not
 
-`performanceShareLine()` returns nothing unless a verification is `client-accepted`.
+Each tier includes staff seats and campuses. An invoice is the tier fee, plus staff over the
+seat allowance × the extra-seat price, plus GST. At most two lines.
 
-The auditor who locks the baseline works for the party paid a share of the gap between that
-baseline and actual consumption; without a counterparty, that is a loop the vendor controls
-from both ends. Client acceptance is the counterparty, and the guard lives in the pricing
-engine rather than a controller so that no route added later can bypass it.
+An earlier version charged a **performance share of verified savings**, which required a locked
+baseline, weather and occupancy normalisation, attribution windows, a four-state verification
+workflow and a client counter-signature. That was removed: roughly 1,800 lines existed only to
+make one revenue stream survive a dispute, and the team that has to defend this project could
+not explain it.
 
-Three supporting rules: the baseline is **adjusted** for the period's weather, occupancy and
-floor area before anything is claimed; a claim is **attributed** only to findings actually
-marked implemented, scoped to their buildings and dates; and the share is **capped** as a
-multiple of the subscription fee.
+Savings are still reported — `GET /api/organizations/:id/savings` compares against the same
+calendar month a year earlier — because that is why a campus buys the product. They are simply
+never invoiced. Rigour is proportional to consequence.
 
-### 12.4 New frontend
+### 12.4 Impersonation
+
+`POST /api/users/:id/impersonate` returns another user's session and logs the switch.
+Deliberately **not** a security boundary: authorisation here is a client-supplied `x-role`
+header with no token, so the capability already exists to anyone with devtools. The route makes
+it deliberate, logged and one click.
+
+### 12.5 New frontend
 
 ```
-html/auditor/            4 pages — overview, audits & baselines, findings, verification
-html/account_officer/    4 pages — book of accounts, account detail, billing, savings reporting
+html/auditor/            2 pages — portfolio overview, survey & recommendations
 html/finance-analyst/finance_subscription.html
-                         client-side: plan, invoices, and the accept/dispute queue
-css/shared/platform_shared.css
-                         shared skin for both EnerTrack-side dashboards
+                         client-side: tier, seat usage, invoices, savings
+js/shared/roleRoutes.js  role → landing page, shared by sign-in and impersonation
 js/system_admin/modules/plansManager.js, revenueManager.js
-                         two new Super Admin tabs, gated on data-requires-role
+                         two Super Admin tabs, gated on data-requires-role
+css/shared/platform_shared.css
+                         skin for EnerTrack-side dashboards
 ```
 
-`css/shared/tech_shared.css` is reused wholesale by the new dashboards rather than cloned.
-Despite its name nothing in it is technician-specific: it is this project's generic dashboard
-system.
-
-### 12.5 One client-side write, on purpose
-
-`PATCH /energy-audits/:id/verifications/:vid/accept` and `/dispute` are the only revenue-model
-routes a client role may call. The service asserts the caller's `x-org-id` matches the audited
-organisation, so the concession stays narrow.
+`css/shared/tech_shared.css` is reused wholesale rather than cloned. Despite its name nothing in
+it is technician-specific: it is this project's generic dashboard system.

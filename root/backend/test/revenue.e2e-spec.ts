@@ -6,43 +6,36 @@ import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/core/filters/all-exceptions.filter';
 import { TransformInterceptor } from '../src/core/interceptors/transform.interceptor';
 import { RolesGuard } from '../src/core/guards/roles.guard';
+import { BillingCycle, SubscriptionStatus } from '../src/core/database/database.service';
 import {
-  BillingCycle,
-  SubscriptionStatus,
-  VerificationStatus,
-} from '../src/core/database/database.service';
-import {
-  adjustBaseline,
   buildInvoice,
-  performanceShareLine,
+  seatOverageLine,
+  seatsOverAllowance,
   subscriptionLine,
-  verifiedSaving,
 } from '../src/modules/billing/pricing';
 
 /**
- * The revenue model, tested at both levels it can go wrong.
+ * The subscription model, tested at both levels it can go wrong.
  *
  * The pure block checks the arithmetic in pricing.ts directly, because the
- * rules that decide what a client is charged should be readable and provable
- * without a running application.
+ * rule that decides what a client is charged should be readable and provable
+ * without a running application. It is a small rule — tier fee, plus staff
+ * over the allowance, plus GST — and the tests are correspondingly short.
  *
- * The HTTP block then proves those rules are actually reachable and actually
- * enforced through the real request pipeline — the same reasoning the
- * middleware suite uses. A guard that works in isolation but sits behind a
- * route nobody wired up would pass the first block and fail in production.
+ * The HTTP block then proves those rules are reachable and enforced through
+ * the real pipeline, and covers the two things the arithmetic cannot see:
+ * who counts as a billable seat, and who is allowed to do what.
  */
 
-/** A plan shaped like the seeded Professional tier. */
+/** A tier shaped like the seeded Growth plan. */
 const plan: any = {
   plan_id: 'plan-test',
-  name: 'Test',
+  name: 'Growth',
   tagline: '',
-  price_per_meter_month: 3500,
-  min_monthly_fee: 25000,
-  audit_fee_base: 150000,
-  audit_fee_per_sqm: 6,
-  performance_share_pct: 15,
-  share_cap_pct_of_subscription: 300,
+  base_monthly_fee: 35000,
+  included_seats: 20,
+  price_per_extra_seat: 1000,
+  max_campuses: 3,
   features: [],
   is_active: true,
 };
@@ -56,231 +49,95 @@ const subscription: any = {
   started_on: '2025-01-01',
   renews_on: '2027-01-01',
   cancelled_on: null,
-  performance_share_pct_override: null,
-  audit_fee_waived_on: '2025-01-01',
-  account_officer_id: null,
-  baseline_audit_id: 'audit-test',
 };
 
-const acceptedVerification: any = {
-  verification_id: 'ver-test',
-  period: '2026-07',
-  status: VerificationStatus.CLIENT_ACCEPTED,
-  finding_ids: ['f1'],
-  meter_ids: ['m1'],
-  actual_factors: { cooling_degree_days: 145, occupancy_index: 1.03, floor_area_sqm: 42000 },
-  raw_baseline_kwh: 97300,
-  adjusted_baseline_kwh: 78550,
-  actual_kwh: 72965,
-  saved_kwh: 5585,
-  saved_amount: 47473,
-  signed_by: 'auditor',
-  signed_on: '2026-08-01',
-  accepted_by: 'client',
-  accepted_on: '2026-08-05',
-  dispute_reason: null,
-  disputed_on: null,
-};
-
-describe('Revenue model — pricing engine (unit)', () => {
-  describe('adjustBaseline', () => {
-    const baselineFactors = {
-      cooling_degree_days: 185,
-      occupancy_index: 1.0,
-      floor_area_sqm: 42000,
-    };
-
-    it('lowers the baseline when the period ran cooler than the window', () => {
-      const adjusted = adjustBaseline(97300, baselineFactors, {
-        cooling_degree_days: 145,
-        occupancy_index: 1.0,
-        floor_area_sqm: 42000,
-      });
-      // A mild month means the estate would have used less anyway, so less
-      // of the drop is a saving anyone earned.
-      expect(Math.round(adjusted)).toBe(Math.round(97300 * (145 / 185)));
-      expect(adjusted).toBeLessThan(97300);
+describe('Subscription model — pricing engine (unit)', () => {
+  describe('seatsOverAllowance', () => {
+    it('counts staff beyond the included allowance', () => {
+      expect(seatsOverAllowance(plan, 24)).toBe(4);
     });
 
-    it('raises the baseline when the period ran hotter', () => {
-      const adjusted = adjustBaseline(97300, baselineFactors, {
-        cooling_degree_days: 196,
-        occupancy_index: 1.0,
-        floor_area_sqm: 42000,
-      });
-      // The correction is not a one-way haircut: a hot month legitimately
-      // increases what the client is credited with saving.
-      expect(adjusted).toBeGreaterThan(97300);
-    });
-
-    it('credits a larger occupancy and a larger floor area', () => {
-      const adjusted = adjustBaseline(100000, baselineFactors, {
-        cooling_degree_days: 185,
-        occupancy_index: 1.1,
-        floor_area_sqm: 46200,
-      });
-      expect(Math.round(adjusted)).toBe(Math.round(100000 * 1.1 * 1.1));
-    });
-
-    it('treats an unmeasured baseline factor as neutral rather than dividing by zero', () => {
-      const adjusted = adjustBaseline(50000, {
-        cooling_degree_days: 0,
-        occupancy_index: 0,
-        floor_area_sqm: 0,
-      }, {
-        cooling_degree_days: 200,
-        occupancy_index: 1.2,
-        floor_area_sqm: 9000,
-      });
-      expect(adjusted).toBe(50000);
-    });
-  });
-
-  describe('verifiedSaving', () => {
-    it('converts a shortfall against the adjusted baseline into rupees', () => {
-      expect(verifiedSaving(78550, 72965, 8.5)).toEqual({
-        savedKwh: 5585,
-        savedAmount: Math.round(5585 * 8.5),
-      });
-    });
-
-    it('floors at zero when consumption went up', () => {
-      // Overshooting the baseline is the client's downside, not a negative
-      // invoice line.
-      expect(verifiedSaving(70000, 90000, 8.5)).toEqual({ savedKwh: 0, savedAmount: 0 });
+    it('is zero, never negative, when the client is under its allowance', () => {
+      expect(seatsOverAllowance(plan, 12)).toBe(0);
+      expect(seatsOverAllowance(plan, 0)).toBe(0);
     });
   });
 
   describe('subscriptionLine', () => {
-    it('bills per meter when that beats the floor', () => {
-      const line = subscriptionLine(plan, 9, BillingCycle.MONTHLY, 'sub-test');
-      expect(line.amount).toBe(9 * 3500);
-      expect(line.quantity).toBe(9);
-    });
-
-    it('falls back to the minimum monthly fee for a small estate', () => {
-      const line = subscriptionLine(plan, 1, BillingCycle.MONTHLY, 'sub-test');
-      expect(line.amount).toBe(25000);
-      expect(line.description).toContain('minimum monthly fee');
+    it('bills the flat tier fee monthly', () => {
+      const line = subscriptionLine(plan, BillingCycle.MONTHLY, 'sub-test');
+      expect(line.amount).toBe(35000);
+      expect(line.description).toContain('20 staff seats');
+      expect(line.description).toContain('3 campuses');
     });
 
     it('applies the annual discount over twelve months', () => {
-      const line = subscriptionLine(plan, 9, BillingCycle.ANNUAL, 'sub-test');
-      expect(line.amount).toBe(Math.round(9 * 3500 * 12 * 0.9));
+      const line = subscriptionLine(plan, BillingCycle.ANNUAL, 'sub-test');
+      expect(line.amount).toBe(Math.round(35000 * 12 * 0.9));
+    });
+
+    it('describes an unlimited tier without a campus number', () => {
+      const line = subscriptionLine(
+        { ...plan, max_campuses: null },
+        BillingCycle.MONTHLY,
+        'sub-test',
+      );
+      expect(line.description).toContain('unlimited campuses');
     });
   });
 
-  describe('performanceShareLine — the counter-signature gate', () => {
-    const subscriptionAmount = 31500;
-
-    it('bills a share once the client has accepted', () => {
-      const line = performanceShareLine(acceptedVerification, 15, subscriptionAmount, 300);
+  describe('seatOverageLine', () => {
+    it('charges per staff account beyond the allowance', () => {
+      const line = seatOverageLine(plan, 24, BillingCycle.MONTHLY, 'sub-test');
       expect(line).not.toBeNull();
-      expect(line!.amount).toBe(Math.round(47473 * 0.15));
+      expect(line!.quantity).toBe(4);
+      expect(line!.amount).toBe(4000);
     });
 
-    it.each([
-      VerificationStatus.DRAFT,
-      VerificationStatus.AUDITOR_SIGNED,
-      VerificationStatus.DISPUTED,
-    ])('bills nothing while the verification is %s', (status) => {
-      // The load-bearing rule of the whole model. The auditor who locks the
-      // baseline works for the party paid the share, so an unaccepted claim
-      // must never reach an invoice — including one the auditor has signed.
-      const line = performanceShareLine(
-        { ...acceptedVerification, status },
-        15,
-        subscriptionAmount,
-        300,
-      );
-      expect(line).toBeNull();
-    });
-
-    it('bills nothing when there is no verification at all', () => {
-      expect(performanceShareLine(null, 15, subscriptionAmount, 300)).toBeNull();
-    });
-
-    it('clamps to the cap and says so in the description', () => {
-      const line = performanceShareLine(acceptedVerification, 500, subscriptionAmount, 300);
-      expect(line!.amount).toBe(subscriptionAmount * 3);
-      expect(line!.description).toContain('capped at');
+    it('produces no line at all when the client is inside its allowance', () => {
+      // A small tenant should get a one-line invoice, not a zero-value row.
+      expect(seatOverageLine(plan, 20, BillingCycle.MONTHLY, 'sub-test')).toBeNull();
+      expect(seatOverageLine(plan, 3, BillingCycle.MONTHLY, 'sub-test')).toBeNull();
     });
   });
 
   describe('buildInvoice', () => {
-    const base = {
-      period: '2026-07',
-      subscription,
-      plan,
-      billedMeterCount: 9,
-      floorAreaSqm: 42000,
-    };
+    const base = { period: '2026-08', subscription, plan };
 
-    it('assembles subscription plus an accepted share, with tax on the subtotal', () => {
-      const invoice = buildInvoice({ ...base, verification: acceptedVerification });
-      const share = Math.round(47473 * 0.15);
-
+    it('is tier fee plus overage plus 18% GST', () => {
+      const invoice = buildInvoice({ ...base, billableStaff: 24 });
       expect(invoice.line_items).toHaveLength(2);
-      expect(invoice.subtotal).toBe(31500 + share);
-      expect(invoice.tax_amount).toBe(Math.round((31500 + share) * 0.18));
+      expect(invoice.subtotal).toBe(39000);
+      expect(invoice.tax_amount).toBe(Math.round(39000 * 0.18));
       expect(invoice.total).toBe(invoice.subtotal + invoice.tax_amount);
     });
 
-    it('still bills the subscription when the savings claim is disputed', () => {
-      // The monitoring service was delivered either way; only the outcome
-      // component depends on the claim.
-      const invoice = buildInvoice({
-        ...base,
-        verification: { ...acceptedVerification, status: VerificationStatus.DISPUTED },
-      });
+    it('is one line for a client inside its allowance', () => {
+      const invoice = buildInvoice({ ...base, billableStaff: 12 });
       expect(invoice.line_items).toHaveLength(1);
-      expect(invoice.subtotal).toBe(31500);
+      expect(invoice.subtotal).toBe(35000);
     });
 
-    it('suppresses the audit fee once it has been waived', () => {
-      const invoice = buildInvoice({
-        ...base,
-        period: '2025-01', // the period the contract started
-        verification: null,
-      });
-      expect(invoice.line_items.some((l) => l.type === 'audit-fee')).toBe(false);
-    });
-
-    it('bills the audit fee on the first period when it was not waived', () => {
-      const invoice = buildInvoice({
-        ...base,
-        period: '2025-01',
-        subscription: { ...subscription, audit_fee_waived_on: null },
-        verification: null,
-      });
-      const audit = invoice.line_items.find((l) => l.type === 'audit-fee');
-      expect(audit).toBeDefined();
-      expect(audit!.amount).toBe(150000 + 42000 * 6);
-    });
-
-    it('does not repeat the audit fee on later periods', () => {
-      const invoice = buildInvoice({
-        ...base,
-        period: '2025-02',
-        subscription: { ...subscription, audit_fee_waived_on: null },
-        verification: null,
-      });
-      expect(invoice.line_items.some((l) => l.type === 'audit-fee')).toBe(false);
-    });
-
-    it('moves the total when a plan price changes, with no code change', () => {
-      const before = buildInvoice({ ...base, verification: null }).total;
+    it('moves the total when a tier price changes, with no code change', () => {
+      const before = buildInvoice({ ...base, billableStaff: 24 }).total;
       const after = buildInvoice({
         ...base,
-        plan: { ...plan, price_per_meter_month: 4200 },
-        verification: null,
+        plan: { ...plan, price_per_extra_seat: 1500 },
+        billableStaff: 24,
       }).total;
       expect(after).toBeGreaterThan(before);
+    });
+
+    it('carries a source_ref on every line, so a figure can be traced back', () => {
+      const invoice = buildInvoice({ ...base, billableStaff: 24 });
+      for (const line of invoice.line_items) {
+        expect(line.source_ref).toBe('sub-test');
+      }
     });
   });
 });
 
-describe('Revenue model (e2e)', () => {
+describe('Subscription model (e2e)', () => {
   let app: INestApplication;
   const server = () => app.getHttpServer();
 
@@ -305,104 +162,213 @@ describe('Revenue model (e2e)', () => {
     await app.close();
   });
 
-  describe('Baseline adjustment', () => {
-    it('claims far less than a naive baseline-minus-actual would', async () => {
+  describe('Seat billing', () => {
+    it('bills org-001 a tier fee plus an overage for its extra staff', async () => {
       const res = await request(server())
-        .get('/api/energy-audits/audit-001/verification-suggestion?period=2026-07')
-        .set('x-role', 'Certified Energy Auditor')
+        .get('/api/platform-invoices/preview?organization_id=org-001&period=2026-08')
+        .set('x-role', 'Super Admin')
         .expect(200);
 
-      const v = res.body.data;
-      expect(v.adjusted_baseline_kwh).toBeLessThan(v.raw_baseline_kwh);
-      expect(v.saved_kwh).toBeLessThan(v.unadjusted_saved_kwh);
-      expect(v.saved_kwh).toBeGreaterThan(0);
+      const p = res.body.data;
+      expect(p.billable_staff).toBe(24);
+      expect(p.included_seats).toBe(20);
+      expect(p.seats_over_allowance).toBe(4);
+      expect(p.line_items.map((l: any) => l.type)).toEqual([
+        'subscription',
+        'seat-overage',
+      ]);
+      expect(p.subtotal).toBe(39000);
     });
 
-    it('scopes the baseline to the meters the implemented findings cover', async () => {
+    it('bills org-002 the flat fee, with no overage line', async () => {
       const res = await request(server())
-        .get('/api/energy-audits/audit-001/verification-suggestion?period=2026-07')
-        .set('x-role', 'Certified Energy Auditor')
+        .get('/api/platform-invoices/preview?organization_id=org-002&period=2026-08')
+        .set('x-role', 'Super Admin')
         .expect(200);
 
-      // Both findings are implemented in the seed, so the credited meters
-      // account for the whole estate baseline.
-      expect(res.body.data.scope_share).toBeCloseTo(1, 2);
-      expect(res.body.data.meter_ids).toHaveLength(2);
+      expect(res.body.data.seats_over_allowance).toBe(0);
+      expect(res.body.data.line_items).toHaveLength(1);
+      expect(res.body.data.subtotal).toBe(12000);
     });
 
-    it('excludes a decommissioned meter from the credited set', async () => {
-      const res = await request(server())
-        .get('/api/energy-audits/audit-001/verification-suggestion?period=2026-07')
-        .set('x-role', 'Certified Energy Auditor')
-        .expect(200);
+    it('does not count a Campus Visitor as a billable seat', async () => {
+      // The one carve-out in the whole model. A campus may have thousands of
+      // students reporting faults; billing per student would be absurd.
+      const before = await request(server())
+        .get('/api/platform-invoices/preview?organization_id=org-001&period=2026-08')
+        .set('x-role', 'Super Admin');
 
-      // M-006 sits in the same building as M-001 but is decommissioned.
-      // Counting it would drag actual consumption down and inflate the claim.
-      expect(res.body.data.meter_ids).not.toContain(
-        'mmmm0000-0006-4000-8000-000000000000',
+      await request(server())
+        .post('/api/users')
+        .set('x-role', 'Super Admin')
+        .send({
+          organization_id: 'org-001',
+          name: 'A Student',
+          email: 'student.seat.test@example.com',
+          password: 'Student@123',
+          role: 'Campus Visitor',
+        })
+        .expect(201);
+
+      const after = await request(server())
+        .get('/api/platform-invoices/preview?organization_id=org-001&period=2026-08')
+        .set('x-role', 'Super Admin');
+
+      expect(after.body.data.billable_staff).toBe(before.body.data.billable_staff);
+      expect(after.body.data.total).toBe(before.body.data.total);
+    });
+
+    it('counts a new staff account as one more billable seat', async () => {
+      const before = await request(server())
+        .get('/api/platform-invoices/preview?organization_id=org-001&period=2026-08')
+        .set('x-role', 'Super Admin');
+
+      await request(server())
+        .post('/api/users')
+        .set('x-role', 'Super Admin')
+        .send({
+          organization_id: 'org-001',
+          name: 'A Technician',
+          email: 'tech.seat.test@example.com',
+          password: 'Tech@123',
+          role: 'Technician',
+        })
+        .expect(201);
+
+      const after = await request(server())
+        .get('/api/platform-invoices/preview?organization_id=org-001&period=2026-08')
+        .set('x-role', 'Super Admin');
+
+      expect(after.body.data.billable_staff).toBe(
+        before.body.data.billable_staff + 1,
       );
+      expect(after.body.data.subtotal).toBe(before.body.data.subtotal + 1000);
     });
   });
 
-  describe('Counter-signature gate', () => {
-    it('omits the performance share while the claim is only auditor-signed', async () => {
-      // ver-003 (2026-06) is seeded auditor-signed and never accepted.
+  describe('Campus limit', () => {
+    it('refuses a campus past the tier limit, naming the tier', async () => {
+      // org-002 is on Starter, which covers one campus, and already has one.
       const res = await request(server())
-        .get('/api/platform-invoices/preview?organization_id=org-001&period=2026-06')
-        .set('x-role', 'Account Officer')
-        .expect(200);
-
-      expect(res.body.data.line_items.some((l: any) => l.type === 'performance-share')).toBe(
-        false,
-      );
-      expect(res.body.data.performance_share_note).toContain('not yet accepted');
-    });
-
-    it('omits the performance share for a disputed claim', async () => {
-      const res = await request(server())
-        .get('/api/platform-invoices/preview?organization_id=org-001&period=2026-05')
-        .set('x-role', 'Account Officer')
-        .expect(200);
-
-      expect(res.body.data.line_items.some((l: any) => l.type === 'performance-share')).toBe(
-        false,
-      );
-      expect(res.body.data.performance_share_note).toContain('Disputed');
-    });
-
-    it('includes the performance share once the client accepted it', async () => {
-      const res = await request(server())
-        .get('/api/platform-invoices/preview?organization_id=org-001&period=2026-04')
-        .set('x-role', 'Account Officer')
-        .expect(200);
-
-      expect(res.body.data.line_items.some((l: any) => l.type === 'performance-share')).toBe(
-        true,
-      );
-    });
-
-    it('refuses a client accepting another tenant’s verification', async () => {
-      await request(server())
-        .patch('/api/energy-audits/audit-001/verifications/ver-003/accept')
-        .set('x-role', 'Economic Buyer')
+        .post('/api/campus')
+        .set('x-role', 'Super Admin')
         .set('x-org-id', 'org-002')
-        .send({ accepted_by: 'someone-else' })
-        .expect(404);
+        .send({
+          organization_id: 'org-002',
+          name: 'Second Campus',
+          location: 'Nowhere',
+          total_budget: 100000,
+        })
+        .expect(409);
+
+      expect(res.body.message).toContain('Starter');
+    });
+  });
+
+  describe('Savings reporting', () => {
+    it('compares a month against the same month a year earlier', async () => {
+      const res = await request(server())
+        .get('/api/organizations/org-001/savings?period=2026-07')
+        .set('x-role', 'Financial Analyst')
+        .set('x-org-id', 'org-001')
+        .expect(200);
+
+      const s = res.body.data;
+      expect(s.has_comparison).toBe(true);
+      expect(s.kwh).toBeLessThan(s.kwh_year_ago);
+      expect(s.saved_kwh).toBeGreaterThan(0);
+      expect(s.change_pct).toBeLessThan(0);
     });
 
-    it('refuses an auditor accepting on the client’s behalf', async () => {
-      // The whole point of the gate: EnerTrack staff cannot supply the
-      // client's signature, however senior they are.
+    it('reports a materially larger change after the measures than before', async () => {
+      // org-001 implemented two recommendations in February 2026. January
+      // should be roughly flat; July should show the drop. That contrast is
+      // the check that this figure tracks the work, not the calendar.
+      const jan = await request(server())
+        .get('/api/organizations/org-001/savings?period=2026-01')
+        .set('x-role', 'Super Admin')
+        .expect(200);
+      const jul = await request(server())
+        .get('/api/organizations/org-001/savings?period=2026-07')
+        .set('x-role', 'Super Admin')
+        .expect(200);
+
+      expect(Math.abs(jan.body.data.change_pct)).toBeLessThan(5);
+      expect(Math.abs(jul.body.data.change_pct)).toBeGreaterThan(10);
+    });
+
+    it('rolls a range of months up', async () => {
+      const res = await request(server())
+        .get('/api/organizations/org-001/savings?from=2026-03&to=2026-08')
+        .set('x-role', 'Super Admin')
+        .expect(200);
+
+      expect(res.body.data.months_compared).toBe(6);
+      expect(res.body.data.months).toHaveLength(6);
+      expect(res.body.data.saved_amount).toBeGreaterThan(0);
+    });
+
+    it('rejects a request with neither a period nor a range', async () => {
       await request(server())
-        .patch('/api/energy-audits/audit-001/verifications/ver-003/accept')
-        .set('x-role', 'Certified Energy Auditor')
-        .send({ accepted_by: 'auditor' })
+        .get('/api/organizations/org-001/savings')
+        .set('x-role', 'Super Admin')
+        .expect(400);
+    });
+  });
+
+  describe('Impersonation', () => {
+    const husaam = '550e8400-0002-4000-8000-000000000002';
+
+    it('lets a Super Admin open another user session, without the password', async () => {
+      const res = await request(server())
+        .post(`/api/users/${husaam}/impersonate`)
+        .set('x-role', 'Super Admin')
+        .send({ actor: 'Priya Nair' })
+        .expect(201);
+
+      expect(res.body.data.user_id).toBe(husaam);
+      expect(res.body.data).not.toHaveProperty('password');
+    });
+
+    it('writes the switch to the activity log, naming both parties', async () => {
+      await request(server())
+        .post(`/api/users/${husaam}/impersonate`)
+        .set('x-role', 'Super Admin')
+        .send({ actor: 'Priya Nair' })
+        .expect(201);
+
+      const logs = await request(server())
+        .get('/api/activity-logs')
+        .set('x-role', 'Super Admin')
+        .expect(200);
+
+      const entry = logs.body.data.find(
+        (l: any) => l.action_type === 'impersonation',
+      );
+      expect(entry).toBeDefined();
+      expect(entry.title).toContain('Priya Nair');
+      expect(entry.title).toContain('Husaam');
+    });
+
+    it('refuses anyone who is not a Super Admin', async () => {
+      await request(server())
+        .post(`/api/users/${husaam}/impersonate`)
+        .set('x-role', 'Financial Analyst')
+        .set('x-org-id', 'org-001')
+        .send({})
+        .expect(403);
+
+      await request(server())
+        .post(`/api/users/${husaam}/impersonate`)
+        .set('x-role', 'Organization Admin')
+        .set('x-org-id', 'org-001')
+        .send({})
         .expect(403);
     });
   });
 
   describe('Tenancy', () => {
-    it('gives platform staff the cross-tenant subscription list', async () => {
+    it('gives platform staff the cross-tenant contract list', async () => {
       const res = await request(server())
         .get('/api/subscriptions')
         .set('x-role', 'Super Admin')
@@ -413,7 +379,7 @@ describe('Revenue model (e2e)', () => {
     it('narrows a client to its own contract', async () => {
       const res = await request(server())
         .get('/api/subscriptions')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .set('x-org-id', 'org-001')
         .expect(200);
 
@@ -429,7 +395,7 @@ describe('Revenue model (e2e)', () => {
         .expect(403);
     });
 
-    it('lets a client read the price catalogue but not change it', async () => {
+    it('lets a client read the tier catalogue but not change it', async () => {
       await request(server())
         .get('/api/subscription-plans')
         .set('x-role', 'Financial Analyst')
@@ -437,44 +403,50 @@ describe('Revenue model (e2e)', () => {
         .expect(200);
 
       await request(server())
-        .delete('/api/subscription-plans/plan-essential')
-        .set('x-role', 'System Administrator')
+        .delete('/api/subscription-plans/plan-starter')
+        .set('x-role', 'Organization Admin')
         .set('x-org-id', 'org-001')
         .expect(403);
     });
 
-    it('serves the public catalogue with no credentials and no internal fields', async () => {
+    it('serves the public catalogue with no credentials and no internal state', async () => {
       const res = await request(server())
         .get('/api/subscription-plans/public')
         .expect(200);
 
       expect(res.body.data.length).toBeGreaterThan(0);
-      expect(res.body.data[0]).not.toHaveProperty('audit_fee_base');
-      expect(res.body.data[0]).not.toHaveProperty('share_cap_pct_of_subscription');
+      expect(res.body.data[0]).toHaveProperty('included_seats');
+      expect(res.body.data[0]).not.toHaveProperty('is_active');
     });
   });
 
-  describe('Baseline integrity', () => {
-    it('refuses to re-lock a baseline that savings have been claimed against', async () => {
-      await request(server())
-        .patch('/api/energy-audits/audit-001/baseline')
+  describe('Audits carry no billing', () => {
+    it('exposes surveys and recommendations, and nothing about money', async () => {
+      const res = await request(server())
+        .get('/api/energy-audits/audit-001')
         .set('x-role', 'Certified Energy Auditor')
-        .send({
-          period_from: '2025-03',
-          period_to: '2025-08',
-          baseline_kwh: 10,
-          factors: { cooling_degree_days: 185, occupancy_index: 1, floor_area_sqm: 42000 },
-          locked_by: 'auditor',
-        })
-        .expect(409);
+        .expect(200);
+
+      const audit = res.body.data;
+      expect(audit.survey).toBeDefined();
+      expect(audit.findings.length).toBeGreaterThan(0);
+      // The whole point of the simplification: an audit is a service, not a
+      // priced instrument.
+      expect(audit).not.toHaveProperty('baseline');
+      expect(audit).not.toHaveProperty('verifications');
     });
 
-    it('refuses to verify against an audit with no locked baseline', async () => {
-      // audit-003 is the in-progress prospect engagement.
-      await request(server())
-        .get('/api/energy-audits/audit-003/verification-suggestion?period=2026-07')
-        .set('x-role', 'Certified Energy Auditor')
-        .expect(409);
+    it('lets the client team mark a recommendation implemented', async () => {
+      const res = await request(server())
+        .patch('/api/energy-audits/audit-002/findings/find-011')
+        .set('x-role', 'Sustainability Officer')
+        .set('x-org-id', 'org-002')
+        .send({ status: 'implemented' })
+        .expect(200);
+
+      expect(res.body.data.status).toBe('implemented');
+      // Stamped server-side rather than trusted from the body.
+      expect(res.body.data.implemented_on).toBeTruthy();
     });
   });
 });

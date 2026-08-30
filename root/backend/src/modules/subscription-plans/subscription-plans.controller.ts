@@ -50,7 +50,7 @@ export class SubscriptionPlansController {
   @ApiOperation({
     summary: "Public Pricing Catalogue",
     description:
-      "Active tiers with name, price, share percentage and features, for the landing page pricing section. No authorization required. Deliberately omits the audit fee formula and the share cap.",
+      "Active tiers with their fee, seat allowance, extra-seat price, campus limit and features, for the landing page pricing section. No authorization required — the landing page and the billing engine read the same catalogue, so the published price cannot drift from the charged one.",
   })
   @ApiResponse({ status: 200, description: "Array of public plan summaries." })
   listPublic() {
@@ -68,9 +68,8 @@ export class SubscriptionPlansController {
   @ApiHeader(ROLE_HEADER)
   @Roles(
     "Super Admin",
-    "Account Officer",
     "Certified Energy Auditor",
-    "System Administrator",
+    "Organization Admin",
     "Financial Analyst",
     "Economic Buyer",
   )
@@ -89,9 +88,8 @@ export class SubscriptionPlansController {
   @ApiHeader(ROLE_HEADER)
   @Roles(
     "Super Admin",
-    "Account Officer",
     "Certified Energy Auditor",
-    "System Administrator",
+    "Organization Admin",
     "Financial Analyst",
     "Economic Buyer",
   )
@@ -108,7 +106,7 @@ export class SubscriptionPlansController {
   @ApiResponse({ status: 200, description: "Array of subscriber summaries." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   getSubscribers(@Param("id") id: string) {
     return this.plansService.getSubscribers(id);
   }

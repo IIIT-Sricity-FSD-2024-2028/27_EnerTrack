@@ -1,6 +1,7 @@
 import { renderInfrastructureManager } from "./infrastructureManager.js";
 import { renderOrganizationsManager } from "./organizationsManager.js";
 import { renderPlansManager } from "./plansManager.js";
+import { renderProposalManager } from "./proposalManager.js";
 import { renderRevenueManager } from "./revenueManager.js";
 import { renderUserManagement } from "./UserManagement.js";
 import { formatLabel } from "../utils/ui.js";
@@ -61,6 +62,10 @@ export function renderAdminLayout(root, app) {
     renderPlansManager(view, app);
   } else if (app.activeTab === "revenue") {
     renderRevenueManager(view, app);
+  } else if (app.activeTab === "proposal") {
+    // Client-side on purpose: this is where an Organization Admin answers
+    // the proposal their auditor sent, so it must not be platform-only.
+    renderProposalManager(view, app);
   } else {
     renderUserManagement(view, app);
   }
@@ -100,7 +105,9 @@ function syncChrome(app) {
       plans:
         "EnerTrack's price catalogue. Every figure the billing engine uses lives on these rows.",
       revenue:
-        "Platform revenue across every client. MRR reflects live contracts and current meter counts.",
+        "Platform revenue across every client. MRR reflects live contracts and current staff counts.",
+      proposal:
+        "What EnerTrack's auditor recommends for your organisation, and what it would cost.",
     }[app.activeTab] || "Manage campus users, roles, and login access.",
   );
 

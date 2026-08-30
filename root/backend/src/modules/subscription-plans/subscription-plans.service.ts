@@ -50,10 +50,11 @@ export class SubscriptionPlansService {
   /**
    * The public catalogue, for the landing page's pricing section.
    *
-   * Deliberately a projection rather than the whole row. A visitor may see
-   * what a tier costs and what it includes; they have no business knowing
-   * the audit fee formula or the share cap, which are negotiating
-   * positions. Never widen this shape.
+   * A projection rather than the whole row: it drops is_active, which is
+   * internal state the filter above has already applied. Everything a
+   * visitor needs to compare tiers is here, which is the point — the
+   * marketing page and the billing engine read the same catalogue, so the
+   * published price and the charged price cannot drift apart.
    */
   listPublic() {
     return this.database.subscriptionPlans
@@ -62,9 +63,10 @@ export class SubscriptionPlansService {
         plan_id: p.plan_id,
         name: p.name,
         tagline: p.tagline,
-        price_per_meter_month: p.price_per_meter_month,
-        min_monthly_fee: p.min_monthly_fee,
-        performance_share_pct: p.performance_share_pct,
+        base_monthly_fee: p.base_monthly_fee,
+        included_seats: p.included_seats,
+        price_per_extra_seat: p.price_per_extra_seat,
+        max_campuses: p.max_campuses,
         features: p.features,
       }));
   }

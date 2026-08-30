@@ -68,10 +68,6 @@ export class SubscriptionsService {
     const newRecord = {
       subscription_id: crypto.randomUUID(),
       cancelled_on: null,
-      performance_share_pct_override: null,
-      audit_fee_waived_on: null,
-      account_officer_id: null,
-      baseline_audit_id: null,
       ...createDto,
       organization_id: orgId,
     };
@@ -179,22 +175,6 @@ export class SubscriptionsService {
     const current = this.database.subscriptions[index];
     current.status = SubscriptionStatus.CANCELLED;
     current.cancelled_on = cancelledOn ?? new Date().toISOString().slice(0, 10);
-    return current;
-  }
-
-  /**
-   * Waives the one-time audit fee, which suppresses that invoice line.
-   *
-   * Cleaner than the credit-back arrangement the pricing page originally
-   * described: a waiver is one date field, whereas an amortising credit is
-   * a running balance that has to be decremented correctly on every
-   * invoice and reconciled if one is voided.
-   */
-  waiveAuditFee(id: string, waivedOn?: string) {
-    const index = this.indexOf(id);
-    const current = this.database.subscriptions[index];
-    current.audit_fee_waived_on =
-      waivedOn ?? new Date().toISOString().slice(0, 10);
     return current;
   }
 

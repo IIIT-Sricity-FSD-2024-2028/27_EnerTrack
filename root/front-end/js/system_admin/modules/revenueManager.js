@@ -1,24 +1,19 @@
-import { escapeHtml, formatCurrency, showToast } from "../utils/ui.js";
+import { escapeHtml, formatCurrency } from "../utils/ui.js";
 
 /* ══════════════════════════════════════════════════════
-   Revenue Manager — the platform's own P&L
+   Revenue Manager — the platform's own numbers
 
    Reads GET /platform-invoices/revenue-summary, which aggregates across
    every tenant and is therefore restricted to EnerTrack staff. A client
-   calling it gets 403; this tab is hidden from them as a convenience, not
-   as the control.
+   calling it gets 403; hiding this tab from them is a convenience, not the
+   control.
 
-   The number worth arguing about on this page is the recurring/outcome
-   split. EnerTrack's three revenue streams are not equally reliable:
-
-     audit fee          one-time, and often waived to win the deal
-     subscription       recurring and predictable
-     performance share  depends on verified savings the client accepts,
-                        which depends in part on the weather
-
-   A model whose headline differentiator is the unpredictable stream is a
-   fragile one, so the split is shown prominently rather than buried in a
-   total. Recurring should dominate.
+   Revenue here is one thing — the subscription — so there is no mix to
+   break down. What is worth watching instead is seat utilisation. An
+   organisation at or over its allowance is either already paying an
+   overage or about to, and either way it is the next conversation. That
+   makes it a more actionable number than a revenue total, which only tells
+   you what already happened.
    ══════════════════════════════════════════════════════ */
 
 export function renderRevenueManager(container, app) {
@@ -36,7 +31,7 @@ export function renderRevenueManager(container, app) {
         <div class="table-card">
           <div class="empty-state">
             This view aggregates across every tenant, so it is available to
-            EnerTrack staff only. Sign in as Super Admin or Account Officer.
+            EnerTrack staff only. Sign in as Super Admin.
           </div>
         </div>
       </section>`;
@@ -49,15 +44,14 @@ export function renderRevenueManager(container, app) {
         <div>
           <h2>Revenue</h2>
           <p>
-            Across every client organisation. MRR is computed from live
-            contracts and current meter counts, so it is what the platform
-            will bill next month rather than what it billed last.
+            Across every client. MRR is computed from live contracts and
+            current staff counts, so it is what the platform will bill next
+            month rather than what it billed last.
           </p>
         </div>
       </div>
 
       ${renderTiles(summary)}
-      ${renderMix(summary)}
       ${renderCollections(summary)}
       ${renderByOrganization(summary)}
       ${renderByPlan(summary)}
@@ -65,68 +59,34 @@ export function renderRevenueManager(container, app) {
 }
 
 function renderTiles(s) {
+  const nearLimit = s.by_organization.filter(
+    (o) => o.seat_utilisation_pct !== null && o.seat_utilisation_pct >= 80,
+  ).length;
+
   return `
     <div class="table-card" style="padding:18px;margin-bottom:16px">
-      <div class="stat-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
         ${tile("Monthly recurring revenue", formatCurrency(s.mrr))}
         ${tile("Annual run rate", formatCurrency(s.arr))}
         ${tile("Billed to date", formatCurrency(s.billed_to_date))}
-        ${tile("Outstanding", formatCurrency(s.collections.issued + s.collections.overdue))}
+        ${tile(
+          "At or near seat limit",
+          String(nearLimit),
+          "Clients at 80% of their allowance or above",
+        )}
       </div>
     </div>`;
 }
 
-function tile(label, value) {
+function tile(label, value, note) {
   return `
     <div>
       <div class="muted-cell" style="text-transform:uppercase;letter-spacing:.04em;font-size:11px;font-weight:700">
         ${escapeHtml(label)}
       </div>
       <div style="font-size:24px;font-weight:700;margin-top:6px">${value}</div>
+      ${note ? `<div class="muted-cell" style="margin-top:4px">${escapeHtml(note)}</div>` : ""}
     </div>`;
-}
-
-/**
- * The recurring-versus-outcome split, drawn as one bar.
- *
- * A bar rather than two numbers because the ratio is the point: it says how
- * much of the business survives a mild year.
- */
-function renderMix(s) {
-  const mix = s.revenue_mix;
-  const total = Math.max(1, mix.recurring + mix.outcome + mix.audit_fees);
-  const pct = (v) => `${((v / total) * 100).toFixed(1)}%`;
-
-  return `
-    <div class="table-card" style="padding:18px;margin-bottom:16px">
-      <h3 style="font-size:15px;margin-bottom:4px">Revenue mix</h3>
-      <p class="muted-cell" style="margin-bottom:14px">
-        ${mix.recurring_pct}% of everything billed so far is the recurring
-        subscription. The performance share is an alignment signal, not the
-        business — EnerTrack measures and reports; the client's own
-        technicians do the implementing.
-      </p>
-
-      <div style="display:flex;height:28px;border-radius:6px;overflow:hidden;background:#eef1f4">
-        <div style="width:${pct(mix.recurring)};background:#1e3a5f" title="Subscription"></div>
-        <div style="width:${pct(mix.outcome)};background:#15803d" title="Performance share"></div>
-        <div style="width:${pct(mix.audit_fees)};background:#b45309" title="Audit fees"></div>
-      </div>
-
-      <div style="display:flex;gap:22px;margin-top:12px;font-size:13px;flex-wrap:wrap">
-        ${legend("#1e3a5f", "Subscription", mix.recurring)}
-        ${legend("#15803d", "Performance share", mix.outcome)}
-        ${legend("#b45309", "Audit fees", mix.audit_fees)}
-      </div>
-    </div>`;
-}
-
-function legend(colour, label, value) {
-  return `
-    <span style="display:inline-flex;align-items:center;gap:8px">
-      <span style="width:11px;height:11px;border-radius:3px;background:${colour};display:inline-block"></span>
-      ${escapeHtml(label)} — <strong>${formatCurrency(value)}</strong>
-    </span>`;
 }
 
 function renderCollections(s) {
@@ -143,28 +103,54 @@ function renderCollections(s) {
       ${
         c.overdue > 0
           ? `<p class="muted-cell" style="margin-top:12px">
-               ${formatCurrency(c.overdue)} is past its due date. The Account
-               Officer's billing page chases these.
+               ${formatCurrency(c.overdue)} is past its due date.
              </p>`
           : ""
       }
     </div>`;
 }
 
+/**
+ * The seat bar is the useful column. It shows, per client, how full their
+ * allowance is — and turns red past 100%, which is where an overage is
+ * already being charged and an upgrade would probably suit them better.
+ */
 function renderByOrganization(s) {
   const rows = s.by_organization
-    .map(
-      (o) => `
+    .map((o) => {
+      const pct = o.seat_utilisation_pct;
+      const over = o.seats_over_allowance > 0;
+      const width = pct === null ? 0 : Math.min(100, pct);
+      const colour = over ? "#b42318" : pct !== null && pct >= 80 ? "#b45309" : "#15803d";
+
+      return `
     <tr>
       <td><strong>${escapeHtml(o.organization_name)}</strong></td>
       <td><span class="badge ${escapeHtml(o.status)}">${escapeHtml(o.status)}</span></td>
       <td>${escapeHtml(o.plan_name ?? "—")}</td>
-      <td>${o.billed_meter_count}</td>
-      <td>${o.invoices}</td>
+      <td style="min-width:170px">
+        ${
+          pct === null
+            ? `<span class="muted-cell">No contract</span>`
+            : `<div style="display:flex;align-items:center;gap:8px">
+                 <div style="flex:1;height:8px;background:#eef1f4;border-radius:4px;overflow:hidden">
+                   <div style="width:${width}%;height:100%;background:${colour}"></div>
+                 </div>
+                 <span style="font-size:12px;white-space:nowrap">
+                   ${o.billable_staff}/${o.included_seats}
+                 </span>
+               </div>
+               ${over ? `<div class="muted-cell">${o.seats_over_allowance} seat(s) billed extra</div>` : ""}`
+        }
+      </td>
+      <td>
+        ${o.campuses_used}${o.max_campuses === null ? " / ∞" : ` / ${o.max_campuses}`}
+      </td>
+      <td>${formatCurrency(o.monthly)}</td>
       <td>${formatCurrency(o.billed_to_date)}</td>
       <td>${formatCurrency(o.outstanding)}</td>
-    </tr>`,
-    )
+    </tr>`;
+    })
     .join("");
 
   return `
@@ -173,13 +159,13 @@ function renderByOrganization(s) {
         <table>
           <thead>
             <tr>
-              <th>Organisation</th><th>Status</th><th>Plan</th>
-              <th>Meters billed</th><th>Invoices</th>
-              <th>Billed to date</th><th>Outstanding</th>
+              <th>Organisation</th><th>Status</th><th>Tier</th>
+              <th>Staff seats used</th><th>Campuses</th>
+              <th>Per month</th><th>Billed to date</th><th>Outstanding</th>
             </tr>
           </thead>
           <tbody>
-            ${rows || `<tr><td colspan="7"><div class="empty-state">No client organisations.</div></td></tr>`}
+            ${rows || `<tr><td colspan="8"><div class="empty-state">No client organisations.</div></td></tr>`}
           </tbody>
         </table>
       </div>
@@ -204,10 +190,10 @@ function renderByPlan(s) {
       <div class="table-scroll">
         <table>
           <thead>
-            <tr><th>Plan</th><th>Subscribers</th><th>MRR</th><th>Annualised</th></tr>
+            <tr><th>Tier</th><th>Clients</th><th>MRR</th><th>Annualised</th></tr>
           </thead>
           <tbody>
-            ${rows || `<tr><td colspan="4"><div class="empty-state">No plans defined.</div></td></tr>`}
+            ${rows || `<tr><td colspan="4"><div class="empty-state">No tiers defined.</div></td></tr>`}
           </tbody>
         </table>
       </div>

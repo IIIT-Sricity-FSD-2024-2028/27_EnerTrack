@@ -8,34 +8,35 @@
  *   Utility Costs (finance_costs.html)  what you pay your electricity supplier
  *   This page                           what you pay EnerTrack for the service
  *
- * The second reason it exists is the accept/dispute queue. EnerTrack's
- * performance share is a percentage of savings measured against a baseline
- * that EnerTrack's own auditor locked — so without a counterparty, the
- * vendor would be marking its own homework. Nothing is billable until
- * someone here accepts it, and the buttons below are that counterparty.
+ * The page answers one question honestly: is this worth it? On the left,
+ * what the subscription costs. On the right, what consumption has actually
+ * done against the same months last year. EnerTrack does not charge a share
+ * of savings — the subscription is the whole bill — so this comparison is
+ * evidence rather than an invoice, and the client keeps every rupee of it.
  *
- * Everything on this page is read-only except those two actions. The
- * backend enforces it: a client role has no write access to plans,
- * subscriptions or invoices, and can only accept or dispute a verification
- * belonging to its own organisation.
+ * Entirely read-only. A client has no write access to tiers, contracts or
+ * invoices, and the backend enforces that regardless of what this page does.
  */
 
 const els = {};
 
-const CLIENT_ROLES = [
+const ALLOWED = [
   "Economic Buyer",
   "Financial Analyst",
-  "System Administrator",
+  "Organization Admin",
   "Super Admin",
-  "Account Officer",
 ];
+
+/** Rolling window the savings panel compares over. */
+const SAVINGS_FROM = "2026-03";
+const SAVINGS_TO = "2026-08";
 
 document.addEventListener("DOMContentLoaded", async () => {
   const root = document.getElementById("subscriptionApp");
   if (!root) return;
 
   const user = currentUser();
-  if (!user || !CLIENT_ROLES.includes(user.role)) {
+  if (!user || !ALLOWED.includes(user.role)) {
     window.location.href = "../sign_in/sign_in.html";
     return;
   }
@@ -49,17 +50,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         <h2>No organisation</h2>
         <p>
           This account belongs to EnerTrack rather than to a client, so it has
-          no subscription of its own. Use the Account Officer dashboard to see
-          client billing.
+          no subscription of its own.
         </p>
       </div>`;
     return;
   }
 
-  let subscription = null;
-  let invoices = [];
-  let audits = [];
-
+  let subscription;
   try {
     subscription = await window.api.get(`/subscriptions/by-organization/${orgId}`);
   } catch (err) {
@@ -71,16 +68,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  [invoices, audits] = await Promise.all([
+  const [invoices, users, campuses, savings] = await Promise.all([
     window.api.get("/platform-invoices").catch(() => []),
-    window.api.get("/energy-audits").catch(() => []),
+    window.api.get("/users").catch(() => []),
+    window.api.get("/campus").catch(() => []),
+    window.api
+      .get(`/organizations/${orgId}/savings?from=${SAVINGS_FROM}&to=${SAVINGS_TO}`)
+      .catch(() => null),
   ]);
 
-  els.root = root;
-  els.user = user;
-  els.subscription = subscription;
-  els.invoices = Array.isArray(invoices) ? invoices : [];
-  els.audits = Array.isArray(audits) ? audits : [];
+  Object.assign(els, {
+    root,
+    user,
+    subscription,
+    invoices: Array.isArray(invoices) ? invoices : [],
+    // Every user except a Campus Visitor. The same rule the backend bills
+    // on, restated here only so the page can show the working.
+    staff: (Array.isArray(users) ? users : []).filter(
+      (u) => u.organization_id === orgId && u.role !== "Campus Visitor",
+    ),
+    visitors: (Array.isArray(users) ? users : []).filter(
+      (u) => u.organization_id === orgId && u.role === "Campus Visitor",
+    ),
+    campuses: (Array.isArray(campuses) ? campuses : []).filter(
+      (c) => c.organization_id === orgId,
+    ),
+    savings,
+  });
 
   render();
 });
@@ -93,26 +107,13 @@ function currentUser() {
   }
 }
 
-function verifications() {
-  return els.audits
-    .flatMap((a) => (a.verifications || []).map((v) => ({ ...v, audit_id: a.audit_id })))
-    .sort((a, b) => b.period.localeCompare(a.period));
-}
-
 function render() {
   els.root.innerHTML = [
     renderPlan(),
-    renderPendingClaims(),
+    renderUsage(),
     renderValue(),
     renderInvoices(),
   ].join("");
-
-  els.root.querySelectorAll("[data-accept]").forEach((btn) => {
-    btn.onclick = () => accept(btn.dataset.auditId, btn.dataset.accept);
-  });
-  els.root.querySelectorAll("[data-dispute]").forEach((btn) => {
-    btn.onclick = () => dispute(btn.dataset.auditId, btn.dataset.dispute);
-  });
 }
 
 /* ─── Plan ──────────────────────────────────────────────────────── */
@@ -120,7 +121,6 @@ function render() {
 function renderPlan() {
   const s = els.subscription;
   const p = s.plan || {};
-  const share = s.performance_share_pct_override ?? p.performance_share_pct ?? 0;
 
   return `
     <div class="sub-card">
@@ -134,26 +134,19 @@ function renderPlan() {
 
       <div class="sub-grid">
         <div>
-          <span class="sub-k">Monitoring subscription</span>
-          <span class="sub-v">${money(p.price_per_meter_month)} per meter / month</span>
-          <span class="sub-n">Minimum ${money(p.min_monthly_fee)} / month</span>
+          <span class="sub-k">Monthly fee</span>
+          <span class="sub-v">${money(p.base_monthly_fee)}</span>
+          <span class="sub-n">Covers everything up to your allowances</span>
         </div>
         <div>
-          <span class="sub-k">Performance share</span>
-          <span class="sub-v">${share}% of verified savings</span>
-          <span class="sub-n">
-            Capped at ${p.share_cap_pct_of_subscription ?? "—"}% of your
-            subscription fee, and payable only on savings you have accepted.
-          </span>
+          <span class="sub-k">Included staff</span>
+          <span class="sub-v">${num(p.included_seats)} seats</span>
+          <span class="sub-n">Then ${money(p.price_per_extra_seat)} per extra staff account</span>
         </div>
         <div>
-          <span class="sub-k">Audit fee</span>
-          <span class="sub-v">
-            ${s.audit_fee_waived_on ? "Waived" : "Charged on first invoice"}
-          </span>
-          <span class="sub-n">
-            ${s.audit_fee_waived_on ? `Waived on signature, ${date(s.audit_fee_waived_on)}` : "One-time site assessment"}
-          </span>
+          <span class="sub-k">Campuses</span>
+          <span class="sub-v">${p.max_campuses === null ? "Unlimited" : num(p.max_campuses)}</span>
+          <span class="sub-n">Included in this tier</span>
         </div>
         <div>
           <span class="sub-k">Renews</span>
@@ -172,156 +165,145 @@ function renderPlan() {
     </div>`;
 }
 
-/* ─── The counter-signature queue ───────────────────────────────── */
+/* ─── Usage against allowances ──────────────────────────────────── */
 
-function renderPendingClaims() {
-  const pending = verifications().filter((v) => v.status === "auditor-signed");
+function renderUsage() {
+  const p = els.subscription.plan || {};
+  const staff = els.staff.length;
+  const included = p.included_seats ?? 0;
+  const over = Math.max(0, staff - included);
+  const campuses = els.campuses.length;
 
-  if (pending.length === 0) {
-    return `
-      <div class="sub-card">
-        <h2>Savings claims</h2>
-        <p>Nothing is waiting for your approval.</p>
-      </div>`;
-  }
+  const seatPct = included > 0 ? Math.min(100, (staff / included) * 100) : 0;
+  const seatColour = over ? "#b42318" : seatPct >= 80 ? "#b45309" : "#15803d";
 
   return `
-    <div class="sub-card sub-card-attention">
-      <div class="sub-card-head">
-        <div>
-          <h2>Savings awaiting your approval</h2>
-          <p>
-            EnerTrack's auditor has verified these. Nothing is invoiced until
-            you accept — if a figure looks wrong, dispute it and say why.
-          </p>
+    <div class="sub-card">
+      <h2>Your usage this month</h2>
+      <p>What your bill is calculated from.</p>
+
+      <div class="usage-row">
+        <div class="usage-label">
+          Staff accounts
+          <small>${staff} of ${included} included</small>
         </div>
-        <span class="sub-badge pending">${pending.length} to review</span>
+        <div class="usage-track">
+          <div class="usage-fill" style="width:${seatPct}%;background:${seatColour}"></div>
+        </div>
+        <div class="usage-value">
+          ${over > 0 ? `${over} over` : `${included - staff} spare`}
+        </div>
       </div>
 
-      ${pending.map(renderClaim).join("")}
-    </div>`;
-}
-
-function renderClaim(v) {
-  const rawSaving = Math.max(0, v.raw_baseline_kwh - v.actual_kwh);
-  const givenBack = rawSaving - v.saved_kwh;
-
-  return `
-    <div class="claim">
-      <div class="claim-head">
-        <strong>${period(v.period)}</strong>
-        <span class="sub-n">signed ${date(v.signed_on)}</span>
+      <div class="usage-row">
+        <div class="usage-label">
+          Campuses
+          <small>${campuses} of ${p.max_campuses === null ? "unlimited" : p.max_campuses}</small>
+        </div>
+        <div class="usage-track">
+          <div class="usage-fill" style="width:${
+            p.max_campuses ? Math.min(100, (campuses / p.max_campuses) * 100) : 8
+          }%;background:#1e3a5f"></div>
+        </div>
+        <div class="usage-value">${campuses}</div>
       </div>
 
-      <table class="claim-table">
-        <tr>
-          <td>Your baseline</td>
-          <td class="r">${kwh(v.raw_baseline_kwh)}</td>
-          <td class="n">As locked at the time of the audit</td>
-        </tr>
-        <tr>
-          <td>Adjusted for this month</td>
-          <td class="r">${kwh(v.adjusted_baseline_kwh)}</td>
-          <td class="n">
-            Restated for ${num(v.actual_factors.cooling_degree_days)} cooling
-            degree days and occupancy ${v.actual_factors.occupancy_index}
-          </td>
-        </tr>
-        <tr>
-          <td>You actually used</td>
-          <td class="r">${kwh(v.actual_kwh)}</td>
-          <td class="n">Metered</td>
-        </tr>
-        <tr class="claim-total">
-          <td>Verified saving</td>
-          <td class="r">${kwh(v.saved_kwh)}</td>
-          <td class="n">${money(v.saved_amount)} at your tariff</td>
-        </tr>
+      <table class="sub-table" style="margin-top:20px">
+        <tbody>
+          <tr>
+            <td>${escapeHtml(els.subscription.plan?.name ?? "Tier")} monthly fee</td>
+            <td class="r">${money(p.base_monthly_fee)}</td>
+          </tr>
+          ${
+            over > 0
+              ? `<tr>
+                   <td>${over} additional staff seat${over === 1 ? "" : "s"} × ${money(p.price_per_extra_seat)}</td>
+                   <td class="r">${money(over * p.price_per_extra_seat)}</td>
+                 </tr>`
+              : ""
+          }
+          <tr class="usage-total">
+            <td>Before GST</td>
+            <td class="r">${money((p.base_monthly_fee || 0) + over * (p.price_per_extra_seat || 0))}</td>
+          </tr>
+        </tbody>
       </table>
 
-      ${
-        givenBack > 0
-          ? `<p class="claim-note">
-               A raw before-and-after comparison would have claimed
-               <strong>${kwh(rawSaving)}</strong>. The baseline adjustment
-               removed <strong>${kwh(givenBack)}</strong> of that as weather and
-               occupancy rather than anything the measures achieved. You are not
-               being billed for it.
-             </p>`
-          : `<p class="claim-note">
-               This month ran harder than your baseline window, so the
-               adjustment credited you with more than a raw comparison would.
-             </p>`
-      }
-
-      <div class="claim-actions">
-        <button class="sub-btn sub-btn-accept" type="button"
-                data-accept="${escapeHtml(v.verification_id)}"
-                data-audit-id="${escapeHtml(v.audit_id)}">
-          Accept — this becomes billable
-        </button>
-        <button class="sub-btn sub-btn-dispute" type="button"
-                data-dispute="${escapeHtml(v.verification_id)}"
-                data-audit-id="${escapeHtml(v.audit_id)}">
-          Dispute
-        </button>
-      </div>
+      <p class="claim-note">
+        Your ${els.visitors.length} Campus Visitor account${els.visitors.length === 1 ? "" : "s"}
+        ${els.visitors.length === 1 ? "does" : "do"} not count towards a seat.
+        Anyone on campus can report a fault without adding to your bill —
+        the people who spot problems first should never be a cost.
+      </p>
     </div>`;
 }
 
 /* ─── Value ─────────────────────────────────────────────────────── */
 
 function renderValue() {
-  const all = verifications();
-  const accepted = all.filter((v) => v.status === "client-accepted");
-  const p = els.subscription.plan || {};
-  const share =
-    els.subscription.performance_share_pct_override ?? p.performance_share_pct ?? 0;
-
-  const saved = accepted.reduce((sum, v) => sum + (v.saved_amount || 0), 0);
+  const s = els.savings;
   const paid = els.invoices
-    .filter((i) => i.status === "paid" || i.status === "issued" || i.status === "overdue")
+    .filter((i) => i.status !== "draft")
     .reduce((sum, i) => sum + i.total, 0);
-  const shareBilled = Math.round(saved * (share / 100));
-  const net = saved - shareBilled;
+
+  if (!s || !s.has_comparison) {
+    return `
+      <div class="sub-card">
+        <h2>What you have saved</h2>
+        <p>
+          Not enough history yet to compare against the same months last
+          year. This fills in once a full year of readings is on file.
+        </p>
+      </div>`;
+  }
+
+  const improved = s.saved_kwh > 0;
 
   return `
-    <div class="sub-card">
-      <h2>What this has been worth</h2>
-      <p>Savings you have accepted, against what EnerTrack has invoiced.</p>
+    <div class="sub-card ${improved ? "sub-card-good" : ""}">
+      <h2>What you have saved</h2>
+      <p>
+        ${monthName(s.from)} to ${monthName(s.to)}, against the same months a
+        year earlier. Comparing like months with like cancels the seasons, so
+        what is left is the change your own team made.
+      </p>
 
       <div class="sub-grid" style="margin-top:16px">
         <div>
-          <span class="sub-k">Savings accepted</span>
-          <span class="sub-v pos">${money(saved)}</span>
-          <span class="sub-n">${accepted.length} verified month(s)</span>
+          <span class="sub-k">A year ago</span>
+          <span class="sub-v">${num(s.kwh_year_ago)} kWh</span>
+          <span class="sub-n">Same months, ${Number(s.from.slice(0, 4)) - 1}</span>
         </div>
         <div>
-          <span class="sub-k">Performance share billed</span>
-          <span class="sub-v">${money(shareBilled)}</span>
-          <span class="sub-n">${share}% of the above</span>
+          <span class="sub-k">This year</span>
+          <span class="sub-v">${num(s.kwh)} kWh</span>
+          <span class="sub-n">${s.months_compared} months measured</span>
         </div>
         <div>
-          <span class="sub-k">You kept</span>
-          <span class="sub-v pos">${money(net)}</span>
-          <span class="sub-n">
-            ${saved > 0 ? Math.round((net / saved) * 100) : 0}% of the benefit
-          </span>
+          <span class="sub-k">Change</span>
+          <span class="sub-v ${improved ? "pos" : ""}">${s.change_pct}%</span>
+          <span class="sub-n">${num(Math.abs(s.saved_co2_kg))} kg CO₂ ${improved ? "avoided" : "added"}</span>
         </div>
         <div>
-          <span class="sub-k">Invoiced to date</span>
-          <span class="sub-v">${money(paid)}</span>
-          <span class="sub-n">Subscription, share and any audit fee</span>
+          <span class="sub-k">${improved ? "Worth to you" : "Additional cost"}</span>
+          <span class="sub-v ${improved ? "pos" : ""}">${money(Math.abs(s.saved_amount))}</span>
+          <span class="sub-n">At your own tariff</span>
         </div>
       </div>
 
       ${
-        all.some((v) => v.status === "disputed")
-          ? `<p class="claim-note" style="margin-top:14px">
-               You have disputed claims on file. Those have not been invoiced
-               and will not be until they are resolved.
+        improved
+          ? `<p class="claim-note">
+               You have paid EnerTrack <strong>${money(paid)}</strong> in total
+               and saved <strong>${money(s.saved_amount)}</strong> in energy
+               over these months. We charge a subscription, not a share of your
+               savings — every rupee of that is yours.
              </p>`
-          : ""
+          : `<p class="claim-note">
+               Consumption is up on last year. Your audit recommendations are
+               under Recommendations, and your account contact can walk through
+               what is driving it.
+             </p>`
       }
     </div>`;
 }
@@ -342,7 +324,7 @@ function renderInvoices() {
       <table class="sub-table">
         <thead>
           <tr>
-            <th>Period</th><th>Lines</th><th class="r">Subtotal</th>
+            <th>Period</th><th>What for</th><th class="r">Before GST</th>
             <th class="r">GST</th><th class="r">Total</th><th>Status</th><th>Due</th>
           </tr>
         </thead>
@@ -354,9 +336,9 @@ function renderInvoices() {
                   .map(
                     (i) => `
             <tr>
-              <td>${period(i.period)}</td>
+              <td>${monthName(i.period)}</td>
               <td class="n">
-                ${i.line_items.map((l) => `${escapeHtml(readable(l.type))} ${money(l.amount)}`).join("<br>")}
+                ${i.line_items.map((l) => `${escapeHtml(l.description)} — ${money(l.amount)}`).join("<br>")}
               </td>
               <td class="r">${money(i.subtotal)}</td>
               <td class="r">${money(i.tax_amount)}</td>
@@ -370,60 +352,6 @@ function renderInvoices() {
         </tbody>
       </table>
     </div>`;
-}
-
-/* ─── Actions ───────────────────────────────────────────────────── */
-
-async function accept(auditId, verificationId) {
-  if (
-    !window.confirm(
-      "Accept this savings verification?\n\n" +
-        "It becomes billable, and EnerTrack's performance share for that month " +
-        "will appear on your next invoice.",
-    )
-  )
-    return;
-
-  try {
-    await window.api.patch(
-      `/energy-audits/${auditId}/verifications/${verificationId}/accept`,
-      { accepted_by: els.user.user_id },
-    );
-    await reload();
-    toast("Accepted. This month's savings are now billable.", "success");
-  } catch (err) {
-    toast(err.message, "error");
-  }
-}
-
-async function dispute(auditId, verificationId) {
-  const reason = window.prompt(
-    "What is wrong with this claim?\n\n" +
-      "Be specific — the adjustment factors, the buildings included, or the " +
-      "period itself. EnerTrack's auditor sees this.",
-  );
-  if (!reason || !reason.trim()) return;
-
-  try {
-    await window.api.patch(
-      `/energy-audits/${auditId}/verifications/${verificationId}/dispute`,
-      { dispute_reason: reason.trim() },
-    );
-    await reload();
-    toast("Disputed. It will not be invoiced while it is open.", "success");
-  } catch (err) {
-    toast(err.message, "error");
-  }
-}
-
-async function reload() {
-  const [invoices, audits] = await Promise.all([
-    window.api.get("/platform-invoices").catch(() => els.invoices),
-    window.api.get("/energy-audits").catch(() => els.audits),
-  ]);
-  els.invoices = Array.isArray(invoices) ? invoices : els.invoices;
-  els.audits = Array.isArray(audits) ? audits : els.audits;
-  render();
 }
 
 /* ─── Helpers ───────────────────────────────────────────────────── */
@@ -449,10 +377,6 @@ function num(value) {
   return new Intl.NumberFormat("en-IN").format(Math.round(Number(value || 0)));
 }
 
-function kwh(value) {
-  return `${num(value)} kWh`;
-}
-
 function date(value) {
   if (!value) return "—";
   const d = new Date(value);
@@ -461,31 +385,8 @@ function date(value) {
     : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function period(value) {
+function monthName(value) {
   if (!value || !/^\d{4}-\d{2}$/.test(value)) return escapeHtml(value ?? "—");
   const [y, m] = value.split("-").map(Number);
   return `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1]} ${y}`;
-}
-
-function readable(type) {
-  return {
-    subscription: "Subscription",
-    "audit-fee": "Audit fee",
-    "performance-share": "Performance share",
-  }[type] ?? type;
-}
-
-function toast(message, type) {
-  let box = document.getElementById("subToast");
-  if (!box) {
-    box = document.createElement("div");
-    box.id = "subToast";
-    document.body.appendChild(box);
-  }
-  box.className = `sub-toast ${type}`;
-  box.textContent = message;
-  box.style.opacity = "1";
-  setTimeout(() => {
-    box.style.opacity = "0";
-  }, 4500);
 }

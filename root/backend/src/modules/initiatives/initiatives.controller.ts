@@ -12,54 +12,54 @@ export class InitiativesController {
   constructor(private readonly initiativesService: InitiativesService) {}
 
   @Post()
-  @ApiOperation({ summary: "Create Initiative", description: "Proposes a new sustainability initiative. Sustainability Officer and System Administrator can create." })
+  @ApiOperation({ summary: "Create Initiative", description: "Proposes a new sustainability initiative. Sustainability Officer and Organization Admin can create." })
   @ApiResponse({ status: 201, description: "Created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "System Administrator")
+  @Roles("Sustainability Officer", "Organization Admin")
   create(@Body() createDto: CreateInitiativeDto) {
     return this.initiativesService.create(createDto);
   }
 
   @Get()
-  @ApiOperation({ summary: "List All Initiatives", description: "Retrieves all initiatives. Sustainability Officer and System Administrator can view." })
+  @ApiOperation({ summary: "List All Initiatives", description: "Retrieves all initiatives. Sustainability Officer and Organization Admin can view." })
   @ApiResponse({ status: 200, description: "Array of records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "System Administrator")
+  @Roles("Sustainability Officer", "Organization Admin")
   findAll() {
     return this.initiativesService.findAll();
   }
 
   @Get(":id")
-  @ApiOperation({ summary: "Get Initiative by ID", description: "Retrieves a single initiative by UUID. Sustainability Officer and System Administrator can look up." })
+  @ApiOperation({ summary: "Get Initiative by ID", description: "Retrieves a single initiative by UUID. Sustainability Officer and Organization Admin can look up." })
   @ApiResponse({ status: 200, description: "Record returned." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "System Administrator")
+  @Roles("Sustainability Officer", "Organization Admin")
   findOne(@Param("id") id: string) {
     return this.initiativesService.findOne(id);
   }
 
   @Put(":id")
-  @ApiOperation({ summary: "Replace Initiative", description: "Completely replaces an initiative. Only System Administrator can perform full replacements." })
+  @ApiOperation({ summary: "Replace Initiative", description: "Completely replaces an initiative. Only Organization Admin can perform full replacements." })
   @ApiResponse({ status: 200, description: "Replaced successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator")
+  @Roles("Organization Admin")
   put(@Param("id") id: string, @Body() putDto: PutInitiativeDto) {
     return this.initiativesService.put(id, putDto);
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update Initiative", description: "Partially updates an initiative (e.g., status, outcomes). Sustainability Officer and System Administrator can update." })
+  @ApiOperation({ summary: "Update Initiative", description: "Partially updates an initiative (e.g., status, outcomes). Sustainability Officer and Organization Admin can update." })
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "System Administrator")
+  @Roles("Sustainability Officer", "Organization Admin")
   update(@Param("id") id: string, @Body() updateDto: UpdateInitiativeDto) {
     return this.initiativesService.update(id, updateDto);
   }
@@ -70,7 +70,7 @@ export class InitiativesController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "System Administrator")
+  @Roles("Sustainability Officer", "Organization Admin")
   remove(@Param("id") id: string) {
     return this.initiativesService.remove(id);
   }

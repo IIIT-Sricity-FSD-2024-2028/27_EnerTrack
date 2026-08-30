@@ -1,7 +1,6 @@
 /*
  * platform_shared.css
- * Shared skin and components for EnerTrack's own staff dashboards —
- * the Certified Energy Auditor and the Account Officer.
+ * Skin and components for EnerTrack's own staff dashboards.
  *
  * Loaded AFTER css/shared/tech_shared.css, which is reused wholesale rather
  * than cloned. Despite its filename, nothing in that file is
@@ -12,8 +11,7 @@
  *
  * This file adds only what platform-side work needs: an accent that marks a
  * dashboard as spanning tenants rather than belonging to one, KPI tiles, the
- * baseline comparison bars, and the pipeline and picker components both
- * roles use.
+ * pipeline columns, and the picker and modal used by the audit workspace.
  */
 
 :root {
@@ -28,8 +26,8 @@
 }
 
 /* ─── Platform-side marker ────────────────────────────────────────
-   A visible reminder that this dashboard spans tenants. Getting the
-   wrong client's baseline is the expensive mistake in this role. */
+   A visible reminder that this dashboard spans tenants. Writing a
+   recommendation against the wrong client is the expensive mistake here. */
 .platform-tag {
   display: inline-flex;
   align-items: center;
@@ -130,62 +128,6 @@
 .pipe-card .pc-meta {
   font-size: 11px;
   color: var(--muted);
-}
-
-/* ─── Baseline comparison ────────────────────────────────────────
-   The heart of the verification page: raw baseline, the normalisation
-   adjustment, and actual consumption shown against each other so the
-   size of the adjustment is impossible to miss. */
-.compare {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.cmp-row {
-  display: grid;
-  grid-template-columns: 190px 1fr 130px;
-  align-items: center;
-  gap: 14px;
-}
-
-.cmp-label {
-  font-size: 13px;
-  color: var(--dark);
-  font-weight: 600;
-}
-
-.cmp-label small {
-  display: block;
-  font-weight: 400;
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1.35;
-}
-
-.cmp-track {
-  background: #eef1f4;
-  border-radius: 6px;
-  height: 26px;
-  overflow: hidden;
-}
-
-.cmp-fill {
-  height: 100%;
-  border-radius: 6px;
-  transition: width 0.4s ease;
-}
-
-.cmp-fill.raw { background: #94a3b8; }
-.cmp-fill.adjusted { background: var(--accent); }
-.cmp-fill.actual { background: #0f766e; }
-.cmp-fill.saved { background: var(--pos); }
-
-.cmp-value {
-  font-size: 13px;
-  font-weight: 700;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
 /* ─── Callout ────────────────────────────────────────────────────── */
@@ -341,6 +283,7 @@
 }
 
 @media (max-width: 1100px) {
-  .pipeline { grid-template-columns: repeat(2, 1fr); }
-  .cmp-row { grid-template-columns: 140px 1fr 110px; }
+  .pipeline {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

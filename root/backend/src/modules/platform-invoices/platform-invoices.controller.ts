@@ -22,7 +22,7 @@ import { Roles } from "../../core/decorators/roles.decorator";
 const ROLE_HEADER = {
   name: "x-role",
   description:
-    "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+    "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
   required: false,
 };
 
@@ -35,8 +35,7 @@ const ORG_HEADER = {
 
 const READERS = [
   "Super Admin",
-  "Account Officer",
-  "System Administrator",
+  "Organization Admin",
   "Financial Analyst",
   "Economic Buyer",
 ] as const;
@@ -57,14 +56,14 @@ export class PlatformInvoicesController {
   @ApiOperation({
     summary: "Generate Platform Invoice",
     description:
-      "Runs the pricing engine for one organisation and one period, and saves the result as a draft. Nothing is typed by hand: the subscription line reads the live meter count, the audit line reads the contract start date, and the performance share reads a verification the client has accepted. Change a plan's price and regenerate — the total moves with no code change.",
+      "Runs the pricing engine for one organisation and one period, and saves the result as a draft. Nothing is typed by hand: the tier fee comes from the plan and the seat overage from a live staff headcount. Change a tier's price and regenerate — the total moves with no code change.",
   })
   @ApiResponse({ status: 201, description: "Draft invoice generated." })
   @ApiResponse({ status: 404, description: "Organization, subscription or plan not found." })
   @ApiResponse({ status: 409, description: "An invoice for that period already exists." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   generate(@Body() dto: GenerateInvoiceDto) {
     return this.invoicesService.generate(dto);
   }
@@ -73,7 +72,7 @@ export class PlatformInvoicesController {
   @ApiOperation({
     summary: "Preview Platform Invoice",
     description:
-      "Computes a period's invoice without saving it, and explains in plain English why the performance-share line is present or absent — no verification, not signed, not accepted, or disputed. Declared before :id so the literal path is not read as an invoice id.",
+      "Computes a period's invoice without saving it, and reports the position behind it: billable staff, included seats, seats over allowance, and campuses used against the tier limit. Declared before :id so the literal path is not read as an invoice id.",
   })
   @ApiQuery({ name: "organization_id", required: true })
   @ApiQuery({ name: "period", required: true, description: "YYYY-MM" })
@@ -93,12 +92,12 @@ export class PlatformInvoicesController {
   @ApiOperation({
     summary: "Platform Revenue Summary",
     description:
-      "MRR, ARR, revenue mix, collection status, and a breakdown by organisation and by plan. Aggregates across every tenant, so it is restricted to EnerTrack staff. The recurring-versus-outcome split says how much of the business is predictable.",
+      "MRR, ARR, collection status, and a breakdown by organisation and by tier. Aggregates across every tenant, so it is restricted to EnerTrack staff. Seat utilisation per client is the upgrade signal: an organisation at or over its allowance is the next conversation.",
   })
   @ApiResponse({ status: 200, description: "Revenue summary returned." })
   @ApiResponse({ status: 403, description: "Forbidden – caller is not EnerTrack platform staff." })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   revenueSummary() {
     return this.invoicesService.revenueSummary();
   }
@@ -112,7 +111,7 @@ export class PlatformInvoicesController {
   @ApiResponse({ status: 201, description: "Invoice created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   create(@Body() createDto: CreatePlatformInvoiceDto) {
     return this.invoicesService.create(createDto);
   }
@@ -136,7 +135,7 @@ export class PlatformInvoicesController {
   @ApiOperation({
     summary: "Get Platform Invoice by ID",
     description:
-      "One invoice with its line items. Every line carries a source_ref naming the subscription or verification it was derived from, so any figure can be traced back.",
+      "One invoice with its line items. Every line carries a source_ref naming the subscription it was derived from, so any figure can be traced back.",
   })
   @ApiResponse({ status: 200, description: "Invoice record returned." })
   @ApiResponse({ status: 404, description: "Invoice with the given ID not found." })
@@ -158,7 +157,7 @@ export class PlatformInvoicesController {
   @ApiResponse({ status: 409, description: "Invoice is not a draft." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   issue(@Param("id") id: string, @Body() body: { issued_on?: string }) {
     return this.invoicesService.issue(id, body?.issued_on);
   }
@@ -172,7 +171,7 @@ export class PlatformInvoicesController {
   @ApiResponse({ status: 409, description: "Invoice is still a draft, or already paid." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   markPaid(@Param("id") id: string, @Body() body: { paid_on?: string }) {
     return this.invoicesService.markPaid(id, body?.paid_on);
   }
@@ -200,7 +199,7 @@ export class PlatformInvoicesController {
   @ApiResponse({ status: 404, description: "Invoice with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Super Admin", "Account Officer")
+  @Roles("Super Admin")
   update(@Param("id") id: string, @Body() updateDto: UpdatePlatformInvoiceDto) {
     return this.invoicesService.update(id, updateDto);
   }

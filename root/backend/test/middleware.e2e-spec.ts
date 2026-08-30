@@ -84,7 +84,7 @@ describe('Middleware (e2e)', () => {
     it('accepts a valid role', async () => {
       await request(app.getHttpServer())
         .get('/api/invoices')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .expect(200);
     });
 
@@ -104,7 +104,7 @@ describe('Middleware (e2e)', () => {
     it('blocks a script tag hidden in the request body', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/invoices')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .send({ vendor: '<script>alert(1)</script>' })
         .expect(400);
 
@@ -114,7 +114,7 @@ describe('Middleware (e2e)', () => {
     it('blocks a javascript: URI in a query string', async () => {
       await request(app.getHttpServer())
         .get('/api/invoices?search=javascript:alert(1)')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .expect(400);
     });
 
@@ -138,7 +138,7 @@ describe('Middleware (e2e)', () => {
     it('returns the standard envelope for a 404', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/invoices/no-such-invoice')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .expect(404);
 
       expect(res.body).toMatchObject({
@@ -156,7 +156,7 @@ describe('Middleware (e2e)', () => {
 
       await request(app.getHttpServer())
         .get('/api/invoices/another-missing-one')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .expect(404);
 
       const after = readLog(`error-${today}.log`);
@@ -183,7 +183,7 @@ describe('Middleware (e2e)', () => {
     it('writes both the request and the response to the debug log', async () => {
       await request(app.getHttpServer())
         .get('/api/invoices')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .expect(200);
 
       const log = readLog(`custom-debug-${today}.log`);
@@ -312,7 +312,7 @@ describe('Middleware (e2e)', () => {
     it('returns 400, not 500, when no file is sent', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/meter-readings/upload')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .expect(400);
 
       expect(res.body.message).toContain('No file was uploaded');
@@ -321,7 +321,7 @@ describe('Middleware (e2e)', () => {
     it('rejects a non-CSV file', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/meter-readings/upload')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .attach('file', Buffer.from('not a csv'), {
           filename: 'evil.exe',
           contentType: 'application/octet-stream',
@@ -335,7 +335,7 @@ describe('Middleware (e2e)', () => {
       const csv = 'meter_id,value,unit\nnot-a-real-meter,42,kWh\n';
       const res = await request(app.getHttpServer())
         .post('/api/meter-readings/upload')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .attach('file', Buffer.from(csv), {
           filename: 'readings.csv',
           contentType: 'text/csv',
@@ -383,7 +383,7 @@ describe('Middleware (e2e)', () => {
       binary[11] = 0xff;
       const res = await request(app.getHttpServer())
         .post('/api/meter-readings/upload')
-        .set('x-role', 'System Administrator')
+        .set('x-role', 'Organization Admin')
         .attach('file', binary, { filename: 'readings.csv', contentType: 'text/csv' })
         .expect(400);
 

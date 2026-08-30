@@ -63,6 +63,69 @@ export function renderUserManagement(container, app) {
       deleteUser(button.dataset.deleteUser, app),
     );
   });
+  container.querySelectorAll("[data-act-as]").forEach((button) => {
+    button.addEventListener("click", () => actAs(button.dataset.actAs, app));
+  });
+}
+
+/** True when the signed-in user is EnerTrack's platform operator. */
+function isSuperAdmin() {
+  try {
+    const u = JSON.parse(localStorage.getItem("currentUser") || "null");
+    return !!u && u.role === "Super Admin";
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * Opens the product as another user sees it.
+ *
+ * Worth being clear about what this is. Authorisation in this system is a
+ * client-supplied x-role header with no token, so anyone who can open
+ * devtools could already put any role into localStorage. This button is
+ * not a new privilege — it is the same capability made deliberate, logged
+ * server-side, and reachable in one click, and it is shaped so it still
+ * makes sense once real authentication exists.
+ *
+ * The real session is stashed under enertrack_impersonator so the banner in
+ * dashboardProfileMenu.js can offer a way back from wherever it lands.
+ */
+async function actAs(userId, app) {
+  const admin = JSON.parse(localStorage.getItem("currentUser") || "null");
+  const target = (app.state.users || []).find((u) => u.user_id === userId);
+  if (!admin || !target) return;
+
+  openModal({
+    title: "Act as another user",
+    bodyHtml: `
+      <p>Open EnerTrack as <strong>${escapeHtml(target.name)}</strong>
+         (${escapeHtml(formatLabel(target.role))})?</p>
+      <p class="muted-cell">
+        You will see exactly what they see, and anything you do will be done
+        as them. A banner stays on screen with a way back, and the switch is
+        recorded in the activity log.
+      </p>`,
+    confirmLabel: "Act as this user",
+    onConfirm: () => {
+      (async () => {
+        try {
+          const session = await window.api.post(`/users/${userId}/impersonate`, {
+            actor: admin.name,
+          });
+          localStorage.setItem("enertrack_impersonator", JSON.stringify(admin));
+          localStorage.setItem("currentUser", JSON.stringify(session));
+          window.location.href = window.roleRoutes
+            ? window.roleRoutes.forRole(session.role)
+            : "../landing/landing.html";
+        } catch (err) {
+          console.error("Impersonation failed:", err);
+          showToast(err.message || "Could not act as that user.", "error");
+        }
+      })();
+      return true;
+    },
+  });
 }
 
 /* Organisation names, filled on each render so rows can show a name instead
@@ -93,6 +156,12 @@ function renderUserRow(user) {
       <td>${escapeHtml(user.specialization || "-")}</td>
       <td>
         <div class="row-actions">
+          ${
+            isSuperAdmin() && !isCurrentUser
+              ? `<button class="btn-outline" type="button" data-act-as="${escapeHtml(user.user_id)}"
+                         title="Open the product as this user sees it">Act as</button>`
+              : ""
+          }
           <button class="btn-outline" type="button" data-edit-user="${escapeHtml(user.user_id)}">Edit</button>
           <button class="btn-outline btn-danger" type="button" data-delete-user="${escapeHtml(user.user_id)}" ${isCurrentUser ? 'disabled title="You cannot delete your own account"' : ""}>Delete</button>
         </div>

@@ -633,6 +633,20 @@ a { color: inherit; }
   font-weight: 700;
 }
 
+/* Four stages rather than six, so they sit two-up on a wide screen
+   without a stranded row. */
+.stage-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* The one line on the hero that does the selling: you keep the savings. */
+.hero-lede {
+  margin-top: var(--space-2);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
 .pricing-note {
   margin-top: var(--space-4);
   color: var(--text-muted);
@@ -802,6 +816,7 @@ a { color: inherit; }
   .roles-grid,
   .team-grid,
   .stage-grid,
+  .stage-grid-4,
   .price-grid,
   .plan-row,
   .cap-grid {
@@ -828,6 +843,7 @@ a { color: inherit; }
   .roles-grid,
   .team-grid,
   .stage-grid,
+  .stage-grid-4,
   .price-grid,
   .plan-row,
   .cap-grid {

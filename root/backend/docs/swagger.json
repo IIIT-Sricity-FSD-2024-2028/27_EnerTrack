@@ -21,7 +21,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Organization Admin",
             "required": false,
             "schema": {
               "type": "string"
@@ -61,7 +61,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Organization Admin",
             "required": false,
             "schema": {
               "type": "string"
@@ -114,7 +114,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Organization Admin",
             "required": false,
             "schema": {
               "type": "string"
@@ -152,7 +152,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Organization Admin",
             "required": false,
             "schema": {
               "type": "string"
@@ -200,7 +200,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Organization Admin",
             "required": false,
             "schema": {
               "type": "string"
@@ -248,7 +248,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Organization Admin",
             "required": false,
             "schema": {
               "type": "string"
@@ -291,7 +291,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Organization Admin",
             "required": false,
             "schema": {
               "type": "string"
@@ -304,6 +304,76 @@
           },
           "403": {
             "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/api/organizations/{id}/savings": {
+      "get": {
+        "operationId": "OrganizationsController_getSavings",
+        "summary": "Get Organization Savings",
+        "description": "Compares electricity consumption against the same calendar month a year earlier, and reports the difference in kWh, rupees and kg CO2. Comparing like months cancels seasonality without needing a weather model. This figure is reported, never billed — EnerTrack charges a subscription, not a share of savings.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "required": false,
+            "in": "query",
+            "description": "Single month, YYYY-MM",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Range start, YYYY-MM",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Range end, YYYY-MM",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Organization Admin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Savings comparison returned."
+          },
+          "400": {
+            "description": "Supply period, or from and to."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Organization with the given ID not found."
           }
         },
         "tags": [
@@ -328,7 +398,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Account Officer | System Administrator",
+            "description": "Caller role for RBAC. Super Admin | Certified Energy Auditor | Organization Admin",
             "required": false,
             "schema": {
               "type": "string"
@@ -421,7 +491,7 @@
       "get": {
         "operationId": "SubscriptionPlansController_listPublic",
         "summary": "Public Pricing Catalogue",
-        "description": "Active tiers with name, price, share percentage and features, for the landing page pricing section. No authorization required. Deliberately omits the audit fee formula and the share cap.",
+        "description": "Active tiers with their fee, seat allowance, extra-seat price, campus limit and features, for the landing page pricing section. No authorization required — the landing page and the billing engine read the same catalogue, so the published price cannot drift from the charged one.",
         "parameters": [],
         "responses": {
           "200": {
@@ -665,7 +735,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -717,7 +787,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -763,7 +833,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -812,7 +882,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -850,7 +920,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -898,7 +968,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -946,7 +1016,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -998,7 +1068,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1035,7 +1105,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1078,7 +1148,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1118,7 +1188,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1141,56 +1211,16 @@
         ]
       }
     },
-    "/api/subscriptions/{id}/waive-audit-fee": {
-      "patch": {
-        "operationId": "SubscriptionsController_waiveAuditFee",
-        "summary": "Waive Audit Fee",
-        "description": "Waives the one-time site audit fee on signature, which suppresses that line from the contract's first invoice.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Audit fee waived."
-          },
-          "403": {
-            "description": "Forbidden (RBAC)"
-          },
-          "404": {
-            "description": "Subscription with the given ID not found."
-          }
-        },
-        "tags": [
-          "subscriptions"
-        ]
-      }
-    },
     "/api/energy-audits": {
       "post": {
         "operationId": "EnergyAuditsController_create",
         "summary": "Create Energy Audit",
-        "description": "Opens a certified audit engagement against a client organisation. Stage one of the six-stage lifecycle: everything the revenue model measures starts here.",
+        "description": "Schedules a certified audit against a client organisation. The auditor then records a site survey and a list of recommendations.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1230,7 +1260,7 @@
           {
             "name": "x-org-id",
             "in": "header",
-            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1239,7 +1269,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1259,17 +1289,17 @@
         ]
       }
     },
-    "/api/energy-audits/verifications": {
+    "/api/energy-audits/findings": {
       "get": {
-        "operationId": "EnergyAuditsController_listVerifications",
-        "summary": "List Savings Verifications",
-        "description": "Every verification across every audit the caller can see, flattened with its organisation. Filter with ?status=auditor-signed to get the queue waiting on client acceptance — that queue is unbillable revenue, so it is the Account Officer's worklist.",
+        "operationId": "EnergyAuditsController_listFindings",
+        "summary": "List Recommendations",
+        "description": "Every recommendation across every audit the caller can see, flattened with its organisation. Filter with ?status=accepted to get the measures a client has agreed to but not yet carried out.",
         "parameters": [
           {
             "name": "status",
             "required": false,
             "in": "query",
-            "description": "draft | auditor-signed | client-accepted | disputed",
+            "description": "proposed | accepted | implemented | rejected",
             "schema": {
               "type": "string"
             }
@@ -1277,7 +1307,7 @@
           {
             "name": "x-org-id",
             "in": "header",
-            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1286,7 +1316,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1295,7 +1325,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Array of verifications."
+            "description": "Array of findings."
           },
           "403": {
             "description": "Forbidden (RBAC)"
@@ -1310,7 +1340,7 @@
       "get": {
         "operationId": "EnergyAuditsController_findOne",
         "summary": "Get Energy Audit by ID",
-        "description": "One audit with its survey, baseline, findings and verifications.",
+        "description": "One audit with its site survey and recommendations.",
         "parameters": [
           {
             "name": "id",
@@ -1323,7 +1353,7 @@
           {
             "name": "x-org-id",
             "in": "header",
-            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1332,7 +1362,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1370,7 +1400,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1405,7 +1435,7 @@
       "patch": {
         "operationId": "EnergyAuditsController_update",
         "summary": "Update Energy Audit",
-        "description": "Partially updates an audit, for example submitting it for approval or approving it.",
+        "description": "Partially updates an audit, for example moving it from scheduled to in-progress or completed.",
         "parameters": [
           {
             "name": "id",
@@ -1418,7 +1448,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1453,7 +1483,7 @@
       "delete": {
         "operationId": "EnergyAuditsController_remove",
         "summary": "Delete Energy Audit",
-        "description": "Permanently removes an audit. Refused while a subscription measures against its baseline, or once it holds client-accepted verifications that have been billed.",
+        "description": "Permanently removes an audit. Refused once any of its recommendations have been implemented, since that is a record of work actually done.",
         "parameters": [
           {
             "name": "id",
@@ -1466,7 +1496,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1481,123 +1511,7 @@
             "description": "Forbidden (RBAC)"
           },
           "409": {
-            "description": "Audit is referenced by a contract or a billed verification."
-          }
-        },
-        "tags": [
-          "energy-audits"
-        ]
-      }
-    },
-    "/api/energy-audits/{id}/baseline-suggestion": {
-      "get": {
-        "operationId": "EnergyAuditsController_baselineSuggestion",
-        "summary": "Suggest Baseline From Readings",
-        "description": "Aggregates the organisation's live electricity meters across a window and returns the average monthly consumption plus the weather and occupancy averages for the same window. The auditor confirms these figures rather than typing their own: a hand-entered baseline is the easiest place to quietly inflate every future savings claim.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "from",
-            "required": true,
-            "in": "query",
-            "description": "Window start, YYYY-MM",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "required": true,
-            "in": "query",
-            "description": "Window end, YYYY-MM",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Suggested baseline and factors."
-          },
-          "400": {
-            "description": "Missing/invalid range, or no readings in it."
-          },
-          "403": {
-            "description": "Forbidden (RBAC)"
-          }
-        },
-        "tags": [
-          "energy-audits"
-        ]
-      }
-    },
-    "/api/energy-audits/{id}/verification-suggestion": {
-      "get": {
-        "operationId": "EnergyAuditsController_verificationSuggestion",
-        "summary": "Compute Claimable Savings For a Period",
-        "description": "Runs attribution and baseline adjustment for one month without saving anything. Returns the adjusted baseline, the actual consumption, the claimable saving, and — for comparison — what a naive baseline-minus-actual would have claimed. The gap between those two is the weather and occupancy the client is not billed for.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "period",
-            "required": true,
-            "in": "query",
-            "description": "YYYY-MM",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-org-id",
-            "in": "header",
-            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Computed draft verification."
-          },
-          "403": {
-            "description": "Forbidden (RBAC)"
-          },
-          "409": {
-            "description": "Audit has no locked baseline."
+            "description": "Audit holds implemented recommendations."
           }
         },
         "tags": [
@@ -1622,7 +1536,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1655,64 +1569,11 @@
         ]
       }
     },
-    "/api/energy-audits/{id}/baseline": {
-      "patch": {
-        "operationId": "EnergyAuditsController_lockBaseline",
-        "summary": "Lock Baseline",
-        "description": "Freezes the figures every future savings claim is measured against. Refused if a baseline is already locked — one that can be edited after claims have been made against it is not a baseline. Normalisation factors are mandatory: without them a later period cannot be adjusted.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LockBaselineDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Baseline locked."
-          },
-          "400": {
-            "description": "Normalisation factors missing."
-          },
-          "403": {
-            "description": "Forbidden (RBAC)"
-          },
-          "409": {
-            "description": "Baseline already locked."
-          }
-        },
-        "tags": [
-          "energy-audits"
-        ]
-      }
-    },
     "/api/energy-audits/{id}/findings": {
       "post": {
         "operationId": "EnergyAuditsController_addFinding",
-        "summary": "Add Audit Finding",
-        "description": "Records a recommendation with its estimated saving, capex and the buildings it touches. Those buildings scope which meters a later verification may credit, so a finding with no buildings can never contribute to a bill.",
+        "summary": "Add Recommendation",
+        "description": "Records a recommended measure with its estimated annual saving, capex and the buildings it affects. Payback is derived from capex and saving when not supplied.",
         "parameters": [
           {
             "name": "id",
@@ -1725,7 +1586,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1744,7 +1605,7 @@
         },
         "responses": {
           "201": {
-            "description": "Finding added."
+            "description": "Recommendation added."
           },
           "400": {
             "description": "Building belongs to another organisation."
@@ -1761,8 +1622,8 @@
     "/api/energy-audits/{id}/findings/{findingId}": {
       "patch": {
         "operationId": "EnergyAuditsController_updateFinding",
-        "summary": "Update Audit Finding",
-        "description": "Moves a recommendation along proposed → accepted → implemented → verified. Setting status to implemented stamps implemented_on, which is the date that decides from which month savings may be claimed for this measure.",
+        "summary": "Update Recommendation",
+        "description": "Moves a measure along proposed → accepted → implemented. The client's own facilities roles may mark work done, since they are the ones who carry it out.",
         "parameters": [
           {
             "name": "id",
@@ -1783,7 +1644,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1802,7 +1663,7 @@
         },
         "responses": {
           "200": {
-            "description": "Finding updated."
+            "description": "Recommendation updated."
           },
           "403": {
             "description": "Forbidden (RBAC)"
@@ -1817,8 +1678,8 @@
       },
       "delete": {
         "operationId": "EnergyAuditsController_removeFinding",
-        "summary": "Delete Audit Finding",
-        "description": "Removes a recommendation. Refused once a savings verification credits it.",
+        "summary": "Delete Recommendation",
+        "description": "Removes a recommendation from an audit.",
         "parameters": [
           {
             "name": "id",
@@ -1839,7 +1700,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1848,13 +1709,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Finding deleted."
+            "description": "Recommendation deleted."
           },
           "403": {
             "description": "Forbidden (RBAC)"
-          },
-          "409": {
-            "description": "A verification credits this finding."
           }
         },
         "tags": [
@@ -1862,11 +1720,11 @@
         ]
       }
     },
-    "/api/energy-audits/{id}/verifications": {
+    "/api/energy-audits/{id}/proposal": {
       "post": {
-        "operationId": "EnergyAuditsController_addVerification",
-        "summary": "Create Savings Verification",
-        "description": "Saves a draft claim for one month. Every figure is recomputed server-side from the locked baseline and the period's readings — nothing is accepted from the request body, because the party submitting works for the party being paid the share. Refused when no implemented finding covered the period.",
+        "operationId": "EnergyAuditsController_sendProposal",
+        "summary": "Send Proposal",
+        "description": "Sends the client one document carrying what they need and what it costs. The monthly figure is computed by the pricing engine from the tier and the surveyed headcount, never typed, so the quote is always a number the billing engine would really produce. Addressed to the organisation's Organization Admin, who is its first account and its owner. Moves the audit to proposed and the organisation from prospect to audited.",
         "parameters": [
           {
             "name": "id",
@@ -1879,7 +1737,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1891,20 +1749,23 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateVerificationDto"
+                "$ref": "#/components/schemas/SendProposalDto"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Draft verification created."
+            "description": "Proposal sent; the client has been notified."
           },
           "403": {
             "description": "Forbidden (RBAC)"
           },
+          "404": {
+            "description": "Audit or plan not found."
+          },
           "409": {
-            "description": "Period already verified, or nothing implemented to claim."
+            "description": "Already accepted, tier too small for the estate, or the organisation has no Organization Admin to send to."
           }
         },
         "tags": [
@@ -1912,70 +1773,14 @@
         ]
       }
     },
-    "/api/energy-audits/{id}/verifications/{vid}/sign": {
+    "/api/energy-audits/{id}/proposal/accept": {
       "patch": {
-        "operationId": "EnergyAuditsController_signVerification",
-        "summary": "Sign Savings Verification",
-        "description": "The auditor's sign-off. Still not billable: the pricing engine ignores anything short of client acceptance, so signing alone cannot enlarge an invoice.",
+        "operationId": "EnergyAuditsController_acceptProposal",
+        "summary": "Accept Proposal (client)",
+        "description": "The client agrees. This creates their subscription, moves the organisation to active, and notifies the auditor. It is the only path to a live contract other than a Super Admin creating one by hand, which is the point: a tier now comes from an audit somebody signed.",
         "parameters": [
           {
             "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "vid",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Verification signed."
-          },
-          "403": {
-            "description": "Forbidden (RBAC)"
-          },
-          "409": {
-            "description": "Already accepted by the client."
-          }
-        },
-        "tags": [
-          "energy-audits"
-        ]
-      }
-    },
-    "/api/energy-audits/{id}/verifications/{vid}/accept": {
-      "patch": {
-        "operationId": "EnergyAuditsController_acceptVerification",
-        "summary": "Accept Savings Verification (client)",
-        "description": "The client's counter-signature, and the only point at which a savings claim becomes billable. One of two writes in the revenue model a client-side role may perform. The caller's x-org-id must match the audited organisation.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "vid",
             "required": true,
             "in": "path",
             "schema": {
@@ -1985,7 +1790,7 @@
           {
             "name": "x-org-id",
             "in": "header",
-            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1994,7 +1799,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2003,13 +1808,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Verification accepted; now billable."
+            "description": "Accepted; subscription created."
           },
           "403": {
-            "description": "Caller belongs to another organisation."
+            "description": "Forbidden (RBAC)"
           },
           "409": {
-            "description": "Not yet signed, or already accepted."
+            "description": "No open proposal, or a live subscription already exists."
           }
         },
         "tags": [
@@ -2017,11 +1822,11 @@
         ]
       }
     },
-    "/api/energy-audits/{id}/verifications/{vid}/dispute": {
+    "/api/energy-audits/{id}/proposal/request-changes": {
       "patch": {
-        "operationId": "EnergyAuditsController_disputeVerification",
-        "summary": "Dispute Savings Verification (client)",
-        "description": "The client's rejection, with a reason. A disputed claim never reaches an invoice; the subscription still bills, since that service was delivered regardless.",
+        "operationId": "EnergyAuditsController_requestChanges",
+        "summary": "Request Changes (client)",
+        "description": "The client pushes back with a concern or a suggestion. The proposal stays on the audit with their note attached so the auditor revises it rather than starting again, and the auditor is notified.",
         "parameters": [
           {
             "name": "id",
@@ -2032,7 +1837,48 @@
             }
           },
           {
-            "name": "vid",
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Changes requested; the auditor has been notified."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "409": {
+            "description": "No open proposal to respond to."
+          }
+        },
+        "tags": [
+          "energy-audits"
+        ]
+      }
+    },
+    "/api/energy-audits/{id}/proposal/decline": {
+      "patch": {
+        "operationId": "EnergyAuditsController_declineProposal",
+        "summary": "Decline Proposal (client)",
+        "description": "The client says no. Kept as a state rather than deleted so the Super Admin revenue console can report conversion honestly.",
+        "parameters": [
+          {
+            "name": "id",
             "required": true,
             "in": "path",
             "schema": {
@@ -2042,7 +1888,7 @@
           {
             "name": "x-org-id",
             "in": "header",
-            "description": "Organisation the caller is acting within. Required for a client accepting or disputing a verification.",
+            "description": "Organisation the caller is acting within. Omitted by EnerTrack staff, who get the cross-tenant view.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2051,32 +1897,22 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write audits; a client's own roles accept or dispute a verification.",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
             "required": false,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DisputeVerificationDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Verification disputed."
+            "description": "Declined; the auditor has been notified."
           },
           "403": {
-            "description": "Caller belongs to another organisation."
+            "description": "Forbidden (RBAC)"
           },
           "409": {
-            "description": "Already accepted."
+            "description": "No open proposal to respond to."
           }
         },
         "tags": [
@@ -2088,12 +1924,12 @@
       "post": {
         "operationId": "PlatformInvoicesController_generate",
         "summary": "Generate Platform Invoice",
-        "description": "Runs the pricing engine for one organisation and one period, and saves the result as a draft. Nothing is typed by hand: the subscription line reads the live meter count, the audit line reads the contract start date, and the performance share reads a verification the client has accepted. Change a plan's price and regenerate — the total moves with no code change.",
+        "description": "Runs the pricing engine for one organisation and one period, and saves the result as a draft. Nothing is typed by hand: the tier fee comes from the plan and the seat overage from a live staff headcount. Change a tier's price and regenerate — the total moves with no code change.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2133,7 +1969,7 @@
       "get": {
         "operationId": "PlatformInvoicesController_preview",
         "summary": "Preview Platform Invoice",
-        "description": "Computes a period's invoice without saving it, and explains in plain English why the performance-share line is present or absent — no verification, not signed, not accepted, or disputed. Declared before :id so the literal path is not read as an invoice id.",
+        "description": "Computes a period's invoice without saving it, and reports the position behind it: billable staff, included seats, seats over allowance, and campuses used against the tier limit. Declared before :id so the literal path is not read as an invoice id.",
         "parameters": [
           {
             "name": "organization_id",
@@ -2164,7 +2000,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2188,12 +2024,12 @@
       "get": {
         "operationId": "PlatformInvoicesController_revenueSummary",
         "summary": "Platform Revenue Summary",
-        "description": "MRR, ARR, revenue mix, collection status, and a breakdown by organisation and by plan. Aggregates across every tenant, so it is restricted to EnerTrack staff. The recurring-versus-outcome split says how much of the business is predictable.",
+        "description": "MRR, ARR, collection status, and a breakdown by organisation and by tier. Aggregates across every tenant, so it is restricted to EnerTrack staff. Seat utilisation per client is the upgrade signal: an organisation at or over its allowance is the next conversation.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2222,7 +2058,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2268,7 +2104,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2292,7 +2128,7 @@
       "get": {
         "operationId": "PlatformInvoicesController_findOne",
         "summary": "Get Platform Invoice by ID",
-        "description": "One invoice with its line items. Every line carries a source_ref naming the subscription or verification it was derived from, so any figure can be traced back.",
+        "description": "One invoice with its line items. Every line carries a source_ref naming the subscription it was derived from, so any figure can be traced back.",
         "parameters": [
           {
             "name": "id",
@@ -2314,7 +2150,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2352,7 +2188,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2400,7 +2236,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2448,7 +2284,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2488,7 +2324,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2528,7 +2364,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Super Admin | Account Officer for writes; a client's own roles may read their invoices.",
+            "description": "Caller role for RBAC. Super Admin for writes; a client's own roles may read their invoices.",
             "required": false,
             "schema": {
               "type": "string"
@@ -2580,6 +2416,46 @@
         ]
       }
     },
+    "/api/users/{id}/impersonate": {
+      "post": {
+        "operationId": "UsersController_impersonate",
+        "summary": "Act as Another User",
+        "description": "Returns another user's session so a Super Admin can see the product as they see it. Same shape as login, so the client can drop it straight into the session it already holds. Every call is written to the activity log naming both parties. This is a support tool, not a security boundary: authorisation here is a client-supplied x-role header with no token, so the capability already exists to anyone with devtools — this route makes it deliberate, logged and one click.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Must be Super Admin.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the target user record (without password)."
+          },
+          "403": {
+            "description": "Forbidden – caller is not a Super Admin."
+          },
+          "404": {
+            "description": "User with the given ID not found."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/users/register": {
       "post": {
         "operationId": "UsersController_register",
@@ -2610,12 +2486,12 @@
       "post": {
         "operationId": "UsersController_create",
         "summary": "Create User",
-        "description": "Creates a new user account in the system. Only the System Administrator can register new users by providing name, email, password, role, and optional phone/specialization fields. Send a POST request with a CreateUserDto JSON body containing all required user fields.",
+        "description": "Creates a new user account in the system. Only the Organization Admin can register new users by providing name, email, password, role, and optional phone/specialization fields. Send a POST request with a CreateUserDto JSON body containing all required user fields.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -2637,7 +2513,7 @@
             "description": "User created successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           }
         },
         "tags": [
@@ -2652,7 +2528,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician Administrator | Technician | Sustainability Officer",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician Administrator | Technician | Sustainability Officer",
             "required": false,
             "schema": {
               "type": "string"
@@ -2689,7 +2565,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician Administrator | Technician | Sustainability Officer",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician Administrator | Technician | Sustainability Officer",
             "required": false,
             "schema": {
               "type": "string"
@@ -2714,7 +2590,7 @@
       "put": {
         "operationId": "UsersController_put",
         "summary": "Replace User",
-        "description": "Completely replaces an existing user record with new data. Only the System Administrator can perform full user replacements. Send a PUT request with the user_id in the URL and a complete PutUserDto JSON body containing all fields.",
+        "description": "Completely replaces an existing user record with new data. Only the Organization Admin can perform full user replacements. Send a PUT request with the user_id in the URL and a complete PutUserDto JSON body containing all fields.",
         "parameters": [
           {
             "name": "id",
@@ -2727,7 +2603,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -2749,7 +2625,7 @@
             "description": "User record replaced successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "User with the given ID not found."
@@ -2762,7 +2638,7 @@
       "patch": {
         "operationId": "UsersController_update",
         "summary": "Update User",
-        "description": "Partially updates specific fields of an existing user record (e.g., role, specialization, contact info). Only the System Administrator can modify user details. Send a PATCH request with the user_id in the URL and an UpdateUserDto JSON body containing only the fields to change.",
+        "description": "Partially updates specific fields of an existing user record (e.g., role, specialization, contact info). Only the Organization Admin can modify user details. Send a PATCH request with the user_id in the URL and an UpdateUserDto JSON body containing only the fields to change.",
         "parameters": [
           {
             "name": "id",
@@ -2775,7 +2651,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -2797,7 +2673,7 @@
             "description": "User record updated successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "User with the given ID not found."
@@ -2810,7 +2686,7 @@
       "delete": {
         "operationId": "UsersController_remove",
         "summary": "Delete User",
-        "description": "Permanently removes a user account from the system. Only the System Administrator can delete user records. Pass the user_id as a URL path parameter.",
+        "description": "Permanently removes a user account from the system. Only the Organization Admin can delete user records. Pass the user_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -2823,7 +2699,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -2835,7 +2711,7 @@
             "description": "User record deleted successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "User with the given ID not found."
@@ -2863,7 +2739,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -2887,12 +2763,12 @@
       "post": {
         "operationId": "NotificationsController_create",
         "summary": "Create Notification",
-        "description": "Creates a new notification record linked to a target entity (wastage report, alert, or service request). Only the System Administrator can manually create notifications. Send a POST request with a CreateNotificationDto JSON body containing user_id, target_type, target_id, and message.",
+        "description": "Creates a new notification record linked to a target entity (wastage report, alert, or service request). Only the Organization Admin can manually create notifications. Send a POST request with a CreateNotificationDto JSON body containing user_id, target_type, target_id, and message.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -2914,7 +2790,7 @@
             "description": "Notification created successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           }
         },
         "tags": [
@@ -2929,7 +2805,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -2966,7 +2842,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -2991,7 +2867,7 @@
       "put": {
         "operationId": "NotificationsController_put",
         "summary": "Replace Notification",
-        "description": "Completely replaces an existing notification record with new data. Only the System Administrator can perform full notification replacements. Send a PUT request with the notification_id in the URL and a complete PutNotificationDto JSON body.",
+        "description": "Completely replaces an existing notification record with new data. Only the Organization Admin can perform full notification replacements. Send a PUT request with the notification_id in the URL and a complete PutNotificationDto JSON body.",
         "parameters": [
           {
             "name": "id",
@@ -3004,7 +2880,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3026,7 +2902,7 @@
             "description": "Notification record replaced successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Notification with the given ID not found."
@@ -3052,7 +2928,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3087,7 +2963,7 @@
       "delete": {
         "operationId": "NotificationsController_remove",
         "summary": "Delete Notification",
-        "description": "Permanently removes a notification record from the system. Only the System Administrator can delete notifications. Pass the notification_id as a URL path parameter.",
+        "description": "Permanently removes a notification record from the system. Only the Organization Admin can delete notifications. Pass the notification_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -3100,7 +2976,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3112,7 +2988,7 @@
             "description": "Notification record deleted successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Notification with the given ID not found."
@@ -3140,7 +3016,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3164,12 +3040,12 @@
       "post": {
         "operationId": "CampusController_create",
         "summary": "Create Campus",
-        "description": "Registers a new campus location in the system with its name, location, and total_budget. Only the System Administrator can create campus records. Send a POST request with a CreateCampusDto JSON body.",
+        "description": "Registers a new campus location in the system with its name, location, and total_budget. Only the Organization Admin can create campus records. Send a POST request with a CreateCampusDto JSON body.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3191,7 +3067,7 @@
             "description": "Campus created successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           }
         },
         "tags": [
@@ -3206,7 +3082,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3243,7 +3119,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3268,7 +3144,7 @@
       "put": {
         "operationId": "CampusController_put",
         "summary": "Replace Campus",
-        "description": "Completely replaces an existing campus record with new data. Only the System Administrator can perform full campus replacements. Send a PUT request with the campus_id in the URL and a complete PutCampusDto JSON body.",
+        "description": "Completely replaces an existing campus record with new data. Only the Organization Admin can perform full campus replacements. Send a PUT request with the campus_id in the URL and a complete PutCampusDto JSON body.",
         "parameters": [
           {
             "name": "id",
@@ -3281,7 +3157,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3303,7 +3179,7 @@
             "description": "Campus record replaced successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Campus with the given ID not found."
@@ -3316,7 +3192,7 @@
       "patch": {
         "operationId": "CampusController_update",
         "summary": "Update Campus",
-        "description": "Partially updates specific fields of an existing campus record (e.g., total_budget or location). Only the System Administrator can modify campus details. Send a PATCH request with the campus_id in the URL and an UpdateCampusDto JSON body containing only the fields to change.",
+        "description": "Partially updates specific fields of an existing campus record (e.g., total_budget or location). Only the Organization Admin can modify campus details. Send a PATCH request with the campus_id in the URL and an UpdateCampusDto JSON body containing only the fields to change.",
         "parameters": [
           {
             "name": "id",
@@ -3329,7 +3205,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3351,7 +3227,7 @@
             "description": "Campus record updated successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Campus with the given ID not found."
@@ -3364,7 +3240,7 @@
       "delete": {
         "operationId": "CampusController_remove",
         "summary": "Delete Campus",
-        "description": "Permanently removes a campus record and its associated hierarchy from the system. Only the System Administrator can delete campus records. Pass the campus_id as a URL path parameter.",
+        "description": "Permanently removes a campus record and its associated hierarchy from the system. Only the Organization Admin can delete campus records. Pass the campus_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -3377,7 +3253,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3389,7 +3265,7 @@
             "description": "Campus record deleted successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Campus with the given ID not found."
@@ -3417,7 +3293,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3441,12 +3317,12 @@
       "post": {
         "operationId": "BuildingsController_create",
         "summary": "Create Building",
-        "description": "Creates a new building record under a campus. Only the System Administrator can add buildings by providing campus_id, name, and optional budget. Send a POST request with a CreateBuildingDto JSON body.",
+        "description": "Creates a new building record under a campus. Only the Organization Admin can add buildings by providing campus_id, name, and optional budget. Send a POST request with a CreateBuildingDto JSON body.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3468,7 +3344,7 @@
             "description": "Building created successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           }
         },
         "tags": [
@@ -3483,7 +3359,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3520,7 +3396,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3545,7 +3421,7 @@
       "put": {
         "operationId": "BuildingsController_put",
         "summary": "Replace Building",
-        "description": "Completely replaces an existing building record with new data. Only the System Administrator can perform full building replacements. Send a PUT request with the building_id in the URL and a complete PutBuildingDto JSON body.",
+        "description": "Completely replaces an existing building record with new data. Only the Organization Admin can perform full building replacements. Send a PUT request with the building_id in the URL and a complete PutBuildingDto JSON body.",
         "parameters": [
           {
             "name": "id",
@@ -3558,7 +3434,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3580,7 +3456,7 @@
             "description": "Building record replaced successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Building with the given ID not found."
@@ -3593,7 +3469,7 @@
       "patch": {
         "operationId": "BuildingsController_update",
         "summary": "Update Building",
-        "description": "Partially updates specific fields of an existing building (e.g., name or budget). Only the System Administrator can modify building details. Send a PATCH request with the building_id in the URL and an UpdateBuildingDto JSON body containing only the fields to change.",
+        "description": "Partially updates specific fields of an existing building (e.g., name or budget). Only the Organization Admin can modify building details. Send a PATCH request with the building_id in the URL and an UpdateBuildingDto JSON body containing only the fields to change.",
         "parameters": [
           {
             "name": "id",
@@ -3606,7 +3482,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3628,7 +3504,7 @@
             "description": "Building record updated successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Building with the given ID not found."
@@ -3641,7 +3517,7 @@
       "delete": {
         "operationId": "BuildingsController_remove",
         "summary": "Delete Building",
-        "description": "Permanently removes a building record from the system. Only the System Administrator can delete buildings. Pass the building_id as a URL path parameter.",
+        "description": "Permanently removes a building record from the system. Only the Organization Admin can delete buildings. Pass the building_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -3654,7 +3530,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3666,7 +3542,7 @@
             "description": "Building record deleted successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Building with the given ID not found."
@@ -3694,7 +3570,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3731,7 +3607,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3755,12 +3631,12 @@
       "post": {
         "operationId": "DepartmentsController_create",
         "summary": "Create Department",
-        "description": "Creates a new department within a building. Only the System Administrator can add departments by providing building_id, name, and optional budget. Send a POST request with a CreateDepartmentDto JSON body.",
+        "description": "Creates a new department within a building. Only the Organization Admin can add departments by providing building_id, name, and optional budget. Send a POST request with a CreateDepartmentDto JSON body.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3782,7 +3658,7 @@
             "description": "Department created successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           }
         },
         "tags": [
@@ -3797,7 +3673,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3834,7 +3710,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3859,7 +3735,7 @@
       "put": {
         "operationId": "DepartmentsController_put",
         "summary": "Replace Department",
-        "description": "Completely replaces an existing department record with new data. Only the System Administrator can perform full department replacements. Send a PUT request with the department_id in the URL and a complete PutDepartmentDto JSON body.",
+        "description": "Completely replaces an existing department record with new data. Only the Organization Admin can perform full department replacements. Send a PUT request with the department_id in the URL and a complete PutDepartmentDto JSON body.",
         "parameters": [
           {
             "name": "id",
@@ -3872,7 +3748,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3894,7 +3770,7 @@
             "description": "Department record replaced successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Department with the given ID not found."
@@ -3907,7 +3783,7 @@
       "patch": {
         "operationId": "DepartmentsController_update",
         "summary": "Update Department",
-        "description": "Partially updates specific fields of an existing department (e.g., name or budget). Only the System Administrator can modify department details. Send a PATCH request with the department_id in the URL and an UpdateDepartmentDto JSON body containing only the fields to change.",
+        "description": "Partially updates specific fields of an existing department (e.g., name or budget). Only the Organization Admin can modify department details. Send a PATCH request with the department_id in the URL and an UpdateDepartmentDto JSON body containing only the fields to change.",
         "parameters": [
           {
             "name": "id",
@@ -3920,7 +3796,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3942,7 +3818,7 @@
             "description": "Department record updated successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Department with the given ID not found."
@@ -3955,7 +3831,7 @@
       "delete": {
         "operationId": "DepartmentsController_remove",
         "summary": "Delete Department",
-        "description": "Permanently removes a department record from the system. Only the System Administrator can delete departments. Pass the department_id as a URL path parameter.",
+        "description": "Permanently removes a department record from the system. Only the Organization Admin can delete departments. Pass the department_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -3968,7 +3844,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -3980,7 +3856,7 @@
             "description": "Department record deleted successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Department with the given ID not found."
@@ -3995,7 +3871,7 @@
       "get": {
         "operationId": "DepartmentsController_getInvoices",
         "summary": "Get Invoices for Department",
-        "description": "Retrieves all invoice records linked to a specific department (1:N relationship). The System Administrator and Financial Analyst can view invoices for a department. Pass the department_id as a URL path parameter.",
+        "description": "Retrieves all invoice records linked to a specific department (1:N relationship). The Organization Admin and Financial Analyst can view invoices for a department. Pass the department_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -4008,7 +3884,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4032,12 +3908,12 @@
       "post": {
         "operationId": "MetersController_create",
         "summary": "Create Meter",
-        "description": "Registers a new IoT meter/sensor in a building. Only the System Administrator can create meters by providing building_id, meter_code, meter_type (electricity, gas, water, emissions, food), zone, and status. Send a POST request with a CreateMeterDto JSON body.",
+        "description": "Registers a new IoT meter/sensor in a building. Only the Organization Admin can create meters by providing building_id, meter_code, meter_type (electricity, gas, water, emissions, food), zone, and status. Send a POST request with a CreateMeterDto JSON body.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4059,7 +3935,7 @@
             "description": "Meter created successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           }
         },
         "tags": [
@@ -4069,12 +3945,12 @@
       "get": {
         "operationId": "MetersController_findAll",
         "summary": "List All Meters",
-        "description": "Retrieves all meter/sensor records across all buildings. The System Administrator, Technician, and Sustainability Officer can view the full inventory of meters. Send a GET request with no additional parameters.",
+        "description": "Retrieves all meter/sensor records across all buildings. The Organization Admin, Technician, and Sustainability Officer can view the full inventory of meters. Send a GET request with no additional parameters.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4098,7 +3974,7 @@
       "get": {
         "operationId": "MetersController_findOne",
         "summary": "Get Meter by ID",
-        "description": "Retrieves a single meter record by its UUID including building_id, meter_code, meter_type, zone, and status. The System Administrator, Technician, and Sustainability Officer can look up a specific meter. Pass the meter_id as a URL path parameter.",
+        "description": "Retrieves a single meter record by its UUID including building_id, meter_code, meter_type, zone, and status. The Organization Admin, Technician, and Sustainability Officer can look up a specific meter. Pass the meter_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -4111,7 +3987,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4136,7 +4012,7 @@
       "put": {
         "operationId": "MetersController_put",
         "summary": "Replace Meter",
-        "description": "Completely replaces an existing meter record with new data. Only the System Administrator can perform full meter replacements. Send a PUT request with the meter_id in the URL and a complete PutMeterDto JSON body.",
+        "description": "Completely replaces an existing meter record with new data. Only the Organization Admin can perform full meter replacements. Send a PUT request with the meter_id in the URL and a complete PutMeterDto JSON body.",
         "parameters": [
           {
             "name": "id",
@@ -4149,7 +4025,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4171,7 +4047,7 @@
             "description": "Meter record replaced successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Meter with the given ID not found."
@@ -4184,7 +4060,7 @@
       "patch": {
         "operationId": "MetersController_update",
         "summary": "Update Meter",
-        "description": "Partially updates specific fields of an existing meter (e.g., status from active to faulty, or zone reassignment). Only the System Administrator can modify meter configuration. Send a PATCH request with the meter_id in the URL and an UpdateMeterDto JSON body containing only the fields to change.",
+        "description": "Partially updates specific fields of an existing meter (e.g., status from active to faulty, or zone reassignment). Only the Organization Admin can modify meter configuration. Send a PATCH request with the meter_id in the URL and an UpdateMeterDto JSON body containing only the fields to change.",
         "parameters": [
           {
             "name": "id",
@@ -4197,7 +4073,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4219,7 +4095,7 @@
             "description": "Meter record updated successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Meter with the given ID not found."
@@ -4232,7 +4108,7 @@
       "delete": {
         "operationId": "MetersController_remove",
         "summary": "Delete Meter",
-        "description": "Permanently removes a meter record from the system. Only the System Administrator can decommission and delete meters. Pass the meter_id as a URL path parameter.",
+        "description": "Permanently removes a meter record from the system. Only the Organization Admin can decommission and delete meters. Pass the meter_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -4245,7 +4121,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4257,7 +4133,7 @@
             "description": "Meter record deleted successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Meter with the given ID not found."
@@ -4272,7 +4148,7 @@
       "get": {
         "operationId": "MetersController_getReadings",
         "summary": "Get Readings for Meter",
-        "description": "Retrieves all meter reading records captured by a specific meter (1:N relationship). The System Administrator, Technician, and Sustainability Officer can view historical readings. Pass the meter_id as a URL path parameter.",
+        "description": "Retrieves all meter reading records captured by a specific meter (1:N relationship). The Organization Admin, Technician, and Sustainability Officer can view historical readings. Pass the meter_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -4285,7 +4161,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4309,7 +4185,7 @@
       "get": {
         "operationId": "MetersController_getAlerts",
         "summary": "Get Alerts for Meter",
-        "description": "Retrieves all alert records triggered by a specific meter (1:N relationship). The System Administrator and Technician can view alerts associated with a meter. Pass the meter_id as a URL path parameter.",
+        "description": "Retrieves all alert records triggered by a specific meter (1:N relationship). The Organization Admin and Technician can view alerts associated with a meter. Pass the meter_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -4322,7 +4198,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4346,12 +4222,12 @@
       "post": {
         "operationId": "MeterReadingsController_create",
         "summary": "Create Meter Reading",
-        "description": "Records a new meter reading from an IoT sensor. The System Administrator and Technician can submit readings by providing meter_id, value, and unit. Send a POST request with a CreateMeterReadingDto JSON body.",
+        "description": "Records a new meter reading from an IoT sensor. The Organization Admin and Technician can submit readings by providing meter_id, value, and unit. Send a POST request with a CreateMeterReadingDto JSON body.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4373,7 +4249,7 @@
             "description": "Meter reading created successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator or Technician."
+            "description": "Forbidden – caller role is not Organization Admin or Technician."
           }
         },
         "tags": [
@@ -4383,12 +4259,12 @@
       "get": {
         "operationId": "MeterReadingsController_findAll",
         "summary": "List All Meter Readings",
-        "description": "Retrieves all meter reading records across the system. The System Administrator, Technician, Financial Analyst, and Sustainability Officer can view the full history of sensor readings. Send a GET request with no additional parameters.",
+        "description": "Retrieves all meter reading records across the system. The Organization Admin, Technician, Financial Analyst, and Sustainability Officer can view the full history of sensor readings. Send a GET request with no additional parameters.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4412,12 +4288,12 @@
       "post": {
         "operationId": "MeterReadingsController_uploadSpreadsheet",
         "summary": "Bulk Upload Meter Readings",
-        "description": "Uploads a CSV file of meter readings for sites without automatic sensors. The System Administrator and Technician can submit a batch of readings via file. Send a multipart/form-data POST request with the CSV file under the 'file' field.",
+        "description": "Uploads a CSV file of meter readings for sites without automatic sensors. The Organization Admin and Technician can submit a batch of readings via file. Send a multipart/form-data POST request with the CSV file under the 'file' field.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4448,7 +4324,7 @@
             "description": "File missing, wrong type, or over the size limit."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator or Technician."
+            "description": "Forbidden – caller role is not Organization Admin or Technician."
           }
         },
         "tags": [
@@ -4460,7 +4336,7 @@
       "get": {
         "operationId": "MeterReadingsController_findOne",
         "summary": "Get Meter Reading by ID",
-        "description": "Retrieves a single meter reading record by its UUID including meter_id, value, unit, and timestamp. The System Administrator, Technician, Financial Analyst, and Sustainability Officer can look up a specific reading. Pass the reading_id as a URL path parameter.",
+        "description": "Retrieves a single meter reading record by its UUID including meter_id, value, unit, and timestamp. The Organization Admin, Technician, Financial Analyst, and Sustainability Officer can look up a specific reading. Pass the reading_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -4473,7 +4349,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4498,7 +4374,7 @@
       "put": {
         "operationId": "MeterReadingsController_put",
         "summary": "Replace Meter Reading",
-        "description": "Completely replaces an existing meter reading record with new data. Only the System Administrator can perform full reading replacements. Send a PUT request with the reading_id in the URL and a complete PutMeterReadingDto JSON body.",
+        "description": "Completely replaces an existing meter reading record with new data. Only the Organization Admin can perform full reading replacements. Send a PUT request with the reading_id in the URL and a complete PutMeterReadingDto JSON body.",
         "parameters": [
           {
             "name": "id",
@@ -4511,7 +4387,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4533,7 +4409,7 @@
             "description": "Meter reading record replaced successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Meter reading with the given ID not found."
@@ -4546,7 +4422,7 @@
       "patch": {
         "operationId": "MeterReadingsController_update",
         "summary": "Update Meter Reading",
-        "description": "Partially updates specific fields of an existing meter reading (e.g., correcting a value or unit). Only the System Administrator can modify readings. Send a PATCH request with the reading_id in the URL and an UpdateMeterReadingDto JSON body containing only the fields to change.",
+        "description": "Partially updates specific fields of an existing meter reading (e.g., correcting a value or unit). Only the Organization Admin can modify readings. Send a PATCH request with the reading_id in the URL and an UpdateMeterReadingDto JSON body containing only the fields to change.",
         "parameters": [
           {
             "name": "id",
@@ -4559,7 +4435,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4581,7 +4457,7 @@
             "description": "Meter reading record updated successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Meter reading with the given ID not found."
@@ -4594,7 +4470,7 @@
       "delete": {
         "operationId": "MeterReadingsController_remove",
         "summary": "Delete Meter Reading",
-        "description": "Permanently removes a meter reading record from the system. Only the System Administrator can delete readings. Pass the reading_id as a URL path parameter.",
+        "description": "Permanently removes a meter reading record from the system. Only the Organization Admin can delete readings. Pass the reading_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -4607,7 +4483,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -4619,7 +4495,7 @@
             "description": "Meter reading record deleted successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Meter reading with the given ID not found."
@@ -4800,7 +4676,7 @@
       "put": {
         "operationId": "WastageReportsController_put",
         "summary": "Replace Wastage Report",
-        "description": "Completely replaces an existing wastage report. Only the System Administrator can perform full replacements.",
+        "description": "Completely replaces an existing wastage report. Only the Organization Admin can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -4848,7 +4724,7 @@
       "patch": {
         "operationId": "WastageReportsController_update",
         "summary": "Update Wastage Report",
-        "description": "Partially updates a wastage report (e.g., status). The Sustainability Officer and System Administrator can update reports.",
+        "description": "Partially updates a wastage report (e.g., status). The Sustainability Officer and Organization Admin can update reports.",
         "parameters": [
           {
             "name": "id",
@@ -4896,7 +4772,7 @@
       "delete": {
         "operationId": "WastageReportsController_remove",
         "summary": "Delete Wastage Report",
-        "description": "Permanently removes a wastage report. Only the System Administrator can delete.",
+        "description": "Permanently removes a wastage report. Only the Organization Admin can delete.",
         "parameters": [
           {
             "name": "id",
@@ -4936,7 +4812,7 @@
       "post": {
         "operationId": "AlertsController_create",
         "summary": "Create Alert",
-        "description": "Creates a new alert triggered by a meter anomaly. The System Administrator, Technician Administrator and Technician can raise alerts.",
+        "description": "Creates a new alert triggered by a meter anomaly. The Organization Admin, Technician Administrator and Technician can raise alerts.",
         "parameters": [
           {
             "name": "x-role",
@@ -4973,7 +4849,7 @@
       "get": {
         "operationId": "AlertsController_findAll",
         "summary": "List All Alerts",
-        "description": "Retrieves all alert records. The System Administrator, Technician Administrator and Technician can view alerts and their statuses.",
+        "description": "Retrieves all alert records. The Organization Admin, Technician Administrator and Technician can view alerts and their statuses.",
         "parameters": [
           {
             "name": "x-role",
@@ -5002,7 +4878,7 @@
       "get": {
         "operationId": "AlertsController_findOne",
         "summary": "Get Alert by ID",
-        "description": "Retrieves a single alert by UUID including messages chat thread. The System Administrator, Technician Administrator and Technician can look up alerts.",
+        "description": "Retrieves a single alert by UUID including messages chat thread. The Organization Admin, Technician Administrator and Technician can look up alerts.",
         "parameters": [
           {
             "name": "id",
@@ -5040,7 +4916,7 @@
       "put": {
         "operationId": "AlertsController_put",
         "summary": "Replace Alert",
-        "description": "Completely replaces an existing alert record. Only the System Administrator and Technician Administrator can perform full replacements.",
+        "description": "Completely replaces an existing alert record. Only the Organization Admin and Technician Administrator can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -5088,7 +4964,7 @@
       "patch": {
         "operationId": "AlertsController_update",
         "summary": "Update Alert",
-        "description": "Partially updates an alert (e.g., status from open to acknowledged/resolved). System Administrator, Technician Administrator and Technician can update.",
+        "description": "Partially updates an alert (e.g., status from open to acknowledged/resolved). Organization Admin, Technician Administrator and Technician can update.",
         "parameters": [
           {
             "name": "id",
@@ -5136,7 +5012,7 @@
       "delete": {
         "operationId": "AlertsController_remove",
         "summary": "Delete Alert",
-        "description": "Permanently removes an alert record. Only the System Administrator and Technician Administrator can delete alerts.",
+        "description": "Permanently removes an alert record. Only the Organization Admin and Technician Administrator can delete alerts.",
         "parameters": [
           {
             "name": "id",
@@ -5176,7 +5052,7 @@
       "post": {
         "operationId": "AlertsController_addMessage",
         "summary": "Add Message to Alert Thread",
-        "description": "Appends a message to the alert JSONB messages thread. System Administrator, Technician Administrator and Technician can post messages.",
+        "description": "Appends a message to the alert JSONB messages thread. Organization Admin, Technician Administrator and Technician can post messages.",
         "parameters": [
           {
             "name": "id",
@@ -5223,7 +5099,7 @@
       "get": {
         "operationId": "AlertsController_getFaults",
         "summary": "Get Faults for Alert",
-        "description": "Retrieves all fault records linked to a specific alert. System Administrator, Technician Administrator and Technician can view faults from an alert.",
+        "description": "Retrieves all fault records linked to a specific alert. Organization Admin, Technician Administrator and Technician can view faults from an alert.",
         "parameters": [
           {
             "name": "id",
@@ -5260,7 +5136,7 @@
       "post": {
         "operationId": "FaultsController_create",
         "summary": "Create Fault",
-        "description": "Logs a new equipment fault, optionally linked to an alert. System Administrator and Technician can create faults.",
+        "description": "Logs a new equipment fault, optionally linked to an alert. Organization Admin and Technician can create faults.",
         "parameters": [
           {
             "name": "x-role",
@@ -5297,7 +5173,7 @@
       "get": {
         "operationId": "FaultsController_findAll",
         "summary": "List All Faults",
-        "description": "Retrieves all fault records. System Administrator and Technician can view faults.",
+        "description": "Retrieves all fault records. Organization Admin and Technician can view faults.",
         "parameters": [
           {
             "name": "x-role",
@@ -5326,7 +5202,7 @@
       "get": {
         "operationId": "FaultsController_findOne",
         "summary": "Get Fault by ID",
-        "description": "Retrieves a single fault by UUID. System Administrator and Technician can look up faults.",
+        "description": "Retrieves a single fault by UUID. Organization Admin and Technician can look up faults.",
         "parameters": [
           {
             "name": "id",
@@ -5364,7 +5240,7 @@
       "put": {
         "operationId": "FaultsController_put",
         "summary": "Replace Fault",
-        "description": "Completely replaces an existing fault record. Only System Administrator can perform full replacements.",
+        "description": "Completely replaces an existing fault record. Only Organization Admin can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -5412,7 +5288,7 @@
       "patch": {
         "operationId": "FaultsController_update",
         "summary": "Update Fault",
-        "description": "Partially updates a fault (e.g., status, reassigning Technician). System Administrator and Technician can update.",
+        "description": "Partially updates a fault (e.g., status, reassigning Technician). Organization Admin and Technician can update.",
         "parameters": [
           {
             "name": "id",
@@ -5460,7 +5336,7 @@
       "delete": {
         "operationId": "FaultsController_remove",
         "summary": "Delete Fault",
-        "description": "Permanently removes a fault record. Only the System Administrator can delete faults.",
+        "description": "Permanently removes a fault record. Only the Organization Admin can delete faults.",
         "parameters": [
           {
             "name": "id",
@@ -5500,7 +5376,7 @@
       "get": {
         "operationId": "FaultsController_getWorkOrders",
         "summary": "Get Work Orders for Fault",
-        "description": "Retrieves all work orders linked to a fault. System Administrator and Technician can view.",
+        "description": "Retrieves all work orders linked to a fault. Organization Admin and Technician can view.",
         "parameters": [
           {
             "name": "id",
@@ -5641,7 +5517,7 @@
       "put": {
         "operationId": "ServiceRequestsController_put",
         "summary": "Replace Service Request",
-        "description": "Completely replaces a service request. Only System Administrator can perform full replacements.",
+        "description": "Completely replaces a service request. Only Organization Admin can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -5737,7 +5613,7 @@
       "delete": {
         "operationId": "ServiceRequestsController_remove",
         "summary": "Delete Service Request",
-        "description": "Permanently removes a service request. Only System Administrator can delete.",
+        "description": "Permanently removes a service request. Only Organization Admin can delete.",
         "parameters": [
           {
             "name": "id",
@@ -5777,7 +5653,7 @@
       "get": {
         "operationId": "ServiceRequestsController_getWorkOrders",
         "summary": "Get Work Orders for Service Request",
-        "description": "Retrieves all work orders from a service request. System Administrator and Technician can view.",
+        "description": "Retrieves all work orders from a service request. Organization Admin and Technician can view.",
         "parameters": [
           {
             "name": "id",
@@ -5814,7 +5690,7 @@
       "post": {
         "operationId": "WorkOrdersController_create",
         "summary": "Create Work Order",
-        "description": "Creates a new work order linked to a fault or service request. System Administrator, Technician Administrator and Technician can create work orders.",
+        "description": "Creates a new work order linked to a fault or service request. Organization Admin, Technician Administrator and Technician can create work orders.",
         "parameters": [
           {
             "name": "x-role",
@@ -5918,7 +5794,7 @@
       "put": {
         "operationId": "WorkOrdersController_put",
         "summary": "Replace Work Order",
-        "description": "Completely replaces a work order record. System Administrator and Technician Administrator can perform full replacements.",
+        "description": "Completely replaces a work order record. Organization Admin and Technician Administrator can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -5966,7 +5842,7 @@
       "patch": {
         "operationId": "WorkOrdersController_update",
         "summary": "Update Work Order",
-        "description": "Partially updates a work order (e.g., status, priority). System Administrator, Technician Administrator, Technician, and Financial Analyst can update.",
+        "description": "Partially updates a work order (e.g., status, priority). Organization Admin, Technician Administrator, Technician, and Financial Analyst can update.",
         "parameters": [
           {
             "name": "id",
@@ -6014,7 +5890,7 @@
       "delete": {
         "operationId": "WorkOrdersController_remove",
         "summary": "Delete Work Order",
-        "description": "Permanently removes a work order. System Administrator and Technician Administrator can delete.",
+        "description": "Permanently removes a work order. Organization Admin and Technician Administrator can delete.",
         "parameters": [
           {
             "name": "id",
@@ -6054,7 +5930,7 @@
       "post": {
         "operationId": "EnergyCostsController_create",
         "summary": "Create Energy Cost",
-        "description": "Records a new energy cost entry for a building/department for a given period. Financial Analyst and System Administrator can create.",
+        "description": "Records a new energy cost entry for a building/department for a given period. Financial Analyst and Organization Admin can create.",
         "parameters": [
           {
             "name": "x-role",
@@ -6091,7 +5967,7 @@
       "get": {
         "operationId": "EnergyCostsController_findAll",
         "summary": "List All Energy Costs",
-        "description": "Retrieves all energy cost records. Financial Analyst and System Administrator can view energy cost data.",
+        "description": "Retrieves all energy cost records. Financial Analyst and Organization Admin can view energy cost data.",
         "parameters": [
           {
             "name": "x-role",
@@ -6120,7 +5996,7 @@
       "get": {
         "operationId": "EnergyCostsController_findOne",
         "summary": "Get Energy Cost by ID",
-        "description": "Retrieves a single energy cost record by UUID. Financial Analyst and System Administrator can look up records.",
+        "description": "Retrieves a single energy cost record by UUID. Financial Analyst and Organization Admin can look up records.",
         "parameters": [
           {
             "name": "id",
@@ -6158,7 +6034,7 @@
       "put": {
         "operationId": "EnergyCostsController_put",
         "summary": "Replace Energy Cost",
-        "description": "Completely replaces an energy cost record. Only System Administrator can perform full replacements.",
+        "description": "Completely replaces an energy cost record. Only Organization Admin can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -6206,7 +6082,7 @@
       "patch": {
         "operationId": "EnergyCostsController_update",
         "summary": "Update Energy Cost",
-        "description": "Partially updates an energy cost record (e.g., adjusting costs or budget status). Financial Analyst and System Administrator can update.",
+        "description": "Partially updates an energy cost record (e.g., adjusting costs or budget status). Financial Analyst and Organization Admin can update.",
         "parameters": [
           {
             "name": "id",
@@ -6254,7 +6130,7 @@
       "delete": {
         "operationId": "EnergyCostsController_remove",
         "summary": "Delete Energy Cost",
-        "description": "Permanently removes an energy cost record. Only System Administrator can delete.",
+        "description": "Permanently removes an energy cost record. Only Organization Admin can delete.",
         "parameters": [
           {
             "name": "id",
@@ -6294,7 +6170,7 @@
       "get": {
         "operationId": "EnergyCostsController_getByPeriod",
         "summary": "Get Energy Costs by Period",
-        "description": "Retrieves energy costs for a specific billing period (e.g., '2025-03'). Financial Analyst and System Administrator can filter by period.",
+        "description": "Retrieves energy costs for a specific billing period (e.g., '2025-03'). Financial Analyst and Organization Admin can filter by period.",
         "parameters": [
           {
             "name": "period",
@@ -6331,7 +6207,7 @@
       "post": {
         "operationId": "InvoicesController_create",
         "summary": "Create Invoice",
-        "description": "Creates a new invoice for a department. Financial Analyst and System Administrator can submit invoices.",
+        "description": "Creates a new invoice for a department. Financial Analyst and Organization Admin can submit invoices.",
         "parameters": [
           {
             "name": "x-role",
@@ -6368,7 +6244,7 @@
       "get": {
         "operationId": "InvoicesController_findAll",
         "summary": "List All Invoices",
-        "description": "Retrieves all invoices. Financial Analyst and System Administrator can view the invoice directory.",
+        "description": "Retrieves all invoices. Financial Analyst and Organization Admin can view the invoice directory.",
         "parameters": [
           {
             "name": "x-role",
@@ -6397,7 +6273,7 @@
       "post": {
         "operationId": "InvoicesController_uploadDocument",
         "summary": "Attach Invoice Document",
-        "description": "Uploads a scanned PDF and attaches it to an existing invoice so the approver can review it. Financial Analyst and System Administrator can attach documents. Send a multipart/form-data POST request with the PDF under the 'file' field.",
+        "description": "Uploads a scanned PDF and attaches it to an existing invoice so the approver can review it. Financial Analyst and Organization Admin can attach documents. Send a multipart/form-data POST request with the PDF under the 'file' field.",
         "parameters": [
           {
             "name": "id",
@@ -6494,7 +6370,7 @@
       "get": {
         "operationId": "InvoicesController_findOne",
         "summary": "Get Invoice by ID",
-        "description": "Retrieves a single invoice by UUID. Financial Analyst and System Administrator can look up invoices.",
+        "description": "Retrieves a single invoice by UUID. Financial Analyst and Organization Admin can look up invoices.",
         "parameters": [
           {
             "name": "id",
@@ -6532,7 +6408,7 @@
       "put": {
         "operationId": "InvoicesController_put",
         "summary": "Replace Invoice",
-        "description": "Completely replaces an invoice record. Only System Administrator can perform full replacements.",
+        "description": "Completely replaces an invoice record. Only Organization Admin can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -6580,7 +6456,7 @@
       "patch": {
         "operationId": "InvoicesController_update",
         "summary": "Update Invoice",
-        "description": "Partially updates an invoice (e.g., changing status to approved, setting approved_by_id). Financial Analyst and System Administrator can update.",
+        "description": "Partially updates an invoice (e.g., changing status to approved, setting approved_by_id). Financial Analyst and Organization Admin can update.",
         "parameters": [
           {
             "name": "id",
@@ -6628,7 +6504,7 @@
       "delete": {
         "operationId": "InvoicesController_remove",
         "summary": "Delete Invoice",
-        "description": "Permanently removes an invoice. Only System Administrator can delete.",
+        "description": "Permanently removes an invoice. Only Organization Admin can delete.",
         "parameters": [
           {
             "name": "id",
@@ -6668,12 +6544,12 @@
       "post": {
         "operationId": "FinancialReportsController_create",
         "summary": "Create Financial Report",
-        "description": "Generates a new financial report for a building or department. The Financial Analyst and System Administrator can create reports by providing generated_by_id, building_id, department_id, title, period, roi, and npv. Send a POST request with a CreateFinancialReportDto JSON body.",
+        "description": "Generates a new financial report for a building or department. The Financial Analyst and Organization Admin can create reports by providing generated_by_id, building_id, department_id, title, period, roi, and npv. Send a POST request with a CreateFinancialReportDto JSON body.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -6695,7 +6571,7 @@
             "description": "Financial report created successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not Financial Analyst or System Administrator."
+            "description": "Forbidden – caller role is not Financial Analyst or Organization Admin."
           }
         },
         "tags": [
@@ -6705,12 +6581,12 @@
       "get": {
         "operationId": "FinancialReportsController_findAll",
         "summary": "List All Financial Reports",
-        "description": "Retrieves all financial report records. The Financial Analyst and System Administrator can view the complete archive of financial reports. Send a GET request with no additional parameters.",
+        "description": "Retrieves all financial report records. The Financial Analyst and Organization Admin can view the complete archive of financial reports. Send a GET request with no additional parameters.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -6722,7 +6598,7 @@
             "description": "Array of all financial report records returned."
           },
           "403": {
-            "description": "Forbidden – caller role is not Financial Analyst or System Administrator."
+            "description": "Forbidden – caller role is not Financial Analyst or Organization Admin."
           }
         },
         "tags": [
@@ -6734,7 +6610,7 @@
       "get": {
         "operationId": "FinancialReportsController_findOne",
         "summary": "Get Financial Report by ID",
-        "description": "Retrieves a single financial report by its UUID including generated_by_id, building/department scope, title, period, roi, and npv. The Financial Analyst and System Administrator can look up a specific report. Pass the financial_report_id as a URL path parameter.",
+        "description": "Retrieves a single financial report by its UUID including generated_by_id, building/department scope, title, period, roi, and npv. The Financial Analyst and Organization Admin can look up a specific report. Pass the financial_report_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -6747,7 +6623,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -6759,7 +6635,7 @@
             "description": "Financial report record returned."
           },
           "403": {
-            "description": "Forbidden – caller role is not Financial Analyst or System Administrator."
+            "description": "Forbidden – caller role is not Financial Analyst or Organization Admin."
           },
           "404": {
             "description": "Financial report with the given ID not found."
@@ -6772,7 +6648,7 @@
       "put": {
         "operationId": "FinancialReportsController_put",
         "summary": "Replace Financial Report",
-        "description": "Completely replaces an existing financial report record with new data. Only the System Administrator can perform full report replacements. Send a PUT request with the financial_report_id in the URL and a complete PutFinancialReportDto JSON body.",
+        "description": "Completely replaces an existing financial report record with new data. Only the Organization Admin can perform full report replacements. Send a PUT request with the financial_report_id in the URL and a complete PutFinancialReportDto JSON body.",
         "parameters": [
           {
             "name": "id",
@@ -6785,7 +6661,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -6807,7 +6683,7 @@
             "description": "Financial report record replaced successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Financial report with the given ID not found."
@@ -6820,7 +6696,7 @@
       "patch": {
         "operationId": "FinancialReportsController_update",
         "summary": "Update Financial Report",
-        "description": "Partially updates specific fields of an existing financial report (e.g., updating roi or npv values). The Financial Analyst and System Administrator can modify reports. Send a PATCH request with the financial_report_id in the URL and an UpdateFinancialReportDto JSON body containing only the fields to change.",
+        "description": "Partially updates specific fields of an existing financial report (e.g., updating roi or npv values). The Financial Analyst and Organization Admin can modify reports. Send a PATCH request with the financial_report_id in the URL and an UpdateFinancialReportDto JSON body containing only the fields to change.",
         "parameters": [
           {
             "name": "id",
@@ -6833,7 +6709,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -6855,7 +6731,7 @@
             "description": "Financial report record updated successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not Financial Analyst or System Administrator."
+            "description": "Forbidden – caller role is not Financial Analyst or Organization Admin."
           },
           "404": {
             "description": "Financial report with the given ID not found."
@@ -6868,7 +6744,7 @@
       "delete": {
         "operationId": "FinancialReportsController_remove",
         "summary": "Delete Financial Report",
-        "description": "Permanently removes a financial report record from the system. Only the System Administrator can delete financial reports. Pass the financial_report_id as a URL path parameter.",
+        "description": "Permanently removes a financial report record from the system. Only the Organization Admin can delete financial reports. Pass the financial_report_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -6881,7 +6757,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -6893,7 +6769,7 @@
             "description": "Financial report record deleted successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Financial report with the given ID not found."
@@ -6908,7 +6784,7 @@
       "post": {
         "operationId": "SustainabilityMetricsController_create",
         "summary": "Create Sustainability Metric",
-        "description": "Records a new sustainability metric snapshot. Sustainability Officer and System Administrator can create.",
+        "description": "Records a new sustainability metric snapshot. Sustainability Officer and Organization Admin can create.",
         "parameters": [
           {
             "name": "x-role",
@@ -6945,7 +6821,7 @@
       "get": {
         "operationId": "SustainabilityMetricsController_findAll",
         "summary": "List All Sustainability Metrics",
-        "description": "Retrieves all sustainability metrics. Sustainability Officer and System Administrator can view KPIs.",
+        "description": "Retrieves all sustainability metrics. Sustainability Officer and Organization Admin can view KPIs.",
         "parameters": [
           {
             "name": "x-role",
@@ -6974,7 +6850,7 @@
       "get": {
         "operationId": "SustainabilityMetricsController_findOne",
         "summary": "Get Sustainability Metric by ID",
-        "description": "Retrieves a single metric by UUID. Sustainability Officer and System Administrator can look up.",
+        "description": "Retrieves a single metric by UUID. Sustainability Officer and Organization Admin can look up.",
         "parameters": [
           {
             "name": "id",
@@ -7012,7 +6888,7 @@
       "put": {
         "operationId": "SustainabilityMetricsController_put",
         "summary": "Replace Sustainability Metric",
-        "description": "Completely replaces a metric record. Only System Administrator can perform full replacements.",
+        "description": "Completely replaces a metric record. Only Organization Admin can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -7060,7 +6936,7 @@
       "patch": {
         "operationId": "SustainabilityMetricsController_update",
         "summary": "Update Sustainability Metric",
-        "description": "Partially updates a metric. Sustainability Officer and System Administrator can update.",
+        "description": "Partially updates a metric. Sustainability Officer and Organization Admin can update.",
         "parameters": [
           {
             "name": "id",
@@ -7108,7 +6984,7 @@
       "delete": {
         "operationId": "SustainabilityMetricsController_remove",
         "summary": "Delete Sustainability Metric",
-        "description": "Permanently removes a metric. Only System Administrator can delete.",
+        "description": "Permanently removes a metric. Only Organization Admin can delete.",
         "parameters": [
           {
             "name": "id",
@@ -7148,7 +7024,7 @@
       "post": {
         "operationId": "InitiativesController_create",
         "summary": "Create Initiative",
-        "description": "Proposes a new sustainability initiative. Sustainability Officer and System Administrator can create.",
+        "description": "Proposes a new sustainability initiative. Sustainability Officer and Organization Admin can create.",
         "parameters": [
           {
             "name": "x-role",
@@ -7185,7 +7061,7 @@
       "get": {
         "operationId": "InitiativesController_findAll",
         "summary": "List All Initiatives",
-        "description": "Retrieves all initiatives. Sustainability Officer and System Administrator can view.",
+        "description": "Retrieves all initiatives. Sustainability Officer and Organization Admin can view.",
         "parameters": [
           {
             "name": "x-role",
@@ -7214,7 +7090,7 @@
       "get": {
         "operationId": "InitiativesController_findOne",
         "summary": "Get Initiative by ID",
-        "description": "Retrieves a single initiative by UUID. Sustainability Officer and System Administrator can look up.",
+        "description": "Retrieves a single initiative by UUID. Sustainability Officer and Organization Admin can look up.",
         "parameters": [
           {
             "name": "id",
@@ -7252,7 +7128,7 @@
       "put": {
         "operationId": "InitiativesController_put",
         "summary": "Replace Initiative",
-        "description": "Completely replaces an initiative. Only System Administrator can perform full replacements.",
+        "description": "Completely replaces an initiative. Only Organization Admin can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -7300,7 +7176,7 @@
       "patch": {
         "operationId": "InitiativesController_update",
         "summary": "Update Initiative",
-        "description": "Partially updates an initiative (e.g., status, outcomes). Sustainability Officer and System Administrator can update.",
+        "description": "Partially updates an initiative (e.g., status, outcomes). Sustainability Officer and Organization Admin can update.",
         "parameters": [
           {
             "name": "id",
@@ -7388,12 +7264,12 @@
       "post": {
         "operationId": "ActivityLogsController_create",
         "summary": "Create Activity Log",
-        "description": "Records a new audit trail entry capturing a user action in the system. Only the System Administrator can manually create activity log entries by providing user_id, action_type, and title. Send a POST request with a CreateActivityLogDto JSON body.",
+        "description": "Records a new audit trail entry capturing a user action in the system. Only the Organization Admin can manually create activity log entries by providing user_id, action_type, and title. Send a POST request with a CreateActivityLogDto JSON body.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -7415,7 +7291,7 @@
             "description": "Activity log entry created successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           }
         },
         "tags": [
@@ -7425,12 +7301,12 @@
       "get": {
         "operationId": "ActivityLogsController_findAll",
         "summary": "List All Activity Logs",
-        "description": "Retrieves all activity log entries for system-wide audit tracking. Only the System Administrator can view the complete audit trail. Send a GET request with no additional parameters.",
+        "description": "Retrieves all activity log entries for system-wide audit tracking. Only the Organization Admin can view the complete audit trail. Send a GET request with no additional parameters.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -7442,7 +7318,7 @@
             "description": "Array of all activity log entries returned."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           }
         },
         "tags": [
@@ -7454,7 +7330,7 @@
       "get": {
         "operationId": "ActivityLogsController_findOne",
         "summary": "Get Activity Log by ID",
-        "description": "Retrieves a single activity log entry by its UUID including user_id, action_type, title, and timestamp. Only the System Administrator can look up specific log entries. Pass the activity_log_id as a URL path parameter.",
+        "description": "Retrieves a single activity log entry by its UUID including user_id, action_type, title, and timestamp. Only the Organization Admin can look up specific log entries. Pass the activity_log_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -7467,7 +7343,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -7479,7 +7355,7 @@
             "description": "Activity log entry returned."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Activity log with the given ID not found."
@@ -7492,7 +7368,7 @@
       "put": {
         "operationId": "ActivityLogsController_put",
         "summary": "Replace Activity Log",
-        "description": "Completely replaces an existing activity log entry with new data. Only the System Administrator can perform full log replacements. Send a PUT request with the activity_log_id in the URL and a complete PutActivityLogDto JSON body.",
+        "description": "Completely replaces an existing activity log entry with new data. Only the Organization Admin can perform full log replacements. Send a PUT request with the activity_log_id in the URL and a complete PutActivityLogDto JSON body.",
         "parameters": [
           {
             "name": "id",
@@ -7505,7 +7381,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -7527,7 +7403,7 @@
             "description": "Activity log entry replaced successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Activity log with the given ID not found."
@@ -7540,7 +7416,7 @@
       "patch": {
         "operationId": "ActivityLogsController_update",
         "summary": "Update Activity Log",
-        "description": "Partially updates specific fields of an existing activity log entry. Only the System Administrator can modify log entries. Send a PATCH request with the activity_log_id in the URL and an UpdateActivityLogDto JSON body containing only the fields to change.",
+        "description": "Partially updates specific fields of an existing activity log entry. Only the Organization Admin can modify log entries. Send a PATCH request with the activity_log_id in the URL and an UpdateActivityLogDto JSON body containing only the fields to change.",
         "parameters": [
           {
             "name": "id",
@@ -7553,7 +7429,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -7575,7 +7451,7 @@
             "description": "Activity log entry updated successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Activity log with the given ID not found."
@@ -7588,7 +7464,7 @@
       "delete": {
         "operationId": "ActivityLogsController_remove",
         "summary": "Delete Activity Log",
-        "description": "Permanently removes an activity log entry from the system. Only the System Administrator can delete audit trail records. Pass the activity_log_id as a URL path parameter.",
+        "description": "Permanently removes an activity log entry from the system. Only the Organization Admin can delete audit trail records. Pass the activity_log_id as a URL path parameter.",
         "parameters": [
           {
             "name": "id",
@@ -7601,7 +7477,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: System Administrator | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -7613,7 +7489,7 @@
             "description": "Activity log entry deleted successfully."
           },
           "403": {
-            "description": "Forbidden – caller role is not System Administrator."
+            "description": "Forbidden – caller role is not Organization Admin."
           },
           "404": {
             "description": "Activity log with the given ID not found."
@@ -7628,7 +7504,7 @@
       "post": {
         "operationId": "SustainabilityReportsController_create",
         "summary": "Create Sustainability Report",
-        "description": "Archives a new sustainability report with KPI metrics. Sustainability Officer and System Administrator can create.",
+        "description": "Archives a new sustainability report with KPI metrics. Sustainability Officer and Organization Admin can create.",
         "parameters": [
           {
             "name": "x-role",
@@ -7665,7 +7541,7 @@
       "get": {
         "operationId": "SustainabilityReportsController_findAll",
         "summary": "List All Sustainability Reports",
-        "description": "Retrieves all archived sustainability reports. Sustainability Officer and System Administrator can view.",
+        "description": "Retrieves all archived sustainability reports. Sustainability Officer and Organization Admin can view.",
         "parameters": [
           {
             "name": "x-role",
@@ -7694,7 +7570,7 @@
       "get": {
         "operationId": "SustainabilityReportsController_findOne",
         "summary": "Get Sustainability Report by ID",
-        "description": "Retrieves a single report by UUID. Sustainability Officer and System Administrator can look up.",
+        "description": "Retrieves a single report by UUID. Sustainability Officer and Organization Admin can look up.",
         "parameters": [
           {
             "name": "id",
@@ -7732,7 +7608,7 @@
       "put": {
         "operationId": "SustainabilityReportsController_put",
         "summary": "Replace Sustainability Report",
-        "description": "Completely replaces a report. Only System Administrator can perform full replacements.",
+        "description": "Completely replaces a report. Only Organization Admin can perform full replacements.",
         "parameters": [
           {
             "name": "id",
@@ -7780,7 +7656,7 @@
       "patch": {
         "operationId": "SustainabilityReportsController_update",
         "summary": "Update Sustainability Report",
-        "description": "Partially updates a report. Sustainability Officer and System Administrator can update.",
+        "description": "Partially updates a report. Sustainability Officer and Organization Admin can update.",
         "parameters": [
           {
             "name": "id",
@@ -7828,7 +7704,7 @@
       "delete": {
         "operationId": "SustainabilityReportsController_remove",
         "summary": "Delete Sustainability Report",
-        "description": "Permanently removes a report. Only System Administrator can delete.",
+        "description": "Permanently removes a report. Only Organization Admin can delete.",
         "parameters": [
           {
             "name": "id",
@@ -8032,10 +7908,6 @@
         "type": "object",
         "properties": {}
       },
-      "LockBaselineDto": {
-        "type": "object",
-        "properties": {}
-      },
       "CreateFindingDto": {
         "type": "object",
         "properties": {}
@@ -8044,11 +7916,7 @@
         "type": "object",
         "properties": {}
       },
-      "CreateVerificationDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "DisputeVerificationDto": {
+      "SendProposalDto": {
         "type": "object",
         "properties": {}
       },
@@ -8104,7 +7972,7 @@
           "email": "aadi@gmail.com",
           "phone": "9876543210",
           "password": "Aadi@123",
-          "role": "System Administrator",
+          "role": "Organization Admin",
           "specialization": null
         }
       },
@@ -8121,7 +7989,7 @@
           "email": "aadi@gmail.com",
           "phone": "9876543210",
           "password": "Aadi@123",
-          "role": "System Administrator",
+          "role": "Organization Admin",
           "specialization": null
         }
       },
@@ -8347,7 +8215,7 @@
           "status": "open",
           "messages": [
             {
-              "sender_role": "System Administrator",
+              "sender_role": "Organization Admin",
               "content": "Flow rate 40L/min detected outside operating hours.",
               "timestamp": "2026-05-05T08:00:00.000Z"
             }
@@ -8370,7 +8238,7 @@
           "status": "open",
           "messages": [
             {
-              "sender_role": "System Administrator",
+              "sender_role": "Organization Admin",
               "content": "Flow rate 40L/min detected outside operating hours.",
               "timestamp": "2026-05-05T08:00:00.000Z"
             }
