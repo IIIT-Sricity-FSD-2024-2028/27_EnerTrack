@@ -1,28 +1,15 @@
 /* tech_maintenance.css — Fault Detection & Diagnostics page styles */
 
-/* UI Enhancements */
-.detail-card {
-  padding: 32px;
-  border-radius: 16px;
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.04),
-    0 1px 3px rgba(0, 0, 0, 0.02);
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  margin-bottom: 24px;
-}
-
 .section-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--dark);
   margin-bottom: 6px;
-  letter-spacing: -0.01em;
 }
 
 .section-desc {
   font-size: 13px;
-  color: #64748b;
+  color: var(--muted);
   margin-bottom: 20px;
   line-height: 1.5;
 }
@@ -30,25 +17,20 @@
 .diag-textarea {
   width: 100%;
   min-height: 120px;
-  padding: 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   font-size: 14px;
-  color: #1e293b;
+  color: var(--dark);
   line-height: 1.6;
-  background: #f8fafc;
+  background: #fafafa;
   resize: vertical;
-  transition: all 0.2s;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
   margin-bottom: 8px;
 }
 .diag-textarea:focus {
   outline: none;
-  border-color: #94a3b8;
+  border-color: var(--dark);
   background: #ffffff;
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.02),
-    0 0 0 3px rgba(226, 232, 240, 0.5);
 }
 
 .action-bar {
@@ -72,7 +54,7 @@
 }
 
 .alert-tile {
-  border: 2px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 9px;
   padding: 14px;
   background: #fafafa;
@@ -106,7 +88,7 @@
 
 .alert-tile-meta {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--muted);
 }
 
 .alert-tile .badge {
@@ -129,37 +111,71 @@
   gap: 18px;
 }
 
-.small-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 12px;
+/* ── Instrument readout (signature element) ──────────
+   The one deliberate flourish in this revamp: the real sensor reading
+   that triggered the fault's alert, presented like a physical gauge
+   face rather than a table row — grounded in what a technician
+   literally does, read an instrument. */
+.readout {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 20px;
+  border-radius: var(--radius);
+  background: #eef8f7;
+  border: 1px solid #bfe1de;
 }
 
-.small-card {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px;
-  background: #fafafa;
+.readout-dial {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 5px solid var(--teal);
+  background: #ffffff;
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.readout-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--teal);
+  line-height: 1;
+}
+
+.readout-unit {
   font-size: 13px;
+  font-weight: 700;
+  color: var(--teal);
+  margin-left: 2px;
 }
 
-.small-card b {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 13px;
+.readout-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
-.data-row {
+.readout-meta-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
+  gap: 12px;
   font-size: 13px;
   color: var(--dark);
 }
 
-.data-row span:last-child {
-  font-weight: 600;
+.readout-meta-row span:first-child {
+  color: var(--muted);
+}
+
+.readout-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 10px;
 }
 
 .checklist {
@@ -176,7 +192,7 @@
 }
 
 .check {
-  color: #16a34a;
+  color: var(--green);
   font-weight: 700;
 }
 
@@ -264,7 +280,6 @@
 @media (max-width: 900px) {
   .alert-selector-grid,
   .main-grid,
-  .small-grid,
   .fault-grid,
   .repair-selector {
     grid-template-columns: 1fr;

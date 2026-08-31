@@ -168,19 +168,13 @@
 
                 <div
                   id="prelimViewMode"
-                  style="
-                    display: none;
-                    background: #f8fafc;
-                    padding: 16px;
-                    border-radius: 8px;
-                    border: 1px solid #e2e8f0;
-                    margin-bottom: 16px;
-                  "
+                  class="callout mb-16"
+                  style="display: none"
                 >
                   <div
                     style="
                       font-size: 14px;
-                      color: #1e293b;
+                      color: var(--dark);
                       white-space: pre-wrap;
                       margin-bottom: 12px;
                     "
@@ -227,19 +221,13 @@
 
                 <div
                   id="quickfixViewMode"
-                  style="
-                    display: none;
-                    background: #f8fafc;
-                    padding: 16px;
-                    border-radius: 8px;
-                    border: 1px solid #e2e8f0;
-                    margin-bottom: 16px;
-                  "
+                  class="callout mb-16"
+                  style="display: none"
                 >
                   <div
                     style="
                       font-size: 14px;
-                      color: #1e293b;
+                      color: var(--dark);
                       white-space: pre-wrap;
                       margin-bottom: 12px;
                     "
@@ -276,7 +264,7 @@
                   </div>
                 </div>
 
-                <div style="border-top: 1px solid #e2e8f0; padding-top: 24px">
+                <div style="border-top: 1px solid var(--border); padding-top: 24px">
                   <button class="btn btn-light btn-full" id="btnLogResolution">
                     Quick Fix Successful — Close Fault
                   </button>
@@ -289,55 +277,10 @@
               <div class="card detail-card">
                 <h3 class="section-title">3. Review Supporting Data</h3>
                 <p class="section-desc">
-                  Historical and real-time telemetry from the asset.
+                  The real sensor reading that triggered this fault's alert.
                 </p>
-                <div class="small-grid">
-                  <div class="small-card">
-                    <b>Performance Metrics</b>
-                    <div class="data-row">
-                      <span>Operating temperature</span><span>96°C</span>
-                    </div>
-                    <div class="data-row">
-                      <span>Expected band</span><span>72–80°C</span>
-                    </div>
-                    <div class="data-row">
-                      <span>Power draw variance</span><span>+18%</span>
-                    </div>
-                    <div class="data-row">
-                      <span>Cycle efficiency</span><span>81%</span>
-                    </div>
-                  </div>
-                  <div class="small-card">
-                    <b>Maintenance History</b>
-                    <div class="data-row">
-                      <span>Bearing replacement</span><span>21 days ago</span>
-                    </div>
-                    <div class="data-row">
-                      <span>Cooling line inspection</span
-                      ><span>45 days ago</span>
-                    </div>
-                    <div class="data-row">
-                      <span>Prior fault incidents</span><span>2</span>
-                    </div>
-                    <div class="data-row">
-                      <span>Last diagnostic</span><span>11 days ago</span>
-                    </div>
-                  </div>
-                  <div class="small-card">
-                    <b>Sensor Data</b>
-                    <div class="data-row">
-                      <span>Thermal sensor T-14</span><span>Stable</span>
-                    </div>
-                    <div class="data-row">
-                      <span>Vibration V-03</span><span>Elevated</span>
-                    </div>
-                    <div class="data-row">
-                      <span>Pressure P-09</span><span>Normal</span>
-                    </div>
-                    <div class="data-row">
-                      <span>Controller heartbeat</span><span>No dropout</span>
-                    </div>
-                  </div>
+                <div id="faultReadout">
+                  <!-- Populated by JS -->
                 </div>
               </div>
 
@@ -360,11 +303,6 @@
                       <span
                         class="badge low"
                         id="diagnosticFaultTypeBadge"
-                        style="
-                          background: #f1f5f9;
-                          color: #475569;
-                          border: 1px solid #e2e8f0;
-                        "
                         >Cooling system failure</span
                       >
                     </div>

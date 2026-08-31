@@ -10,7 +10,7 @@
 .stat-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -46,7 +46,7 @@
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   color: var(--dark);
 }
@@ -56,7 +56,7 @@
   color: var(--muted);
 }
 
-/* Feed */
+/* Panel headers (Quick Actions, Final Verification) */
 .feed-header {
   display: flex;
   justify-content: space-between;
@@ -64,79 +64,88 @@
   margin-bottom: 16px;
 }
 
-.live-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--green-soft);
-  color: #166534;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 99px;
-}
-
-.feed-item {
+/* Quick actions — named items (which fault, which alert, which request),
+   replacing the old fake "Live activity feed" and, later, a redundant
+   "N pending" summary that just repeated what the sidebar already links
+   to and what the stat cards above already count. */
+.quick-actions {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 14px 0;
-  border-top: 1px solid var(--border);
+  flex-direction: column;
+  gap: 8px;
 }
 
-.feed-item:first-child {
-  border-top: none;
-}
-
-.feed-icon {
-  width: 34px;
-  height: 34px;
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  text-decoration: none;
+  color: var(--dark);
+  transition: all 0.15s;
+}
+
+.quick-action:hover {
+  border-color: #9ca3af;
+  transform: translateX(2px);
+}
+
+.quick-action-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.feed-icon.yellow {
-  background: var(--yellow-soft);
+.quick-action--blue .quick-action-dot {
+  background: var(--blue);
 }
-.feed-icon.red {
-  background: var(--red-soft);
+.quick-action--red .quick-action-dot {
+  background: var(--red);
 }
-.feed-icon.green {
-  background: var(--green-soft);
+.quick-action--green .quick-action-dot {
+  background: var(--green);
+}
+.quick-action--yellow .quick-action-dot {
+  background: var(--amber);
 }
 
-.feed-content {
+.quick-action-label {
   flex: 1;
-}
-
-.feed-title {
   font-size: 14px;
-  font-weight: 600;
-  color: var(--dark);
-}
-
-.feed-desc {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 2px;
-  line-height: 1.4;
-}
-
-.feed-time {
-  font-size: 12px;
-  color: var(--muted);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.quick-action-label strong {
+  font-weight: 600;
+}
+
+.quick-action-arrow {
+  color: var(--muted);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.quick-action-more {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  padding: 6px 0 0;
+}
+
 .header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: var(--green-soft);
-  color: #166534;
+  color: var(--green);
   padding: 6px 14px;
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   font-weight: 600;
 }
@@ -152,7 +161,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #22c55e;
+  background: var(--green);
   display: inline-block;
 }
 

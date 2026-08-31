@@ -133,8 +133,8 @@ function renderColumn(containerId, status) {
           "<div>" +
           wo.title +
           "</div>" +
-          '<div style="margin-top:6px; font-size:11px; color:var(--muted); display:flex; align-items:center; gap:10px;">' +
-          '<span style="display:inline-flex;align-items:center;gap:4px;">' +
+          '<div class="task-meta">' +
+          '<span class="task-meta-row">' +
           '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
           getUserName(wo.assigned_to_id) +
           "</span>" +
@@ -142,8 +142,7 @@ function renderColumn(containerId, status) {
           "</div>"
         );
       })
-      .join("") ||
-    '<div style="font-size:12px; color:var(--muted); text-align:center; padding:14px;">No work orders</div>';
+      .join("") || '<div class="empty-state">No work orders</div>';
 
   container.querySelectorAll(".task-card").forEach(function (card) {
     card.addEventListener("click", function () {
@@ -195,18 +194,25 @@ function selectWorkOrder(id) {
   setEl("selectedWOPriority", cap(wo.priority));
   setEl("selectedWOTechnician", getUserName(wo.assigned_to_id));
 
-  // Cost estimate display
+  // Cost estimate display — estimateRequired is set by the Technician
+  // Administrator when the work order is created (defaults to required for
+  // older records that predate the field), so "not required" WOs must never
+  // show a "Required" prompt or a way to submit one.
+  var estimateRequired = !(wo.details && wo.details.estimateRequired === false);
   var costStatusEl = document.getElementById("selectedWOCost");
   if (costStatusEl) {
     if (wo.details && wo.details.estimate) {
       if (wo.status === "approval") {
-        costStatusEl.innerHTML = '<span style="color:#d97706; font-weight:600;">Pending Approval (₹' + wo.details.estimate.total + ')</span>';
+        costStatusEl.innerHTML = '<span class="cost-status cost-status--pending">Pending Approval (₹' + wo.details.estimate.total + ')</span>';
       } else {
-        costStatusEl.innerHTML = '<span style="color:#10b981; font-weight:600;">Approved (₹' + wo.details.estimate.total + ')</span>';
+        costStatusEl.innerHTML = '<span class="cost-status cost-status--approved">Approved (₹' + wo.details.estimate.total + ')</span>';
       }
+    } else if (!estimateRequired) {
+      costStatusEl.innerHTML =
+        '<span class="cost-status cost-status--not-required">Not required</span>';
     } else {
       costStatusEl.innerHTML =
-        '<span style="color:#6b7280; font-weight:500;">Not yet submitted</span>';
+        '<span class="cost-status cost-status--not-submitted">Not yet submitted</span>';
     }
   }
 
@@ -215,7 +221,7 @@ function selectWorkOrder(id) {
   var costEstBlock = document.getElementById("costEstimateBlock");
   if (btnShowForm && costEstBlock) {
     costEstBlock.style.display = "none";
-    if (wo.details && wo.details.estimate) {
+    if ((wo.details && wo.details.estimate) || !estimateRequired) {
       btnShowForm.style.display = "none";
     } else {
       btnShowForm.style.display = "block";
@@ -251,7 +257,7 @@ function renderActionPanel(wo) {
       '<div class="option">' +
       "<b>Reject Task</b>" +
       "<p>Return work order to the queue.</p>" +
-      '<button class="btn btn-light btn-full" style="color:#ef4444; border-color:#ef4444;" onclick="rejectWO(\'' +
+      '<button class="btn btn-light btn-full" style="color:var(--red); border-color:var(--red);" onclick="rejectWO(\'' +
       id +
       "')\">Reject</button>" +
       "</div>";
@@ -261,7 +267,7 @@ function renderActionPanel(wo) {
       '<div class="option active" style="grid-column: span 2;">' +
       "<b>Operational</b>" +
       "<p>Document completion.</p>" +
-      '<textarea id="completionNotes" placeholder="Enter resolution details..." style="width:100%; border:1px solid #d1d5db; border-radius:4px; padding:6px; font-size:12px; margin-bottom:6px; resize:vertical; min-height:40px;"></textarea>' +
+      '<textarea id="completionNotes" placeholder="Enter resolution details..." style="min-height:60px; margin-bottom:8px;"></textarea>' +
       '<button class="btn btn-dark btn-full" onclick="submitForReview(\'' +
       id +
       "')\">Submit for Review</button>" +
@@ -383,7 +389,7 @@ function renderArchive() {
 
   if (!closed.length) {
     tbody.innerHTML =
-      '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:20px;">No archived work orders yet.</td></tr>';
+      '<tr><td colspan="5"><div class="empty-state">No archived work orders yet.</div></td></tr>';
     return;
   }
 
@@ -424,26 +430,17 @@ function setEl(id, val) {
 }
 
 function showToast(msg, type) {
-  var existing = document.getElementById("wo-toast");
-  if (existing) existing.remove();
-
-  var colors = {
-    success: "#10b981",
-    error: "#ef4444",
-    info: "#3b82f6",
-    warning: "#f59e0b",
-  };
+  var container = document.getElementById("et-toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "et-toast-container";
+    container.className = "toast-container";
+    document.body.appendChild(container);
+  }
   var toast = document.createElement("div");
-  toast.id = "wo-toast";
-  toast.style.cssText =
-    "position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;" +
-    "background:" +
-    (colors[type] || "#333") +
-    ";color:#fff;font-size:14px;" +
-    "font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:9999;" +
-    "animation:fadeIn .2s ease;";
+  toast.className = "toast toast--" + (type || "info");
   toast.textContent = msg;
-  document.body.appendChild(toast);
+  container.appendChild(toast);
   setTimeout(function () {
     toast.remove();
   }, 3500);

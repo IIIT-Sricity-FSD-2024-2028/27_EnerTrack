@@ -1,51 +1,170 @@
 /**
  * overviewPage.js
  * Handles interactivity for the Technician Overview page.
+ *
+ * Stat cards and Quick Actions are derived entirely from real backend data
+ * (/alerts, /faults, /work-orders, /service-requests) — there is no mock
+ * "live feed" here. None of these entities carry a created/updated
+ * timestamp today, so anything phrased as "in the last hour" or "today"
+ * would be fabricated; every note below is a genuine, computable breakdown
+ * instead (e.g. "3 acknowledged, 2 unread").
  */
 import TechDB from "./data/mockData.js";
 import { showToast } from "./utils/utils.js";
 
+let _alerts = [];
+let _faults = [];
+let _workOrders = [];
+let _serviceRequests = [];
+
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    await initOverview();
-    await initWorkflow1();
-    await initActiveWorkOrders();
+    await loadData();
+    renderStats();
+    renderQuickActions();
+    renderVerifyFeed();
+    wireQueueButton();
     console.log("TechOverview: Initialized.");
   } catch (err) {
     console.error("TechOverview: Init error:", err);
   }
 });
 
-function initOverview() {
-  const s = TechDB.summary;
-  const feed = TechDB.feed;
+async function loadData() {
+  try {
+    if (window.api) {
+      const [alerts, faults, workOrders, serviceRequests] = await Promise.all([
+        window.api.get("/alerts").catch(() => []),
+        window.api.get("/faults").catch(() => []),
+        window.api.get("/work-orders").catch(() => []),
+        window.api.get("/service-requests").catch(() => []),
+      ]);
+      _alerts = Array.isArray(alerts) ? alerts : [];
+      _faults = Array.isArray(faults) ? faults : [];
+      _workOrders = Array.isArray(workOrders) ? workOrders : [];
+      _serviceRequests = Array.isArray(serviceRequests) ? serviceRequests : [];
+      return;
+    }
+  } catch (err) {
+    console.warn("Backend fetch failed, using local data", err.message);
+  }
+  _workOrders = TechDB.workOrders || [];
+  _serviceRequests = TechDB.serviceRequests || [];
+}
 
-  // Populate stat cards
-  setEl("statActiveAlerts", s.activeAlerts);
-  setEl("statOpenFaults", s.openFaults);
-  setEl("statPendingWorkOrders", s.pendingWorkOrders);
-  setEl("statResolvedToday", s.resolvedToday);
+/* ── STAT CARDS ─────────────────────────────────────── */
+function renderStats() {
+  const openAlerts = _alerts.filter((a) => a.status !== "resolved");
+  const acknowledgedAlerts = openAlerts.filter(
+    (a) => a.status === "acknowledged",
+  );
+  const openFaults = _faults.filter((f) => f.status !== "resolved");
+  const pendingFaults = openFaults.filter((f) => f.status === "pending");
+  const pendingWOs = _workOrders.filter((w) => w.status !== "closed");
+  const highPriorityWOs = pendingWOs.filter(
+    (w) => w.priority === "high" || w.priority === "immediate",
+  );
+  const closedWOs = _workOrders.filter((w) => w.status === "closed");
 
-  // Populate feed
-  const feedList = document.getElementById("activityFeed");
-  if (feedList && feed.length) {
-    feedList.innerHTML = feed
-      .map(
-        (item) => `
-            <div class="feed-item">
-                <div class="feed-icon ${item.type}">${item.icon}</div>
-                <div class="feed-content">
-                    <div class="feed-title">${item.title}</div>
-                    <div class="feed-desc">${item.desc}</div>
-                </div>
-                <div class="feed-time">${item.time}</div>
-            </div>
-        `,
-      )
-      .join("");
+  setEl("statActiveAlerts", openAlerts.length);
+  setEl("statOpenFaults", openFaults.length);
+  setEl("statPendingWorkOrders", pendingWOs.length);
+  setEl("statClosedWorkOrders", closedWOs.length);
+
+  setEl(
+    "noteActiveAlerts",
+    `${acknowledgedAlerts.length} acknowledged, ${openAlerts.length - acknowledgedAlerts.length} unread`,
+  );
+  setEl("noteOpenFaults", `${pendingFaults.length} pending diagnosis`);
+  setEl("notePendingWorkOrders", `${highPriorityWOs.length} high priority`);
+  setEl(
+    "noteClosedWorkOrders",
+    `${_workOrders.length} total work order${_workOrders.length === 1 ? "" : "s"}`,
+  );
+}
+
+/* ── QUICK ACTIONS ──────────────────────────────────────
+ * Named items, not category counts — the sidebar already links to each
+ * page, and "Work orders awaiting your review" is already covered in full
+ * by the Final Verification panel above, so this only earns its place by
+ * naming *which* fault, alert, or request needs attention. */
+function renderQuickActions() {
+  const container = document.getElementById("quickActions");
+  if (!container) return;
+
+  const severityRank = { critical: 0, high: 1, immediate: 0, moderate: 2, medium: 2, low: 3 };
+  const rankOf = (v) => severityRank[v] ?? 2;
+
+  const items = [];
+
+  _serviceRequests
+    .filter((sr) => sr.status === "open" || sr.status === "pending")
+    .forEach((sr) => {
+      items.push({
+        rank: rankOf(sr.priority),
+        color: "blue",
+        title: sr.description || sr.category || "Service request",
+        meta: "User-reported",
+        href: "technician_work_orders.html",
+      });
+    });
+
+  _faults
+    .filter((f) => f.status !== "resolved")
+    .forEach((f) => {
+      items.push({
+        rank: rankOf(f.severity),
+        color: "red",
+        title: f.asset_name || f.fault_type || "Fault",
+        meta: `${cap(f.severity)} severity`,
+        href: "technician_maintenance.html",
+      });
+    });
+
+  _alerts
+    .filter((a) => a.status !== "resolved")
+    .forEach((a) => {
+      items.push({
+        rank: rankOf(a.severity),
+        color: "yellow",
+        title: a.title || "Alert",
+        meta: `${cap(a.severity)} severity`,
+        href: "technician_alerts.html",
+      });
+    });
+
+  if (items.length === 0) {
+    container.innerHTML =
+      '<div class="empty-state">Nothing waiting on you right now — the queue is clear.</div>';
+    return;
   }
 
-  // Open Queue button
+  items.sort((a, b) => a.rank - b.rank);
+  const shown = items.slice(0, 6);
+  const remaining = items.length - shown.length;
+
+  container.innerHTML =
+    shown
+      .map(
+        (item) => `
+      <a class="quick-action quick-action--${item.color}" href="${item.href}">
+        <span class="quick-action-dot"></span>
+        <span class="quick-action-label"><strong>${item.title}</strong> — ${item.meta}</span>
+        <span class="quick-action-arrow">→</span>
+      </a>`,
+      )
+      .join("") +
+    (remaining > 0
+      ? `<div class="quick-action-more">+${remaining} more across alerts, faults, and requests</div>`
+      : "");
+}
+
+function cap(str) {
+  if (!str) return "—";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function wireQueueButton() {
   document.getElementById("btnOpenQueue")?.addEventListener("click", () => {
     window.location.href = "technician_work_orders.html";
   });
@@ -66,29 +185,11 @@ function formatID(id, prefix) {
   return prefix + "-" + id.substring(0, 4).toUpperCase();
 }
 
-// ── TECH ADMIN: TRIAGE & DISPATCH ──────────────────────
-// ── TECH ADMIN: TRIAGE & DISPATCH ──────────────────────
-async function initWorkflow1() {
-  let srs = [];
-  let wos = [];
+/* ── FINAL VERIFICATION ─────────────────────────────── */
+function renderVerifyFeed() {
+  const srs = _serviceRequests;
+  const wos = _workOrders;
 
-  try {
-    if (window.api) {
-      const [srsRes, wosRes] = await Promise.all([
-        window.api.get("/service-requests"),
-        window.api.get("/work-orders"),
-      ]);
-      if (Array.isArray(srsRes)) srs = srsRes;
-      if (Array.isArray(wosRes)) wos = wosRes;
-    }
-  } catch (err) {
-    console.warn("Backend fetch failed, using local data", err.message);
-  }
-
-  if (!srs.length) srs = TechDB.serviceRequests;
-  if (!wos.length) wos = TechDB.workOrders;
-
-  // Verify Feed — items completed by technician
   const pendingVerifySRs = srs.filter(
     (sr) => sr.status === "Work Complete (Awaiting Validation)",
   );
@@ -97,52 +198,53 @@ async function initWorkflow1() {
   );
   const verifyFeed = document.getElementById("verifyFeed");
 
-  if (verifyFeed) {
-    if (pendingVerifySRs.length === 0 && pendingVerifyWOs.length === 0) {
-      verifyFeed.innerHTML =
-        '<div style="padding:16px;color:#6b7280;font-size:14px;">No completed jobs awaiting verification.</div>';
-    } else {
-      let html = "";
+  if (!verifyFeed) return;
 
-      html += pendingVerifySRs
-        .map((sr) => {
-          const srId = sr.service_request_id || sr.id;
-          const location = sr.location || "Unknown";
-          const category = sr.category || "General";
-          return `
-                <div style="padding:16px;border-bottom:1px solid var(--border);">
-                    <h4 style="margin:0 0 4px;">${formatID(srId, "SR")} — ${location} (${category})</h4>
-                    <p style="margin:0 0 8px;font-size:13px;color:#555;">
-                        Completed by <strong>${sr.assignedTo || "Technician"}</strong>. Awaiting quality check.
-                    </p>
-                    <button class="btn btn-dark" onclick="verifyJob('${srId}')">
-                        Verify & Authorize Payment
-                    </button>
-                </div>
-            `;
-        })
-        .join("");
-
-      html += pendingVerifyWOs
-        .map((wo) => {
-          const woId = wo.work_order_id || wo.id;
-          return `
-                <div style="padding:16px;border-bottom:1px solid var(--border);">
-                    <h4 style="margin:0 0 4px;">${formatID(woId, "WO")} — ${wo.title} (${wo.details?.type || "General"})</h4>
-                    <p style="margin:0 0 8px;font-size:13px;color:#555;">
-                        Completed by <strong>${wo.technician || "Technician"}</strong>. Awaiting quality check.
-                    </p>
-                    <button class="btn btn-dark" onclick="verifyWO('${woId}')">
-                        Verify & Close Work Order
-                    </button>
-                </div>
-            `;
-        })
-        .join("");
-
-      verifyFeed.innerHTML = html;
-    }
+  if (pendingVerifySRs.length === 0 && pendingVerifyWOs.length === 0) {
+    verifyFeed.innerHTML =
+      '<div class="empty-state">No completed jobs awaiting verification.</div>';
+    return;
   }
+
+  let html = "";
+
+  html += pendingVerifySRs
+    .map((sr) => {
+      const srId = sr.service_request_id || sr.id;
+      const location = sr.location || "Unknown";
+      const category = sr.category || "General";
+      return `
+            <div style="padding:16px;border-bottom:1px solid var(--border);">
+                <h4 style="margin:0 0 4px;">${formatID(srId, "SR")} — ${location} (${category})</h4>
+                <p style="margin:0 0 8px;font-size:13px;color:var(--muted);">
+                    Completed by <strong>${sr.assignedTo || "Technician"}</strong>. Awaiting quality check.
+                </p>
+                <button class="btn btn-dark" onclick="verifyJob('${srId}')">
+                    Verify &amp; Authorize Payment
+                </button>
+            </div>
+        `;
+    })
+    .join("");
+
+  html += pendingVerifyWOs
+    .map((wo) => {
+      const woId = wo.work_order_id || wo.id;
+      return `
+            <div style="padding:16px;border-bottom:1px solid var(--border);">
+                <h4 style="margin:0 0 4px;">${formatID(woId, "WO")} — ${wo.title} (${wo.details?.type || "General"})</h4>
+                <p style="margin:0 0 8px;font-size:13px;color:var(--muted);">
+                    Completed by <strong>${wo.technician || "Technician"}</strong>. Awaiting quality check.
+                </p>
+                <button class="btn btn-dark" onclick="verifyWO('${woId}')">
+                    Verify &amp; Close Work Order
+                </button>
+            </div>
+        `;
+    })
+    .join("");
+
+  verifyFeed.innerHTML = html;
 }
 
 window.verifyJob = async function (id) {
@@ -156,7 +258,10 @@ window.verifyJob = async function (id) {
           "Work verified. Sent to Financial Analyst for payment.",
           "success",
         );
-        initWorkflow1();
+        await loadData();
+        renderVerifyFeed();
+        renderStats();
+        renderQuickActions();
         return;
       }
     }
@@ -167,7 +272,7 @@ window.verifyJob = async function (id) {
   if (sr) {
     sr.status = "Validated (Awaiting Payment)";
     TechDB.save();
-    initWorkflow1();
+    renderVerifyFeed();
     showToast(
       "Work verified. Sent to Financial Analyst for payment.",
       "success",
@@ -184,9 +289,10 @@ window.verifyWO = async function (id) {
       });
       if (res && !res.error) {
         showToast("Work order verified and closed.", "success");
-        initWorkflow1();
-        initOverview();
-        initActiveWorkOrders();
+        await loadData();
+        renderVerifyFeed();
+        renderStats();
+        renderQuickActions();
         return;
       }
     }
@@ -196,61 +302,9 @@ window.verifyWO = async function (id) {
   const wo = TechDB.workOrders.find((w) => w.id === id);
   if (wo) {
     TechDB.closeWorkOrder(id);
-    initWorkflow1();
-    initOverview(); // Update stats
-    initActiveWorkOrders(); // Refresh list
+    renderVerifyFeed();
+    renderStats();
+    renderQuickActions();
     showToast("Work order verified and closed.", "success");
   }
 };
-
-async function initActiveWorkOrders() {
-  const list = document.getElementById("activeWOsList");
-  if (!list) return;
-
-  let wos = [];
-  try {
-    if (window.api) {
-      const res = await window.api.get("/work-orders");
-      if (Array.isArray(res)) wos = res;
-    }
-  } catch (err) {
-    console.warn("Backend fetch failed, using local data", err);
-  }
-  if (!wos.length) wos = TechDB.workOrders;
-
-  // Filter for work orders that are NOT closed/archived
-  const active = wos.filter((wo) => wo.status !== "closed");
-
-  if (active.length === 0) {
-    list.parentElement.style.display = "none";
-    return;
-  }
-
-  list.parentElement.style.display = "block";
-
-  list.innerHTML = active
-    .slice(0, 6)
-    .map((wo) => {
-      const woId = wo.work_order_id || wo.id;
-      return `
-        <div style="padding:14px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
-                <span style="font-size:12px; font-weight:700; color:#111827;">${formatID(woId, "WO")}</span>
-                <span class="badge ${wo.status === "new" ? "new" : wo.status === "review" ? "review" : "inprogress"}" style="font-size:10px;">${wo.status.toUpperCase()}</span>
-            </div>
-            <h4 style="margin:0 0 4px; font-size:13px; color:#111827; line-height:1.4;">${wo.title}</h4>
-            <div style="font-size:11px; color:#6b7280; display:flex; align-items:center; gap:8px; margin-top:8px;">
-                <span style="display:inline-flex; align-items:center; gap:3px;">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    ${wo.technician || "Unassigned"}
-                </span>
-                <span style="display:inline-flex; align-items:center; gap:3px; color:${wo.priority === "high" ? "#b91c1c" : "#6b7280"}">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    ${wo.priority}
-                </span>
-            </div>
-        </div>
-    `;
-    })
-    .join("");
-}

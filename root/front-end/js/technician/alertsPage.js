@@ -7,6 +7,7 @@ import { showToast, openModal } from "./utils/utils.js";
 
 let selectedAlertId = null;
 let _alerts = [];
+let _loadFailed = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -26,6 +27,7 @@ async function loadAlerts() {
   } catch (err) {
     console.warn("[TechAlerts] Backend unavailable:", err.message);
     _alerts = [];
+    _loadFailed = true;
   }
 
   renderQueue();
@@ -56,11 +58,16 @@ function renderQueue() {
   const tbody = document.getElementById("alertQueueBody");
   if (!tbody) return;
 
+  if (_loadFailed) {
+    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">Couldn't reach the server — try refreshing the page.</div></td></tr>`;
+    return;
+  }
+
   const openAlerts = _alerts.filter(
     (a) => (a.status || "").toLowerCase() === "open",
   );
   if (!openAlerts.length) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:20px;">No open alerts <svg width="14" height="14" style="vertical-align:middle; margin-left:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">No open alerts — the queue is clear.</div></td></tr>`;
     return;
   }
 
@@ -93,6 +100,11 @@ function renderHistoryLog() {
     const s = (a.status || "").toLowerCase();
     return s === "acknowledged" || s === "resolved";
   });
+
+  if (!historyAlerts.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No acknowledged or resolved alerts yet.</div></td></tr>`;
+    return;
+  }
 
   const sevScore = { critical: 3, high: 3, moderate: 2, medium: 2, low: 1 };
   historyAlerts.sort(

@@ -76,7 +76,7 @@ uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
   @ApiResponse({ status: 200, description: "Array of all meter reading records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Technician", "Financial Analyst", "Sustainability Officer")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Financial Analyst", "Sustainability Officer")
   findAll() {
     return this.meterReadingsService.findAll();
   }
@@ -87,7 +87,7 @@ uploadSpreadsheet(@UploadedFile() file: Express.Multer.File) {
   @ApiResponse({ status: 404, description: "Meter reading with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Technician", "Financial Analyst", "Sustainability Officer")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Financial Analyst", "Sustainability Officer")
   findOne(@Param("id") id: string) {
     return this.meterReadingsService.findOne(id);
   }
