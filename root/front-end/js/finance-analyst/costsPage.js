@@ -15,14 +15,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Hydrate from backend before rendering
   if (window.api) {
     try {
-      const [energyCosts, invoices] = await Promise.all([
+      const [energyCosts, invoices, departments, buildings] = await Promise.all([
         window.api.get("/energy-costs").catch(() => null),
         window.api.get("/invoices").catch(() => null),
+        window.api.get("/departments").catch(() => []),
+        window.api.get("/buildings").catch(() => []),
       ]);
+
+      // Real names, looked up rather than trusted from a stored label — a
+      // record's own scope_label/department_label can be missing (older
+      // rows, or ones created before this lookup existed), and a slice of
+      // a UUID is not a name (every seeded id here ends "...-000000000000",
+      // so slice(-4) produced "0000" for every single row).
+      const deptName = Object.fromEntries(
+        (Array.isArray(departments) ? departments : []).map((d) => [
+          d.department_id,
+          d.name,
+        ]),
+      );
+      const buildingName = Object.fromEntries(
+        (Array.isArray(buildings) ? buildings : []).map((b) => [
+          b.building_id,
+          b.name,
+        ]),
+      );
 
       // ── Normalize Energy Costs ──────────────────────────────────────────
       // Backend sends: { energy_cost_id, period, electricity, gas, water,
-      //   status, building_id, department_id }
+      //   status, building_id, department_id, scope_label }
       // Frontend needs: { id, period, scope, scopeRef, scopeLabel,
       //   electricity, gas, water, wastewater, demand, total, budget, variance, status }
       if (Array.isArray(energyCosts)) {
@@ -42,10 +62,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           const hasDept   = !!rec.department_id;
           const scope     = rec.scope || (hasDept ? "department" : "building");
           const scopeRef  = rec.scopeRef || rec.department_id || rec.building_id || "";
-          const scopeLabel= rec.scopeLabel
+          const scopeLabel= rec.scope_label
+                          || (hasDept ? deptName[rec.department_id] : buildingName[rec.building_id])
                           || (hasDept
-                              ? "Dept " + (rec.department_id || "").slice(-4)
-                              : "Bldg " + (rec.building_id  || "").slice(-4));
+                              ? "Department " + scopeRef.slice(0, 8)
+                              : "Building " + scopeRef.slice(0, 8));
 
           // Normalize status string (backend uses UNDER_BUDGET / OVER_BUDGET / ON_BUDGET)
           const rawStatus = (rec.status || "").toLowerCase().replace(/_/g, "-");
@@ -73,7 +94,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       // ── Normalize Invoices ──────────────────────────────────────────────
-      // Backend sends: { invoice_id, invoice_number, vendor, amount, status, department_id }
+      // Backend sends: { invoice_id, invoice_number, vendor, amount, status, department_id, department_label }
       // Frontend needs: { id, invoiceNumber, vendor, amount, status, department, departmentLabel }
       if (Array.isArray(invoices)) {
         universalDB.data.finance.invoices = invoices.map((inv) => ({
@@ -82,8 +103,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           vendor:         inv.vendor || "—",
           amount:         Number(inv.amount) || 0,
           department:     inv.department_id || inv.department || "",
-          departmentLabel: inv.departmentLabel
-                          || (inv.department_id ? "Dept " + inv.department_id.slice(-4) : "—"),
+          departmentLabel: inv.department_label
+                          || deptName[inv.department_id]
+                          || (inv.department_id ? "Department " + inv.department_id.slice(0, 8) : "—"),
           type:           inv.type || "utility",
           dueDate:        inv.due_date || inv.dueDate || null,
           issuedDate:     inv.issued_date || inv.issuedDate || null,

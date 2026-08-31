@@ -31,7 +31,6 @@ import {
   RespondToProposalDto,
   SendProposalDto,
   UpdateFindingDto,
-  UpdateSurveyDto,
 } from "./dto/audit-sub-resource.dto";
 
 /**
@@ -82,11 +81,6 @@ export class EnergyAuditsService {
       status: createDto.status,
       scheduled_on: createDto.scheduled_on ?? null,
       conducted_on: createDto.conducted_on ?? null,
-      survey: (createDto.survey as any) ?? {
-        data_source_tier: null,
-        floor_area_sqm: null,
-        notes: null,
-      },
       findings: (createDto.findings as any) ?? [],
       proposal: null,
       summary: createDto.summary ?? null,
@@ -145,14 +139,6 @@ export class EnergyAuditsService {
       );
 
     return this.database.energyAudits.splice(index, 1)[0];
-  }
-
-  /* ── Survey ────────────────────────────────────────────────────── */
-
-  updateSurvey(id: string, dto: UpdateSurveyDto) {
-    const audit = this.findOne(id);
-    audit.survey = { ...audit.survey, ...(dto as any) };
-    return audit.survey;
   }
 
   /* ── Findings ──────────────────────────────────────────────────── */
@@ -252,8 +238,8 @@ export class EnergyAuditsService {
    * An Organization Admin asks EnerTrack to come and look at their site.
    *
    * This is the first move in the whole engagement, and it is the client's
-   * to make. Everything downstream — the survey, the recommendations, the
-   * proposal, the subscription — hangs off this one record.
+   * to make. Everything downstream — the recommendations, the proposal, the
+   * subscription — hangs off this one record.
    *
    * Refused while an engagement is already open, because two auditors
    * surveying the same estate in parallel would produce two proposals and no
@@ -301,14 +287,9 @@ export class EnergyAuditsService {
       status: AuditStatus.SCHEDULED,
       scheduled_on: null,
       conducted_on: null,
-      survey: {
-        data_source_tier: null,
-        floor_area_sqm: org.floor_area_sqm,
-        notes: note?.trim() || null,
-      },
       findings: [],
       proposal: null,
-      summary: null,
+      summary: note?.trim() || null,
     };
     this.database.energyAudits.push(audit);
 

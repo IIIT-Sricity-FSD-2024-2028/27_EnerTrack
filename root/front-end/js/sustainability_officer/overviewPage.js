@@ -37,14 +37,23 @@ document.addEventListener("DOMContentLoaded", () => {
 async function renderOverview() {
   // Fetch sustainability metrics from backend
   try {
-    const [metricsRes, initsRes] = await Promise.all([
+    // window.api already unwraps the {success, data} envelope (see
+    // shared/api.js) — metricsRes/initsRes ARE the arrays, not a wrapper
+    // around them. Checking `.success`/`.data` on them was always false,
+    // so this silently fell through to the SustDB fallback below on every
+    // single load, for every organisation — which is why it looked
+    // hardcoded: it was, just not on purpose.
+    const [metrics, initiatives] = await Promise.all([
       window.api.get("/sustainability-metrics"),
       window.api.get("/initiatives"),
     ]);
 
-    if (metricsRes.success && metricsRes.data.length > 0) {
-      // Use the latest period record
-      const latest = metricsRes.data[metricsRes.data.length - 1];
+    if (Array.isArray(metrics) && metrics.length > 0) {
+      // Latest by period, not by array position — the seed data isn't
+      // stored in chronological order.
+      const latest = [...metrics].sort((a, b) =>
+        String(b.period).localeCompare(String(a.period)),
+      )[0];
       setText("val-energy", latest.energy_consumed, " <small>GWh</small>");
       setText("val-water", latest.water_usage, " <small>ML</small>");
       setText("val-emissions", latest.emissions, " <small>tCO₂e</small>");
@@ -63,8 +72,8 @@ async function renderOverview() {
       );
     }
 
-    if (initsRes.success) {
-      const activeCount = initsRes.data.filter(
+    if (Array.isArray(initiatives)) {
+      const activeCount = initiatives.filter(
         (i) => i.status !== "completed",
       ).length;
       setText("val-initiatives", activeCount);

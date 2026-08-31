@@ -10,12 +10,23 @@ import {
 } from "../utils/ui.js";
 import universalDB from "../../shared/universalDB.js";
 
+/**
+ * Filter/sort choices, kept across re-renders the same way ORG_NAMES is —
+ * this is a view concern local to the table, not app data, so it lives
+ * here rather than round-tripping through app.update().
+ */
+let filters = { organization_id: "", role: "", sort: "name-asc" };
+
 export function renderUserManagement(container, app) {
   ORG_NAMES = Object.fromEntries(
     (app.state.organizations || []).map((o) => [o.organization_id, o.name]),
   );
 
-  const rows = app.state.users.map(renderUserRow).join("");
+  const orgs = app.state.organizations || [];
+  const allUsers = app.state.users || [];
+  const rows = applyFiltersAndSort(allUsers);
+  const rowsHtml = rows.map(renderUserRow).join("");
+  const filtersActive = filters.organization_id || filters.role;
 
   container.innerHTML = `
     <section class="dashboard-section">
@@ -25,6 +36,50 @@ export function renderUserManagement(container, app) {
           <p>Uses the backend User table shape: user_id, name, email, phone, password, role, specialization.</p>
         </div>
         <button class="btn-dark" type="button" data-action="add-user">Add User</button>
+      </div>
+
+      <div class="table-card" style="padding:16px 20px; margin-bottom:16px; display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap">
+        ${
+          isSuperAdmin()
+            ? `<div class="form-field" style="margin-bottom:0; min-width:200px">
+                 <label for="userFilterOrg">Organisation</label>
+                 <select id="userFilterOrg">
+                   <option value="">All organisations</option>
+                   ${orgs
+                     .map(
+                       (o) =>
+                         `<option value="${escapeHtml(o.organization_id)}" ${filters.organization_id === o.organization_id ? "selected" : ""}>${escapeHtml(o.name)}</option>`,
+                     )
+                     .join("")}
+                 </select>
+               </div>`
+            : ""
+        }
+        <div class="form-field" style="margin-bottom:0; min-width:180px">
+          <label for="userFilterRole">Role</label>
+          <select id="userFilterRole">
+            <option value="">All roles</option>
+            ${USER_ROLES.map(
+              (role) =>
+                `<option value="${escapeHtml(role)}" ${filters.role === role ? "selected" : ""}>${escapeHtml(role)}</option>`,
+            ).join("")}
+          </select>
+        </div>
+        <div class="form-field" style="margin-bottom:0; min-width:180px">
+          <label for="userSort">Sort by</label>
+          <select id="userSort">
+            <option value="name-asc" ${filters.sort === "name-asc" ? "selected" : ""}>Name (A&ndash;Z)</option>
+            <option value="name-desc" ${filters.sort === "name-desc" ? "selected" : ""}>Name (Z&ndash;A)</option>
+            <option value="org" ${filters.sort === "org" ? "selected" : ""}>Organisation</option>
+            <option value="role" ${filters.sort === "role" ? "selected" : ""}>Role</option>
+          </select>
+        </div>
+        ${
+          filtersActive
+            ? `<button class="btn-outline" type="button" id="clearUserFilters">Clear filters</button>`
+            : ""
+        }
+        <span class="muted-cell" style="margin-left:auto">Showing ${rows.length} of ${allUsers.length}</span>
       </div>
 
       <div class="table-card">
@@ -42,7 +97,7 @@ export function renderUserManagement(container, app) {
               </tr>
             </thead>
             <tbody>
-              ${rows || `<tr><td colspan="7"><div class="empty-state">No users found.</div></td></tr>`}
+              ${rowsHtml || `<tr><td colspan="7"><div class="empty-state">${filtersActive ? "No users match these filters." : "No users found."}</div></td></tr>`}
             </tbody>
           </table>
         </div>
@@ -66,6 +121,51 @@ export function renderUserManagement(container, app) {
   container.querySelectorAll("[data-act-as]").forEach((button) => {
     button.addEventListener("click", () => actAs(button.dataset.actAs, app));
   });
+
+  container.querySelector("#userFilterOrg")?.addEventListener("change", (e) => {
+    filters.organization_id = e.target.value;
+    renderUserManagement(container, app);
+  });
+  container.querySelector("#userFilterRole")?.addEventListener("change", (e) => {
+    filters.role = e.target.value;
+    renderUserManagement(container, app);
+  });
+  container.querySelector("#userSort")?.addEventListener("change", (e) => {
+    filters.sort = e.target.value;
+    renderUserManagement(container, app);
+  });
+  container.querySelector("#clearUserFilters")?.addEventListener("click", () => {
+    filters = { organization_id: "", role: "", sort: filters.sort };
+    renderUserManagement(container, app);
+  });
+}
+
+/** Filtering by organisation/role, then sorting — a pure view over the
+ * data app.state already holds, so it never touches the backend. */
+function applyFiltersAndSort(users) {
+  let rows = users.filter((u) => {
+    if (filters.organization_id && u.organization_id !== filters.organization_id)
+      return false;
+    if (filters.role && u.role !== filters.role) return false;
+    return true;
+  });
+
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  rows = [...rows].sort((a, b) => {
+    switch (filters.sort) {
+      case "name-desc":
+        return b.name.localeCompare(a.name);
+      case "org":
+        return orgName(a.organization_id).localeCompare(orgName(b.organization_id)) || byName(a, b);
+      case "role":
+        return formatLabel(a.role).localeCompare(formatLabel(b.role)) || byName(a, b);
+      case "name-asc":
+      default:
+        return byName(a, b);
+    }
+  });
+
+  return rows;
 }
 
 /** True when the signed-in user is EnerTrack's platform operator. */
@@ -269,7 +369,9 @@ function openAddUserModal(app) {
           password: values.password,
           role: values.role,
           specialization:
-            values.role === "Technician" ? values.specialization : null,
+            values.role === "Technician" || values.role === "Technician Administrator"
+            ? values.specialization
+            : null,
         };
         if (needsOrgPicker) payload.organization_id = values.organization_id;
         try {
@@ -398,7 +500,9 @@ function openEditUserModal(userId, app) {
           password: values.password,
           role: values.role,
           specialization:
-            values.role === "Technician" ? values.specialization : null,
+            values.role === "Technician" || values.role === "Technician Administrator"
+            ? values.specialization
+            : null,
         };
         if (needsOrgPicker) payload.organization_id = values.organization_id;
         try {
@@ -507,7 +611,10 @@ function validateUser(values, existingUsers, options = {}) {
   }
   if (!USER_ROLES.includes(values.role))
     errors.role = "Select a valid DB role.";
-  if (values.role === "Technician" && values.specialization.length < 2) {
+  if (
+    (values.role === "Technician" || values.role === "Technician Administrator") &&
+    values.specialization.length < 2
+  ) {
     errors.specialization = "Technician specialization is required.";
   }
   if (!values.password || values.password.length < 8)
@@ -550,7 +657,10 @@ function validateUserEdit(values, existingUsers, userId) {
   }
   if (!USER_ROLES.includes(values.role))
     errors.role = "Select a valid DB role.";
-  if (values.role === "Technician" && values.specialization.length < 2) {
+  if (
+    (values.role === "Technician" || values.role === "Technician Administrator") &&
+    values.specialization.length < 2
+  ) {
     errors.specialization = "Technician specialization is required.";
   }
   if (!values.password || values.password.length < 8)
@@ -596,7 +706,9 @@ function updateCurrentUserSession(userId, values) {
         password: values.password,
         role: values.role,
         specialization:
-          values.role === "Technician" ? values.specialization : null,
+          values.role === "Technician" || values.role === "Technician Administrator"
+            ? values.specialization
+            : null,
       }),
     );
   } catch (e) {

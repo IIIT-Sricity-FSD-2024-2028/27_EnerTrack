@@ -41,6 +41,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+  // Wired here, before any of the early returns below, since the sidebar
+  // is on screen regardless of whether this account turns out to have an
+  // organisation or a live subscription — every other finance-analyst
+  // page wires this on load, and this one never had.
+  wireNavigation();
+
   root.innerHTML = `<div class="sub" style="padding:24px 0">Loading your subscription…</div>`;
 
   const orgId = user.organization_id;
@@ -98,6 +104,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   render();
 });
+
+/**
+ * The sidebar's nav items are plain <div data-page="..."> elements, not
+ * links, on every finance-analyst page — so without this, clicking one
+ * does nothing. Every other page in this section wires it; this one
+ * simply never had it.
+ */
+function wireNavigation() {
+  document.querySelectorAll(".menu-item[data-page]").forEach((item) => {
+    item.addEventListener("click", () => {
+      window.location.href = item.dataset.page;
+    });
+  });
+}
 
 function currentUser() {
   try {

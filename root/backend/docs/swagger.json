@@ -1244,7 +1244,7 @@
       "post": {
         "operationId": "EnergyAuditsController_create",
         "summary": "Create Energy Audit",
-        "description": "Schedules a certified audit against a client organisation. The auditor then records a site survey and a list of recommendations.",
+        "description": "Schedules a certified audit against a client organisation. The auditor then records the estate's infrastructure and a list of recommendations.",
         "parameters": [
           {
             "name": "x-role",
@@ -1369,7 +1369,7 @@
       "get": {
         "operationId": "EnergyAuditsController_findOne",
         "summary": "Get Energy Audit by ID",
-        "description": "One audit with its site survey and recommendations.",
+        "description": "One audit with its recommendations.",
         "parameters": [
           {
             "name": "id",
@@ -1541,56 +1541,6 @@
           },
           "409": {
             "description": "Audit holds implemented recommendations."
-          }
-        },
-        "tags": [
-          "energy-audits"
-        ]
-      }
-    },
-    "/api/energy-audits/{id}/survey": {
-      "patch": {
-        "operationId": "EnergyAuditsController_updateSurvey",
-        "summary": "Update Site Survey",
-        "description": "Records what the auditor found on site: buildings walked, meters located, existing metering tier and floor area.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin write; the audited client reads.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateSurveyDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Survey updated."
-          },
-          "403": {
-            "description": "Forbidden (RBAC)"
-          },
-          "404": {
-            "description": "Audit not found."
           }
         },
         "tags": [
@@ -7925,7 +7875,6 @@
           "type": "University",
           "location": "Sri City, Andhra Pradesh",
           "status": "active",
-          "data_source_tier": "bms-integration",
           "floor_area_sqm": 42000,
           "tariff_rate": 8.5,
           "contract_start": "2025-01-01"
@@ -7947,7 +7896,6 @@
           "type": "University",
           "location": "Sri City, Andhra Pradesh",
           "status": "active",
-          "data_source_tier": "bms-integration",
           "floor_area_sqm": 42000,
           "tariff_rate": 8.5,
           "contract_start": "2025-01-01"
@@ -7978,10 +7926,6 @@
         "properties": {}
       },
       "CreateEnergyAuditDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateSurveyDto": {
         "type": "object",
         "properties": {}
       },
@@ -8409,7 +8353,12 @@
           "electricity": 1000,
           "gas": 200,
           "water": 150,
-          "status": "on-budget"
+          "status": "on-budget",
+          "total": 1350,
+          "budget": 1400,
+          "variance": 50,
+          "scope": "department",
+          "scope_label": "Department 2"
         }
       },
       "PutEnergyCostDto": {
@@ -8427,7 +8376,12 @@
           "electricity": 1000,
           "gas": 200,
           "water": 150,
-          "status": "on-budget"
+          "status": "on-budget",
+          "total": 1350,
+          "budget": 1400,
+          "variance": 50,
+          "scope": "department",
+          "scope_label": "Department 2"
         }
       },
       "CreateInvoiceDto": {

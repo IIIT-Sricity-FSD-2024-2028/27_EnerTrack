@@ -78,6 +78,7 @@ export const USER_ROLES = [
   "Organization Admin",
   "Financial Analyst",
   "Technician",
+  "Technician Administrator",
   "Sustainability Officer",
   "Campus Visitor",
 ];

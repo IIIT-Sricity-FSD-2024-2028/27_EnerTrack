@@ -421,14 +421,13 @@ describe('Subscription model (e2e)', () => {
   });
 
   describe('Audits carry no billing', () => {
-    it('exposes surveys and recommendations, and nothing about money', async () => {
+    it('exposes recommendations, and nothing about money', async () => {
       const res = await request(server())
         .get('/api/energy-audits/audit-001')
         .set('x-role', 'Certified Energy Auditor')
         .expect(200);
 
       const audit = res.body.data;
-      expect(audit.survey).toBeDefined();
       expect(audit.findings.length).toBeGreaterThan(0);
       // The whole point of the simplification: an audit is a service, not a
       // priced instrument.

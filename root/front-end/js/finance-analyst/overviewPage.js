@@ -1,12 +1,11 @@
 /**
  * overviewPage.js
  * Entry-point for the Finance Overview page (finance_overview.html).
- * Initialises session, renders activity log, and summary metrics.
+ * Initialises session and renders summary metrics.
  */
 
 import FinanceDB from "./data/mockData.js";
 import SessionModule from "./modules/session.js";
-import { renderActivityList } from "./modules/activity.js";
 import {
   formatCurrency,
   showToast,
@@ -28,7 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.FinanceDB = FinanceDB;
 
   SessionModule.initSession();
-  renderActivityList();
   renderSummaryCards();
   renderDeptBars();
   renderFinanceWorkflow();
@@ -296,27 +294,60 @@ window.authorizePayment = async function (id) {
 
 /* ── SUMMARY CARDS ────────────────────────────────── */
 
-function renderSummaryCards() {
-  const costs = FinanceDB.energyCosts;
-  const reports = FinanceDB.financialReports;
-  const invoices = FinanceDB.invoices;
+/**
+ * Pulled from the real API rather than FinanceDB (a static, non-tenant
+ * -scoped mock module) — every Financial Analyst was seeing the same
+ * numbers regardless of which organisation they belonged to, since the
+ * mock data never varied by caller. /energy-costs and /financial-reports
+ * are tenant-scoped the same way every other real endpoint on this
+ * dashboard already is.
+ */
+async function renderSummaryCards() {
+  let costs = [];
+  let reports = [];
+  try {
+    if (window.api) {
+      const [costsRes, reportsRes] = await Promise.all([
+        window.api.get("/energy-costs"),
+        window.api.get("/financial-reports"),
+      ]);
+      if (Array.isArray(costsRes)) costs = costsRes;
+      if (Array.isArray(reportsRes)) reports = reportsRes;
+    }
+  } catch (e) {
+    console.error("API error fetching cost summary", e);
+  }
+
+  if (costs.length === 0) {
+    _setText("card-energy-cost", "—");
+    _setText("card-savings", "—");
+    _setText("card-roi", "—");
+    _setText("card-variance", "—");
+    return;
+  }
 
   // Latest month totals
   const allPeriods = [...new Set(costs.map((c) => c.period))].sort().reverse();
   const latestPeriod = allPeriods[0] || "—";
   const records = costs.filter((c) => c.period === latestPeriod);
 
-  const totalCost = records.reduce((s, c) => s + c.total, 0);
-  const totalBudget = records.reduce((s, c) => s + c.budget, 0);
+  const totalCost = records.reduce(
+    (s, c) => s + (c.total ?? c.electricity + c.gas + c.water),
+    0,
+  );
+  const totalBudget = records.reduce((s, c) => s + (c.budget || 0), 0);
   const variance = totalBudget - totalCost;
   const totalSavings = records
-    .filter((c) => c.variance > 0)
-    .reduce((s, c) => s + c.variance, 0);
-  const latestROI = reports[0]?.roi ?? 0;
+    .filter((c) => (c.variance ?? 0) > 0)
+    .reduce((s, c) => s + (c.variance || 0), 0);
+  // roi arrives as a formatted string ("15%") from the API — normalise so
+  // it isn't accidentally doubled up ("15%%").
+  const latestROI =
+    reports.length > 0 ? String(reports[0].roi ?? "—").replace(/%+$/, "") : null;
 
   _setText("card-energy-cost", formatCurrency(totalCost));
   _setText("card-savings", formatCurrency(totalSavings));
-  _setText("card-roi", latestROI + "%");
+  _setText("card-roi", latestROI !== null ? `${latestROI}%` : "—");
   _setText(
     "card-variance",
     (variance >= 0 ? "+" : "") + formatCurrency(variance),
@@ -332,34 +363,49 @@ function renderSummaryCards() {
 
 /* ── DEPT BARS ────────────────────────────────────── */
 
-function renderDeptBars() {
-  const allPeriods = [...new Set(FinanceDB.energyCosts.map((c) => c.period))]
-    .sort()
-    .reverse();
+async function renderDeptBars() {
+  const container = document.getElementById("dept-bars");
+  if (!container) return;
+
+  let costs = [];
+  try {
+    if (window.api) {
+      const res = await window.api.get("/energy-costs");
+      if (Array.isArray(res)) costs = res;
+    }
+  } catch (e) {
+    console.error("API error fetching department costs", e);
+  }
+
+  const allPeriods = [...new Set(costs.map((c) => c.period))].sort().reverse();
   const latestPeriod = allPeriods[0];
-  const costs = FinanceDB.energyCosts.filter(
+  const records = costs.filter(
     (c) => c.scope === "department" && c.period === latestPeriod,
   );
 
-  const container = document.getElementById("dept-bars");
-  if (!container || costs.length === 0) return;
+  if (records.length === 0) {
+    container.innerHTML =
+      '<div style="padding:20px;color:#8a95a2;font-size:14px;text-align:center;">No department cost records yet.</div>';
+    return;
+  }
 
   const titleEl = container.parentElement.querySelector(".section-title");
   if (titleEl && latestPeriod) {
     titleEl.childNodes[0].textContent = `Cost by Department (${latestPeriod})`;
   }
 
-  const max = Math.max(...costs.map((c) => c.total));
+  const max = Math.max(...records.map((c) => c.total ?? 0));
   const colors = ["#111827", "#f59e0b", "#10b981", "#6366f1", "#ef4444"];
 
-  container.innerHTML = costs
+  container.innerHTML = records
     .map((c, i) => {
-      const pct = Math.round((c.total / max) * 100);
+      const total = c.total ?? 0;
+      const pct = max > 0 ? Math.round((total / max) * 100) : 0;
       return `
       <div class="cost-row">
         <div class="cost-top">
-          <span>${c.scopeLabel}</span>
-          <span>${formatCurrency(c.total)}</span>
+          <span>${c.scope_label || "—"}</span>
+          <span>${formatCurrency(total)}</span>
         </div>
         <div class="bar">
           <div class="fill" style="background:${colors[i % colors.length]};width:${pct}%"></div>

@@ -1,10 +1,18 @@
 /**
  * auditsPage.js
- * Certified Energy Auditor — survey and recommendations.
+ * Certified Energy Auditor — infrastructure and recommendations.
  *
  * The auditor's whole job, on one page: record what the site actually
  * looks like, then write up what should be done about it. The client's own
  * facilities team carries the work out and marks each measure done.
+ *
+ * There used to be a separate "site survey" step here — a typed headcount
+ * of buildings/meters, a metering-tier guess, and a floor-area copy. All
+ * three either duplicated data that lives elsewhere (buildings/meters are
+ * now real records in the Infrastructure section below; floor area lives
+ * on the Organization) or never drove any decision in the app (the
+ * metering tier). What's left is Infrastructure (real records) and Notes
+ * (free text), nothing decorative in between.
  *
  * Nothing here touches money. An earlier version of this page locked a
  * baseline and computed a weather-adjusted savings figure, because
@@ -28,7 +36,6 @@ import { renderInfrastructureManager } from "../system_admin/modules/infrastruct
 
 const STATUSES = ["proposed", "accepted", "implemented", "rejected"];
 const SEVERITIES = ["low", "moderate", "high"];
-const TIERS = ["", "bms-integration", "manual-upload", "no-metering"];
 
 const state = {
   user: null,
@@ -246,58 +253,11 @@ function renderWorkspace(audit) {
       </div>
     </div>
 
-    ${renderSurvey(audit)}
     ${renderInfrastructureSection(audit)}
+    ${renderNotes(audit)}
     ${renderFindings(audit)}
     ${renderProposal(audit)}
     ${renderStatus(audit)}`;
-}
-
-function renderSurvey(audit) {
-  const s = audit.survey || {};
-  const buildingCount = tenantBuildings(audit).length;
-  const meterCount = state.meters.filter(
-    (m) => m.organization_id === audit.organization_id,
-  ).length;
-
-  return `
-    <div class="card">
-      <h2>Site survey</h2>
-      <p class="sub">What you found walking the estate.</p>
-      <div class="grid4" style="margin-top:14px">
-        <div class="field">
-          <label>Buildings recorded</label>
-          <div style="font-size:22px;font-weight:700;padding:6px 0">${buildingCount}</div>
-        </div>
-        <div class="field">
-          <label>Meters recorded</label>
-          <div style="font-size:22px;font-weight:700;padding:6px 0">${meterCount}</div>
-        </div>
-        <div class="field">
-          <label for="svTier">Existing metering</label>
-          <select id="svTier">
-            ${TIERS.map(
-              (t) =>
-                `<option value="${t}" ${s.data_source_tier === t ? "selected" : ""}>${t || "— not assessed —"}</option>`,
-            ).join("")}
-          </select>
-        </div>
-        <div class="field">
-          <label for="svArea">Floor area (m²)</label>
-          <input id="svArea" type="number" min="0" value="${s.floor_area_sqm ?? 0}" />
-        </div>
-      </div>
-      <div class="field">
-        <label for="svNotes">Notes</label>
-        <textarea id="svNotes">${escapeHtml(s.notes ?? "")}</textarea>
-      </div>
-      <p class="muted" style="font-size:12px">
-        Buildings and meters come from the Infrastructure section below —
-        record them there as you walk the site, and these counts follow on
-        their own.
-      </p>
-      <button class="btn btn-dark" type="button" id="saveSurvey">Save survey</button>
-    </div>`;
 }
 
 /**
@@ -306,21 +266,47 @@ function renderSurvey(audit) {
  * walking it instead of typing a guessed headcount. Findings' building
  * picker reads from the same records, so a brand-new prospect with nothing
  * yesterday has real buildings to reference by the time a recommendation is
- * written up.
+ * written up. The building/meter counts in the header are the same live
+ * numbers a "site survey" card used to show as a typed guess.
  */
 function renderInfrastructureSection(audit) {
   const loaded = infra.orgId === audit.organization_id;
+  const buildingCount = tenantBuildings(audit).length;
+  const meterCount = state.meters.filter(
+    (m) => m.organization_id === audit.organization_id,
+  ).length;
+
   return `
     <div class="card">
-      <h2>Infrastructure</h2>
-      <p class="sub">
-        Record campuses, buildings, departments and meters as you walk the
-        site — exactly what the client will see on their own dashboard once
-        they're onboard.
-      </p>
+      <div class="header-row">
+        <div>
+          <h2>Infrastructure</h2>
+          <p class="sub">
+            Record campuses, buildings, departments and meters as you walk
+            the site — exactly what the client will see on their own
+            dashboard once they're onboard.
+          </p>
+        </div>
+        <div class="sub" style="text-align:right;white-space:nowrap">
+          <strong>${buildingCount}</strong> building(s) ·
+          <strong>${meterCount}</strong> meter(s)
+        </div>
+      </div>
       <div id="infraMount" style="margin-top:14px">
         ${loaded ? "" : `<p class="muted">Loading…</p>`}
       </div>
+    </div>`;
+}
+
+function renderNotes(audit) {
+  return `
+    <div class="card">
+      <h2>Notes</h2>
+      <p class="sub">Anything worth writing down about the visit.</p>
+      <div class="field" style="margin-top:14px">
+        <textarea id="auditNotes" rows="4">${escapeHtml(audit.summary ?? "")}</textarea>
+      </div>
+      <button class="btn btn-dark" type="button" id="saveNotes">Save notes</button>
     </div>`;
 }
 
@@ -542,7 +528,7 @@ function wire() {
   const audit = selected();
   if (!audit) return;
 
-  root.querySelector("#saveSurvey")?.addEventListener("click", () => saveSurvey(audit));
+  root.querySelector("#saveNotes")?.addEventListener("click", () => saveNotes(audit));
   root.querySelector("#addFinding")?.addEventListener("click", () => openFindingModal(audit));
   root.querySelectorAll("[data-edit]").forEach((b) => {
     b.onclick = () => openFindingModal(audit, b.dataset.edit);
@@ -581,20 +567,15 @@ async function sendProposal(audit) {
   }
 }
 
-async function saveSurvey(audit) {
-  const body = {
-    floor_area_sqm: Number(document.getElementById("svArea").value || 0),
-    notes: document.getElementById("svNotes").value.trim(),
-  };
-  const tier = document.getElementById("svTier").value;
-  if (tier) body.data_source_tier = tier;
+async function saveNotes(audit) {
+  const summary = document.getElementById("auditNotes").value.trim();
 
   try {
-    audit.survey = await window.api.patch(
-      `/energy-audits/${audit.audit_id}/survey`,
-      body,
-    );
-    showToast("Survey saved.", "success");
+    const updated = await window.api.patch(`/energy-audits/${audit.audit_id}`, {
+      summary,
+    });
+    Object.assign(audit, updated);
+    showToast("Notes saved.", "success");
     render();
   } catch (err) {
     showToast(err.message, "error", 6000);

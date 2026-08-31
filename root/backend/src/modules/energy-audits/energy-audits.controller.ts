@@ -19,7 +19,6 @@ import {
   RespondToProposalDto,
   SendProposalDto,
   UpdateFindingDto,
-  UpdateSurveyDto,
 } from "./dto/audit-sub-resource.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
 
@@ -71,7 +70,7 @@ export class EnergyAuditsController {
   @ApiOperation({
     summary: "Create Energy Audit",
     description:
-      "Schedules a certified audit against a client organisation. The auditor then records a site survey and a list of recommendations.",
+      "Schedules a certified audit against a client organisation. The auditor then records the estate's infrastructure and a list of recommendations.",
   })
   @ApiResponse({ status: 201, description: "Audit created successfully." })
   @ApiResponse({ status: 404, description: "Organization or auditor not found." })
@@ -117,7 +116,7 @@ export class EnergyAuditsController {
   @Get(":id")
   @ApiOperation({
     summary: "Get Energy Audit by ID",
-    description: "One audit with its site survey and recommendations.",
+    description: "One audit with its recommendations.",
   })
   @ApiResponse({ status: 200, description: "Audit record returned." })
   @ApiResponse({ status: 404, description: "Audit with the given ID not found." })
@@ -127,21 +126,6 @@ export class EnergyAuditsController {
   @Roles(...READERS)
   findOne(@Param("id") id: string) {
     return this.auditsService.findOne(id);
-  }
-
-  @Patch(":id/survey")
-  @ApiOperation({
-    summary: "Update Site Survey",
-    description:
-      "Records what the auditor found on site: buildings walked, meters located, existing metering tier and floor area.",
-  })
-  @ApiResponse({ status: 200, description: "Survey updated." })
-  @ApiResponse({ status: 404, description: "Audit not found." })
-  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader(ROLE_HEADER)
-  @Roles("Certified Energy Auditor", "Super Admin")
-  updateSurvey(@Param("id") id: string, @Body() dto: UpdateSurveyDto) {
-    return this.auditsService.updateSurvey(id, dto);
   }
 
   @Post(":id/findings")

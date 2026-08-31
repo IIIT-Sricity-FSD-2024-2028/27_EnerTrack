@@ -139,8 +139,11 @@
 
   /* ───── Build popup HTML ───── */
   var userRoleStr = (user.role || "").trim();
-  var isAdmin =
-    userRoleStr === "Organization Admin" || userRoleStr === "Super Admin";
+  // Only EnerTrack's own Super Admin gets to view every actor's dashboard
+  // from here. An Organization Admin is a client's own admin, scoped to
+  // their organisation's admin workflows — not a way to morph into other
+  // roles, same boundary already drawn on the landing page.
+  var isAdmin = userRoleStr === "Super Admin";
 
   var linksHTML = "";
   if (isAdmin) {

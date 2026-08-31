@@ -75,12 +75,6 @@ export enum OrganizationStatus {
   CHURNED = "churned",
 }
 
-export enum DataSourceTier {
-  BMS_INTEGRATION = "bms-integration",
-  MANUAL_UPLOAD = "manual-upload",
-  NO_METERING = "no-metering",
-}
-
 export enum NotificationTargetType {
   WASTAGE = "wastage",
   ALERT = "alert",
@@ -175,7 +169,6 @@ export interface Organization {
   type: string;
   location: string | null;
   status: OrganizationStatus;
-  data_source_tier: DataSourceTier | null;
   floor_area_sqm: number | null;
   tariff_rate: number | null;
   contract_start: string | null;
@@ -557,22 +550,17 @@ export interface AuditProposal {
 }
 
 /**
- * What the auditor typed by hand about the estate. Buildings-surveyed and
- * meters-found used to live here too, as plain numbers — now that the
- * auditor has real infrastructure CRUD (see campus/buildings/meters
- * modules), those counts are derived live from the actual records instead,
- * so there's nothing here that can drift from what was really commissioned.
- */
-export interface AuditSurvey {
-  data_source_tier: DataSourceTier | null;
-  floor_area_sqm: number | null;
-  notes: string | null;
-}
-
-/**
  * A certified auditor's site visit and the recommendations that came out
  * of it. Findings are folded in as a JSON array, matching how
  * Alert.messages and Initiative.outcomes already work in this schema.
+ *
+ * There used to be a separate `survey` sub-object here (a metering-tier
+ * guess, a floor-area copy, and a notes field) — all three were either
+ * decorative (nothing ever read the metering tier to make a decision) or a
+ * duplicate of data that already lives elsewhere (floor area on
+ * Organization, buildings/meters on the real infrastructure records).
+ * `summary` is the one free-text field that survives, doing the job the
+ * old `survey.notes` did.
  *
  * An audit is a service included in the subscription. It is not billed
  * for, and nothing on it feeds an invoice.
@@ -584,7 +572,6 @@ export interface EnergyAudit {
   status: AuditStatus;
   scheduled_on: string | null;
   conducted_on: string | null;
-  survey: AuditSurvey;
   findings: AuditFinding[];
   /** Null until the auditor sends one. */
   proposal: AuditProposal | null;
@@ -760,7 +747,6 @@ export class DatabaseService {
       type: "University",
       location: "Sri City, Andhra Pradesh",
       status: OrganizationStatus.ACTIVE,
-      data_source_tier: DataSourceTier.BMS_INTEGRATION,
       floor_area_sqm: 42000,
       tariff_rate: 8.5,
       contract_start: "2025-01-01",
@@ -771,7 +757,6 @@ export class DatabaseService {
       type: "University",
       location: "Visakhapatnam, Andhra Pradesh",
       status: OrganizationStatus.ACTIVE,
-      data_source_tier: DataSourceTier.MANUAL_UPLOAD,
       floor_area_sqm: 68000,
       tariff_rate: 9.2,
       contract_start: "2025-06-01",
@@ -782,22 +767,19 @@ export class DatabaseService {
       type: "Corporate Campus",
       location: "Hyderabad, Telangana",
       status: OrganizationStatus.PROSPECT,
-      data_source_tier: DataSourceTier.NO_METERING,
       floor_area_sqm: 31000,
       tariff_rate: null,
       contract_start: null,
     },
     {
-      // Mid-onboarding: metered and reporting, but not yet baselined. This is
-      // the state an auditor actually works in — org-003 above is a genuine
-      // no-metering prospect, where a baseline is impossible until meters
-      // exist, and the API correctly refuses to invent one.
+      // Mid-onboarding: an audit is already in progress (see energyAudits
+      // below), while org-003 above is a genuine untouched prospect with no
+      // engagement yet.
       organization_id: "org-004",
       name: "Harbour Point Polytechnic",
       type: "Polytechnic",
       location: "Kakinada, Andhra Pradesh",
       status: OrganizationStatus.PROSPECT,
-      data_source_tier: DataSourceTier.MANUAL_UPLOAD,
       floor_area_sqm: 24000,
       tariff_rate: 8.9,
       contract_start: null,
@@ -2016,6 +1998,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.ON_BUDGET,
+      total: 1350,
+      budget: 1400,
+      variance: 50,
+      scope: "department",
+      scope_label: "Department 2",
     },
     {
       energy_cost_id: "eeee0000-0002-4000-8000-000000000000",
@@ -2027,6 +2014,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.OVER_BUDGET,
+      total: 1350,
+      budget: 1200,
+      variance: -150,
+      scope: "department",
+      scope_label: "Department 3",
     },
     {
       energy_cost_id: "eeee0000-0003-4000-8000-000000000000",
@@ -2038,6 +2030,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.UNDER_BUDGET,
+      total: 1350,
+      budget: 1600,
+      variance: 250,
+      scope: "department",
+      scope_label: "Department 4",
     },
     {
       energy_cost_id: "eeee0000-0004-4000-8000-000000000000",
@@ -2049,6 +2046,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.ON_BUDGET,
+      total: 1350,
+      budget: 1380,
+      variance: 30,
+      scope: "department",
+      scope_label: "Department 5",
     },
     {
       energy_cost_id: "eeee0000-0005-4000-8000-000000000000",
@@ -2060,6 +2062,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.OVER_BUDGET,
+      total: 1350,
+      budget: 1100,
+      variance: -250,
+      scope: "department",
+      scope_label: "Department 6",
     },
     {
       energy_cost_id: "eeee0000-0006-4000-8000-000000000000",
@@ -2071,6 +2078,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.UNDER_BUDGET,
+      total: 1350,
+      budget: 1700,
+      variance: 350,
+      scope: "department",
+      scope_label: "Department 7",
     },
     {
       energy_cost_id: "eeee0000-0007-4000-8000-000000000000",
@@ -2082,6 +2094,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.ON_BUDGET,
+      total: 1350,
+      budget: 1360,
+      variance: 10,
+      scope: "department",
+      scope_label: "Department 8",
     },
     {
       energy_cost_id: "eeee0000-0008-4000-8000-000000000000",
@@ -2093,6 +2110,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.OVER_BUDGET,
+      total: 1350,
+      budget: 1150,
+      variance: -200,
+      scope: "department",
+      scope_label: "Department 1",
     },
     {
       energy_cost_id: "eeee0000-0009-4000-8000-000000000000",
@@ -2104,6 +2126,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.UNDER_BUDGET,
+      total: 1350,
+      budget: 1550,
+      variance: 200,
+      scope: "department",
+      scope_label: "Department 2",
     },
     {
       energy_cost_id: "eeee0000-000a-4000-8000-000000000000",
@@ -2115,6 +2142,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.ON_BUDGET,
+      total: 1350,
+      budget: 1370,
+      variance: 20,
+      scope: "department",
+      scope_label: "Department 3",
     },
     {
       energy_cost_id: "eeee0000-0f02-4000-8000-000000000000",
@@ -2126,6 +2158,11 @@ export class DatabaseService {
       gas: 340.0,
       water: 280.0,
       status: EnergyCostStatus.OVER_BUDGET,
+      total: 3230,
+      budget: 2900,
+      variance: -330,
+      scope: "building",
+      scope_label: "Marine Sciences Block",
     },
   ];
   public invoices: Invoice[] = [
@@ -2687,12 +2724,6 @@ export class DatabaseService {
       status: AuditStatus.ACCEPTED,
       scheduled_on: "2025-09-05",
       conducted_on: "2025-09-12",
-      survey: {
-        data_source_tier: DataSourceTier.BMS_INTEGRATION,
-        floor_area_sqm: 42000,
-        notes:
-          "BMS already in place across all five blocks. Chiller plant runs on a fixed schedule with no load feedback; lighting in Buildings 1 and 2 is still fluorescent.",
-      },
       findings: [
         {
           finding_id: "find-001",
@@ -2756,12 +2787,6 @@ export class DatabaseService {
       status: AuditStatus.ACCEPTED,
       scheduled_on: "2026-01-15",
       conducted_on: "2026-01-22",
-      survey: {
-        data_source_tier: DataSourceTier.MANUAL_UPLOAD,
-        floor_area_sqm: 68000,
-        notes:
-          "Single sub-meter for the whole Marine Sciences Block. Readings are uploaded monthly from a spreadsheet; sub-metering is the precondition for anything else.",
-      },
       findings: [
         {
           finding_id: "find-011",
@@ -2796,33 +2821,23 @@ export class DatabaseService {
       status: AuditStatus.SCHEDULED,
       scheduled_on: "2026-09-14",
       conducted_on: null,
-      survey: {
-        data_source_tier: null,
-        floor_area_sqm: null,
-        notes: null,
-      },
       findings: [],
       proposal: null,
       summary: null,
     },
     {
       // The engagement the auditor dashboard is meant to be worked
-      // through: surveyed on site, recommendations not yet written up.
+      // through: visited on site, recommendations not yet written up.
       audit_id: "audit-004",
       organization_id: "org-004",
       auditor_id: "550e8400-00f2-4000-8000-0000000000f2",
       status: AuditStatus.IN_PROGRESS,
       scheduled_on: "2026-08-10",
       conducted_on: "2026-08-18",
-      survey: {
-        data_source_tier: DataSourceTier.MANUAL_UPLOAD,
-        floor_area_sqm: 24000,
-        notes:
-          "Workshop extraction runs continuously regardless of occupancy. Library HVAC has no setback schedule outside term time.",
-      },
       findings: [],
       proposal: null,
-      summary: null,
+      summary:
+        "Workshop extraction runs continuously regardless of occupancy. Library HVAC has no setback schedule outside term time.",
     },
   ];
 

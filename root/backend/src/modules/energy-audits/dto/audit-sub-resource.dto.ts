@@ -13,13 +13,6 @@ import {
   FindingStatus,
 } from "../../../core/database/database.service";
 
-/** Body for PATCH /energy-audits/:id/survey. */
-export class UpdateSurveyDto {
-  @IsOptional() @IsString() data_source_tier?: string;
-  @IsOptional() @IsNumber() @Min(0) floor_area_sqm?: number;
-  @IsOptional() @IsString() notes?: string;
-}
-
 /** Body for POST /energy-audits/:id/findings. */
 export class CreateFindingDto {
   @IsString() title: string;

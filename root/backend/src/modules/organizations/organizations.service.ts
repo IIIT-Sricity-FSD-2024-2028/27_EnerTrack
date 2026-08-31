@@ -90,8 +90,6 @@ export class OrganizationsService {
       type: dto.type.trim(),
       location: dto.location?.trim() || null,
       status: OrganizationStatus.PROSPECT,
-      // All unknown until someone has walked the site. That is the audit's job.
-      data_source_tier: null,
       floor_area_sqm: dto.floor_area_sqm ?? null,
       tariff_rate: null,
       contract_start: null,
