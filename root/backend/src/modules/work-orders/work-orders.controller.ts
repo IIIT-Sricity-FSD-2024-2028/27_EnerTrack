@@ -12,11 +12,11 @@ export class WorkOrdersController {
   constructor(private readonly workOrdersService: WorkOrdersService) {}
 
   @Post()
-  @ApiOperation({ summary: "Create Work Order", description: "Creates a new work order linked to a fault or service request. System Administrator, Technician Administrator and Technician can create work orders." })
+  @ApiOperation({ summary: "Create Work Order", description: "Creates a new work order linked to a fault or service request. Organization Admin, Technician Administrator and Technician can create work orders." })
   @ApiResponse({ status: 201, description: "Work order created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician Administrator", "Technician")
+  @Roles("Organization Admin", "Technician Administrator", "Technician")
   create(@Body() createDto: CreateWorkOrderDto) {
     return this.workOrdersService.create(createDto);
   }
@@ -26,7 +26,7 @@ export class WorkOrdersController {
   @ApiResponse({ status: 200, description: "Array of work order records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician Administrator", "Technician", "Financial Analyst", "Campus Visitor")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Financial Analyst", "Campus Visitor")
   findAll() {
     return this.workOrdersService.findAll();
   }
@@ -37,40 +37,40 @@ export class WorkOrdersController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician Administrator", "Technician", "Financial Analyst")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Financial Analyst")
   findOne(@Param("id") id: string) {
     return this.workOrdersService.findOne(id);
   }
 
   @Put(":id")
-  @ApiOperation({ summary: "Replace Work Order", description: "Completely replaces a work order record. System Administrator and Technician Administrator can perform full replacements." })
+  @ApiOperation({ summary: "Replace Work Order", description: "Completely replaces a work order record. Organization Admin and Technician Administrator can perform full replacements." })
   @ApiResponse({ status: 200, description: "Replaced successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician Administrator")
+  @Roles("Organization Admin", "Technician Administrator")
   put(@Param("id") id: string, @Body() putDto: PutWorkOrderDto) {
     return this.workOrdersService.put(id, putDto);
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update Work Order", description: "Partially updates a work order (e.g., status, priority). System Administrator, Technician Administrator, Technician, and Financial Analyst can update." })
+  @ApiOperation({ summary: "Update Work Order", description: "Partially updates a work order (e.g., status, priority). Organization Admin, Technician Administrator, Technician, and Financial Analyst can update." })
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician Administrator", "Technician", "Financial Analyst")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Financial Analyst")
   update(@Param("id") id: string, @Body() updateDto: UpdateWorkOrderDto) {
     return this.workOrdersService.update(id, updateDto);
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "Delete Work Order", description: "Permanently removes a work order. System Administrator and Technician Administrator can delete." })
+  @ApiOperation({ summary: "Delete Work Order", description: "Permanently removes a work order. Organization Admin and Technician Administrator can delete." })
   @ApiResponse({ status: 200, description: "Deleted successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Technician Administrator")
+  @Roles("Organization Admin", "Technician Administrator")
   remove(@Param("id") id: string) {
     return this.workOrdersService.remove(id);
   }

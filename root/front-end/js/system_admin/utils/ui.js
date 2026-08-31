@@ -13,7 +13,7 @@ export function cloneState(value) {
 
 export function formatLabel(value) {
   const labels = {
-    systemAdministrator: "System Administrator",
+    systemAdministrator: "Organization Admin",
     financeAnalyst: "Finance Analyst",
     sustainabilityOfficer: "Sustainability Officer",
     technicianAdministrator: "Technician Administrator",

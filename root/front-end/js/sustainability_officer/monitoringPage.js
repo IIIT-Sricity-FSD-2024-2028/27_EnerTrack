@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initMonitoring() {
-  const monitoringData = SustDB?.data?.monitoring;
+  const monitoringData = SustDB?.monitoring;
   if (!monitoringData) {
     console.warn("Monitoring data missing from SustDB.");
   }
@@ -86,6 +86,12 @@ async function initMonitoring() {
   if (lastSyncLabel && monitoringData) {
     lastSyncLabel.textContent = monitoringData.lastSync;
   }
+
+  // The chart otherwise starts out showing whatever static markup is baked
+  // into the HTML, which only coincidentally resembles the "30 Days" data
+  // it's meant to represent. Rendering it for real on load means the
+  // active pill and what's on screen actually agree from the start.
+  updateTrendsChart("30 Days", true);
 
   // Wire Metrics Refresh Buttons (Sync → Updated)
   document.querySelectorAll(".btn-refresh").forEach((btn) => {
@@ -199,8 +205,8 @@ function restorePipelineState() {
 /**
  * Updates the CSS bar heights based on mock history data
  */
-function updateTrendsChart(period) {
-  const history = SustDB.data.monitoring.history[period];
+function updateTrendsChart(period, silent = false) {
+  const history = SustDB.monitoring.history[period];
   if (!history) return;
 
   const chartContainer = document.getElementById("trendsChart");
@@ -237,7 +243,7 @@ function updateTrendsChart(period) {
     .map((l) => `<span>${l}</span>`)
     .join("");
 
-  showToast(`Viewing trends for ${period}`, "info");
+  if (!silent) showToast(`Viewing trends for ${period}`, "info");
 }
 
 /**

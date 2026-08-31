@@ -56,7 +56,7 @@ export class UsersService {
     //    is checked positively rather than by excluding staff roles: a
     //    denylist would silently admit any role that leaves PLATFORM_SIDE_ROLES
     //    for an unrelated reason, which is precisely what happened to
-    //    System Administrator when it stopped being platform-side.
+    //    Organization Admin when it stopped being platform-side.
     if (!SELF_REGISTERABLE_ROLES.includes(createDto.role)) {
       throw new BadRequestException(
         `Role '${createDto.role}' cannot be self-registered. Contact an administrator.`,
@@ -84,7 +84,7 @@ export class UsersService {
 
   create(createDto: CreateUserDto) {
     // Only EnerTrack's own staff may create an account that holds an
-    // EnerTrack staff role. Without this, a client's System Administrator
+    // EnerTrack staff role. Without this, a client's Organization Admin
     // could POST a user with role "Super Admin" and hand themselves back the
     // organisation-write access that the @Roles decorators just removed.
     if (
@@ -143,10 +143,24 @@ export class UsersService {
     const index = this.database.users.findIndex((item) => item.user_id === id);
     if (index === -1 || !assertTenantOwns(this.database.users[index]))
       throw new NotFoundException(`User with ID ${id} not found`);
+
+    const current = this.database.users[index];
+
+    // organization_id is normally pinned, the same way Subscription's is:
+    // letting a PATCH move an already-tenanted account would silently
+    // reassign it to a different client. But that protection only means
+    // something once a tenant is actually set. A null organization_id has
+    // nothing to protect, so it may be filled in exactly once — the repair
+    // path for a user created without one (e.g. an Organization Admin
+    // added from the Super Admin's User Management before an organisation
+    // was picked). Once set, it reverts to pinned like every other user.
+    const organization_id =
+      current.organization_id ?? updateDto.organization_id ?? null;
+
     this.database.users[index] = {
-      ...this.database.users[index],
+      ...current,
       ...updateDto,
-      organization_id: this.database.users[index].organization_id,
+      organization_id,
     };
     return this.withoutPassword(this.database.users[index]);
   }
@@ -170,6 +184,40 @@ export class UsersService {
     if (!user) throw new UnauthorizedException('Invalid email or password');
     // Never send the password back to the client
     const { password: _pw, ...safeUser } = user;
+    return safeUser;
+  }
+
+  /**
+   * Returns another user's session so a Super Admin can see the product
+   * through their eyes. Same shape as login(), so the frontend can drop the
+   * result straight into the session it already understands.
+   *
+   * Be honest about what this is and is not. Authorisation in this system
+   * is a client-supplied x-role header with no token, so anyone who can
+   * open devtools could already become any role by editing localStorage.
+   * This route is NOT a new security boundary — it is the same capability,
+   * made deliberate, logged, and reachable in one click, and shaped so it
+   * still makes sense once real authentication lands.
+   *
+   * What it does add is the activity log entry below: every impersonation
+   * leaves a record naming both parties, which is the part that actually
+   * matters for a support tool.
+   */
+  impersonate(targetUserId: string, actor: string | null) {
+    const target = this.database.users.find((u) => u.user_id === targetUserId);
+    if (!target)
+      throw new NotFoundException(`User with ID ${targetUserId} not found`);
+
+    this.database.activityLogs.push({
+      activity_log_id: crypto.randomUUID(),
+      organization_id: target.organization_id ?? '',
+      user_id: target.user_id,
+      action_type: 'impersonation',
+      title: `${actor ?? 'A Super Admin'} started acting as ${target.name} (${target.role})`,
+      timestamp: new Date().toISOString(),
+    });
+
+    const { password: _pw, ...safeUser } = target;
     return safeUser;
   }
 }

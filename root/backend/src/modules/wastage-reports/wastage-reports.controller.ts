@@ -20,7 +20,7 @@ export class WastageReportsController {
   @ApiResponse({ status: 201, description: "Wastage report created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   create(@Body() createDto: CreateWastageReportDto) {
     return this.wastageReportsService.create(createDto);
   }
@@ -44,7 +44,7 @@ export class WastageReportsController {
   @ApiResponse({ status: 404, description: "Wastage report with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   @UseInterceptors(FilesInterceptor("files", 4, photoUploadConfig))
   uploadPhotos(@Param("id") id: string, @UploadedFiles() files: Express.Multer.File[]) {
     // Multer leaves `files` undefined (or empty) when the request carries no
@@ -62,7 +62,7 @@ export class WastageReportsController {
   @ApiResponse({ status: 200, description: "Array of wastage report records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findAll() {
     return this.wastageReportsService.findAll();
   }
@@ -73,40 +73,40 @@ export class WastageReportsController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findOne(@Param("id") id: string) {
     return this.wastageReportsService.findOne(id);
   }
 
   @Put(":id")
-  @ApiOperation({ summary: "Replace Wastage Report", description: "Completely replaces an existing wastage report. Only the System Administrator can perform full replacements." })
+  @ApiOperation({ summary: "Replace Wastage Report", description: "Completely replaces an existing wastage report. Only the Organization Admin can perform full replacements." })
   @ApiResponse({ status: 200, description: "Replaced successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator")
+  @Roles("Organization Admin")
   put(@Param("id") id: string, @Body() putDto: PutWastageReportDto) {
     return this.wastageReportsService.put(id, putDto);
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update Wastage Report", description: "Partially updates a wastage report (e.g., status). The Sustainability Officer and System Administrator can update reports." })
+  @ApiOperation({ summary: "Update Wastage Report", description: "Partially updates a wastage report (e.g., status). The Sustainability Officer and Organization Admin can update reports." })
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "System Administrator")
+  @Roles("Sustainability Officer", "Organization Admin")
   update(@Param("id") id: string, @Body() updateDto: UpdateWastageReportDto) {
     return this.wastageReportsService.update(id, updateDto);
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "Delete Wastage Report", description: "Permanently removes a wastage report. Only the System Administrator can delete." })
+  @ApiOperation({ summary: "Delete Wastage Report", description: "Permanently removes a wastage report. Only the Organization Admin can delete." })
   @ApiResponse({ status: 200, description: "Deleted successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("System Administrator")
+  @Roles("Organization Admin")
   remove(@Param("id") id: string) {
     return this.wastageReportsService.remove(id);
   }

@@ -26,6 +26,14 @@ document.addEventListener("DOMContentLoaded", () => {
       buildings: [],
       departments: [],
       meters: [],
+      // Revenue model. Platform-side only: a client admin gets 403 on the
+      // summary and an empty catalogue is harmless, so these degrade to []
+      // rather than failing the whole load.
+      subscriptionPlans: [],
+      subscriptions: [],
+      revenueSummary: null,
+      // Audits carry the proposal an Organization Admin answers.
+      audits: [],
     },
     loading: true,
     activeTab: localStorage.getItem("admin_activeTab") || "users",
@@ -65,17 +73,33 @@ document.addEventListener("DOMContentLoaded", () => {
         this.loading = true;
         this.render(); // render loading skeleton
 
-        const [users, organizations, campuses, buildings, departments, meters] =
-          await Promise.all([
-            window.api.get("/users"),
-            // Tenant-scoped by the backend: a client admin gets only their own
-            // organisation, EnerTrack staff get every client.
-            window.api.get("/organizations").catch(() => []),
-            window.api.get("/campus"),
-            window.api.get("/buildings"),
-            window.api.get("/departments"),
-            window.api.get("/meters"),
-          ]);
+        const [
+          users,
+          organizations,
+          campuses,
+          buildings,
+          departments,
+          meters,
+          subscriptionPlans,
+          subscriptions,
+          revenueSummary,
+          audits,
+        ] = await Promise.all([
+          window.api.get("/users"),
+          // Tenant-scoped by the backend: a client admin gets only their own
+          // organisation, EnerTrack staff get every client.
+          window.api.get("/organizations").catch(() => []),
+          window.api.get("/campus"),
+          window.api.get("/buildings"),
+          window.api.get("/departments"),
+          window.api.get("/meters"),
+          window.api.get("/subscription-plans").catch(() => []),
+          window.api.get("/subscriptions").catch(() => []),
+          // 403 for a client admin by design — it aggregates across every
+          // tenant. Null here makes the Revenue tab say so rather than break.
+          window.api.get("/platform-invoices/revenue-summary").catch(() => null),
+          window.api.get("/energy-audits").catch(() => []),
+        ]);
 
         this.state.users = Array.isArray(users) ? users : [];
         this.state.organizations = Array.isArray(organizations)
@@ -85,6 +109,12 @@ document.addEventListener("DOMContentLoaded", () => {
         this.state.buildings = Array.isArray(buildings) ? buildings : [];
         this.state.departments = Array.isArray(departments) ? departments : [];
         this.state.meters = Array.isArray(meters) ? meters : [];
+        this.state.subscriptionPlans = Array.isArray(subscriptionPlans)
+          ? subscriptionPlans
+          : [];
+        this.state.subscriptions = Array.isArray(subscriptions) ? subscriptions : [];
+        this.state.revenueSummary = revenueSummary || null;
+        this.state.audits = Array.isArray(audits) ? audits : [];
 
         // Restore or default selected campus/building from persisted UI prefs
         if (

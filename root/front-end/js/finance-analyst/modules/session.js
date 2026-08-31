@@ -40,7 +40,7 @@ export function initSession() {
 
 function mapRoleToPermissionKey(displayRole) {
   const roleMap = {
-    "System Administrator": "superuser",
+    "Organization Admin": "superuser",
     "Financial Analyst": "finance_analyst",
     Technician: "enduser",
     "Sustainability Officer": "enduser",

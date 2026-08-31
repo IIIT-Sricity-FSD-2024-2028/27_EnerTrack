@@ -2,7 +2,7 @@ import { Injectable, Scope } from "@nestjs/common";
 
 export enum UserRole {
   // ── Legacy roles (still fully supported) ─────────────────
-  SYSTEM_ADMINISTRATOR = "System Administrator",
+  ORGANIZATION_ADMIN = "Organization Admin",
   FINANCIAL_ANALYST = "Financial Analyst",
   TECHNICIAN = "Technician",
   TECHNICIAN_ADMINISTRATOR = "Technician Administrator",
@@ -12,7 +12,6 @@ export enum UserRole {
   // ── EnerTrack-side roles (B2B model) ─────────────────────
   SUPER_ADMIN = "Super Admin",
   CERTIFIED_ENERGY_AUDITOR = "Certified Energy Auditor",
-  ACCOUNT_OFFICER = "Account Officer",
 
   // ── Client-side roles (B2B model) ────────────────────────
   ECONOMIC_BUYER = "Economic Buyer",
@@ -32,11 +31,7 @@ export enum UserRole {
  * their behaviour is byte-for-byte unchanged.
  */
 export const ROLE_EQUIVALENTS: Record<string, string[]> = {
-  [UserRole.SUPER_ADMIN]: [UserRole.SYSTEM_ADMINISTRATOR],
-  [UserRole.ACCOUNT_OFFICER]: [
-    UserRole.FINANCIAL_ANALYST,
-    UserRole.SUSTAINABILITY_OFFICER,
-  ],
+  [UserRole.SUPER_ADMIN]: [UserRole.ORGANIZATION_ADMIN],
   [UserRole.CERTIFIED_ENERGY_AUDITOR]: [UserRole.TECHNICIAN],
   [UserRole.ECONOMIC_BUYER]: [UserRole.FINANCIAL_ANALYST],
   [UserRole.FACILITY_MANAGER]: [UserRole.TECHNICIAN_ADMINISTRATOR],
@@ -47,9 +42,8 @@ export const ROLE_EQUIVALENTS: Record<string, string[]> = {
 export const PLATFORM_SIDE_ROLES: string[] = [
   UserRole.SUPER_ADMIN,
   UserRole.CERTIFIED_ENERGY_AUDITOR,
-  UserRole.ACCOUNT_OFFICER,
-  // System Administrator is deliberately absent. It is a *client's* own admin,
-  // scoped to one organisation. While it sat here, any System Administrator
+  // Organization Admin is deliberately absent. It is a *client's* own admin,
+  // scoped to one organisation. While it sat here, any Organization Admin
   // record with a null organization_id received the full cross-tenant view,
   // which made the tenant boundary depend on seed data rather than on the role.
 ];
@@ -59,7 +53,7 @@ export const PLATFORM_SIDE_ROLES: string[] = [
  *
  * An allowlist rather than "anything not in PLATFORM_SIDE_ROLES". A denylist
  * silently opens a hole whenever a role leaves PLATFORM_SIDE_ROLES for an
- * unrelated reason, which is exactly what happened when System Administrator
+ * unrelated reason, which is exactly what happened when Organization Admin
  * was removed above. Anything not named here is refused, so a role added to
  * the enum later is safe by default.
  */
@@ -81,16 +75,11 @@ export enum OrganizationStatus {
   CHURNED = "churned",
 }
 
-export enum DataSourceTier {
-  BMS_INTEGRATION = "bms-integration",
-  MANUAL_UPLOAD = "manual-upload",
-  NO_METERING = "no-metering",
-}
-
 export enum NotificationTargetType {
   WASTAGE = "wastage",
   ALERT = "alert",
   REQUEST = "request",
+  PROPOSAL = "proposal",
 }
 
 export enum MeterType {
@@ -180,7 +169,6 @@ export interface Organization {
   type: string;
   location: string | null;
   status: OrganizationStatus;
-  data_source_tier: DataSourceTier | null;
   floor_area_sqm: number | null;
   tariff_rate: number | null;
   contract_start: string | null;
@@ -388,6 +376,363 @@ export interface Notification {
   is_read: boolean;
 }
 
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   SUBSCRIPTION MODEL — EnerTrack's own business, not the client's
+
+   The commercial relationship between EnerTrack and a client, in one
+   sentence: each tier includes a number of staff seats and a number of
+   campuses; go over the seat allowance and you pay per extra seat.
+
+   Read one distinction before anything else. PlatformInvoice is NOT
+   Invoice. Invoice (above) is the client's utility bill from their
+   electricity supplier — a cost their Financial Analyst manages.
+   PlatformInvoice is what EnerTrack charges the client for the service.
+   Two money flows, opposite directions; they never share a page.
+
+   Note what is deliberately absent: nothing here charges for savings.
+   Savings are reported (see OrganizationsService.savings) because that is
+   why a campus buys the product, but they are never invoiced. A number
+   that is only reported needs none of the machinery a billed one does.
+   ══════════════════════════════════════════════════════════════════════ */
+
+export enum SubscriptionStatus {
+  TRIAL = "trial",
+  ACTIVE = "active",
+  PAST_DUE = "past-due",
+  CANCELLED = "cancelled",
+}
+
+export enum BillingCycle {
+  MONTHLY = "monthly",
+  ANNUAL = "annual",
+}
+
+/**
+ * The engagement lifecycle, which is also the sales funnel.
+ *
+ *   scheduled → in-progress → proposed → accepted
+ *                                ↕
+ *                        changes-requested
+ *                                ↓
+ *                            declined
+ *
+ * "proposed" onwards mirrors OrganizationStatus: an organisation is a
+ * prospect until a proposal is sent (audited), and active once it is
+ * accepted. The two enums are deliberately kept in step.
+ */
+export enum AuditStatus {
+  SCHEDULED = "scheduled",
+  IN_PROGRESS = "in-progress",
+  PROPOSED = "proposed",
+  CHANGES_REQUESTED = "changes-requested",
+  ACCEPTED = "accepted",
+  DECLINED = "declined",
+}
+
+export enum FindingSeverity {
+  LOW = "low",
+  MODERATE = "moderate",
+  HIGH = "high",
+}
+
+export enum FindingStatus {
+  PROPOSED = "proposed",
+  ACCEPTED = "accepted",
+  IMPLEMENTED = "implemented",
+  REJECTED = "rejected",
+}
+
+export enum PlatformInvoiceStatus {
+  DRAFT = "draft",
+  ISSUED = "issued",
+  PAID = "paid",
+  OVERDUE = "overdue",
+}
+
+export enum InvoiceLineType {
+  SUBSCRIPTION = "subscription",
+  SEAT_OVERAGE = "seat-overage",
+}
+
+/**
+ * A tier in EnerTrack's catalogue.
+ *
+ * The only entity in the system with NO organization_id. It is a global
+ * catalogue, identical for every tenant, so scopeToTenant() must never be
+ * applied to it — the same exception already made for
+ * GET /api/organizations/public.
+ *
+ * Both limits below are real, which is what makes the tiers genuinely
+ * different rather than a feature list that gates nothing:
+ *
+ *   included_seats  metered — going over bills an overage rather than
+ *                   refusing the user, because blocking a hire is hostile
+ *   max_campuses    blocked — CampusService refuses past the limit
+ *
+ * Every pricing knob lives on this row, so adding a tier is a new record
+ * and a price change is a PATCH. Neither needs a code change.
+ */
+export interface SubscriptionPlan {
+  plan_id: string;
+  name: string;
+  tagline: string;
+  /** Flat fee covering everything up to the included allowances. */
+  base_monthly_fee: number;
+  /** Staff accounts included before overage starts. */
+  included_seats: number;
+  /** Charged per staff account beyond included_seats. */
+  price_per_extra_seat: number;
+  /** Hard limit on campuses. null means unlimited (Enterprise). */
+  max_campuses: number | null;
+  features: string[];
+  is_active: boolean;
+}
+
+export interface Subscription {
+  subscription_id: string;
+  organization_id: string;
+  plan_id: string;
+  status: SubscriptionStatus;
+  billing_cycle: BillingCycle;
+  started_on: string | null;
+  renews_on: string | null;
+  cancelled_on: string | null;
+}
+
+export interface AuditFinding {
+  finding_id: string;
+  title: string;
+  category: string;
+  severity: FindingSeverity;
+  est_annual_saving: number;
+  capex: number;
+  payback_months: number;
+  status: FindingStatus;
+  /** Record-keeping only. It no longer decides anything financial. */
+  implemented_on: string | null;
+  /** Buildings the measure touches. */
+  building_ids: string[];
+}
+
+/**
+ * What the auditor puts in front of the client: which tier suits the
+ * estate they just walked, and what it will cost per month.
+ *
+ * monthly_estimate is computed by the pricing engine from the tier and the
+ * surveyed headcount — never typed — so an auditor cannot quietly discount
+ * and the quote is always a figure the billing engine would actually
+ * produce. It remains an *estimate*: the first invoice bills the real staff
+ * count, which is why the surveyed numbers are stored alongside it.
+ */
+export interface AuditProposal {
+  recommended_plan_id: string;
+  /** Staff and campuses as counted during the survey. */
+  estimated_staff: number;
+  estimated_campuses: number;
+  /** What that tier would bill per month at those numbers. */
+  monthly_estimate: number;
+
+  /**
+   * Who it was sent to. A user id rather than a role: you notify a person,
+   * not a job title. It defaults to the organisation's System
+   * Administrator, who is the first account created when a prospect is
+   * registered and therefore the client's account owner.
+   */
+  sent_to_user_id: string | null;
+  sent_on: string | null;
+
+  /** Set when the client answers, whichever way they answer. */
+  responded_on: string | null;
+  /** Their concern or suggestion, when they ask for changes. */
+  response_note: string | null;
+}
+
+/**
+ * A certified auditor's site visit and the recommendations that came out
+ * of it. Findings are folded in as a JSON array, matching how
+ * Alert.messages and Initiative.outcomes already work in this schema.
+ *
+ * There used to be a separate `survey` sub-object here (a metering-tier
+ * guess, a floor-area copy, and a notes field) — all three were either
+ * decorative (nothing ever read the metering tier to make a decision) or a
+ * duplicate of data that already lives elsewhere (floor area on
+ * Organization, buildings/meters on the real infrastructure records).
+ * `summary` is the one free-text field that survives, doing the job the
+ * old `survey.notes` did.
+ *
+ * An audit is a service included in the subscription. It is not billed
+ * for, and nothing on it feeds an invoice.
+ */
+export interface EnergyAudit {
+  audit_id: string;
+  organization_id: string;
+  auditor_id: string;
+  status: AuditStatus;
+  scheduled_on: string | null;
+  conducted_on: string | null;
+  findings: AuditFinding[];
+  /** Null until the auditor sends one. */
+  proposal: AuditProposal | null;
+  summary: string | null;
+}
+
+export interface PlatformInvoiceLine {
+  type: InvoiceLineType;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  amount: number;
+  /** Record this line came from, so any figure on a bill is traceable. */
+  source_ref: string | null;
+}
+
+export interface PlatformInvoice {
+  platform_invoice_id: string;
+  organization_id: string;
+  subscription_id: string;
+  /** "YYYY-MM" */
+  period: string;
+  line_items: PlatformInvoiceLine[];
+  subtotal: number;
+  tax_pct: number;
+  tax_amount: number;
+  total: number;
+  status: PlatformInvoiceStatus;
+  issued_on: string | null;
+  due_on: string | null;
+  paid_on: string | null;
+}
+
+/* ── Seed generator ───────────────────────────────────────────────────
+
+   The savings report compares a month against the same month a year
+   earlier, so the seed needs at least two years of readings and a visible
+   change between them. Writing ~60 literals by hand would bury the rest
+   of the seed, so the series is generated — deterministically, with no
+   Math.random, so every demo produces the same figures and the numbers
+   quoted in the docs stay true.
+   ───────────────────────────────────────────────────────────────────── */
+
+/**
+ * A seasonal shape for coastal Andhra, indexed by calendar month. Summer
+ * cooling load is what drives campus electricity here, so consumption
+ * peaks Mar–Jun. Comparing a month against the same month a year earlier
+ * cancels this out entirely, which is why the savings report needs no
+ * weather model of its own.
+ */
+const SEASONAL_FACTOR: Record<number, number> = {
+  1: 0.76, 2: 0.94, 3: 1.18, 4: 1.48, 5: 1.66, 6: 1.48,
+  7: 1.30, 8: 1.24, 9: 1.18, 10: 1.0, 11: 0.88, 12: 0.76,
+};
+
+/** Inclusive bounds of the generated monthly series. */
+const SERIES_FROM = { year: 2025, month: 1 };
+const SERIES_TO = { year: 2026, month: 8 };
+
+/**
+ * Meters whose monthly electricity series is generated, and the demand
+ * each runs at before the seasonal shape is applied.
+ *
+ * Only live meters. M-006 sits in the same building as M-001 but is
+ * DECOMMISSIONED, and is left out so anything aggregating consumption has
+ * to filter on meter status rather than trusting the building alone.
+ */
+const GENERATED_SERIES: {
+  meter_id: string;
+  code: string;
+  organization_id: string;
+  base_kwh: number;
+}[] = [
+  {
+    meter_id: "mmmm0000-0001-4000-8000-000000000000",
+    code: "M001",
+    organization_id: "org-001",
+    base_kwh: 42000,
+  },
+  {
+    meter_id: "mmmm0000-000a-4000-8000-000000000000",
+    code: "M010",
+    organization_id: "org-001",
+    base_kwh: 28000,
+  },
+  {
+    meter_id: "mmmm0000-0f02-4000-8000-000000000000",
+    code: "CVM001",
+    organization_id: "org-002",
+    base_kwh: 55000,
+  },
+  {
+    meter_id: "mmmm0000-0f04-4000-8000-000000000000",
+    code: "HPM001",
+    organization_id: "org-004",
+    base_kwh: 31000,
+  },
+  {
+    meter_id: "mmmm0000-0f05-4000-8000-000000000000",
+    code: "HPM002",
+    organization_id: "org-004",
+    base_kwh: 19000,
+  },
+];
+
+/**
+ * org-001 implemented its two accepted recommendations at the end of
+ * February 2026, cutting demand on the affected meters by 12%. That drop
+ * is the whole point of the seed: it is what the savings report surfaces,
+ * and therefore what makes the product look worth buying.
+ *
+ * org-002 and org-004 have implemented nothing, so they show roughly flat
+ * year-on-year — which the report has to handle without claiming a win.
+ */
+const IMPROVEMENT_FROM_PERIOD = "2026-03";
+const IMPROVEMENT_FACTOR = 0.88;
+const IMPROVED_METER_IDS = [
+  "mmmm0000-0001-4000-8000-000000000000",
+  "mmmm0000-000a-4000-8000-000000000000",
+];
+
+/** Every "YYYY-MM" in the generated series, in order. */
+function eachSeriesMonth(): { year: number; month: number; period: string }[] {
+  const months: { year: number; month: number; period: string }[] = [];
+  let year = SERIES_FROM.year;
+  let month = SERIES_FROM.month;
+  while (year < SERIES_TO.year || (year === SERIES_TO.year && month <= SERIES_TO.month)) {
+    months.push({ year, month, period: `${year}-${String(month).padStart(2, "0")}` });
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return months;
+}
+
+/** One monthly electricity reading per generated meter. */
+function buildMonthlyElectricityReadings(): MeterReading[] {
+  const readings: MeterReading[] = [];
+  for (const meter of GENERATED_SERIES) {
+    for (const { year, month, period } of eachSeriesMonth()) {
+      const improved =
+        period >= IMPROVEMENT_FROM_PERIOD && IMPROVED_METER_IDS.includes(meter.meter_id)
+          ? IMPROVEMENT_FACTOR
+          : 1;
+
+      readings.push({
+        reading_id: `gen-${meter.code}-${period}`,
+        organization_id: meter.organization_id,
+        meter_id: meter.meter_id,
+        value: Math.round(meter.base_kwh * SEASONAL_FACTOR[month] * improved),
+        unit: "kWh",
+        // Month-end stamp: these are monthly totals, not spot readings.
+        timestamp: new Date(Date.UTC(year, month, 0, 23, 59, 0)).toISOString(),
+      });
+    }
+  }
+  return readings;
+}
+
 @Injectable({ scope: Scope.DEFAULT })
 export class DatabaseService {
   /**
@@ -402,7 +747,6 @@ export class DatabaseService {
       type: "University",
       location: "Sri City, Andhra Pradesh",
       status: OrganizationStatus.ACTIVE,
-      data_source_tier: DataSourceTier.BMS_INTEGRATION,
       floor_area_sqm: 42000,
       tariff_rate: 8.5,
       contract_start: "2025-01-01",
@@ -413,7 +757,6 @@ export class DatabaseService {
       type: "University",
       location: "Visakhapatnam, Andhra Pradesh",
       status: OrganizationStatus.ACTIVE,
-      data_source_tier: DataSourceTier.MANUAL_UPLOAD,
       floor_area_sqm: 68000,
       tariff_rate: 9.2,
       contract_start: "2025-06-01",
@@ -424,9 +767,21 @@ export class DatabaseService {
       type: "Corporate Campus",
       location: "Hyderabad, Telangana",
       status: OrganizationStatus.PROSPECT,
-      data_source_tier: DataSourceTier.NO_METERING,
       floor_area_sqm: 31000,
       tariff_rate: null,
+      contract_start: null,
+    },
+    {
+      // Mid-onboarding: an audit is already in progress (see energyAudits
+      // below), while org-003 above is a genuine untouched prospect with no
+      // engagement yet.
+      organization_id: "org-004",
+      name: "Harbour Point Polytechnic",
+      type: "Polytechnic",
+      location: "Kakinada, Andhra Pradesh",
+      status: OrganizationStatus.PROSPECT,
+      floor_area_sqm: 24000,
+      tariff_rate: 8.9,
       contract_start: null,
     },
   ];
@@ -439,7 +794,7 @@ export class DatabaseService {
       email: "aadi@gmail.com",
       phone: "9876543210",
       password: "Aadi@123",
-      role: UserRole.SYSTEM_ADMINISTRATOR,
+      role: UserRole.ORGANIZATION_ADMIN,
       specialization: null,
     },
     {
@@ -532,6 +887,192 @@ export class DatabaseService {
       role: UserRole.TECHNICIAN,
       specialization: "Plumbing",
     },
+    // ── The rest of org-001's facilities and energy team ──────────────
+    //
+    // A university running five blocks and ten metered points does not do
+    // it with four people. These bring org-001 to 24 billable staff
+    // against a 20-seat Growth allowance, which is what puts a seat
+    // overage on its invoice — the case the pricing rule exists for.
+    //
+    // Campus Visitors are deliberately NOT padded out here: they are the
+    // one role that never counts towards a seat.
+    {
+      user_id: "550e8400-000b-4000-8000-00000000000b",
+      organization_id: "org-001",
+      name: "Kavya Menon",
+      email: "kavya@gmail.com",
+      phone: "9876543220",
+      password: "Kavya@123",
+      role: UserRole.TECHNICIAN_ADMINISTRATOR,
+      specialization: "HVAC",
+    },
+    {
+      user_id: "550e8400-000c-4000-8000-00000000000c",
+      organization_id: "org-001",
+      name: "Arjun Bose",
+      email: "arjun.b@gmail.com",
+      phone: "9876543221",
+      password: "Arjun@123",
+      role: UserRole.TECHNICIAN_ADMINISTRATOR,
+      specialization: "Electrical",
+    },
+    {
+      user_id: "550e8400-000d-4000-8000-00000000000d",
+      organization_id: "org-001",
+      name: "Sneha Iyer",
+      email: "sneha@gmail.com",
+      phone: "9876543222",
+      password: "Sneha@123",
+      role: UserRole.SUSTAINABILITY_OFFICER,
+      specialization: null,
+    },
+    {
+      user_id: "550e8400-000e-4000-8000-00000000000e",
+      organization_id: "org-001",
+      name: "Rahul Verma",
+      email: "rahul@gmail.com",
+      phone: "9876543223",
+      password: "Rahul@123",
+      role: UserRole.SUSTAINABILITY_OFFICER,
+      specialization: null,
+    },
+    {
+      user_id: "550e8400-000f-4000-8000-00000000000f",
+      organization_id: "org-001",
+      name: "Priyanka Shah",
+      email: "priyanka@gmail.com",
+      phone: "9876543224",
+      password: "Priyanka@123",
+      role: UserRole.FINANCIAL_ANALYST,
+      specialization: null,
+    },
+    {
+      user_id: "550e8400-0010-4000-8000-000000000010",
+      organization_id: "org-001",
+      name: "Vikram Nair",
+      email: "vikram@gmail.com",
+      phone: "9876543225",
+      password: "Vikram@123",
+      role: UserRole.FINANCIAL_ANALYST,
+      specialization: null,
+    },
+    {
+      user_id: "550e8400-0011-4000-8000-000000000011",
+      organization_id: "org-001",
+      name: "Ananya Ghosh",
+      email: "ananya@gmail.com",
+      phone: "9876543226",
+      password: "Ananya@123",
+      role: UserRole.ORGANIZATION_ADMIN,
+      specialization: null,
+    },
+    {
+      user_id: "550e8400-0012-4000-8000-000000000012",
+      organization_id: "org-001",
+      name: "Sanjay Kulkarni",
+      email: "sanjay@gmail.com",
+      phone: "9876543227",
+      password: "Sanjay@123",
+      role: UserRole.TECHNICIAN,
+      specialization: "HVAC",
+    },
+    {
+      user_id: "550e8400-0013-4000-8000-000000000013",
+      organization_id: "org-001",
+      name: "Meera Pillai",
+      email: "meera@gmail.com",
+      phone: "9876543228",
+      password: "Meera@123",
+      role: UserRole.TECHNICIAN,
+      specialization: "Electrical",
+    },
+    {
+      user_id: "550e8400-0014-4000-8000-000000000014",
+      organization_id: "org-001",
+      name: "Imran Sheikh",
+      email: "imran@gmail.com",
+      phone: "9876543229",
+      password: "Imran@123",
+      role: UserRole.TECHNICIAN,
+      specialization: "Plumbing",
+    },
+    {
+      user_id: "550e8400-0015-4000-8000-000000000015",
+      organization_id: "org-001",
+      name: "Divya Raman",
+      email: "divya.r@gmail.com",
+      phone: "9876543230",
+      password: "Divya@123",
+      role: UserRole.TECHNICIAN,
+      specialization: "Solar Installation",
+    },
+    {
+      user_id: "550e8400-0016-4000-8000-000000000016",
+      organization_id: "org-001",
+      name: "Karthik Rao",
+      email: "karthik@gmail.com",
+      phone: "9876543231",
+      password: "Karthik@123",
+      role: UserRole.TECHNICIAN,
+      specialization: "General Maintenance",
+    },
+    {
+      user_id: "550e8400-0017-4000-8000-000000000017",
+      organization_id: "org-001",
+      name: "Fatima Khan",
+      email: "fatima@gmail.com",
+      phone: "9876543232",
+      password: "Fatima@123",
+      role: UserRole.TECHNICIAN,
+      specialization: "HVAC",
+    },
+    {
+      user_id: "550e8400-0018-4000-8000-000000000018",
+      organization_id: "org-001",
+      name: "Nikhil Joshi",
+      email: "nikhil@gmail.com",
+      phone: "9876543233",
+      password: "Nikhil@123",
+      role: UserRole.TECHNICIAN,
+      specialization: "Electrical",
+    },
+    {
+      user_id: "550e8400-0019-4000-8000-000000000019",
+      organization_id: "org-001",
+      name: "Lakshmi Reddy",
+      email: "lakshmi@gmail.com",
+      phone: "9876543234",
+      password: "Lakshmi@123",
+      role: UserRole.TECHNICIAN,
+      specialization: "General Maintenance",
+    },
+
+    // ── Prospect contacts ─────────────────────────────────────────────
+    //
+    // A prospect has no dashboards yet, but it does have a person. These are
+    // created when the Super Admin registers the organisation, and they are
+    // who the auditor's proposal is addressed to. Without them the sales
+    // workflow has no recipient.
+    {
+      user_id: "550e8400-00c1-4000-8000-0000000000c1",
+      organization_id: "org-003",
+      name: "Ramesh Gupta",
+      email: "ramesh@northgatepark.in",
+      phone: "9830000001",
+      password: "Ramesh@123",
+      role: UserRole.ORGANIZATION_ADMIN,
+      specialization: null,
+    },
+    {
+      user_id: "550e8400-00c2-4000-8000-0000000000c2",
+      organization_id: "org-004",
+      name: "Anita Fernandes",
+      email: "anita@harbourpoint.edu",
+      phone: "9840000001",
+      password: "Anita@123",
+      role: UserRole.ORGANIZATION_ADMIN,
+      specialization: null,
+    },
 
     // ── EnerTrack staff: no organization_id, they work across tenants ──
     {
@@ -554,18 +1095,23 @@ export class DatabaseService {
       role: UserRole.CERTIFIED_ENERGY_AUDITOR,
       specialization: "Energy Audit (BEE Certified)",
     },
-    {
-      user_id: "550e8400-00f3-4000-8000-0000000000f3",
-      organization_id: null,
-      name: "Divya Rao",
-      email: "divya@enertrack.com",
-      phone: "9800000003",
-      password: "Divya@123",
-      role: UserRole.ACCOUNT_OFFICER,
-      specialization: null,
-    },
 
     // ── Client-side staff for the second tenant (proves isolation) ──
+    //
+    // Every organisation's FIRST account is its Organization Admin. They are
+    // the client's account owner, they receive the audit proposal, and they
+    // are provisioned by a Super Admin rather than self-registered — which is
+    // why this role is absent from SELF_REGISTERABLE_ROLES.
+    {
+      user_id: "550e8400-00b0-4000-8000-0000000000b0",
+      organization_id: "org-002",
+      name: "Sunita Deshpande",
+      email: "sunita@coastalvalley.edu",
+      phone: "9820000001",
+      password: "Sunita@123",
+      role: UserRole.ORGANIZATION_ADMIN,
+      specialization: null,
+    },
     {
       user_id: "550e8400-00b1-4000-8000-0000000000b1",
       organization_id: "org-002",
@@ -701,6 +1247,13 @@ export class DatabaseService {
       location: "Visakhapatnam",
       total_budget: 2400000,
     },
+    {
+      campus_id: "660e8700-0f04-4000-8000-000000000000",
+      organization_id: "org-004",
+      name: "Harbour Point Campus",
+      location: "Kakinada",
+      total_budget: 1400000,
+    },
   ];
   public buildings: Building[] = [
     {
@@ -744,6 +1297,20 @@ export class DatabaseService {
       campus_id: "660e8700-0f02-4000-8000-000000000000",
       name: "Marine Sciences Block",
       budget: 900000,
+    },
+    {
+      building_id: "660e8800-0f04-4000-8000-000000000000",
+      organization_id: "org-004",
+      campus_id: "660e8700-0f04-4000-8000-000000000000",
+      name: "Engineering Workshop",
+      budget: 520000,
+    },
+    {
+      building_id: "660e8800-0f05-4000-8000-000000000000",
+      organization_id: "org-004",
+      campus_id: "660e8700-0f04-4000-8000-000000000000",
+      name: "Central Library",
+      budget: 380000,
     },
   ];
   public departments: Department[] = [
@@ -902,6 +1469,33 @@ export class DatabaseService {
       meter_code: "CV-M-001",
       meter_type: MeterType.ELECTRICITY,
       zone: "Block A",
+      status: MeterStatus.ACTIVE,
+    },
+    {
+      meter_id: "mmmm0000-0f04-4000-8000-000000000000",
+      organization_id: "org-004",
+      building_id: "660e8800-0f04-4000-8000-000000000000",
+      meter_code: "HP-M-001",
+      meter_type: MeterType.ELECTRICITY,
+      zone: "Workshop",
+      status: MeterStatus.ACTIVE,
+    },
+    {
+      meter_id: "mmmm0000-0f05-4000-8000-000000000000",
+      organization_id: "org-004",
+      building_id: "660e8800-0f05-4000-8000-000000000000",
+      meter_code: "HP-M-002",
+      meter_type: MeterType.ELECTRICITY,
+      zone: "Library",
+      status: MeterStatus.ACTIVE,
+    },
+    {
+      meter_id: "mmmm0000-0f06-4000-8000-000000000000",
+      organization_id: "org-004",
+      building_id: "660e8800-0f05-4000-8000-000000000000",
+      meter_code: "HP-M-003",
+      meter_type: MeterType.WATER,
+      zone: "Library",
       status: MeterStatus.ACTIVE,
     },
   ];
@@ -1150,7 +1744,7 @@ export class DatabaseService {
       status: AlertStatus.OPEN,
       messages: [
         {
-          sender_role: "System Administrator",
+          sender_role: "Organization Admin",
           content: "Flow rate 40L/min detected outside operating hours.",
           timestamp: "2026-05-05T08:00:00.000Z",
         },
@@ -1166,7 +1760,7 @@ export class DatabaseService {
       status: AlertStatus.ACKNOWLEDGED,
       messages: [
         {
-          sender_role: "System Administrator",
+          sender_role: "Organization Admin",
           content: "Temperature reached 95°C. Cooling system may be failing.",
           timestamp: "2026-05-05T09:30:00.000Z",
         },
@@ -1182,7 +1776,7 @@ export class DatabaseService {
       status: AlertStatus.OPEN,
       messages: [
         {
-          sender_role: "System Administrator",
+          sender_role: "Organization Admin",
           content: "Current unbalance detected on Phase B. Potential load issue.",
           timestamp: "2026-05-05T10:15:00.000Z",
         },
@@ -1198,7 +1792,7 @@ export class DatabaseService {
       status: AlertStatus.OPEN,
       messages: [
         {
-          sender_role: "System Administrator",
+          sender_role: "Organization Admin",
           content: "Spike of 50kW detected in Server Room 101. Verify UPS status.",
           timestamp: "2026-05-05T11:45:00.000Z",
         },
@@ -1214,7 +1808,7 @@ export class DatabaseService {
       status: AlertStatus.OPEN,
       messages: [
         {
-          sender_role: "System Administrator",
+          sender_role: "Organization Admin",
           content: "BMS lost connectivity with floor 2 thermostats.",
           timestamp: "2026-05-05T12:00:00.000Z",
         },
@@ -1230,7 +1824,7 @@ export class DatabaseService {
       status: AlertStatus.RESOLVED,
       messages: [
         {
-          sender_role: "System Administrator",
+          sender_role: "Organization Admin",
           content: "Low-level gas detection. Auto-shutoff valves engaged.",
           timestamp: "2026-05-05T06:00:00.000Z",
         },
@@ -1404,6 +1998,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.ON_BUDGET,
+      total: 1350,
+      budget: 1400,
+      variance: 50,
+      scope: "department",
+      scope_label: "Department 2",
     },
     {
       energy_cost_id: "eeee0000-0002-4000-8000-000000000000",
@@ -1415,6 +2014,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.OVER_BUDGET,
+      total: 1350,
+      budget: 1200,
+      variance: -150,
+      scope: "department",
+      scope_label: "Department 3",
     },
     {
       energy_cost_id: "eeee0000-0003-4000-8000-000000000000",
@@ -1426,6 +2030,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.UNDER_BUDGET,
+      total: 1350,
+      budget: 1600,
+      variance: 250,
+      scope: "department",
+      scope_label: "Department 4",
     },
     {
       energy_cost_id: "eeee0000-0004-4000-8000-000000000000",
@@ -1437,6 +2046,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.ON_BUDGET,
+      total: 1350,
+      budget: 1380,
+      variance: 30,
+      scope: "department",
+      scope_label: "Department 5",
     },
     {
       energy_cost_id: "eeee0000-0005-4000-8000-000000000000",
@@ -1448,6 +2062,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.OVER_BUDGET,
+      total: 1350,
+      budget: 1100,
+      variance: -250,
+      scope: "department",
+      scope_label: "Department 6",
     },
     {
       energy_cost_id: "eeee0000-0006-4000-8000-000000000000",
@@ -1459,6 +2078,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.UNDER_BUDGET,
+      total: 1350,
+      budget: 1700,
+      variance: 350,
+      scope: "department",
+      scope_label: "Department 7",
     },
     {
       energy_cost_id: "eeee0000-0007-4000-8000-000000000000",
@@ -1470,6 +2094,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.ON_BUDGET,
+      total: 1350,
+      budget: 1360,
+      variance: 10,
+      scope: "department",
+      scope_label: "Department 8",
     },
     {
       energy_cost_id: "eeee0000-0008-4000-8000-000000000000",
@@ -1481,6 +2110,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.OVER_BUDGET,
+      total: 1350,
+      budget: 1150,
+      variance: -200,
+      scope: "department",
+      scope_label: "Department 1",
     },
     {
       energy_cost_id: "eeee0000-0009-4000-8000-000000000000",
@@ -1492,6 +2126,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.UNDER_BUDGET,
+      total: 1350,
+      budget: 1550,
+      variance: 200,
+      scope: "department",
+      scope_label: "Department 2",
     },
     {
       energy_cost_id: "eeee0000-000a-4000-8000-000000000000",
@@ -1503,6 +2142,11 @@ export class DatabaseService {
       gas: 200.0,
       water: 150.0,
       status: EnergyCostStatus.ON_BUDGET,
+      total: 1350,
+      budget: 1370,
+      variance: 20,
+      scope: "department",
+      scope_label: "Department 3",
     },
     {
       energy_cost_id: "eeee0000-0f02-4000-8000-000000000000",
@@ -1514,6 +2158,11 @@ export class DatabaseService {
       gas: 340.0,
       water: 280.0,
       status: EnergyCostStatus.OVER_BUDGET,
+      total: 3230,
+      budget: 2900,
+      variance: -330,
+      scope: "building",
+      scope_label: "Marine Sciences Block",
     },
   ];
   public invoices: Invoice[] = [
@@ -1963,5 +2612,365 @@ export class DatabaseService {
       generated_at: "2024-12-10T09:15:00.000Z",
     }
   ];
-}
 
+
+  /* ══════════════════════════════════════════════════════════════════
+     SUBSCRIPTION SEED
+
+     Two live clients, chosen to show both halves of the pricing rule:
+     org-001 is over its seat allowance and pays an overage, org-002 is
+     under and pays the flat fee.
+     ══════════════════════════════════════════════════════════════════ */
+
+  /**
+   * The tier catalogue. Global — no organization_id, so scopeToTenant()
+   * must never touch it.
+   *
+   * A price change here is a PATCH from the Super Admin's Pricing Plans
+   * tab and takes effect on the next invoice generated. No redeploy.
+   */
+  public subscriptionPlans: SubscriptionPlan[] = [
+    {
+      plan_id: "plan-starter",
+      name: "Starter",
+      tagline: "A single campus getting its consumption under control.",
+      base_monthly_fee: 12000,
+      included_seats: 5,
+      price_per_extra_seat: 1200,
+      max_campuses: 1,
+      features: [
+        "One campus",
+        "Consumption dashboards and monthly reporting",
+        "Anomaly alerts and fault workflow",
+        "Annual site audit by a certified auditor",
+      ],
+      is_active: true,
+    },
+    {
+      plan_id: "plan-growth",
+      name: "Growth",
+      tagline: "Multi-campus estates with a dedicated facilities team.",
+      base_monthly_fee: 35000,
+      included_seats: 20,
+      price_per_extra_seat: 1000,
+      max_campuses: 3,
+      features: [
+        "Up to three campuses",
+        "Everything in Starter",
+        "Sustainability reporting and initiative tracking",
+        "Half-yearly site audit",
+      ],
+      is_active: true,
+    },
+    {
+      plan_id: "plan-enterprise",
+      name: "Enterprise",
+      tagline: "Large estates with compliance reporting obligations.",
+      base_monthly_fee: 90000,
+      included_seats: 60,
+      price_per_extra_seat: 800,
+      max_campuses: null,
+      features: [
+        "Unlimited campuses",
+        "Everything in Growth",
+        "BRSR and ESG report packs",
+        "Quarterly site audit and review",
+      ],
+      is_active: true,
+    },
+  ];
+
+  /**
+   * Live contracts. org-003 deliberately has none: it is a prospect whose
+   * audit is still in progress, which is the state the auditor dashboard
+   * opens on.
+   */
+  public subscriptions: Subscription[] = [
+    {
+      subscription_id: "sub-001",
+      organization_id: "org-001",
+      plan_id: "plan-growth",
+      status: SubscriptionStatus.ACTIVE,
+      billing_cycle: BillingCycle.MONTHLY,
+      started_on: "2025-01-01",
+      renews_on: "2027-01-01",
+      cancelled_on: null,
+    },
+    {
+      subscription_id: "sub-002",
+      organization_id: "org-002",
+      plan_id: "plan-starter",
+      status: SubscriptionStatus.ACTIVE,
+      billing_cycle: BillingCycle.MONTHLY,
+      started_on: "2025-06-01",
+      renews_on: "2026-12-01",
+      cancelled_on: null,
+    },
+  ];
+
+  /**
+   * Certified auditor engagements.
+   *
+   * Note what these do NOT contain: no baseline, no savings verification,
+   * no link to any invoice. An audit tells the organisation what needs
+   * fixing. What it saves is reported separately, from meter readings,
+   * and is never billed for.
+   */
+  public energyAudits: EnergyAudit[] = [
+    {
+      audit_id: "audit-001",
+      organization_id: "org-001",
+      auditor_id: "550e8400-00f2-4000-8000-0000000000f2",
+      status: AuditStatus.ACCEPTED,
+      scheduled_on: "2025-09-05",
+      conducted_on: "2025-09-12",
+      findings: [
+        {
+          finding_id: "find-001",
+          title: "Chiller plant sequencing on return-water temperature",
+          category: "HVAC",
+          severity: FindingSeverity.HIGH,
+          est_annual_saving: 620000,
+          capex: 850000,
+          payback_months: 17,
+          status: FindingStatus.IMPLEMENTED,
+          implemented_on: "2026-02-24",
+          building_ids: ["660e8800-0002-4000-8000-000000000000"],
+        },
+        {
+          finding_id: "find-002",
+          title: "LED retrofit, Building 1 corridors and lecture halls",
+          category: "Lighting",
+          severity: FindingSeverity.MODERATE,
+          est_annual_saving: 240000,
+          capex: 310000,
+          payback_months: 16,
+          status: FindingStatus.IMPLEMENTED,
+          implemented_on: "2026-02-27",
+          building_ids: ["660e8800-0001-4000-8000-000000000000"],
+        },
+        {
+          finding_id: "find-003",
+          title: "Rooftop solar, 180 kWp across Buildings 3 and 5",
+          category: "Generation",
+          severity: FindingSeverity.HIGH,
+          est_annual_saving: 1450000,
+          capex: 9200000,
+          payback_months: 76,
+          // Accepted but not done — the outstanding opportunity, and the
+          // strongest thing to put in front of them at renewal.
+          status: FindingStatus.ACCEPTED,
+          implemented_on: null,
+          building_ids: [
+            "660e8800-0003-4000-8000-000000000000",
+            "660e8800-0005-4000-8000-000000000000",
+          ],
+        },
+      ],
+      proposal: {
+        recommended_plan_id: "plan-growth",
+        estimated_staff: 24,
+        estimated_campuses: 2,
+        monthly_estimate: 39000,
+        sent_to_user_id: "550e8400-0001-4000-8000-000000000001",
+        sent_on: "2025-09-20",
+        responded_on: "2025-09-28",
+        response_note: null,
+      },
+      summary:
+        "Well instrumented estate with no control strategy behind the instrumentation. Chiller sequencing and the Building 1 lighting retrofit pay back inside eighteen months; solar is sound but long-dated.",
+    },
+    {
+      audit_id: "audit-002",
+      organization_id: "org-002",
+      auditor_id: "550e8400-00f2-4000-8000-0000000000f2",
+      status: AuditStatus.ACCEPTED,
+      scheduled_on: "2026-01-15",
+      conducted_on: "2026-01-22",
+      findings: [
+        {
+          finding_id: "find-011",
+          title: "Sub-meter the four wings of the Marine Sciences Block",
+          category: "Metering",
+          severity: FindingSeverity.HIGH,
+          est_annual_saving: 0,
+          capex: 480000,
+          payback_months: 0,
+          status: FindingStatus.PROPOSED,
+          implemented_on: null,
+          building_ids: ["660e8800-0f02-4000-8000-000000000000"],
+        },
+      ],
+      proposal: {
+        recommended_plan_id: "plan-starter",
+        estimated_staff: 2,
+        estimated_campuses: 1,
+        monthly_estimate: 12000,
+        sent_to_user_id: "550e8400-00b0-4000-8000-0000000000b0",
+        sent_on: "2026-02-01",
+        responded_on: "2026-02-04",
+        response_note: null,
+      },
+      summary:
+        "Cannot recommend savings measures against a single whole-block meter. Sub-metering first, then reassess after two quarters of clean data.",
+    },
+    {
+      audit_id: "audit-003",
+      organization_id: "org-003",
+      auditor_id: "550e8400-00f2-4000-8000-0000000000f2",
+      status: AuditStatus.SCHEDULED,
+      scheduled_on: "2026-09-14",
+      conducted_on: null,
+      findings: [],
+      proposal: null,
+      summary: null,
+    },
+    {
+      // The engagement the auditor dashboard is meant to be worked
+      // through: visited on site, recommendations not yet written up.
+      audit_id: "audit-004",
+      organization_id: "org-004",
+      auditor_id: "550e8400-00f2-4000-8000-0000000000f2",
+      status: AuditStatus.IN_PROGRESS,
+      scheduled_on: "2026-08-10",
+      conducted_on: "2026-08-18",
+      findings: [],
+      proposal: null,
+      summary:
+        "Workshop extraction runs continuously regardless of occupancy. Library HVAC has no setback schedule outside term time.",
+    },
+  ];
+
+  /**
+   * What EnerTrack has billed. Again: not Invoice, which is the client's
+   * electricity bill from their utility.
+   *
+   * org-001 is over its 20-seat allowance and shows the overage line;
+   * org-002 is under its 5 and bills the flat fee alone.
+   */
+  public platformInvoices: PlatformInvoice[] = [
+    {
+      platform_invoice_id: "pinv-001",
+      organization_id: "org-001",
+      subscription_id: "sub-001",
+      period: "2026-06",
+      line_items: [
+        {
+          type: InvoiceLineType.SUBSCRIPTION,
+          description: "Growth — monthly subscription (20 staff seats, 3 campuses)",
+          quantity: 1,
+          unit_price: 35000,
+          amount: 35000,
+          source_ref: "sub-001",
+        },
+        {
+          type: InvoiceLineType.SEAT_OVERAGE,
+          description: "Additional staff seats (24 staff, 20 included)",
+          quantity: 4,
+          unit_price: 1000,
+          amount: 4000,
+          source_ref: "sub-001",
+        },
+      ],
+      subtotal: 39000,
+      tax_pct: 18,
+      tax_amount: 7020,
+      total: 46020,
+      status: PlatformInvoiceStatus.PAID,
+      issued_on: "2026-07-01",
+      due_on: "2026-07-31",
+      paid_on: "2026-07-18",
+    },
+    {
+      platform_invoice_id: "pinv-002",
+      organization_id: "org-001",
+      subscription_id: "sub-001",
+      period: "2026-07",
+      line_items: [
+        {
+          type: InvoiceLineType.SUBSCRIPTION,
+          description: "Growth — monthly subscription (20 staff seats, 3 campuses)",
+          quantity: 1,
+          unit_price: 35000,
+          amount: 35000,
+          source_ref: "sub-001",
+        },
+        {
+          type: InvoiceLineType.SEAT_OVERAGE,
+          description: "Additional staff seats (24 staff, 20 included)",
+          quantity: 4,
+          unit_price: 1000,
+          amount: 4000,
+          source_ref: "sub-001",
+        },
+      ],
+      subtotal: 39000,
+      tax_pct: 18,
+      tax_amount: 7020,
+      total: 46020,
+      status: PlatformInvoiceStatus.OVERDUE,
+      issued_on: "2026-08-01",
+      due_on: "2026-08-25",
+      paid_on: null,
+    },
+    {
+      platform_invoice_id: "pinv-011",
+      organization_id: "org-002",
+      subscription_id: "sub-002",
+      period: "2026-06",
+      line_items: [
+        {
+          type: InvoiceLineType.SUBSCRIPTION,
+          description: "Starter — monthly subscription (5 staff seats, 1 campus)",
+          quantity: 1,
+          unit_price: 12000,
+          amount: 12000,
+          source_ref: "sub-002",
+        },
+      ],
+      subtotal: 12000,
+      tax_pct: 18,
+      tax_amount: 2160,
+      total: 14160,
+      status: PlatformInvoiceStatus.PAID,
+      issued_on: "2026-07-01",
+      due_on: "2026-07-31",
+      paid_on: "2026-07-09",
+    },
+    {
+      platform_invoice_id: "pinv-012",
+      organization_id: "org-002",
+      subscription_id: "sub-002",
+      period: "2026-07",
+      line_items: [
+        {
+          type: InvoiceLineType.SUBSCRIPTION,
+          description: "Starter — monthly subscription (5 staff seats, 1 campus)",
+          quantity: 1,
+          unit_price: 12000,
+          amount: 12000,
+          source_ref: "sub-002",
+        },
+      ],
+      subtotal: 12000,
+      tax_pct: 18,
+      tax_amount: 2160,
+      total: 14160,
+      status: PlatformInvoiceStatus.ISSUED,
+      issued_on: "2026-08-01",
+      due_on: "2026-08-31",
+      paid_on: null,
+    },
+  ];
+
+  /**
+   * The generated monthly electricity series is appended here rather than
+   * declared inline, because field initialisers run in declaration order
+   * and meterReadings is declared well above this point. By the time the
+   * constructor body runs every seed array exists, so the generated rows
+   * simply extend the hand-written ones.
+   */
+  constructor() {
+    this.meterReadings.push(...buildMonthlyElectricityReadings());
+  }
+}

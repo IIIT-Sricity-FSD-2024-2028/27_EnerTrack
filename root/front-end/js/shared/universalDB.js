@@ -20,7 +20,7 @@ const defaultData = {
       email: "aadithya@gmail.com",
       phone: "+1 555-0100",
       password: "Aadi@123",
-      role: "System Administrator",
+      role: "Organization Admin",
       specialization: null,
     },
     {

@@ -29,7 +29,6 @@ import {
    ══════════════════════════════════════════════════════ */
 
 const STATUSES = ["prospect", "audited", "active", "churned"];
-const TIERS = ["bms-integration", "manual-upload", "no-metering"];
 
 export function renderOrganizationsManager(container, app) {
   const orgs = app.state.organizations || [];
@@ -37,7 +36,7 @@ export function renderOrganizationsManager(container, app) {
   const canWrite = isSuperAdmin();
 
   const rows = orgs.map((o) => renderOrgRow(o, app, canWrite)).join("");
-  const emptyRow = `<tr><td colspan="9"><div class="empty-state">No organisations found.</div></td></tr>`;
+  const emptyRow = `<tr><td colspan="8"><div class="empty-state">No organisations found.</div></td></tr>`;
 
   const subtitle = isPlatformView
     ? "Every client organisation on the platform. Each one is an isolated tenant."
@@ -64,7 +63,6 @@ export function renderOrganizationsManager(container, app) {
                 <th>Type</th>
                 <th>Location</th>
                 <th>Status</th>
-                <th>Data source</th>
                 <th>Floor area</th>
                 <th>Tariff</th>
                 <th>Campuses</th>
@@ -137,7 +135,6 @@ function renderOrgRow(org, app, canWrite) {
       <td>${escapeHtml(org.type || "-")}</td>
       <td>${escapeHtml(org.location || "-")}</td>
       <td>${badge(org.status || "prospect")}</td>
-      <td>${escapeHtml(org.data_source_tier || "-")}</td>
       <td>${area}</td>
       <td>${tariff}</td>
       <td>${campusCount}</td>
@@ -188,16 +185,20 @@ function openOrgModal(app, orgId = null) {
           <input id="orgLocation" value="${escapeHtml(org?.location || "")}" placeholder="Pune, Maharashtra">
           <span class="field-error" data-error-for="location"></span>
         </div>
-        <div class="form-field">
-          <label for="orgStatus">Status</label>
-          <select id="orgStatus">${options(STATUSES, org?.status || "prospect")}</select>
-          <span class="field-error" data-error-for="status"></span>
-        </div>
-        <div class="form-field">
-          <label for="orgTier">Data source tier</label>
-          <select id="orgTier">${options(TIERS, org?.data_source_tier || "no-metering")}</select>
-          <span class="field-error" data-error-for="data_source_tier"></span>
-        </div>
+        ${
+          org
+            ? `<div class="form-field">
+                 <label for="orgStatus">Status</label>
+                 <select id="orgStatus">${options(STATUSES, org?.status || "prospect")}</select>
+                 <span class="field-error" data-error-for="status"></span>
+               </div>`
+            : // A new organisation is always a prospect. Status now moves on
+              // its own as the engagement progresses — audited once EnerTrack
+              // sends a proposal, active once the client accepts it — so
+              // picking it by hand here would just fight that automation the
+              // first time a proposal actually goes out.
+              ""
+        }
         <div class="form-field">
           <label for="orgArea">Floor area (m&sup2;)</label>
           <input id="orgArea" type="number" min="0" step="1" value="${escapeHtml(org?.floor_area_sqm ?? "")}">
@@ -220,7 +221,6 @@ function openOrgModal(app, orgId = null) {
         type: "#orgType",
         location: "#orgLocation",
         status: "#orgStatus",
-        data_source_tier: "#orgTier",
         floor_area_sqm: "#orgArea",
         tariff_rate: "#orgTariff",
         contract_start: "#orgContract",
@@ -243,8 +243,10 @@ function openOrgModal(app, orgId = null) {
         name: vals.name,
         type: vals.type,
         location: vals.location || null,
-        status: vals.status,
-        data_source_tier: vals.data_source_tier || null,
+        // #orgStatus doesn't exist in the DOM on creation (see above), so
+        // vals.status would otherwise come back "" — not a valid
+        // OrganizationStatus and not what a new organisation should be.
+        status: orgId ? vals.status : "prospect",
         floor_area_sqm:
           vals.floor_area_sqm === "" ? null : Number(vals.floor_area_sqm),
         tariff_rate: vals.tariff_rate === "" ? null : Number(vals.tariff_rate),

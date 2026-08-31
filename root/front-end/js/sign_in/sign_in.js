@@ -36,29 +36,14 @@
   };
 
   /* ───────── Role → redirect map ───────── */
+  //
+  // The map itself lives in js/shared/roleRoutes.js, because impersonation
+  // needs to answer the same question — where does this role belong — and
+  // two copies would drift the first time a page is renamed.
   function redirectByRole(role) {
-    var routes = {
-      "System Administrator": "../system_admin/system_admin_overview.html",
-      "Financial Analyst": "../finance-analyst/finance_overview.html",
-      "Technician Administrator": "../technician/technician_overview.html",
-      Technician: "../technician_jr/technician_jr_work_orders.html",
-      "Sustainability Officer": "../sustainability_officer/sust_overview.html",
-      "Campus Visitor": "../enduser/enduser_dashboard.html",
-
-      // EnerTrack's own staff. They send no x-org-id, so the same dashboard
-      // renders them the cross-tenant view rather than a single client's.
-      "Super Admin": "../system_admin/system_admin_overview.html",
-      "Certified Energy Auditor": "../technician/technician_overview.html",
-      "Account Officer": "../finance-analyst/finance_overview.html",
-
-      // Client-side B2B roles, routed to the legacy dashboard each one
-      // replaces. Mirrors ROLE_EQUIVALENTS in the backend.
-      "Facility Manager": "../technician/technician_overview.html",
-      "Economic Buyer": "../finance-analyst/finance_overview.html",
-      "Department Head": "../enduser/enduser_dashboard.html",
-    };
-    var path = routes[role] || "../landing/landing.html";
-    window.location.href = path;
+    window.location.href = window.roleRoutes
+      ? window.roleRoutes.forRole(role)
+      : "../landing/landing.html";
   }
 
   /* ───────── Form submission ───────── */

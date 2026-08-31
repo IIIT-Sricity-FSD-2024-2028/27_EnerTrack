@@ -2,11 +2,83 @@
  * dashboardProfileMenu.js
  * Shared script for all dashboard overview pages.
  * - Populates sidebar name/role from sessionStorage
- * - Adds a role-switching popup (for System Admin) or Sign Out popup
+ * - Adds a role-switching popup (for admins) or Sign Out popup
+ * - Shows the impersonation banner when a Super Admin is acting as someone
  * - Light theme to match the landing page design
  */
 (function () {
   "use strict";
+
+  /* ═══════════════════════════════════════════════════════════════
+     Impersonation banner
+
+     Lives here because this script is the one thing already loaded by
+     every dashboard page, which is exactly the property the banner needs:
+     a Super Admin acting as someone else must be able to tell, and get
+     back, from wherever they end up.
+
+     enertrack_impersonator holds the real Super Admin session while
+     currentUser holds the person being viewed. Restoring is just swapping
+     them back.
+     ═══════════════════════════════════════════════════════════════ */
+  (function impersonationBanner() {
+    var stashed = localStorage.getItem("enertrack_impersonator");
+    if (!stashed) return;
+
+    var admin, viewing;
+    try {
+      admin = JSON.parse(stashed);
+      viewing = JSON.parse(localStorage.getItem("currentUser") || "null");
+    } catch (e) {
+      // A corrupt stash would otherwise strand the admin in someone else's
+      // session with no way back, so drop it rather than leave it.
+      localStorage.removeItem("enertrack_impersonator");
+      return;
+    }
+    if (!admin || !viewing) return;
+
+    var style = document.createElement("style");
+    style.textContent =
+      ".et-imp-bar{position:fixed;top:0;left:0;right:0;z-index:10000;display:flex;" +
+      "align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;" +
+      "background:#1e3a5f;color:#fff;font:600 13px/1.4 system-ui,sans-serif;" +
+      "padding:9px 16px;box-shadow:0 2px 10px rgba(0,0,0,0.2);}" +
+      ".et-imp-bar span{font-weight:400;opacity:0.85;}" +
+      ".et-imp-bar strong{font-weight:700;}" +
+      ".et-imp-bar button{background:#fff;color:#1e3a5f;border:none;border-radius:6px;" +
+      "padding:6px 14px;font:600 13px system-ui,sans-serif;cursor:pointer;}" +
+      ".et-imp-bar button:hover{background:#eaf0f6;}" +
+      "body{padding-top:38px!important;}";
+    document.head.appendChild(style);
+
+    var bar = document.createElement("div");
+    bar.className = "et-imp-bar";
+    bar.innerHTML =
+      "<span>Viewing as</span> <strong>" +
+      escapeText(viewing.name) +
+      "</strong> <span>(" +
+      escapeText(viewing.role) +
+      ")</span>";
+
+    var back = document.createElement("button");
+    back.type = "button";
+    back.textContent = "Return to " + escapeText(admin.name);
+    back.onclick = function () {
+      localStorage.setItem("currentUser", stashed);
+      localStorage.removeItem("enertrack_impersonator");
+      window.location.href = window.roleRoutes
+        ? window.roleRoutes.forRole(admin.role)
+        : "../system_admin/system_admin_overview.html";
+    };
+    bar.appendChild(back);
+    document.body.appendChild(bar);
+
+    function escapeText(v) {
+      return String(v == null ? "" : v).replace(/[&<>"]/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+      });
+    }
+  })();
 
   var userData = localStorage.getItem("currentUser");
   if (!userData) {
@@ -67,15 +139,18 @@
 
   /* ───── Build popup HTML ───── */
   var userRoleStr = (user.role || "").trim();
-  var isAdmin =
-    userRoleStr === "System Administrator" || userRoleStr === "System Admin";
+  // Only EnerTrack's own Super Admin gets to view every actor's dashboard
+  // from here. An Organization Admin is a client's own admin, scoped to
+  // their organisation's admin workflows — not a way to morph into other
+  // roles, same boundary already drawn on the landing page.
+  var isAdmin = userRoleStr === "Super Admin";
 
   var linksHTML = "";
   if (isAdmin) {
     linksHTML =
       '<a href="../system_admin/system_admin_overview.html" class="dash-popup-item">' +
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' +
-      "System Administration</a>" +
+      "Organisation Administration</a>" +
       '<a href="../sustainability_officer/sust_overview.html" class="dash-popup-item">' +
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 2 8a7 7 0 0 1-7 7c0 1 0 3-2 3z"/></svg>' +
       "Sustainability Management</a>" +

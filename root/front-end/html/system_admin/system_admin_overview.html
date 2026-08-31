@@ -64,6 +64,55 @@
           <button
             class="nav-subitem"
             type="button"
+            data-admin-tab="plans"
+            data-requires-role="Super Admin"
+          >
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+              </svg>
+            </span>
+            Pricing Plans
+          </button>
+          <button
+            class="nav-subitem"
+            type="button"
+            data-admin-tab="revenue"
+            data-requires-role="Super Admin"
+          >
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </span>
+            Revenue
+          </button>
+          <!--
+            Client-side, unlike the three tabs above: this is where an
+            Organization Admin answers the proposal their auditor sent.
+            data-requires-role hides it from EnerTrack's own staff, who have
+            no proposal of their own to answer.
+          -->
+          <button
+            class="nav-subitem"
+            type="button"
+            data-admin-tab="proposal"
+            data-requires-role="Organization Admin"
+          >
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <polyline points="9 15 11 17 15 13"></polyline>
+              </svg>
+            </span>
+            EnerTrack Proposal
+          </button>
+          <button
+            class="nav-subitem"
+            type="button"
             data-admin-tab="infrastructure"
           >
             <span class="nav-icon" aria-hidden="true">
@@ -85,7 +134,7 @@
           <div class="profile-info">
             <strong id="sidebarUserName">Aadithya Mouli</strong>
             <br />
-            <span id="sidebarUserRole">System Administrator</span>
+            <span id="sidebarUserRole">Organization Admin</span>
           </div>
         </div>
       </aside>
@@ -108,6 +157,7 @@
 
     <script src="../../js/shared/api.js"></script>
     <script type="module" src="../../js/system_admin/overview.js"></script>
+    <script src="../../js/shared/roleRoutes.js"></script>
     <script src="../../js/shared/dashboardProfileMenu.js"></script>
   </body>
 </html>

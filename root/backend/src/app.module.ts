@@ -13,6 +13,13 @@ import { SecurityMiddleware } from "./core/middleware/security.middleware";
 import { UploadAuditMiddleware } from "./core/middleware/upload-audit.middleware";
 
 import { OrganizationsModule } from "./modules/organizations/organizations.module";
+
+// Revenue model: EnerTrack's own business, layered over the client-facing
+// modules below rather than replacing any of them.
+import { SubscriptionPlansModule } from "./modules/subscription-plans/subscription-plans.module";
+import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
+import { EnergyAuditsModule } from "./modules/energy-audits/energy-audits.module";
+import { PlatformInvoicesModule } from "./modules/platform-invoices/platform-invoices.module";
 import { UsersModule } from "./modules/users/users.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { CampusModule } from "./modules/campus/campus.module";
@@ -37,6 +44,10 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
   imports: [
     DatabaseModule,
     OrganizationsModule,
+    SubscriptionPlansModule,
+    SubscriptionsModule,
+    EnergyAuditsModule,
+    PlatformInvoicesModule,
     UsersModule,
     NotificationsModule,
     CampusModule,
