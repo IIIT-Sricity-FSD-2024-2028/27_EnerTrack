@@ -36,7 +36,7 @@ export class MetersController {
   @ApiResponse({ status: 200, description: "Array of all meter records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Technician", "Sustainability Officer", "Financial Analyst")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Sustainability Officer", "Financial Analyst")
   findAll() {
     return this.metersService.findAll();
   }
@@ -47,7 +47,7 @@ export class MetersController {
   @ApiResponse({ status: 404, description: "Meter with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Technician", "Sustainability Officer", "Financial Analyst")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Sustainability Officer", "Financial Analyst")
   findOne(@Param("id") id: string) {
     return this.metersService.findOne(id);
   }
@@ -89,7 +89,7 @@ export class MetersController {
   @ApiResponse({ status: 200, description: "Array of meter reading records for the meter returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Technician", "Sustainability Officer", "Financial Analyst")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Sustainability Officer", "Financial Analyst")
   getReadings(@Param("id") id: string) {
     return this.metersService.getReadings(id);
   }
@@ -99,7 +99,7 @@ export class MetersController {
   @ApiResponse({ status: 200, description: "Array of alert records for the meter returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Technician")
+  @Roles("Organization Admin", "Technician Administrator", "Technician")
   getAlerts(@Param("id") id: string) {
     return this.metersService.getAlerts(id);
   }

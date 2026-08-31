@@ -8,6 +8,9 @@ import { showToast, openModal } from "./utils/utils.js";
 let selectedFaultId = null;
 let _faults = [];
 let _users = [];
+let _alerts = [];
+let _readings = [];
+let _meters = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -21,9 +24,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function initMaintenance() {
   try {
     if (window.api) {
-      [_faults, _users] = await Promise.all([
+      [_faults, _users, _alerts, _readings, _meters] = await Promise.all([
         window.api.get("/faults").catch(() => []),
         window.api.get("/users").catch(() => []),
+        window.api.get("/alerts").catch(() => []),
+        window.api.get("/meter-readings").catch(() => []),
+        window.api.get("/meters").catch(() => []),
       ]);
     }
   } catch (err) {
@@ -107,6 +113,57 @@ function selectFault(faultId) {
     document.getElementById("quickfixEditMode").style.display = "block";
     document.getElementById("quickfixTextarea").value = "";
   }
+
+  renderFaultReadout(fault);
+}
+
+/* ─── Review Supporting Data: the real reading behind the alert ───── */
+function renderFaultReadout(fault) {
+  const container = document.getElementById("faultReadout");
+  if (!container) return;
+
+  const alert = _alerts.find(
+    (a) => (a.alert_id || a.id) === fault.alert_id,
+  );
+  const readingId = alert?.triggering_reading_id;
+  const reading = readingId
+    ? _readings.find((r) => (r.reading_id || r.id) === readingId)
+    : null;
+
+  if (!reading) {
+    container.innerHTML = `<div class="empty-state">No sensor reading is linked to this fault's alert yet.</div>`;
+    return;
+  }
+
+  const meter = _meters.find(
+    (m) => (m.meter_id || m.id) === reading.meter_id,
+  );
+  const meterLabel = meter
+    ? `${meter.meter_code} (${meter.meter_type})`
+    : reading.meter_id;
+  const ts = reading.timestamp
+    ? new Date(reading.timestamp).toLocaleString()
+    : "—";
+
+  const faultId = fault.fault_id || fault.id;
+  const priorIncidents = _faults.filter(
+    (f) =>
+      f.asset_name === fault.asset_name &&
+      (f.fault_id || f.id) !== faultId,
+  ).length;
+
+  container.innerHTML = `
+    <div class="readout">
+      <div class="readout-dial">
+        <span class="readout-value">${reading.value}<span class="readout-unit">${reading.unit || ""}</span></span>
+      </div>
+      <div class="readout-meta">
+        <div class="readout-meta-row"><span>Meter</span><span>${meterLabel}</span></div>
+        <div class="readout-meta-row"><span>Reading at</span><span>${ts}</span></div>
+      </div>
+    </div>
+    <div class="readout-note">${priorIncidents} prior fault${priorIncidents === 1 ? "" : "s"} recorded for this asset.</div>
+  `;
 }
 
 /* ─── Log Resolution & Close ──────────────────────── */
@@ -253,28 +310,24 @@ function getWOModalHTML(fault, type) {
   }
 
   return `
-      <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
-         <div>
-           <label style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.04em; text-transform:uppercase;">Asset</label>
-           <input type="text" id="modalWOAsset" value="${asset}" readonly style="width:100%; box-sizing: border-box; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; margin-top:6px; font-family:inherit; font-size:14px; color:#475569;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+         <div class="field">
+           <label>Asset</label>
+           <input type="text" id="modalWOAsset" value="${asset}" readonly>
          </div>
          <div style="display: flex; gap: 16px;">
-             <div style="flex: 1;">
-               <label style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.04em; text-transform:uppercase;">Priority</label>
-               <select id="modalWOPriority" style="width:100%; box-sizing: border-box; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; margin-top:6px; font-family:inherit; font-size:14px; color:#0f172a;">
-                 ${priorityOptions}
-               </select>
+             <div class="field" style="flex: 1;">
+               <label>Priority</label>
+               <select id="modalWOPriority">${priorityOptions}</select>
              </div>
-             <div style="flex: 1;">
-               <label style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.04em; text-transform:uppercase;">Assignee</label>
-               <select id="modalWOAssignee" style="width:100%; box-sizing: border-box; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; margin-top:6px; font-family:inherit; font-size:14px; color:#0f172a;">
-                 ${finalTechOptions}
-               </select>
+             <div class="field" style="flex: 1;">
+               <label>Assignee</label>
+               <select id="modalWOAssignee">${finalTechOptions}</select>
              </div>
          </div>
-         <div>
-           <label style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.04em; text-transform:uppercase;">Diagnostic Notes to Transfer</label>
-           <textarea id="modalWONotes" style="width:100%; box-sizing: border-box; padding:10px 12px; border-radius:8px; border:1px solid #cbd5e1; margin-top:6px; font-family:inherit; font-size:14px; min-height: 80px; resize:vertical; color:#0f172a;">${fault.quickfixNotes || fault.prelimNotes || "Diagnostics flagged this fault."}</textarea>
+         <div class="field">
+           <label>Diagnostic Notes to Transfer</label>
+           <textarea id="modalWONotes">${fault.quickfixNotes || fault.prelimNotes || "Diagnostics flagged this fault."}</textarea>
          </div>
       </div>
     `;

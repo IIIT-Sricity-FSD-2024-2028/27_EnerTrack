@@ -16,7 +16,7 @@ export class ServiceRequestsController {
   @ApiResponse({ status: 201, description: "Service request created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  @Roles("Organization Admin", "Financial Analyst", "Technician Administrator", "Technician", "Sustainability Officer", "Campus Visitor")
   create(@Body() createDto: CreateServiceRequestDto) {
     return this.serviceRequestsService.create(createDto);
   }
@@ -26,7 +26,7 @@ export class ServiceRequestsController {
   @ApiResponse({ status: 200, description: "Array of service request records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin", "Technician", "Financial Analyst", "Campus Visitor")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Financial Analyst", "Campus Visitor")
   findAll() {
     return this.serviceRequestsService.findAll();
   }
@@ -37,7 +37,7 @@ export class ServiceRequestsController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin", "Technician", "Financial Analyst")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Financial Analyst")
   findOne(@Param("id") id: string) {
     return this.serviceRequestsService.findOne(id);
   }
@@ -59,7 +59,7 @@ export class ServiceRequestsController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin", "Technician", "Financial Analyst")
+  @Roles("Organization Admin", "Technician Administrator", "Technician", "Financial Analyst")
   update(@Param("id") id: string, @Body() updateDto: UpdateServiceRequestDto) {
     return this.serviceRequestsService.update(id, updateDto);
   }
@@ -80,7 +80,7 @@ export class ServiceRequestsController {
   @ApiResponse({ status: 200, description: "Array of work order records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin", "Technician")
+  @Roles("Organization Admin", "Technician Administrator", "Technician")
   getWorkOrders(@Param("id") id: string) {
     return this.serviceRequestsService.getWorkOrders(id);
   }

@@ -303,46 +303,26 @@
               </div>
               <div
                 id="costEstimateBlock"
-                style="
-                  margin: 16px 0 0 0;
-                  display: none;
-                  padding: 12px;
-                  background: var(--bg-card);
-                  border: 1.5px dashed #f59e0b;
-                  border-radius: 8px;
-                "
+                class="callout callout--warning"
+                style="display: none"
               >
-                <p style="color: #f59e0b; font-size: 13px; margin: 0 0 8px 0">
+                <p style="color: var(--amber); font-size: 13px; margin: 0 0 8px 0">
                   <strong>Submit Cost Estimate</strong>
                 </p>
-                <input
-                  type="number"
-                  id="estMaterials"
-                  placeholder="Materials cost (₹)"
-                  style="
-                    width: 100%;
-                    padding: 8px;
-                    border-radius: 6px;
-                    border: 1px solid var(--border);
-                    font-size: 13px;
-                    margin-bottom: 8px;
-                    box-sizing: border-box;
-                  "
-                />
-                <input
-                  type="number"
-                  id="estLabor"
-                  placeholder="Labor cost (₹)"
-                  style="
-                    width: 100%;
-                    padding: 8px;
-                    border-radius: 6px;
-                    border: 1px solid var(--border);
-                    font-size: 13px;
-                    margin-bottom: 8px;
-                    box-sizing: border-box;
-                  "
-                />
+                <div class="field">
+                  <input
+                    type="number"
+                    id="estMaterials"
+                    placeholder="Materials cost (₹)"
+                  />
+                </div>
+                <div class="field">
+                  <input
+                    type="number"
+                    id="estLabor"
+                    placeholder="Labor cost (₹)"
+                  />
+                </div>
                 <button class="btn btn-dark btn-full" id="btnSubmitCostEst">
                   Send to Finance Analyst
                 </button>
@@ -405,16 +385,7 @@
                   <textarea
                     id="completionNotes"
                     placeholder="Enter resolution details..."
-                    style="
-                      width: 100%;
-                      border: 1px solid #d1d5db;
-                      border-radius: 4px;
-                      padding: 6px;
-                      font-size: 12px;
-                      margin-bottom: 6px;
-                      resize: vertical;
-                      min-height: 40px;
-                    "
+                    style="min-height: 60px; margin-bottom: 8px"
                   ></textarea>
                   <button class="btn btn-dark btn-full" id="btnSubmitForReview">
                     Submit for Review
@@ -437,32 +408,18 @@
 
               <div
                 id="reassignBlock"
-                style="
-                  margin-top: 16px;
-                  display: none;
-                  padding: 12px;
-                  background: var(--bg-card);
-                  border: 1.5px dashed #ef4444;
-                  border-radius: 8px;
-                "
+                class="callout callout--danger mt-16"
+                style="display: none"
               >
-                <p style="color: #ef4444; font-size: 13px; margin: 0 0 8px 0">
+                <p style="color: var(--red); font-size: 13px; margin: 0 0 8px 0">
                   <strong>Requires Re-assignment</strong>
                 </p>
-                <select
-                  id="reassignTechSelect"
-                  style="
-                    width: 100%;
-                    padding: 8px;
-                    border-radius: 6px;
-                    border: 1px solid var(--border);
-                    font-size: 13px;
-                    margin-bottom: 8px;
-                  "
-                >
-                  <option value="">-- Select Alternate Tech --</option>
-                  <!-- Dynamically populated by JS -->
-                </select>
+                <div class="field">
+                  <select id="reassignTechSelect">
+                    <option value="">-- Select Alternate Tech --</option>
+                    <!-- Dynamically populated by JS -->
+                  </select>
+                </div>
                 <button class="btn btn-dark btn-full" id="btnReassign">
                   Re-assign Task
                 </button>

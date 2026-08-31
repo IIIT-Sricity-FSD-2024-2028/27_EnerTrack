@@ -26,6 +26,26 @@
           </a>
           <div class="nav-title">Navigation</div>
           <ul class="nav">
+            <a href="technician_jr_overview.html"
+              ><li>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                </svg>
+                Overview
+              </li></a
+            >
             <a href="technician_jr_work_orders.html"
               ><li class="active">
                 <svg
@@ -131,46 +151,26 @@
                 </div>
                 <div
                   id="costEstimateBlock"
-                  style="
-                    margin: 16px 0 0 0;
-                    display: none;
-                    padding: 12px;
-                    background: var(--bg-base);
-                    border: 1.5px dashed #f59e0b;
-                    border-radius: 8px;
-                  "
+                  class="callout callout--warning"
+                  style="display: none"
                 >
-                  <p style="color: #f59e0b; font-size: 13px; margin: 0 0 8px 0">
+                  <p style="color: var(--amber); font-size: 13px; margin: 0 0 8px 0">
                     <strong>Submit Cost Estimate</strong>
                   </p>
-                  <input
-                    type="number"
-                    id="estMaterials"
-                    placeholder="Materials cost (₹)"
-                    style="
-                      width: 100%;
-                      padding: 8px;
-                      border-radius: 6px;
-                      border: 1px solid var(--border);
-                      font-size: 13px;
-                      margin-bottom: 8px;
-                      box-sizing: border-box;
-                    "
-                  />
-                  <input
-                    type="number"
-                    id="estLabor"
-                    placeholder="Labor cost (₹)"
-                    style="
-                      width: 100%;
-                      padding: 8px;
-                      border-radius: 6px;
-                      border: 1px solid var(--border);
-                      font-size: 13px;
-                      margin-bottom: 8px;
-                      box-sizing: border-box;
-                    "
-                  />
+                  <div class="field">
+                    <input
+                      type="number"
+                      id="estMaterials"
+                      placeholder="Materials cost (₹)"
+                    />
+                  </div>
+                  <div class="field">
+                    <input
+                      type="number"
+                      id="estLabor"
+                      placeholder="Labor cost (₹)"
+                    />
+                  </div>
                   <button class="btn btn-dark btn-full" id="btnSubmitCostEst">
                     Send to Finance
                   </button>

@@ -132,7 +132,7 @@
             </p>
           </div>
           <div class="header-actions">
-            <div class="header-badge">Shift updated 5 min ago</div>
+            <div class="header-badge"><span class="dot pulse"></span> On shift</div>
             <button class="btn btn-dark" id="btnOpenQueue">Open queue →</button>
           </div>
         </div>
@@ -172,8 +172,8 @@
               </svg>
             </div>
             <div class="stat-label">Active Alerts</div>
-            <div class="stat-value" id="statActiveAlerts">18</div>
-            <div class="stat-note">6 new in the last hour</div>
+            <div class="stat-value" id="statActiveAlerts">—</div>
+            <div class="stat-note" id="noteActiveAlerts">—</div>
           </div>
           <div class="stat-card">
             <div class="stat-icon red">
@@ -195,8 +195,8 @@
               </svg>
             </div>
             <div class="stat-label">Open Faults</div>
-            <div class="stat-value" id="statOpenFaults">9</div>
-            <div class="stat-note">3 require immediate diagnosis</div>
+            <div class="stat-value" id="statOpenFaults">—</div>
+            <div class="stat-note" id="noteOpenFaults">—</div>
           </div>
           <div class="stat-card">
             <div class="stat-icon green">
@@ -219,8 +219,8 @@
               </svg>
             </div>
             <div class="stat-label">Pending Work Orders</div>
-            <div class="stat-value" id="statPendingWorkOrders">14</div>
-            <div class="stat-note">5 scheduled for this shift</div>
+            <div class="stat-value" id="statPendingWorkOrders">—</div>
+            <div class="stat-note" id="notePendingWorkOrders">—</div>
           </div>
           <div class="stat-card">
             <div class="stat-icon green">
@@ -237,27 +237,24 @@
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <div class="stat-label">Resolved Today</div>
-            <div class="stat-value" id="statResolvedToday">27</div>
-            <div class="stat-note">Up 12% from yesterday</div>
+            <div class="stat-label">Closed Work Orders</div>
+            <div class="stat-value" id="statClosedWorkOrders">—</div>
+            <div class="stat-note" id="noteClosedWorkOrders">—</div>
           </div>
         </div>
 
-        <!-- LIVE ACTIVITY FEED -->
+        <!-- QUICK ACTIONS -->
         <div class="card">
           <div class="feed-header">
             <div>
-              <h2>Live activity feed</h2>
+              <h2>Quick actions</h2>
               <small
-                >Most recent anomalies, faults, and work order updates from the
-                field.</small
+                >Jump straight to what's waiting for you across the field
+                queue.</small
               >
             </div>
-            <div class="live-badge">
-              <span class="dot pulse"></span> Live updates
-            </div>
           </div>
-          <div id="activityFeed">
+          <div id="quickActions" class="quick-actions">
             <!-- Populated by JS -->
           </div>
         </div>

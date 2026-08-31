@@ -127,11 +127,15 @@ async function syncBackendWorkOrders() {
         (w) => w.id === bwo.work_order_id || w.work_order_id === bwo.work_order_id
       );
       if (!existing) {
-        // Resolve technician name for display
-        let techName = bwo.assigned_to_id || "Unassigned";
-        if (techName.startsWith("uuuu")) {
-          const found = backendTechs.find((t) => t.user_id === techName);
-          techName = found ? found.name : techName;
+        // Resolve technician name for display — assigned_to_id is always a
+        // real backend UUID, never one starting "uuuu", so a prefix check
+        // here would never match; look the id up directly instead.
+        let techName = "Unassigned";
+        if (bwo.assigned_to_id) {
+          const found = backendTechs.find(
+            (t) => t.user_id === bwo.assigned_to_id,
+          );
+          techName = found ? found.name : bwo.assigned_to_id;
         }
 
         TechDB.workOrders.push({
@@ -194,42 +198,48 @@ function renderColumn(containerId, status) {
   container.innerHTML =
     orders
       .map((wo) => {
-        // Resolve tech name
+        // Resolve tech name — wo.technician is normally already a name by
+        // this point (resolved when synced from the backend), but if it's
+        // still a raw id, look it up rather than checking for a "uuuu"
+        // prefix real backend UUIDs never have.
         let techName = wo.technician || "Unassigned";
-        if (techName.startsWith("uuuu")) {
-          const found = backendTechs.find((t) => t.user_id === techName);
-          techName = found ? found.name : "Assigned Tech";
-        }
+        const techMatch = backendTechs.find((t) => t.user_id === techName);
+        if (techMatch) techName = techMatch.name;
         
         // Resolve asset (fallback to description or type if missing)
         const assetName = wo.description || wo.asset || "General Maintenance";
+        const estimateLabel = !wo.estimateRequired
+          ? "Not required"
+          : wo.estimate
+            ? "Submitted"
+            : "Needed";
 
         return `
-        <div class="task-card ${wo.id === selectedWOId ? "selected-task" : ""}" data-wo-id="${wo.id}" style="${wo.rejected ? "border: 1.5px solid #ef4444; background: #fff1f2;" : ""}">
+        <div class="task-card ${wo.id === selectedWOId ? "selected-task" : ""} ${wo.rejected ? "task-card--rejected" : ""}" data-wo-id="${wo.id}">
             <div class="task-title">
                 ${formatWOId(wo.id)}
                 <span class="priority-tag priority-${wo.priority}">${cap(wo.priority)}</span>
             </div>
             <div>${wo.title}</div>
-                <div style="margin-top:8px; font-size:11px; color:var(--muted); display:flex; flex-direction:column; gap:6px;">
-                    <span style="display:inline-flex;align-items:center;gap:6px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        <strong>Tech:</strong> ${techName}
-                    </span>
-                    <span style="display:inline-flex;align-items:center;gap:6px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        <strong>Asset:</strong> ${assetName}
-                    </span>
-                    <span style="display:inline-flex;align-items:center;gap:6px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        <strong>Estimate:</strong> ${wo.estimate ? "Submitted" : "Needed"}
-                    </span>
-                </div>
+            <div class="task-meta">
+                <span class="task-meta-row">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <strong>Tech:</strong> ${techName}
+                </span>
+                <span class="task-meta-row">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <strong>Asset:</strong> ${assetName}
+                </span>
+                <span class="task-meta-row">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    <strong>Estimate:</strong> ${estimateLabel}
+                </span>
+            </div>
         </div>
     `;
       })
       .join("") ||
-    `<div style="font-size:12px; color:var(--muted); text-align:center; padding:14px;">No work orders</div>`;
+    `<div class="empty-state">No work orders</div>`;
 
   container.querySelectorAll(".task-card").forEach((card) => {
     card.addEventListener("click", () => selectWorkOrder(card.dataset.woId));
@@ -272,9 +282,11 @@ function selectWorkOrder(id) {
   const costStatusEl = document.getElementById("selectedWOCost");
   if (costStatusEl) {
     if (wo.estimate) {
-      costStatusEl.innerHTML = `<span style="color:#10b981; font-weight:600;">Submitted (₹${wo.estimate.total})</span>`;
+      costStatusEl.innerHTML = `<span class="cost-status cost-status--approved">Submitted (₹${wo.estimate.total})</span>`;
+    } else if (wo.estimateRequired === false) {
+      costStatusEl.innerHTML = `<span class="cost-status cost-status--not-required">Not required</span>`;
     } else {
-      costStatusEl.innerHTML = `<span style="color:#ef4444; font-weight:600;">Required / Not Submitted</span>`;
+      costStatusEl.innerHTML = `<span class="cost-status cost-status--required">Required / Not Submitted</span>`;
     }
   }
 
@@ -287,7 +299,7 @@ function selectWorkOrder(id) {
       actionOptions.innerHTML = `
         <div class="option active" style="grid-column: span 2;">
           <b>Technician Comments</b>
-          <p style="margin-top:4px; padding:10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:4px; font-size:13px; color:#374151;">
+          <p class="callout mt-4" style="font-size:13px; color:var(--dark);">
             ${wo.resolution_notes || "No notes provided."}
           </p>
         </div>
@@ -298,7 +310,7 @@ function selectWorkOrder(id) {
         <div class="option active">
           <b>Operational</b>
           <p>Document completion and submit for review.</p>
-          <textarea id="completionNotes" placeholder="Enter resolution details..." style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 6px; font-size: 12px; margin-bottom: 6px; resize: vertical; min-height: 40px;"></textarea>
+          <textarea id="completionNotes" placeholder="Enter resolution details..." style="min-height: 60px; margin-bottom: 8px"></textarea>
           <button class="btn btn-dark btn-full" id="btnSubmitForReview">Submit for Review</button>
         </div>
         <div class="option">
@@ -316,7 +328,7 @@ function selectWorkOrder(id) {
     "selectedWOTechnician",
     wo.technician
       ? wo.technician
-      : '<span style="color:#ef4444;font-style:italic">Unassigned (Rejected)</span>',
+      : '<span class="cost-status--required" style="font-style:italic">Unassigned (Rejected)</span>',
   );
 
   // Update action buttons visibility
@@ -670,7 +682,7 @@ function renderArchive() {
 
   const closed = TechDB.workOrders.filter((w) => w.status === "closed");
   if (!closed.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:20px;">No archived work orders yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No archived work orders yet.</div></td></tr>`;
     return;
   }
   tbody.innerHTML = closed
@@ -767,10 +779,10 @@ async function renderServiceRequests() {
       const date = sr.created_at || sr.timestamp || new Date().toISOString();
       const priority = sr.priority || sr.severity || "medium";
       return `
-      <div class="alert-item card mb-12" style="border-left: 4px solid #f59e0b; padding: 12px; display: flex; align-items: center; justify-content: space-between;">
+      <div class="alert-item card mb-12" style="border-left: 4px solid var(--amber); padding: 12px; display: flex; align-items: center; justify-content: space-between;">
         <div style="flex:1">
-          <h4 style="margin:0 0 4px 0;font-size:14px;color:var(--text-main);">${desc.slice(0, 80)}${desc.length > 80 ? "…" : ""}</h4>
-          <div style="font-size:11px;color:#888;margin-top:4px;">Reported by ${reporter} • ${new Date(date).toLocaleDateString()} • Priority: <strong>${priority}</strong></div>
+          <h4 style="margin:0 0 4px 0;font-size:14px;color:var(--dark);">${desc.slice(0, 80)}${desc.length > 80 ? "…" : ""}</h4>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Reported by ${reporter} • ${new Date(date).toLocaleDateString()} • Priority: <strong>${priority}</strong></div>
         </div>
         <div>
           <button class="btn btn-dark" style="padding: 6px 12px; font-size: 12px;" onclick="triageRequest('${srId}')">Create Work Order -></button>

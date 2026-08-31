@@ -14,8 +14,34 @@ import universalDB from "../../shared/universalDB.js";
  * Filter/sort choices, kept across re-renders the same way ORG_NAMES is —
  * this is a view concern local to the table, not app data, so it lives
  * here rather than round-tripping through app.update().
+ *
+ * Persisted to localStorage the same way admin_activeTab already is, so a
+ * Super Admin coming back to this tab (after a reload, or a fresh sign-in)
+ * doesn't have to re-pick the same organisation/role/sort every time.
  */
-let filters = { organization_id: "", role: "", sort: "name-asc" };
+const FILTERS_STORAGE_KEY = "admin_userFilters";
+
+function loadFilters() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FILTERS_STORAGE_KEY) || "null");
+    if (saved && typeof saved === "object") {
+      return {
+        organization_id: saved.organization_id || "",
+        role: saved.role || "",
+        sort: saved.sort || "name-asc",
+      };
+    }
+  } catch (_) {}
+  return { organization_id: "", role: "", sort: "name-asc" };
+}
+
+function saveFilters() {
+  try {
+    localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
+  } catch (_) {}
+}
+
+let filters = loadFilters();
 
 export function renderUserManagement(container, app) {
   ORG_NAMES = Object.fromEntries(
@@ -124,18 +150,22 @@ export function renderUserManagement(container, app) {
 
   container.querySelector("#userFilterOrg")?.addEventListener("change", (e) => {
     filters.organization_id = e.target.value;
+    saveFilters();
     renderUserManagement(container, app);
   });
   container.querySelector("#userFilterRole")?.addEventListener("change", (e) => {
     filters.role = e.target.value;
+    saveFilters();
     renderUserManagement(container, app);
   });
   container.querySelector("#userSort")?.addEventListener("change", (e) => {
     filters.sort = e.target.value;
+    saveFilters();
     renderUserManagement(container, app);
   });
   container.querySelector("#clearUserFilters")?.addEventListener("click", () => {
     filters = { organization_id: "", role: "", sort: filters.sort };
+    saveFilters();
     renderUserManagement(container, app);
   });
 }
