@@ -245,6 +245,8 @@ function renderActionPanel(wo) {
   var id = wo.work_order_id;
 
   if (wo.status === "new") {
+    // The only state with a real 2-way choice — keep the side-by-side grid.
+    actionPanelOptions.className = "grid2";
     actionPanelTitle.textContent = "Work Order Assignment";
     actionPanelOptions.innerHTML =
       '<div class="option active">' +
@@ -262,34 +264,31 @@ function renderActionPanel(wo) {
       "')\">Reject</button>" +
       "</div>";
   } else if (wo.status === "inprogress") {
+    // Only one real action here — a 2-column grid would just stretch it
+    // into a wide, mostly-empty box, so render it as plain content instead.
+    actionPanelOptions.className = "";
     actionPanelTitle.textContent = "System Operational Check";
     actionPanelOptions.innerHTML =
-      '<div class="option active" style="grid-column: span 2;">' +
-      "<b>Operational</b>" +
-      "<p>Document completion.</p>" +
+      '<p class="sub mb-10">Document completion.</p>' +
       '<textarea id="completionNotes" placeholder="Enter resolution details..." style="min-height:60px; margin-bottom:8px;"></textarea>' +
       '<button class="btn btn-dark btn-full" onclick="submitForReview(\'' +
       id +
-      "')\">Submit for Review</button>" +
-      "</div>";
+      "')\">Submit for Review</button>";
   } else if (wo.status === "approval") {
+    actionPanelOptions.className = "";
     actionPanelTitle.textContent = "Cost Estimate Approval";
     actionPanelOptions.innerHTML =
-      '<div class="option">' +
-      '<p style="font-size:13px; color:var(--muted);">Waiting for Finance Analyst to approve the submitted estimate...</p>' +
-      "</div>";
+      '<p style="font-size:13px; color:var(--muted);">Waiting for Finance Analyst to approve the submitted estimate...</p>';
   } else if (wo.status === "review") {
+    actionPanelOptions.className = "";
     actionPanelTitle.textContent = "Under Review";
     actionPanelOptions.innerHTML =
-      '<div class="option">' +
-      '<p style="font-size:13px; color:var(--muted);">Task is under review by the Technician Administrator.</p>' +
-      "</div>";
+      '<p style="font-size:13px; color:var(--muted);">Task is under review by the Technician Administrator.</p>';
   } else {
+    actionPanelOptions.className = "";
     actionPanelTitle.textContent = "Work Order Closed";
     actionPanelOptions.innerHTML =
-      '<div class="option">' +
-      '<p style="font-size:13px; color:var(--muted);">This work order has been closed.</p>' +
-      "</div>";
+      '<p style="font-size:13px; color:var(--muted);">This work order has been closed.</p>';
   }
 }
 

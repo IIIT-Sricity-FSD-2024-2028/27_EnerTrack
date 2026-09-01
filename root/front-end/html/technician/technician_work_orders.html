@@ -355,10 +355,7 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Right: Summary + Actions -->
-          <div>
             <div class="card mb-16">
               <h2 class="section-title-small mb-12">Work Order Summary</h2>
               <div class="summary-grid">
@@ -378,29 +375,16 @@
               <h2 class="section-title-small mb-10" id="actionPanelTitle">
                 System Operational Check
               </h2>
-              <div class="grid2" id="actionPanelOptions">
-                <div class="option active">
-                  <b>Operational</b>
-                  <p>Document completion and submit for review.</p>
-                  <textarea
-                    id="completionNotes"
-                    placeholder="Enter resolution details..."
-                    style="min-height: 60px; margin-bottom: 8px"
-                  ></textarea>
-                  <button class="btn btn-dark btn-full" id="btnSubmitForReview">
-                    Submit for Review
-                  </button>
-                </div>
-                <div class="option">
-                  <b>Not Operational</b>
-                  <p>Keep WO in-progress pending further work.</p>
-                  <button
-                    class="btn btn-light btn-full"
-                    onclick="showToast('Task marked on hold.', 'info')"
-                  >
-                    Mark On Hold
-                  </button>
-                </div>
+              <div id="actionPanelOptions">
+                <p class="sub mb-10">Document completion and submit for review.</p>
+                <textarea
+                  id="completionNotes"
+                  placeholder="Enter resolution details..."
+                  style="min-height: 60px; margin-bottom: 8px"
+                ></textarea>
+                <button class="btn btn-dark btn-full" id="btnSubmitForReview">
+                  Submit for Review
+                </button>
               </div>
               <button class="btn btn-red btn-full mt-12" id="btnCloseWO">
                 Close & Archive Work Order

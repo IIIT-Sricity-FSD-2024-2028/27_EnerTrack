@@ -604,14 +604,20 @@
 
           var linksContainer = document.getElementById("dropdownLinks");
           var linksHTML = "";
+          // Super Admin doesn't get a link to every role's dashboard here.
+          // Those pages are tenant-scoped and Super Admin has no tenant, so
+          // they'd render empty or cross-tenant rather than anything real —
+          // and the actual way to see a specific dashboard is "Act as" from
+          // the admin console, which lands on that person's real, correctly
+          // scoped session. So Super Admin, like everyone else, gets just
+          // their own one destination: the admin console itself.
+          var isAdmin = user.role === "Super Admin";
           for (var l = 0; l < allLinks.length; l++) {
             var link = allLinks[l];
-            // Only Super Admin sees every dashboard link. An Organisation
-            // Admin is a client's own admin, scoped to their organisation's
-            // workflows — not a second super-user — so they see only their
-            // own link, same as everyone else.
-            var isAdmin = user.role === "Super Admin";
-            if (isAdmin || user.role === link.role) {
+            var matches = isAdmin
+              ? link.role === "Organization Admin"
+              : user.role === link.role;
+            if (matches) {
               linksHTML +=
                 '<a href="' +
                 link.href +

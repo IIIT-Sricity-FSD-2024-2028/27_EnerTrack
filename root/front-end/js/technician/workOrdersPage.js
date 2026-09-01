@@ -297,27 +297,16 @@ function selectWorkOrder(id) {
     if (wo.status === "review" || wo.status === "closed") {
       actionTitle.textContent = "Resolution Details";
       actionOptions.innerHTML = `
-        <div class="option active" style="grid-column: span 2;">
-          <b>Technician Comments</b>
-          <p class="callout mt-4" style="font-size:13px; color:var(--dark);">
-            ${wo.resolution_notes || "No notes provided."}
-          </p>
-        </div>
+        <p class="callout" style="font-size:13px; color:var(--dark);">
+          ${wo.resolution_notes || "No notes provided."}
+        </p>
       `;
     } else {
       actionTitle.textContent = "System Operational Check";
       actionOptions.innerHTML = `
-        <div class="option active">
-          <b>Operational</b>
-          <p>Document completion and submit for review.</p>
-          <textarea id="completionNotes" placeholder="Enter resolution details..." style="min-height: 60px; margin-bottom: 8px"></textarea>
-          <button class="btn btn-dark btn-full" id="btnSubmitForReview">Submit for Review</button>
-        </div>
-        <div class="option">
-          <b>Not Operational</b>
-          <p>Keep WO in-progress pending further work.</p>
-          <button class="btn btn-light btn-full" onclick="showToast('Task marked on hold.', 'info')">Mark On Hold</button>
-        </div>
+        <p class="sub mb-10">Document completion and submit for review.</p>
+        <textarea id="completionNotes" placeholder="Enter resolution details..." style="min-height: 60px; margin-bottom: 8px"></textarea>
+        <button class="btn btn-dark btn-full" id="btnSubmitForReview">Submit for Review</button>
       `;
     }
   }
@@ -430,7 +419,7 @@ function moveWOStatus(id, newStatus) {
   selectWorkOrder(id);
 }
 
-window.submitCostEstimate = function (id) {
+window.submitCostEstimate = async function (id) {
   const materials = document.getElementById("estMaterials").value;
   const labor = document.getElementById("estLabor").value;
   if (!materials || !labor) {
@@ -438,21 +427,42 @@ window.submitCostEstimate = function (id) {
     return;
   }
   const total = Number(materials) + Number(labor);
-  if (total > 0) {
-    TechDB.updateWorkOrder(id, {
-      status: "approval",
-      estimate: {
-        materials: Number(materials),
-        labor: Number(labor),
-        total,
-        type: "repair",
-      },
-    });
-    showToast("Cost estimate submitted. Waiting for approval.", "success");
-    document.getElementById("costEstimateBlock").style.display = "none";
-    renderBoard();
-    selectWorkOrder(id);
+  if (total <= 0) return;
+
+  const estimate = {
+    materials: Number(materials),
+    labor: Number(labor),
+    total,
+    type: "repair",
+  };
+
+  // This used to only update the local TechDB mock cache, so the estimate
+  // never reached the backend — the Financial Analyst (a different
+  // session hitting the real API) could never see it. Persist it for real.
+  try {
+    if (window.api && id.includes("-")) {
+      const wo = TechDB.getWorkOrder(id);
+      const details = {
+        description: wo?.description,
+        type: wo?.type,
+        estimateRequired: wo?.estimateRequired,
+        resolution_notes: wo?.resolution_notes,
+        estimate,
+      };
+      await window.api.patch(`/work-orders/${id}`, {
+        status: "approval",
+        details,
+      });
+    }
+  } catch (err) {
+    console.warn("Backend cost estimate submission failed:", err);
   }
+
+  TechDB.updateWorkOrder(id, { status: "approval", estimate });
+  showToast("Cost estimate submitted. Waiting for approval.", "success");
+  document.getElementById("costEstimateBlock").style.display = "none";
+  renderBoard();
+  selectWorkOrder(id);
 };
 
 window.addEventListener("load", () => {

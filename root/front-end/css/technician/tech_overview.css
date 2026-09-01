@@ -56,86 +56,12 @@
   color: var(--muted);
 }
 
-/* Panel headers (Quick Actions, Final Verification) */
+/* Panel header (Final Verification) */
 .feed-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-}
-
-/* Quick actions — named items (which fault, which alert, which request),
-   replacing the old fake "Live activity feed" and, later, a redundant
-   "N pending" summary that just repeated what the sidebar already links
-   to and what the stat cards above already count. */
-.quick-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.quick-action {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  text-decoration: none;
-  color: var(--dark);
-  transition: all 0.15s;
-}
-
-.quick-action:hover {
-  border-color: #9ca3af;
-  transform: translateX(2px);
-}
-
-.quick-action-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.quick-action--blue .quick-action-dot {
-  background: var(--blue);
-}
-.quick-action--red .quick-action-dot {
-  background: var(--red);
-}
-.quick-action--green .quick-action-dot {
-  background: var(--green);
-}
-.quick-action--yellow .quick-action-dot {
-  background: var(--amber);
-}
-
-.quick-action-label {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.quick-action-label strong {
-  font-weight: 600;
-}
-
-.quick-action-arrow {
-  color: var(--muted);
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.quick-action-more {
-  font-size: 12px;
-  color: var(--muted);
-  text-align: center;
-  padding: 6px 0 0;
 }
 
 .header-badge {

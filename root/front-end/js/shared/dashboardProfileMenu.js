@@ -139,10 +139,17 @@
 
   /* ───── Build popup HTML ───── */
   var userRoleStr = (user.role || "").trim();
-  // Only EnerTrack's own Super Admin gets to view every actor's dashboard
+  // Only EnerTrack's own Super Admin gets a way back to the admin console
   // from here. An Organization Admin is a client's own admin, scoped to
   // their organisation's admin workflows — not a way to morph into other
   // roles, same boundary already drawn on the landing page.
+  //
+  // This used to list every actor's dashboard directly. Dropped in favor
+  // of one link back to the admin console: those dashboards are
+  // tenant-scoped and Super Admin has no tenant, so visiting one directly
+  // wouldn't show real data anyway — "Act as" from the console is the
+  // actual way to see a specific person's dashboard, correctly scoped to
+  // their own organisation.
   var isAdmin = userRoleStr === "Super Admin";
 
   var linksHTML = "";
@@ -150,22 +157,7 @@
     linksHTML =
       '<a href="../system_admin/system_admin_overview.html" class="dash-popup-item">' +
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' +
-      "Organisation Administration</a>" +
-      '<a href="../sustainability_officer/sust_overview.html" class="dash-popup-item">' +
-      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 2 8a7 7 0 0 1-7 7c0 1 0 3-2 3z"/></svg>' +
-      "Sustainability Management</a>" +
-      '<a href="../technician/technician_overview.html" class="dash-popup-item">' +
-      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>' +
-      "Technician Admin</a>" +
-      '<a href="../technician_jr/technician_jr_work_orders.html" class="dash-popup-item">' +
-      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>' +
-      "Tech - My Work Orders</a>" +
-      '<a href="../finance-analyst/finance_overview.html" class="dash-popup-item">' +
-      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' +
-      "Financial Analysis</a>" +
-      '<a href="../enduser/enduser_dashboard.html" class="dash-popup-item">' +
-      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
-      "End User - Report Page</a>" +
+      "Admin Console</a>" +
       '<div class="dash-popup-divider" style="margin-top:8px;"></div>';
   }
 
