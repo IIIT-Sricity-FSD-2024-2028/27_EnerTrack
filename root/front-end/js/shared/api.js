@@ -130,6 +130,35 @@ function _apiUpload(path, fieldName, files) {
 }
 
 /**
+ * Fetches a binary file (an uploaded photo or document) as an object URL a
+ * plain <img>/<a> tag can use.
+ *
+ * A bare <img src="..."> request carries no headers at all, but every route
+ * in this app is gated on the x-role/x-org-id headers _apiFetch adds — a
+ * plain <img> pointed at a protected file route would just 403. Routing the
+ * fetch through here instead sends those headers like any other API call,
+ * then hands back a local blob: URL for the <img> to use.
+ *
+ * Caller is responsible for revoking the URL (URL.revokeObjectURL) once the
+ * image is no longer needed, the same as any other object URL.
+ *
+ * @param {string} path API path, e.g. '/wastage-reports/<id>/photos/<file>'
+ */
+async function _apiFetchBlobUrl(path) {
+  const orgId = _getOrgId();
+  const headers = {
+    "x-role": _getRole(),
+    ...(orgId ? { "x-org-id": orgId } : {}),
+  };
+  const response = await fetch(`${API_BASE}${path}`, { headers });
+  if (!response.ok) {
+    throw new Error(`Could not load file (HTTP ${response.status})`);
+  }
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
+/**
  * Public API surface
  */
 const api = {
@@ -142,6 +171,7 @@ const api = {
     _apiFetch(path, { method: "PUT", body: JSON.stringify(body) }),
   delete: (path) => _apiFetch(path, { method: "DELETE" }),
   upload: _apiUpload,
+  getBlobUrl: _apiFetchBlobUrl,
 };
 
 window.api = api;

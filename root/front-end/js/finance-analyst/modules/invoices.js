@@ -59,6 +59,7 @@ export function renderInvoiceList(filter = {}) {
         <div class="action-row">
           <button class="action-btn btn-view"   onclick="InvoiceModule.viewInvoice('${inv.id}')">View</button>
           ${can("edit") ? `<button class="action-btn btn-edit"    onclick="InvoiceModule.editInvoice('${inv.id}')">Edit</button>` : ""}
+          ${can("edit") ? `<button class="action-btn" onclick="InvoiceModule.uploadInvoiceDocument('${inv.id}')">Attach PDF</button>` : ""}
           ${can("approve") && inv.status === "pending" ? `<button class="action-btn btn-approve" onclick="InvoiceModule.approveInvoice('${inv.id}')">Approve</button>` : ""}
           ${inv.status === "approved" ? `<button class="action-btn btn-export" onclick="InvoiceModule.archiveInvoice('${inv.id}')">Archive</button>` : ""}
         </div>
@@ -547,6 +548,64 @@ export function approveInvoice(id) {
   });
 }
 
+/* ── ATTACH DOCUMENT ──────────────────────────────── */
+/**
+ * Uploads a scanned PDF and attaches it to an existing invoice, via the
+ * backend's multipart POST /invoices/:id/document (Multer, 15MB, PDF only —
+ * see file-upload.middleware.ts). There was previously no UI anywhere that
+ * called this endpoint at all, even though the backend has supported it
+ * from the start.
+ */
+export function uploadInvoiceDocument(id) {
+  const inv = FinanceDB.invoices.find((i) => i.id === id);
+  if (!inv) return;
+
+  openModal({
+    title: `Attach Document — ${inv.invoiceNumber}`,
+    bodyHTML: `
+      <p style="margin-bottom:12px;color:#374151">
+        Attach a scanned PDF so the approver can review it before signing off.
+      </p>
+      <input type="file" id="fi-doc-file" accept="application/pdf,.pdf" style="width:100%">
+      <p id="fi-doc-error" style="color:#dc2626;font-size:12px;margin-top:6px;display:none"></p>
+    `,
+    confirmLabel: "Upload",
+    onConfirm: () => {
+      const input = document.getElementById("fi-doc-file");
+      const errorEl = document.getElementById("fi-doc-error");
+      const file = input?.files?.[0];
+
+      if (!file) {
+        if (errorEl) {
+          errorEl.textContent = "Choose a PDF file first.";
+          errorEl.style.display = "block";
+        }
+        return false;
+      }
+      if (!window.api) {
+        showToast("Backend unavailable — cannot upload.", "error");
+        return false;
+      }
+
+      window.api
+        .upload(`/invoices/${id}/document`, "file", file)
+        .then(() => {
+          logActivity(
+            "invoice",
+            `Document attached to ${inv.invoiceNumber}`,
+            file.name,
+          );
+          showToast(`Document attached to ${inv.invoiceNumber}.`, "success");
+        })
+        .catch((err) => {
+          console.error("Invoice document upload failed:", err);
+          showToast("Failed to attach document: " + err.message, "error");
+        });
+      return true;
+    },
+  });
+}
+
 /* ── ARCHIVE ──────────────────────────────────────── */
 
 export function archiveInvoice(id) {
@@ -664,6 +723,7 @@ const InvoiceModule = {
   viewInvoice,
   openAddInvoiceModal,
   editInvoice,
+  uploadInvoiceDocument,
   approveInvoice,
   deleteInvoice,
   archiveInvoice,

@@ -81,7 +81,17 @@ export const USER_ROLES = [
   "Technician Administrator",
   "Sustainability Officer",
   "Campus Visitor",
+  "Certified Energy Auditor",
 ];
+
+/**
+ * Roles that belong to EnerTrack itself rather than to any client
+ * organisation — mirrors the backend's PLATFORM_SIDE_ROLES
+ * (src/core/database/database.service.ts). These users carry no
+ * organization_id, so the org picker in the user form must never be forced
+ * on them the way it is for a tenant-scoped role.
+ */
+export const PLATFORM_SIDE_ROLES = ["Certified Energy Auditor"];
 
 export const METER_TYPES = ["electricity", "gas", "water", "emissions", "food"];
 

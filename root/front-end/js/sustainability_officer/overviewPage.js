@@ -547,6 +547,29 @@ async function renderWastageAuditQueue() {
         reporterDisplay = "Campus Visitor";
       }
 
+      // Photo evidence the Campus Visitor attached at submission time. The
+      // actual image bytes load after this HTML is in the DOM (see the
+      // loadWastagePhotos call below) — GET /wastage-reports/:id/photos/:file
+      // is RBAC-gated on the x-role header, which a plain <img src> can't
+      // send, so each one is fetched through api.getBlobUrl() instead.
+      const photoUrls = r.details?.photo_urls || [];
+      let photoGalleryHTML = "";
+      if (photoUrls.length > 0) {
+        photoGalleryHTML = `
+            <div class="photo-gallery" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+                ${photoUrls
+                  .map(
+                    (url, i) => `
+                <img
+                  data-photo-url="${url}"
+                  alt="Evidence photo ${i + 1}"
+                  style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;background:#f3f4f6;"
+                >`,
+                  )
+                  .join("")}
+            </div>`;
+      }
+
       return `
         <div style="background:#fdfdfd;border:1px solid #e5e7eb;border-left:4px solid ${color};border-radius:10px;padding:20px;margin-bottom:14px;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)'" onmouseout="this.style.boxShadow='none'">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
@@ -600,6 +623,8 @@ async function renderWastageAuditQueue() {
                 </div>
             </div>
 
+            ${photoGalleryHTML}
+
             <!-- Comment Thread -->
             ${(() => {
               const comments = r.comments || r.details?.comments || [];
@@ -649,6 +674,28 @@ async function renderWastageAuditQueue() {
         </div>`;
     })
     .join("");
+
+  loadWastagePhotos(container);
+}
+
+// Each <img data-photo-url> placeholder needs an authenticated fetch to
+// resolve to real bytes (the route is RBAC-gated on x-role, which a plain
+// <img src> can't send), so this runs once per render, after the
+// placeholders already exist in the DOM.
+function loadWastagePhotos(container) {
+  if (!window.api) return;
+  container.querySelectorAll("img[data-photo-url]").forEach((img) => {
+    const url = img.dataset.photoUrl;
+    window.api
+      .getBlobUrl(url)
+      .then((blobUrl) => {
+        img.src = blobUrl;
+      })
+      .catch((err) => {
+        console.warn("[SO Wastage] Could not load photo:", url, err.message);
+        img.alt = "Photo unavailable";
+      });
+  });
 }
 
 async function _updateWastageReport(id, patchData) {

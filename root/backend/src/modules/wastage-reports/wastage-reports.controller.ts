@@ -1,5 +1,6 @@
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiConsumes, ApiBody } from "@nestjs/swagger";
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseInterceptors, UploadedFiles, UseFilters, BadRequestException } from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseInterceptors, UploadedFiles, UseFilters, BadRequestException, Res } from "@nestjs/common";
+import { Response } from "express";
 import { WastageReportsService } from "./wastage-reports.service";
 import { CreateWastageReportDto } from "./dto/create-wastage-report.dto";
 import { PutWastageReportDto } from "./dto/put-wastage-report.dto";
@@ -57,6 +58,23 @@ export class WastageReportsController {
     assertFileSignatures(files, "image");
     return this.wastageReportsService.attachPhotos(id, files);
   }
+
+  @Get(":id/photos/:filename")
+  @ApiOperation({ summary: "View Wastage Report Photo", description: "Streams back one photo previously attached as evidence for this wastage report. The filename must exactly match one already attached to this report — it is never used to open an arbitrary path on disk — and tenant ownership is checked before the file is served." })
+  @ApiResponse({ status: 200, description: "Image file streamed." })
+  @ApiResponse({ status: 404, description: "Wastage report not found, or no matching photo attached." })
+  @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  getPhoto(
+    @Param("id") id: string,
+    @Param("filename") filename: string,
+    @Res() res: Response,
+  ) {
+    const filePath = this.wastageReportsService.getPhotoPath(id, filename);
+    return res.sendFile(filePath);
+  }
+
   @Get()
   @ApiOperation({ summary: "List All Wastage Reports", description: "Retrieves all wastage reports. Any authenticated user can view them (the frontend filters by reporter)." })
   @ApiResponse({ status: 200, description: "Array of wastage report records returned." })
