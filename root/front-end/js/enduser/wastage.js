@@ -185,6 +185,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!issueType) return;
 
+      const photoInput = document.getElementById("wastagePhotos");
+      const photoFiles = photoInput?.files ? Array.from(photoInput.files) : [];
+      if (photoFiles.length > 4) {
+        window.alert("Attach at most 4 photos.");
+        return;
+      }
+
       const specificData = {};
       if (issueType === "Energy") {
         specificData.building = document
@@ -309,6 +316,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 "[EndUser] Wastage report created in backend:",
                 res.wastage_report_id,
               );
+              // Photos can only be attached once the report exists on the
+              // backend — POST /wastage-reports/:id/photos needs a real id.
+              if (photoFiles.length > 0 && res.wastage_report_id) {
+                try {
+                  await window.api.upload(
+                    `/wastage-reports/${res.wastage_report_id}/photos`,
+                    "files",
+                    photoFiles,
+                  );
+                  console.log(
+                    "[EndUser] Photo evidence attached:",
+                    photoFiles.length,
+                  );
+                } catch (photoErr) {
+                  console.warn(
+                    "[EndUser] Report saved but photo upload failed:",
+                    photoErr.message,
+                  );
+                  window.alert(
+                    "Report submitted, but the photos failed to upload: " +
+                      photoErr.message,
+                  );
+                }
+              }
             } else {
               console.warn("[EndUser] Backend returned error:", res);
             }
@@ -547,6 +578,7 @@ document.addEventListener("DOMContentLoaded", () => {
               systemData: r.details?.systemData || {},
               costImpact: r.details?.costImpact || null,
               metricTarget: r.details?.metricTarget || null,
+              photoUrls: r.details?.photo_urls || [],
               priority: r.details?.priority || "Low",
               archived: r.details?.archived || false,
               comments: r.details?.comments || [],
@@ -921,6 +953,29 @@ document.addEventListener("DOMContentLoaded", () => {
           archiveBtnHTML = `<button onclick="event.stopPropagation(); window._archiveReport('${t.id}');" style="margin-top:10px;padding:6px 14px;border-radius:6px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#f9fafb'">Archive Report</button>`;
         }
 
+        // Photo evidence thumbnails, if any were attached at submission
+        // time. The actual image bytes load after this HTML is in the DOM
+        // (see the loadTicketPhotos call at the end of renderTickets) —
+        // GET /wastage-reports/:id/photos/:file is RBAC-gated on the
+        // x-role header, which a plain <img src> can't send, so each one is
+        // fetched through api.getBlobUrl() instead.
+        let photoGalleryHTML = "";
+        if (t.photoUrls && t.photoUrls.length > 0) {
+          photoGalleryHTML = `
+                <div class="photo-gallery" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;" onclick="event.stopPropagation();">
+                  ${t.photoUrls
+                    .map(
+                      (url, i) => `
+                    <img
+                      data-photo-url="${url}"
+                      alt="Evidence photo ${i + 1}"
+                      style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;background:#f3f4f6;"
+                    >`,
+                    )
+                    .join("")}
+                </div>`;
+        }
+
         // Comment Thread
         const comments = t.comments || [];
         const commentListHTML = comments
@@ -991,10 +1046,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 ${expandedHTML}
                 ${archiveBtnHTML}
+                ${photoGalleryHTML}
                 ${commentThreadHTML}
               </div>`;
       })
       .join("");
+
+    loadTicketPhotos(container);
+  }
+
+  // ── Load Photo Thumbnails ──────────────────────────────
+  // Each <img data-photo-url> placeholder needs an authenticated fetch to
+  // resolve to real bytes (see the comment above photoGalleryHTML), so this
+  // runs once per render, after the placeholders already exist in the DOM.
+  function loadTicketPhotos(container) {
+    if (!window.api) return;
+    container.querySelectorAll("img[data-photo-url]").forEach((img) => {
+      const url = img.dataset.photoUrl;
+      window.api
+        .getBlobUrl(url)
+        .then((blobUrl) => {
+          img.src = blobUrl;
+        })
+        .catch((err) => {
+          console.warn("[EndUser] Could not load photo:", url, err.message);
+          img.alt = "Photo unavailable";
+        });
+    });
   }
   // ── Add Comment Handler ────────────────────────────────
   window._addComment = function (reportId, role) {

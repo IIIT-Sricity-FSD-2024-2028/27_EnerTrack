@@ -1,4 +1,4 @@
-import { userActions, USER_ROLES } from "../data/mockData.js";
+import { userActions, USER_ROLES, PLATFORM_SIDE_ROLES } from "../data/mockData.js";
 import {
   escapeHtml,
   formValues,
@@ -20,6 +20,12 @@ import universalDB from "../../shared/universalDB.js";
  * doesn't have to re-pick the same organisation/role/sort every time.
  */
 const FILTERS_STORAGE_KEY = "admin_userFilters";
+
+/** Sentinel option value for the organisation filter, distinct from any real
+ * organization_id, meaning "users belonging to no organisation" — EnerTrack's
+ * own staff (Super Admin, Certified Energy Auditor), same signal the backend
+ * uses to tell staff apart from client users. */
+const STAFF_FILTER_VALUE = "__enertrack_staff__";
 
 function loadFilters() {
   try {
@@ -71,6 +77,7 @@ export function renderUserManagement(container, app) {
                  <label for="userFilterOrg">Organisation</label>
                  <select id="userFilterOrg">
                    <option value="">All organisations</option>
+                   <option value="${STAFF_FILTER_VALUE}" ${filters.organization_id === STAFF_FILTER_VALUE ? "selected" : ""}>EnerTrack Staff</option>
                    ${orgs
                      .map(
                        (o) =>
@@ -174,8 +181,14 @@ export function renderUserManagement(container, app) {
  * data app.state already holds, so it never touches the backend. */
 function applyFiltersAndSort(users) {
   let rows = users.filter((u) => {
-    if (filters.organization_id && u.organization_id !== filters.organization_id)
+    if (filters.organization_id === STAFF_FILTER_VALUE) {
+      if (u.organization_id) return false;
+    } else if (
+      filters.organization_id &&
+      u.organization_id !== filters.organization_id
+    ) {
       return false;
+    }
     if (filters.role && u.role !== filters.role) return false;
     return true;
   });
@@ -324,7 +337,7 @@ function openAddUserModal(app) {
         </div>
         <div class="form-field">
           <label for="userEmail">Email</label>
-          <input id="userEmail" autocomplete="email" placeholder="name@gmail.com">
+          <input id="userEmail" autocomplete="email" placeholder="name@example.com">
           <span class="field-error" data-error-for="email"></span>
         </div>
         <div class="form-field">
@@ -382,8 +395,14 @@ function openAddUserModal(app) {
         specialization: "#specialization",
         password: "#tempPassword",
       });
+      // EnerTrack's own staff roles (Certified Energy Auditor today) carry
+      // no organization_id at all — cross-tenant by design, same as Super
+      // Admin itself — so the org picker is neither required nor sent for
+      // them, even though a Super Admin session renders the field for every
+      // other role.
+      const requireOrg = needsOrgPicker && !PLATFORM_SIDE_ROLES.includes(values.role);
       const errors = validateUser(values, app.state.users, {
-        requireOrg: needsOrgPicker,
+        requireOrg,
       });
 
       if (Object.keys(errors).length > 0) {
@@ -403,7 +422,7 @@ function openAddUserModal(app) {
             ? values.specialization
             : null,
         };
-        if (needsOrgPicker) payload.organization_id = values.organization_id;
+        if (requireOrg) payload.organization_id = values.organization_id;
         try {
           if (window.api) {
             await window.api.post("/users", payload);
@@ -421,6 +440,23 @@ function openAddUserModal(app) {
       return true;
     },
   });
+
+  // The org field's markup is fixed at modal-open time, but the role it
+  // applies to can change while the modal is open — toggle its visibility
+  // to match whichever role is currently selected instead of whichever was
+  // selected when the modal opened.
+  if (needsOrgPicker) {
+    const orgField = document.getElementById("userOrg")?.closest(".form-field");
+    const roleSelect = document.getElementById("userRole");
+    const syncOrgFieldVisibility = () => {
+      if (!orgField || !roleSelect) return;
+      orgField.style.display = PLATFORM_SIDE_ROLES.includes(roleSelect.value)
+        ? "none"
+        : "";
+    };
+    syncOrgFieldVisibility();
+    roleSelect?.addEventListener("change", syncOrgFieldVisibility);
+  }
 }
 
 function openEditUserModal(userId, app) {
@@ -434,8 +470,12 @@ function openEditUserModal(userId, app) {
   // pins it otherwise, the same way a Subscription's tenant is pinned, so
   // an existing link can't be silently reassigned by a PATCH. This is
   // therefore a repair control for a user created with none, not a general
-  // "move this account to another organisation" picker.
-  const needsOrgPicker = isSuperAdmin() && !user.organization_id;
+  // "move this account to another organisation" picker. Excludes
+  // EnerTrack's own staff roles (Certified Energy Auditor today): a null
+  // organization_id there is the correct, permanent state, not something to
+  // repair.
+  const needsOrgPicker =
+    isSuperAdmin() && !user.organization_id && !PLATFORM_SIDE_ROLES.includes(user.role);
   const orgs = app.state.organizations || [];
 
   openModal({
@@ -620,8 +660,6 @@ function validateUser(values, existingUsers, options = {}) {
   if (!values.email) errors.email = "Email is required.";
   else if (!isEmail(values.email))
     errors.email = "Enter a valid email address.";
-  else if (!isGmailAddress(values.email))
-    errors.email = "Only gmail.com email addresses are allowed.";
   else if (
     existingUsers.some(
       (user) => user.email.toLowerCase() === values.email.toLowerCase(),
@@ -661,8 +699,6 @@ function validateUserEdit(values, existingUsers, userId) {
   if (!values.email) errors.email = "Email is required.";
   else if (!isEmail(values.email))
     errors.email = "Enter a valid email address.";
-  else if (!isGmailAddress(values.email))
-    errors.email = "Only gmail.com email addresses are allowed.";
   else if (
     existingUsers.some(
       (user) =>
@@ -697,10 +733,6 @@ function validateUserEdit(values, existingUsers, userId) {
     errors.password = "Password must be at least 8 characters.";
 
   return errors;
-}
-
-function isGmailAddress(email) {
-  return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(String(email || "").trim());
 }
 
 function getPhoneValidationError(phone) {

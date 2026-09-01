@@ -15,6 +15,28 @@ import {
    ══════════════════════════════════════════════════════ */
 
 /**
+ * Organisation filter for the campus row, kept across re-renders the same
+ * way UserManagement's own `filters` is — a view concern local to this
+ * page, persisted so a Super Admin narrowing to one org doesn't lose that
+ * choice on tab switch or reload.
+ *
+ * Not shown at all when app.auditOrgId is set: a Certified Energy Auditor's
+ * workspace is already locked to one organisation (see fetchOrgScoped
+ * above), so a second filter on top of that would just be redundant.
+ */
+const INFRA_ORG_FILTER_KEY = "admin_infraOrgFilter";
+
+function loadInfraOrgFilter() {
+  try {
+    return localStorage.getItem(INFRA_ORG_FILTER_KEY) || "";
+  } catch (_) {
+    return "";
+  }
+}
+
+let infraOrgFilter = loadInfraOrgFilter();
+
+/**
  * An Organisation Admin's GET calls already come back scoped to their own
  * tenant via the x-org-id header, so filtering again here is a no-op for
  * them. A Certified Energy Auditor has no tenant of their own — platform
@@ -35,11 +57,15 @@ async function fetchOrgScoped(path, app, fallback) {
 }
 
 export function renderInfrastructureManager(container, app) {
-  ensureSelections(app);
+  const orgFilterActive = !app.auditOrgId && infraOrgFilter;
+  const visibleCampuses = orgFilterActive
+    ? app.state.campuses.filter((c) => c.organization_id === infraOrgFilter)
+    : app.state.campuses;
+
+  ensureSelections(app, visibleCampuses);
 
   const selCampus =
-    app.state.campuses.find((c) => c.campus_id === app.selectedCampusId) ||
-    null;
+    visibleCampuses.find((c) => c.campus_id === app.selectedCampusId) || null;
   const selBuilding =
     app.state.buildings.find((b) => b.building_id === app.selectedBuildingId) ||
     null;
@@ -62,10 +88,28 @@ export function renderInfrastructureManager(container, app) {
       <div class="panel campus-panel">
         <div class="panel-header">
           <div><h2>Campuses</h2><p>Select a campus to manage its buildings, departments & meters</p></div>
-          <button class="btn-dark" type="button" data-action="add-campus">+ Add Campus</button>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+            ${
+              !app.auditOrgId
+                ? `<div class="form-field" style="margin-bottom:0; min-width:200px">
+                     <label for="infraFilterOrg">Organisation</label>
+                     <select id="infraFilterOrg">
+                       <option value="">All organisations</option>
+                       ${(app.state.organizations || [])
+                         .map(
+                           (o) =>
+                             `<option value="${escapeHtml(o.organization_id)}" ${infraOrgFilter === o.organization_id ? "selected" : ""}>${escapeHtml(o.name)}</option>`,
+                         )
+                         .join("")}
+                     </select>
+                   </div>`
+                : ""
+            }
+            <button class="btn-dark" type="button" data-action="add-campus">+ Add Campus</button>
+          </div>
         </div>
         <div class="campus-row">
-          ${app.state.campuses.map((c) => renderCampusCard(c, app)).join("") || `<div class="empty-state">No campuses yet.</div>`}
+          ${visibleCampuses.map((c) => renderCampusCard(c, app)).join("") || `<div class="empty-state">${orgFilterActive ? "No campuses for this organisation." : "No campuses yet."}</div>`}
         </div>
       </div>
 
@@ -93,7 +137,10 @@ export function renderInfrastructureManager(container, app) {
               <h2>Meters</h2>
               <p>${selBuilding ? `Showing meters for ${escapeHtml(selBuilding.name)}` : "Select a building to view its meters."}</p>
             </div>
-            <button class="btn-dark" type="button" data-action="add-meter" ${selBuilding ? "" : "disabled"}>+ Add Meter</button>
+            <div style="display:flex;gap:8px;flex-shrink:0">
+              <button class="btn-outline" type="button" data-action="upload-readings-csv">Upload Readings CSV</button>
+              <button class="btn-dark" type="button" data-action="add-meter" ${selBuilding ? "" : "disabled"}>+ Add Meter</button>
+            </div>
           </div>
           ${renderMeterList(buildingMeters, selBuilding)}
         </div>
@@ -102,6 +149,19 @@ export function renderInfrastructureManager(container, app) {
   `;
 
   wireAllEvents(container, app, selCampus, selBuilding);
+
+  container.querySelector("#infraFilterOrg")?.addEventListener("change", (e) => {
+    infraOrgFilter = e.target.value;
+    try {
+      localStorage.setItem(INFRA_ORG_FILTER_KEY, infraOrgFilter);
+    } catch (_) {}
+    // The previously selected campus/building may not belong to the newly
+    // chosen organisation — clear both so ensureSelections repicks from the
+    // filtered list instead of showing a stale, now-hidden selection.
+    app.selectedCampusId = null;
+    app.selectedBuildingId = null;
+    app.render("infrastructure");
+  });
 }
 
 /* Organisation name for an id. Every infrastructure record carries
@@ -296,6 +356,9 @@ function wireAllEvents(container, app, selCampus, selBuilding) {
     ?.addEventListener("click", () => {
       if (selBuilding) openMeterModal(app, selBuilding.building_id);
     });
+  container
+    .querySelector('[data-action="upload-readings-csv"]')
+    ?.addEventListener("click", () => openUploadReadingsModal());
   container
     .querySelectorAll("[data-edit-meter]")
     .forEach((btn) =>
@@ -719,6 +782,59 @@ function deleteDept(app, deptId) {
 }
 
 /* ══════════════════════════════════════════════════════
+   BULK METER READING UPLOAD
+   ══════════════════════════════════════════════════════ */
+/**
+ * Uploads a CSV of sensor readings for meters without automatic ingestion,
+ * via the backend's multipart POST /meter-readings/upload (Multer, 10MB,
+ * .csv only — see file-upload.middleware.ts). There was previously no UI
+ * anywhere that called this endpoint at all, even though the backend has
+ * supported it from the start.
+ */
+function openUploadReadingsModal() {
+  openModal({
+    title: "Bulk Upload Meter Readings",
+    confirmLabel: "Upload",
+    bodyHtml: `
+      <p style="margin-bottom:12px;color:#374151">
+        Upload a CSV for meters without automatic sensor ingestion. Header
+        row: <code>meter_id,value,unit,timestamp</code> (timestamp optional
+        — defaults to now).
+      </p>
+      <input type="file" id="readingsCsvFile" accept=".csv,text/csv">
+      <span class="field-error" data-error-for="file"></span>
+    `,
+    onConfirm: (modal) => {
+      const file = modal.querySelector("#readingsCsvFile")?.files?.[0];
+      if (!file) {
+        showFormErrors(modal, { file: "Choose a CSV file first." });
+        return false;
+      }
+      if (!window.api) {
+        showToast("Backend unavailable — cannot upload.", "error");
+        return false;
+      }
+      window.api
+        .upload("/meter-readings/upload", "file", file)
+        .then((res) => {
+          const count = res?.imported;
+          showToast(
+            count
+              ? `Imported ${count} meter reading${count === 1 ? "" : "s"}.`
+              : "Meter readings imported.",
+            "success",
+          );
+        })
+        .catch((err) => {
+          console.error("Meter reading CSV upload failed:", err);
+          showToast("Upload failed: " + err.message, "error");
+        });
+      return true;
+    },
+  });
+}
+
+/* ══════════════════════════════════════════════════════
    METER CRUD
    ══════════════════════════════════════════════════════ */
 function openMeterModal(app, buildingId, meterId = null) {
@@ -847,12 +963,12 @@ function deleteMeter(app, meterId) {
 }
 
 /* ── HELPERS ───────────────────────────────────── */
-function ensureSelections(app) {
+function ensureSelections(app, visibleCampuses) {
   if (
     !app.selectedCampusId ||
-    !app.state.campuses.some((c) => c.campus_id === app.selectedCampusId)
+    !visibleCampuses.some((c) => c.campus_id === app.selectedCampusId)
   ) {
-    app.selectedCampusId = app.state.campuses[0]?.campus_id || null;
+    app.selectedCampusId = visibleCampuses[0]?.campus_id || null;
   }
   if (app.selectedCampusId) {
     const campusBuildings = app.state.buildings.filter(

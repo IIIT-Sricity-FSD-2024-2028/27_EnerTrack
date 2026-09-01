@@ -4657,6 +4657,54 @@
         ]
       }
     },
+    "/api/wastage-reports/{id}/photos/{filename}": {
+      "get": {
+        "operationId": "WastageReportsController_getPhoto",
+        "summary": "View Wastage Report Photo",
+        "description": "Streams back one photo previously attached as evidence for this wastage report. The filename must exactly match one already attached to this report — it is never used to open an arbitrary path on disk — and tenant ownership is checked before the file is served.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image file streamed."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Wastage report not found, or no matching photo attached."
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
     "/api/wastage-reports/{id}": {
       "get": {
         "operationId": "WastageReportsController_findOne",
