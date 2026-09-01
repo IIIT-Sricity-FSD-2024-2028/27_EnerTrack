@@ -376,11 +376,35 @@ function selectWorkOrder(id) {
   }
 
   if (submitBtn)
-    submitBtn.onclick = () => {
-      const notes = document.getElementById("completionNotes")?.value;
+    submitBtn.onclick = async () => {
+      const notes = document.getElementById("completionNotes")?.value || "";
+
+      // This used to only update the local TechDB mock cache, so the WO
+      // never reached "review" on the backend — it showed as moved on this
+      // technician's own board, but the Overview page's Final Verification
+      // feed (which reads a fresh /work-orders fetch) never saw it.
+      try {
+        if (window.api && id.includes("-")) {
+          const currentWO = TechDB.getWorkOrder(id);
+          const details = {
+            description: currentWO?.description,
+            type: currentWO?.type,
+            estimateRequired: currentWO?.estimateRequired,
+            estimate: currentWO?.estimate,
+            resolution_notes: notes,
+          };
+          await window.api.patch(`/work-orders/${id}`, {
+            status: "review",
+            details,
+          });
+        }
+      } catch (err) {
+        console.warn("Backend submit-for-review failed:", err);
+      }
+
       TechDB.updateWorkOrder(id, {
         status: "review",
-        completionNotes: notes || "",
+        resolution_notes: notes,
       });
       showToast(`Work order ${id} moved to Review.`, "success");
       renderBoard();
