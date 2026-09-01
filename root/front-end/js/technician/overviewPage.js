@@ -2,12 +2,12 @@
  * overviewPage.js
  * Handles interactivity for the Technician Overview page.
  *
- * Stat cards and Quick Actions are derived entirely from real backend data
- * (/alerts, /faults, /work-orders, /service-requests) — there is no mock
- * "live feed" here. None of these entities carry a created/updated
- * timestamp today, so anything phrased as "in the last hour" or "today"
- * would be fabricated; every note below is a genuine, computable breakdown
- * instead (e.g. "3 acknowledged, 2 unread").
+ * Stat cards are derived entirely from real backend data (/alerts, /faults,
+ * /work-orders, /service-requests) — there is no mock "live feed" here.
+ * None of these entities carry a created/updated timestamp today, so
+ * anything phrased as "in the last hour" or "today" would be fabricated;
+ * every note below is a genuine, computable breakdown instead (e.g.
+ * "3 acknowledged, 2 unread").
  */
 import TechDB from "./data/mockData.js";
 import { showToast } from "./utils/utils.js";
@@ -21,7 +21,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     await loadData();
     renderStats();
-    renderQuickActions();
     renderVerifyFeed();
     wireQueueButton();
     console.log("TechOverview: Initialized.");
@@ -81,87 +80,6 @@ function renderStats() {
     "noteClosedWorkOrders",
     `${_workOrders.length} total work order${_workOrders.length === 1 ? "" : "s"}`,
   );
-}
-
-/* ── QUICK ACTIONS ──────────────────────────────────────
- * Named items, not category counts — the sidebar already links to each
- * page, and "Work orders awaiting your review" is already covered in full
- * by the Final Verification panel above, so this only earns its place by
- * naming *which* fault, alert, or request needs attention. */
-function renderQuickActions() {
-  const container = document.getElementById("quickActions");
-  if (!container) return;
-
-  const severityRank = { critical: 0, high: 1, immediate: 0, moderate: 2, medium: 2, low: 3 };
-  const rankOf = (v) => severityRank[v] ?? 2;
-
-  const items = [];
-
-  _serviceRequests
-    .filter((sr) => sr.status === "open" || sr.status === "pending")
-    .forEach((sr) => {
-      items.push({
-        rank: rankOf(sr.priority),
-        color: "blue",
-        title: sr.description || sr.category || "Service request",
-        meta: "User-reported",
-        href: "technician_work_orders.html",
-      });
-    });
-
-  _faults
-    .filter((f) => f.status !== "resolved")
-    .forEach((f) => {
-      items.push({
-        rank: rankOf(f.severity),
-        color: "red",
-        title: f.asset_name || f.fault_type || "Fault",
-        meta: `${cap(f.severity)} severity`,
-        href: "technician_maintenance.html",
-      });
-    });
-
-  _alerts
-    .filter((a) => a.status !== "resolved")
-    .forEach((a) => {
-      items.push({
-        rank: rankOf(a.severity),
-        color: "yellow",
-        title: a.title || "Alert",
-        meta: `${cap(a.severity)} severity`,
-        href: "technician_alerts.html",
-      });
-    });
-
-  if (items.length === 0) {
-    container.innerHTML =
-      '<div class="empty-state">Nothing waiting on you right now — the queue is clear.</div>';
-    return;
-  }
-
-  items.sort((a, b) => a.rank - b.rank);
-  const shown = items.slice(0, 6);
-  const remaining = items.length - shown.length;
-
-  container.innerHTML =
-    shown
-      .map(
-        (item) => `
-      <a class="quick-action quick-action--${item.color}" href="${item.href}">
-        <span class="quick-action-dot"></span>
-        <span class="quick-action-label"><strong>${item.title}</strong> — ${item.meta}</span>
-        <span class="quick-action-arrow">→</span>
-      </a>`,
-      )
-      .join("") +
-    (remaining > 0
-      ? `<div class="quick-action-more">+${remaining} more across alerts, faults, and requests</div>`
-      : "");
-}
-
-function cap(str) {
-  if (!str) return "—";
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function wireQueueButton() {
@@ -261,7 +179,6 @@ window.verifyJob = async function (id) {
         await loadData();
         renderVerifyFeed();
         renderStats();
-        renderQuickActions();
         return;
       }
     }
@@ -292,7 +209,6 @@ window.verifyWO = async function (id) {
         await loadData();
         renderVerifyFeed();
         renderStats();
-        renderQuickActions();
         return;
       }
     }
@@ -304,7 +220,6 @@ window.verifyWO = async function (id) {
     TechDB.closeWorkOrder(id);
     renderVerifyFeed();
     renderStats();
-    renderQuickActions();
     showToast("Work order verified and closed.", "success");
   }
 };

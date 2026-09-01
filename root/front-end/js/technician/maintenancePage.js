@@ -152,10 +152,25 @@ function renderFaultReadout(fault) {
       (f.fault_id || f.id) !== faultId,
   ).length;
 
+  // Round to at most 1 decimal so the dial never has to fit more than a
+  // handful of characters, and scale the font down further for anything
+  // still long (e.g. a 4+ digit reading) rather than letting it overflow.
+  const displayValue =
+    Number.isInteger(reading.value)
+      ? String(reading.value)
+      : reading.value.toFixed(1);
+  const valueSizeClass =
+    displayValue.length > 4
+      ? "readout-value--sm"
+      : displayValue.length > 3
+        ? "readout-value--md"
+        : "";
+
   container.innerHTML = `
     <div class="readout">
       <div class="readout-dial">
-        <span class="readout-value">${reading.value}<span class="readout-unit">${reading.unit || ""}</span></span>
+        <span class="readout-value ${valueSizeClass}">${displayValue}</span>
+        <span class="readout-unit">${reading.unit || ""}</span>
       </div>
       <div class="readout-meta">
         <div class="readout-meta-row"><span>Meter</span><span>${meterLabel}</span></div>

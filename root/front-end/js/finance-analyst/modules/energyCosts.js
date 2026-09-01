@@ -703,7 +703,7 @@ export function renderCostBreakdown(viewMode) {
         <div class="stacked-bar" style="height:${totalH}px; width:44px; overflow:hidden; position:relative; display:flex; flex-direction:column-reverse; border-radius:4px;">
           ${
             d.label === "Demand" || d.isDemand
-              ? `<div class="bar bg-gray" style="height:100%; width:100%"></div>`
+              ? `<div class="bar bg-blue" style="height:100%; width:100%"></div>`
               : `
               <div class="bar bg-green"  style="height:${(baseH / totalH) * 100}%; width:100%" title="Base: ${formatCurrency(d.value * 0.85)}"></div>
               <div class="bar bg-yellow" style="height:${(taxH / totalH) * 100}%; width:100%" title="Taxes: ${formatCurrency(d.value * 0.15)}"></div>
