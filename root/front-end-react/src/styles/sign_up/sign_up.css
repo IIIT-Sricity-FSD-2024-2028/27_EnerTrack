@@ -1,0 +1,141 @@
+@import url("../shared/auth_shared.css");
+
+/* ══════════════════════════════════════════════════════════════
+   sign_up.css
+
+   Everything shared with the sign-in page lives in
+   css/shared/auth_shared.css. This file carries the wider measure,
+   the role dropdown and the duplicate-account dialog.
+   ══════════════════════════════════════════════════════════════ */
+
+.card {
+  width: min(520px, 100%);
+}
+
+/* The form is long enough to scroll, so it sits below the top bar
+   rather than being centred against it */
+.main {
+  align-items: flex-start;
+}
+
+/* ── Role dropdown ───────────────────────────────────────────── */
+.select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.select-wrap .input {
+  padding-right: 44px;
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+/* The placeholder option only; the real options inherit the native
+   menu styling, which is correct against a white field */
+.select:invalid {
+  color: #8a8a8a;
+}
+
+.chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* ── Duplicate account dialog ────────────────────────────────── */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+}
+
+.popup-card {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.3);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  text-align: center;
+}
+
+.popup-card h3 {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--danger);
+  margin-bottom: 8px;
+}
+
+.popup-card p {
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.popup-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Both dialog buttons are the landing page's pill buttons */
+.popup-btn {
+  display: inline-block;
+  padding: 10px 22px;
+  border-radius: var(--radius-full);
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--ease);
+  transition-property: background, color, border-color, transform;
+}
+
+.popup-btn:hover {
+  transform: translateY(-1px);
+}
+
+.popup-btn:active {
+  transform: translateY(0);
+}
+
+.popup-btn-primary {
+  background: var(--primary-green);
+  border: 1.5px solid var(--primary-green);
+  color: var(--surface);
+}
+
+.popup-btn-primary:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.popup-btn-secondary {
+  background: transparent;
+  border: 1.5px solid var(--line);
+  color: var(--text-secondary);
+}
+
+.popup-btn-secondary:hover {
+  border-color: var(--primary-green);
+  color: var(--primary-green);
+}

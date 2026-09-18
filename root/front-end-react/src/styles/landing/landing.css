@@ -1,0 +1,864 @@
+@import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700&display=swap");
+
+/* ══════════════════════════════════════════════════════════════
+   EnerTrack landing page
+
+   One card system, one label motif, one measure.
+   Palette is unchanged: heritage green on a soft grey ground.
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Spacing */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  --space-8: 64px;
+
+  /* Heritage palette, original values */
+  --bg-main: #d9d9d9;
+  --surface: #ffffff;
+  --primary-green: #2f7d4f;
+  --primary-dark: #1e5c38;
+  --card-bg: #a9c7b3;
+
+  --text-primary: #111111;
+  --text-secondary: #333333;
+  --text-muted: #555555;
+
+  /* Borders, so cards no longer rely on an invisible white one */
+  --line: #c2c2c2;
+  --line-soft: #cfcfcf;
+  --border-subtle: rgba(0, 0, 0, 0.1);
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 8px 22px -8px rgba(0, 0, 0, 0.16);
+
+  --radius: 12px;
+  --radius-full: 9999px;
+
+  /* Side padding scales with the viewport rather than parking content
+     inside a fixed measure, so wide screens do not sit in empty margins. */
+  --gutter: clamp(20px, 5vw, 120px);
+
+  /* Rows below (hero, about) split into a fixed-width text column and a
+     capped image, rather than letting the image stretch to fill whatever
+     is left. Past this width that leftover space was outgrowing the
+     content and reading as a hole in the layout, so the row itself is
+     capped and centered instead. */
+  --page-max: 1400px;
+
+  --ease: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Author rules like `.btn-primary { display: inline-block }` normally beat
+   the browser's own `[hidden] { display: none }` UA rule, so an element
+   that is both `.btn-primary` and `hidden` would render anyway — this is
+   what was leaving "Request an audit" and "Go to your dashboard" showing
+   at the same time. Restoring `hidden` here means the attribute always
+   wins, regardless of what other display value a class sets. */
+[hidden] {
+  display: none !important;
+}
+
+body {
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: "Public Sans", system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+a { color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--primary-green);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Navbar ──────────────────────────────────────────────────── */
+.navbar {
+  /* Opaque rather than blurred: the bar sits on its own colour anyway,
+     and backdrop-filter forces a costly repaint on every scroll frame. */
+  background: var(--bg-main);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid var(--line);
+  transition: padding var(--ease), box-shadow var(--ease);
+}
+
+.nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: 14px var(--gutter);
+}
+
+.navbar.scrolled .nav-inner {
+  padding: 9px var(--gutter);
+}
+
+.navbar.scrolled {
+  box-shadow: var(--shadow-card);
+}
+
+.left-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.logo img { height: 30px; }
+
+.nav-links {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.nav-links a {
+  position: relative;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 4px 0;
+  transition: color var(--ease);
+}
+
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--primary-green);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--ease);
+}
+
+.nav-links a:hover { color: var(--primary-green); }
+.nav-links a:hover::after { transform: scaleX(1); }
+
+.right-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn-primary,
+.btn-secondary {
+  display: inline-block;
+  padding: 11px 24px;
+  border-radius: var(--radius-full);
+  font-family: "Public Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--ease);
+  transition-property: background, color, border-color, transform;
+}
+
+.btn-primary {
+  background: var(--primary-green);
+  color: var(--surface);
+  border: 1.5px solid var(--primary-green);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--primary-dark);
+  border: 1.5px solid var(--line);
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary-green);
+  color: var(--primary-green);
+  transform: translateY(-1px);
+}
+
+/* ── Profile menu ────────────────────────────────────────────── */
+.profile-wrapper { position: relative; }
+
+.profile-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color var(--ease);
+}
+
+.profile-circle:hover { border-color: var(--primary-green); }
+
+.profile-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  min-width: 230px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: var(--ease);
+  transition-property: opacity, visibility, transform;
+  z-index: 200;
+}
+
+.profile-dropdown.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-header {
+  font-family: "Public Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 12px 0;
+}
+
+.dropdown-role {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 0 12px 8px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--line-soft);
+  margin: 6px 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-family: "Public Sans", sans-serif;
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+}
+
+.dropdown-item:hover {
+  background: var(--bg-main);
+  color: var(--primary-green);
+}
+
+.dropdown-item svg { flex-shrink: 0; }
+.dropdown-logout:hover { color: #b3350e; }
+
+/* ── Hero ────────────────────────────────────────────────────── */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 580px) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-8);
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-6) var(--gutter) var(--space-8);
+}
+
+.hero-content h1 {
+  font-size: clamp(40px, 5.6vw, 60px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-3);
+}
+
+.hero-content p {
+  font-size: 17.5px;
+  color: var(--text-secondary);
+}
+
+.hero-cta {
+  display: flex;
+  gap: 12px;
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.hero-note {
+  margin-top: var(--space-3);
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.hero-image {
+  max-width: 520px;
+  margin-left: auto;
+}
+
+.hero-image img {
+  /* hero.png is a 1:1 render. Matching that ratio here means cover has
+     nothing to crop — a mismatched box was cutting the solar panels and
+     the entrance sign off the edges. */
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+}
+
+/* ── Section scaffolding ─────────────────────────────────────── */
+.section {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: 60px var(--gutter);
+  /* keeps headings clear of the sticky navbar on anchor jumps */
+  scroll-margin-top: 72px;
+}
+
+/* Sections separate themselves through the label motif and whitespace */
+.section-divider { display: none; }
+
+.section-title {
+  font-size: clamp(28px, 3.3vw, 38px);
+  line-height: 1.16;
+  margin-bottom: var(--space-2);
+  max-width: 26ch;
+}
+
+/* ── One card system ─────────────────────────────────────────── */
+.role-card,
+.stage-card,
+.cap-card,
+.price-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  transition: var(--ease);
+  transition-property: transform, box-shadow, border-color;
+}
+
+.role-card:hover,
+.stage-card:hover,
+.cap-card:hover,
+.price-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+  border-color: var(--primary-green);
+}
+
+/* ── About ───────────────────────────────────────────────────── */
+.about-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 620px) minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.about-text p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.about-image {
+  max-width: 360px;
+  margin-left: auto;
+}
+
+.about-image img {
+  /* logo5.jpeg is a tall portrait (698x818). The old fixed, wide-short box
+     forced a landscape crop onto it and cut the leaf sprout at the top —
+     the entire point of the photo. Matching its real ratio here removes
+     the crop instead of fighting it. */
+  width: 100%;
+  aspect-ratio: 698 / 818;
+  object-fit: cover;
+  display: block;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+}
+
+/* ── Roles ───────────────────────────────────────────────────── */
+.roles-intro {
+  color: var(--text-secondary);
+  max-width: 62ch;
+  margin-bottom: var(--space-5);
+}
+
+/* Fixed card widths + wrap + center, rather than a grid with a fixed column
+   count: 5 role cards across 3 columns leaves an empty slot on the last row
+   (2 cards under 3 tracks). Flexbox lets that remainder row center itself
+   as a pair instead of hugging the left edge with a void beside it. */
+.roles-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.roles-grid .role-card {
+  flex: 1 1 300px;
+  max-width: 340px;
+}
+
+.role-card {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.role-card h3 {
+  font-size: 19px;
+  margin-bottom: 12px;
+}
+
+.role-card ul { list-style: none; }
+
+.role-card li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+}
+
+.role-card li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary-green);
+}
+
+.role-card-locked:hover {
+  transform: none;
+  box-shadow: var(--shadow-soft);
+  border-color: var(--line);
+}
+
+/* ── Engagement lifecycle ────────────────────────────────────── */
+.stage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.stage-card { padding: var(--space-4); }
+
+/* The six stages are a genuine sequence, so the numbers carry meaning */
+.stage-num {
+  display: block;
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary-green);
+  margin-bottom: 10px;
+}
+
+.stage-card h4 {
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.stage-card p {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+/* ── Commercial model ────────────────────────────────────────── */
+.price-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.price-card { padding: var(--space-5) var(--space-4); }
+
+/* The one place the page raises its voice */
+.price-card-feature {
+  background: var(--card-bg);
+  border-color: var(--primary-green);
+}
+
+.price-card h4 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.price-when {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary-dark);
+  margin-bottom: 12px;
+}
+
+.price-card p {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+/* Live tiers, fetched from the same catalogue the billing engine prices
+   from. Quieter than the three cards above on purpose: those explain the
+   model, these are just today's numbers. */
+.plan-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  align-items: stretch;
+}
+
+.plan-card {
+  border: 1px solid var(--line, #d9e0dc);
+  border-radius: 12px;
+  padding: var(--space-4);
+  background: #fff;
+}
+
+.plan-card h4 {
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.plan-price {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  line-height: 1.2;
+}
+
+.plan-price span {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.plan-min {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 8px 0 12px;
+}
+
+.plan-card p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.plan-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.plan-card li {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding-left: 16px;
+  position: relative;
+}
+
+.plan-card li::before {
+  content: "·";
+  position: absolute;
+  left: 4px;
+  font-weight: 700;
+}
+
+/* Four stages rather than six, so they sit two-up on a wide screen
+   without a stranded row. */
+.stage-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* The one line on the hero that does the selling: you keep the savings. */
+.hero-lede {
+  margin-top: var(--space-2);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.pricing-note {
+  margin-top: var(--space-4);
+  color: var(--text-muted);
+  font-size: 15px;
+  max-width: 62ch;
+}
+
+/* ── Capabilities ────────────────────────────────────────────── */
+.cap-header { margin-bottom: var(--space-5); }
+
+.cap-header p {
+  color: var(--text-secondary);
+  max-width: 58ch;
+}
+
+.cap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.cap-card {
+  padding: var(--space-4);
+}
+
+.cap-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg-main);
+  color: var(--primary-green);
+  margin-bottom: var(--space-2);
+}
+
+.cap-card h4 {
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.cap-card p {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+/* ── Results: the year-over-year proof, made visible ────────────
+   The product's one real differentiator is that its savings figure is a
+   checkable comparison rather than a claimed percentage, so this section
+   is built as that comparison rather than a stat-card grid. */
+.proof-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: var(--space-6);
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-5);
+}
+
+.proof-compare {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.proof-bar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  gap: var(--space-2);
+}
+
+.proof-bar-label {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.proof-bar-value {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.proof-bar-track {
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: var(--bg-main);
+  overflow: hidden;
+}
+
+.proof-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+}
+
+/* Widths are the actual ratio of the two figures (513,744 / 583,800),
+   not decoration — the shorter bar is shorter by exactly as much as the
+   consumption dropped. */
+.proof-bar-fill--before {
+  width: 100%;
+  background: var(--line);
+}
+
+.proof-bar-fill--after {
+  width: 88%;
+  background: var(--primary-green);
+}
+
+.proof-result {
+  text-align: center;
+  border-left: 1px solid var(--line);
+  padding-left: var(--space-6);
+}
+
+.proof-delta {
+  display: block;
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--primary-green);
+  margin-bottom: var(--space-2);
+}
+
+.proof-result p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.footer {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-5) var(--gutter);
+  border-top: 1px solid var(--line);
+}
+
+.copyright {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 1000px) {
+  .stage-grid,
+  .stage-grid-4,
+  .price-grid,
+  .plan-row,
+  .cap-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding-bottom: var(--space-6);
+  }
+  .hero-image { order: -1; max-width: none; margin-left: 0; }
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+  .about-image { max-width: 280px; margin: 0 auto; }
+  .proof-panel {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+  .proof-result {
+    text-align: left;
+    border-left: none;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+    padding-top: var(--space-4);
+  }
+  .section { padding: 56px var(--gutter); }
+  .nav-links { display: none; }
+}
+
+@media (max-width: 660px) {
+  .stage-grid,
+  .stage-grid-4,
+  .price-grid,
+  .plan-row,
+  .cap-grid {
+    grid-template-columns: 1fr;
+  }
+  .roles-grid .role-card {
+    max-width: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .section-title { max-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

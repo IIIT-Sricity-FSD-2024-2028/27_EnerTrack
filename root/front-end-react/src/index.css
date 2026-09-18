@@ -1,0 +1,31 @@
+/*
+ * index.css — the only global stylesheet in the app.
+ *
+ * Deliberately almost empty. Every page's real styling still comes from
+ * src/styles/<role>/*.css, imported by the route component that needs it.
+ *
+ * Vite's starter index.css was removed rather than edited: it declared
+ * --bg, --border, --accent and --shadow on :root, all four of which are
+ * already defined by our own stylesheets, and it put `display: flex;
+ * place-items: center` on <body>, which centres every dashboard layout.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+img {
+  max-width: 100%;
+}
