@@ -1,0 +1,68 @@
+/*
+ * Sidebar.css — styles for the app shell only.
+ *
+ * Deliberately new CSS rather than reused from src/styles/. The shell is a new
+ * thing that did not exist before (the old app had 17 separate copies), while
+ * src/styles/ describes page CONTENT and is imported by the page components.
+ * Keeping the two apart is what stops the shell fighting a role's stylesheet.
+ *
+ * Class names are prefixed app-sidebar__ so they cannot collide with the
+ * generic .sidebar / .nav rules already in tech_shared.css and friends.
+ */
+
+.app-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  background: #b8cdb7;
+  border-right: 1px solid rgba(28, 46, 46, 0.16);
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+.app-sidebar__brand img {
+  height: 26px;
+  width: auto;
+  display: block;
+}
+
+.app-sidebar__title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(17, 24, 39, 0.55);
+}
+
+.app-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-sidebar__link {
+  display: block;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: #111827;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.app-sidebar__link:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.app-sidebar__link.is-active {
+  background: #0f172a;
+  color: #ffffff;
+}
