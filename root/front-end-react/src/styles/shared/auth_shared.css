@@ -1,0 +1,375 @@
+/* ══════════════════════════════════════════════════════════════
+   auth_shared.css
+
+   Shared foundation for the sign-in and sign-up pages.
+
+   Tokens are copied verbatim from css/landing/landing.css so the two
+   surfaces cannot drift apart. The card is a member of the landing
+   card system: white surface, hairline border, 12px radius, soft
+   shadow. The photo behind it is scrimmed down to a ground colour so
+   it reads as texture rather than as a competing image.
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Spacing */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+
+  /* Heritage palette, identical to the landing page */
+  --bg-main: #d9d9d9;
+  --surface: #ffffff;
+  --primary-green: #2f7d4f;
+  --primary-dark: #1e5c38;
+
+  --text-primary: #111111;
+  --text-secondary: #333333;
+  --text-muted: #555555;
+
+  --line: #c2c2c2;
+  --line-soft: #cfcfcf;
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 8px 22px -8px rgba(0, 0, 0, 0.16);
+
+  --radius: 12px;
+  --radius-input: 8px;
+  --radius-full: 9999px;
+
+  --ease: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Auth-only additions */
+  --danger: #b3350e;
+  --focus-ring: 0 0 0 3px rgba(47, 125, 79, 0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: "Public Sans", system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary-green);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Ground ──────────────────────────────────────────────────── */
+.background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg-main);
+}
+
+.background img {
+  width: 100%;
+  height: 100%;
+  /* Favouring the top of the frame keeps the roofline and solar array
+     in view and pushes the building's signage below the crop */
+  object-fit: cover;
+  object-position: center 15%;
+  filter: saturate(0.5) brightness(0.85);
+  display: block;
+}
+
+/* The scrim is the brand green fading to charcoal, so the ground
+   belongs to the palette rather than to the photograph. */
+.background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(23, 71, 44, 0.88) 0%,
+    rgba(14, 20, 16, 0.92) 100%
+  );
+}
+
+/* ── Top bar ─────────────────────────────────────────────────── */
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 18px clamp(20px, 4vw, 40px);
+  z-index: 10;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* logo.png is a white wordmark on transparent, which is one reason
+   this page keeps a dark ground */
+.logo img {
+  height: 56px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14.5px;
+  font-weight: 500;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.8);
+  transition: color var(--ease);
+}
+
+.back-link:hover {
+  color: #ffffff;
+}
+
+.back-link svg {
+  flex-shrink: 0;
+}
+
+/* ── Layout ──────────────────────────────────────────────────── */
+.main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  /* padding-top clears the fixed top bar; because flex centring
+     respects padding, the card can never slide underneath it */
+  padding: 120px var(--space-3) var(--space-5);
+}
+
+/* ── Card ────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+}
+
+/* ── Heading ─────────────────────────────────────────────────── */
+h1 {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.sub {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+/* ── Fields ──────────────────────────────────────────────────── */
+.field {
+  margin-bottom: var(--space-2);
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+  transition: var(--ease);
+  transition-property: border-color, box-shadow, background;
+}
+
+.input::placeholder {
+  color: #8a8a8a;
+}
+
+.input:hover {
+  border-color: var(--line-soft);
+}
+
+.input:focus {
+  border-color: var(--primary-green);
+  box-shadow: var(--focus-ring);
+}
+
+/* Toggled by the validation scripts */
+.input-invalid {
+  border-color: var(--danger) !important;
+  background: rgba(179, 53, 14, 0.04) !important;
+}
+
+.input-valid {
+  border-color: var(--primary-green) !important;
+  background: rgba(47, 125, 79, 0.04) !important;
+}
+
+/* ── Password reveal ─────────────────────────────────────────── */
+.password-wrap {
+  position: relative;
+}
+
+.password-wrap .input {
+  padding-right: 44px;
+}
+
+.eye {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--ease);
+}
+
+.eye:hover {
+  color: var(--primary-green);
+}
+
+/* ── Validation messages ─────────────────────────────────────── */
+/* Hidden by default here; both scripts toggle the inline display
+   property, and sign_up.js queries .field-error[style*='block'] */
+.field-error {
+  display: none;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--danger);
+  margin-top: 6px;
+}
+
+/* ── Primary action ──────────────────────────────────────────── */
+.btn {
+  width: 100%;
+  padding: 12px 24px;
+  border-radius: var(--radius-full);
+  background: var(--primary-green);
+  border: 1.5px solid var(--primary-green);
+  color: var(--surface);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: var(--space-3);
+  transition: var(--ease);
+  transition-property: background, border-color, transform, opacity;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Both scripts disable the button while the request is in flight */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Links and footer ────────────────────────────────────────── */
+.register-link,
+.signin-link {
+  color: var(--primary-green);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--ease);
+}
+
+.register-link:hover,
+.signin-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line-soft);
+  font-size: 14.5px;
+}
+
+.footer p {
+  color: var(--text-muted);
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .top-bar {
+    padding: 14px 18px;
+  }
+
+  .logo img {
+    height: 44px;
+  }
+
+  .main {
+    padding: 96px var(--space-2) var(--space-4);
+  }
+
+  .card {
+    padding: var(--space-4) var(--space-3) var(--space-3);
+  }
+
+  h1 {
+    font-size: 25px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

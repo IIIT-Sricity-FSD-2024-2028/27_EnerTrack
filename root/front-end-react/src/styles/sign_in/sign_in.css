@@ -1,0 +1,12 @@
+@import url("../shared/auth_shared.css");
+
+/* ══════════════════════════════════════════════════════════════
+   sign_in.css
+
+   Everything structural lives in css/shared/auth_shared.css.
+   Only the sign-in page's own measure belongs here.
+   ══════════════════════════════════════════════════════════════ */
+
+.card {
+  width: min(430px, 100%);
+}

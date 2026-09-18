@@ -1,0 +1,204 @@
+/* tech_alerts.css — Alerts page-specific styles */
+
+.alerts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+/* Table edge padding to prevent shadow overlap */
+.alerts-grid table th:first-child,
+.alerts-grid table td:first-child {
+  padding-left: 12px;
+}
+
+.alerts-grid table th:last-child,
+.alerts-grid table td:last-child {
+  padding-right: 12px;
+}
+
+/* Queue table rows - selectable */
+#alertQueueBody tr {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#alertQueueBody tr:hover {
+  background: var(--bg);
+}
+#alertQueueBody tr.selected {
+  background: var(--green-soft);
+  box-shadow: inset 3px 0 0 var(--green);
+}
+
+/* Alert detail panel — same flat card convention as everywhere else,
+   no longer its own bespoke "slate" system */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.detail-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0;
+}
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.zone-badge {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-description-box {
+  padding: 0;
+  margin-bottom: 24px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--dark);
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.text-red {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 5px 0;
+  font-size: 14px;
+  color: var(--dark);
+}
+
+.check-circle {
+  width: 18px;
+  height: 18px;
+  background: var(--green);
+  color: white;
+  font-size: 11px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.action-boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.action-box {
+  border: 1px solid var(--border);
+  border-top-width: 3px;
+  border-radius: var(--radius);
+  padding: 20px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.15s;
+}
+.action-box:hover {
+  border-color: #9ca3af;
+}
+
+.action-box.emergency-box {
+  border-top-color: var(--red);
+}
+
+.action-box.routine-box {
+  border-top-color: var(--green);
+}
+
+.action-box h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--dark);
+}
+.action-box p {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+  line-height: 1.55;
+  flex: 1;
+}
+
+.footer-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.footer-action small {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .alerts-grid {
+    grid-template-columns: 1fr;
+  }
+  .full-width {
+    grid-column: span 1;
+  }
+  .action-boxes {
+    grid-template-columns: 1fr;
+  }
+}

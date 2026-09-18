@@ -1,0 +1,301 @@
+/* tech_maintenance.css — Fault Detection & Diagnostics page styles */
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 6px;
+}
+
+.section-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.diag-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--dark);
+  line-height: 1.6;
+  background: #fafafa;
+  resize: vertical;
+  margin-bottom: 8px;
+}
+.diag-textarea:focus {
+  outline: none;
+  border-color: var(--dark);
+  background: #ffffff;
+}
+
+.action-bar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Alert selector grid */
+.alert-selector-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.alert-tile {
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  padding: 14px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: all 0.18s;
+  position: relative;
+}
+
+.alert-tile:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.alert-tile.active {
+  background: var(--green-soft);
+  border-color: var(--green-border);
+}
+
+.alert-tile-id {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--dark);
+  margin-bottom: 3px;
+}
+
+.alert-tile-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.alert-tile-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.alert-tile .badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+/* Diagnostics workspace */
+.diagnostics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* ── Instrument readout (signature element) ──────────
+   The one deliberate flourish in this revamp: the real sensor reading
+   that triggered the fault's alert, presented like a physical gauge
+   face rather than a table row — grounded in what a technician
+   literally does, read an instrument. */
+.readout {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 20px;
+  border-radius: var(--radius);
+  background: #eef8f7;
+  border: 1px solid #bfe1de;
+}
+
+.readout-dial {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 5px solid var(--teal);
+  background: #ffffff;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px;
+  overflow: hidden;
+}
+
+.readout-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--teal);
+  line-height: 1;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.readout-value--md {
+  font-size: 18px;
+}
+
+.readout-value--sm {
+  font-size: 14px;
+}
+
+.readout-unit {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--teal);
+  line-height: 1;
+}
+
+.readout-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.readout-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--dark);
+}
+
+.readout-meta-row span:first-child {
+  color: var(--muted);
+}
+
+.readout-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 10px;
+}
+
+.checklist {
+  margin-top: 12px;
+}
+
+.checklist li {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--dark);
+  list-style: none;
+}
+
+.check {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.greenbox {
+  background: var(--green-soft);
+  border: 1px solid var(--green-border);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 14px;
+  color: var(--dark);
+  margin-top: 12px;
+}
+
+.fault-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.fault-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  background: white;
+  font-size: 13px;
+}
+
+.fault-card b {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fault-tag {
+  display: inline-block;
+  background: var(--red-soft);
+  color: var(--badge-critical-text);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.repair-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.sub-card {
+  margin-top: 12px !important;
+}
+
+.sub-card .btn {
+  margin-top: 8px;
+}
+
+.result-box {
+  background: var(--green-soft);
+  border: 1px solid var(--green-border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.note-small {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .alert-selector-grid,
+  .main-grid,
+  .fault-grid,
+  .repair-selector {
+    grid-template-columns: 1fr;
+  }
+}
