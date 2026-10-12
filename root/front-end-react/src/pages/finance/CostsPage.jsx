@@ -15,7 +15,13 @@ import { useAuth } from "../../auth/useAuth";
 import CostBreakdown from "./costs/CostBreakdown";
 import CostFormModal from "./costs/CostFormModal";
 import CostViewModal from "./costs/CostViewModal";
-import { loadDepartmentsAndBuildings, loadEnergyCosts, normalizeCost, saveLocalFinance } from "./financeApi";
+import {
+  deleteRecord,
+  loadDepartmentsAndBuildings,
+  loadEnergyCosts,
+  normalizeCost,
+  saveLocalFinance,
+} from "./financeApi";
 import { can, formatCurrency, generateId, statusFromVariance } from "./financeUtils";
 import costsCss from "../../styles/finance-analyst/finance_costs.css?inline";
 import sharedCss from "../../styles/finance-analyst/finance_shared.css?inline";
@@ -113,7 +119,7 @@ export default function CostsPage() {
     setModal(null);
     if (!offline) {
       try {
-        await api.delete(`/energy-costs/${record.id}`);
+        await deleteRecord("energyCosts", "/energy-costs", record.id, user.role);
       } catch (error) {
         showToast("Failed to delete cost record: " + error.message, "error");
         return;

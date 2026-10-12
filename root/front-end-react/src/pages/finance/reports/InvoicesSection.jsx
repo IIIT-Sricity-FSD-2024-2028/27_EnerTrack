@@ -12,7 +12,7 @@ import { useAuth } from "../../../auth/useAuth";
 import Badge from "../components/Badge";
 import Modal from "../components/Modal";
 import { useToast } from "../components/toastContext";
-import { loadInvoices, normalizeInvoice, saveLocalFinance } from "../financeApi";
+import { deleteRecord, loadInvoices, normalizeInvoice, saveLocalFinance } from "../financeApi";
 import { can, formatCurrency, formatDate, generateId } from "../financeUtils";
 import AttachDocumentModal from "./AttachDocumentModal";
 import InvoiceFormModal from "./InvoiceFormModal";
@@ -120,7 +120,10 @@ export default function InvoicesSection({ departments }) {
   }
 
   async function handleDelete(inv) {
-    const ok = await callApi(() => api.delete(`/invoices/${inv.id}`), "Failed to delete invoice");
+    const ok = await callApi(
+      () => deleteRecord("invoices", "/invoices", inv.id, user.role),
+      "Failed to delete invoice",
+    );
     setModal(null);
     if (!ok) return;
     updateList(invoices.filter((i) => i.id !== inv.id));

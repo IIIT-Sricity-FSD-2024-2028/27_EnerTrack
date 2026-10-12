@@ -12,7 +12,13 @@ import { useAuth } from "../../auth/useAuth";
 import FinanceLayout from "./components/FinanceLayout";
 import Modal from "./components/Modal";
 import { useToast } from "./components/toastContext";
-import { loadDepartmentsAndBuildings, loadReports, normalizeReport, saveLocalFinance } from "./financeApi";
+import {
+  deleteRecord,
+  loadDepartmentsAndBuildings,
+  loadReports,
+  normalizeReport,
+  saveLocalFinance,
+} from "./financeApi";
 import { generateId } from "./financeUtils";
 import InvoicesSection from "./reports/InvoicesSection";
 import MetricsCalculator from "./reports/MetricsCalculator";
@@ -134,7 +140,10 @@ export default function ReportsPage() {
   }
 
   async function handleDelete(report) {
-    const ok = await callApi(() => api.delete(`/financial-reports/${report.id}`), "Failed to delete report");
+    const ok = await callApi(
+      () => deleteRecord("financialReports", "/financial-reports", report.id, user.role),
+      "Failed to delete report",
+    );
     setModal(null);
     if (!ok) return;
     updateList(reports.filter((r) => r.id !== report.id));

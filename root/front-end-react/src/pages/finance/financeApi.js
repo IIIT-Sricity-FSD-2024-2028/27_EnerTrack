@@ -42,6 +42,45 @@ export function saveLocalFinance(key, rows) {
   universalDB.save();
 }
 
+/* ── DELETING ─────────────────────────────────────── */
+
+/*
+ * The backend only lets an Organization Admin DELETE energy costs, financial
+ * reports and invoices. For any other role (the Financial Analyst) we do not
+ * send a request the server will refuse. Instead the deleted record's id is
+ * remembered in localStorage and the loaders below leave it out of the list.
+ * Note: the record still exists on the server for other users.
+ */
+const DELETED_KEY = "enertrack_finance_deleted";
+
+function readDeletedIds() {
+  try {
+    return JSON.parse(localStorage.getItem(DELETED_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+/** Drops the rows whose id was deleted locally. `kind` is e.g. "invoices". */
+function withoutDeleted(kind, rows, idField) {
+  const deleted = readDeletedIds()[kind] || [];
+  return rows.filter((row) => !deleted.includes(row[idField] || row.id));
+}
+
+/**
+ * Deletes one record. Organization Admin → real DELETE on the server.
+ * Anyone else → hidden locally (see above). Throws if the real DELETE fails.
+ */
+export async function deleteRecord(kind, path, id, role) {
+  if (role === "Organization Admin") {
+    await api.delete(`${path}/${id}`);
+    return;
+  }
+  const deleted = readDeletedIds();
+  deleted[kind] = [...(deleted[kind] || []), id];
+  localStorage.setItem(DELETED_KEY, JSON.stringify(deleted));
+}
+
 /* ── DEPARTMENTS & BUILDINGS ──────────────────────── */
 
 // The local demo data uses short ids ("dept-001") but the backend expects
@@ -124,7 +163,8 @@ export async function loadEnergyCosts() {
   // id → name lookup, so a record without a stored label still shows a name
   const names = {};
   [...places.departments, ...places.buildings].forEach((p) => (names[p.id] = p.name));
-  return { costs: rows.map((r) => normalizeCost(r, names)), offline };
+  const visible = withoutDeleted("energyCosts", rows, "energy_cost_id");
+  return { costs: visible.map((r) => normalizeCost(r, names)), offline };
 }
 
 /* ── FINANCIAL REPORTS ────────────────────────────── */
@@ -168,7 +208,8 @@ export async function loadReports() {
     "/financial-reports",
     universalDB.data.finance.financialReports,
   );
-  return { reports: rows.map(normalizeReport), offline };
+  const visible = withoutDeleted("financialReports", rows, "financial_report_id");
+  return { reports: visible.map(normalizeReport), offline };
 }
 
 /* ── INVOICES ─────────────────────────────────────── */
@@ -195,7 +236,8 @@ export function normalizeInvoice(inv) {
 
 export async function loadInvoices() {
   const { rows, offline } = await getList("/invoices", universalDB.data.finance.invoices);
-  return { invoices: rows.map(normalizeInvoice), offline };
+  const visible = withoutDeleted("invoices", rows, "invoice_id");
+  return { invoices: visible.map(normalizeInvoice), offline };
 }
 
 /* ── WASTAGE REPORTS (Sustainability workflow) ────── */
@@ -254,15 +296,19 @@ export async function loadWastageReports(user) {
  * Saves changes to one wastage report. `changes` holds the new status and
  * the fields that live inside `details` (costImpact, comments, returnedAt).
  */
-export async function updateWastageReport(report, changes) {
-  const { status, ...detailChanges } = changes;
-  try {
-    await api.patch(`/wastage-reports/${report.id}`, {
-      status: status || report.status,
-      details: { ...report.details, ...detailChanges },
-    });
-  } catch (error) {
-    console.warn("[Finance] Wastage PATCH refused, saving locally.", error.message);
+export async function updateWastageReport(report, changes, role) {
+  // Only these roles may PATCH a wastage report on the backend, so a
+  // Financial Analyst's change is saved locally without a doomed request.
+  if (role === "Sustainability Officer" || role === "Organization Admin") {
+    const { status, ...detailChanges } = changes;
+    try {
+      await api.patch(`/wastage-reports/${report.id}`, {
+        status: status || report.status,
+        details: { ...report.details, ...detailChanges },
+      });
+    } catch (error) {
+      console.warn("[Finance] Wastage update failed, saving locally.", error.message);
+    }
   }
 
   // Always keep the local copy as well — it is what the Archives page and

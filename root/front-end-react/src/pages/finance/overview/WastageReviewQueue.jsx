@@ -41,7 +41,7 @@ export default function WastageReviewQueue() {
 
   /** Saves the changes and swaps the updated report into state. */
   async function saveReport(report, changes) {
-    const updated = await updateWastageReport(report, changes);
+    const updated = await updateWastageReport(report, changes, user.role);
     setReports((list) => list.map((r) => (r.id === updated.id ? updated : r)));
     return updated;
   }

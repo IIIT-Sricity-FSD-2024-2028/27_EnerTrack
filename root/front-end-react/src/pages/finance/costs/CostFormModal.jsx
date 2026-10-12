@@ -19,7 +19,7 @@ const AMOUNT_RULES = {
   budget: { required: true, positiveNumber: true },
 };
 
-export default function CostFormModal({ record, departments, buildings, onSubmit, onClose }) {
+export default function CostFormModal({ record, departments = [], buildings = [], onSubmit, onClose }) {
   const isEdit = Boolean(record);
   const [form, setForm] = useState({
     period: "",
@@ -53,8 +53,12 @@ export default function CostFormModal({ record, departments, buildings, onSubmit
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
-    const list = form.scopeType === "department" ? departments : buildings;
-    const scopeLabel = list.find((p) => p.id === form.scopeRef)?.name;
+    // Only the add form picks a scope; the edit form keeps the record's own.
+    let scopeLabel;
+    if (!isEdit) {
+      const list = form.scopeType === "department" ? departments : buildings;
+      scopeLabel = list.find((p) => p.id === form.scopeRef)?.name;
+    }
     setBusy(true);
     await onSubmit({ ...form, scopeLabel });
     setBusy(false);

@@ -29,7 +29,7 @@ const EDIT_RULES = {
   ...NUMBER_RULES,
 };
 
-export default function ReportFormModal({ report, departments, buildings, onSubmit, onClose }) {
+export default function ReportFormModal({ report, departments = [], buildings = [], onSubmit, onClose }) {
   const isEdit = Boolean(report);
   const [form, setForm] = useState({
     title: report?.title ?? "",
