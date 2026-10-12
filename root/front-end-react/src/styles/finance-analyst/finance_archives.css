@@ -1,0 +1,104 @@
+/* finance_archives.css — the <style> block from front-end/html/finance-analyst/finance_archives.html, moved into its own file. */
+.ticket-card {
+  background: white;
+  padding: 18px 20px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: box-shadow 0.2s;
+}
+.ticket-card:hover {
+  box-shadow: 0 4px 12px -2px var(--shadow);
+}
+.ticket-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #374151;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+.ticket-priority {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  display: inline-block;
+}
+.p-Low {
+  background: #f0fdf4;
+  color: #166534;
+}
+.p-Medium {
+  background: #fffbeb;
+  color: #92400e;
+}
+.p-High {
+  background: #fef2f2;
+  color: #991b1b;
+}
+.ticket-status {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-finalized {
+  background: #d1fae5;
+  color: #065f46;
+}
+.status-target-set {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.status-dismissed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.ticket-expanded-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e5e7eb;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.ticket-expanded-section .exp-box {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.ticket-expanded-section .exp-box h5 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6b7280;
+  margin: 0 0 6px 0;
+}
+.ticket-expanded-section .exp-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+.ticket-expanded-section .exp-sub {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 2px dashed #e5e7eb;
+  color: #9ca3af;
+}

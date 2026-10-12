@@ -1,4 +1,11 @@
-/* Placeholder route table — replaced in the next step. */
+import { Navigate, Route, Routes } from "react-router-dom";
+import FinanceRoutes from "./pages/finance/FinanceRoutes";
+
 export default function App() {
-  return <h1>EnerTrack</h1>;
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/finance/overview" replace />} />
+      <Route path="/finance/*" element={<FinanceRoutes />} />
+    </Routes>
+  );
 }
