@@ -1,0 +1,241 @@
+/*
+ * technician.css — fixes needed to run the old technician styles inside the
+ * React DashboardLayout. Import it AFTER tech_shared.css so these rules win.
+ */
+
+/* tech_shared.css locks the page (overflow: hidden) because in the old app
+   .main was the scrolling box. DashboardLayout has no such box, so without
+   this the bottom of every technician page is cut off and cannot be reached. */
+html,
+body {
+  height: auto;
+  overflow: auto;
+}
+
+/* Vite keeps every imported stylesheet loaded for the whole app, and
+   App.jsx imports the sign-in page, so auth_shared.css / sign_in.css apply
+   here too. Undo the rules from them that clash with the technician look.
+   (Proper fix: scope the auth CSS to the auth pages — raised with Husaam.) */
+.tech-page {
+  line-height: normal; /* auth_shared: body { line-height: 1.65 } */
+}
+
+.tech-page h1 {
+  /* auth_shared: h1 { font-family: "Source Serif 4" ... } */
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+    sans-serif;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.tech-page .card {
+  width: auto; /* sign_in: .card { width: min(430px, 100%) } */
+}
+
+/* auth_shared: .btn { width: 100%; margin-top: 12px } — meant for the
+   sign-in button, but it stretched every technician button full-width. */
+.tech-page .btn {
+  width: auto;
+  margin-top: 0;
+}
+
+/* Put back the one button style that IS meant to be full width, since the
+   rule above (two classes) outranks .btn-full (one class). */
+.tech-page .btn-full {
+  width: 100%;
+}
+
+/* The old page used a <button>; we use <Link>, which renders an <a>. */
+.tech-page a.btn {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.tech-page .header-badge {
+  white-space: nowrap;
+}
+
+/* ── Overview: Final Verification card ─────────────── */
+/* These were inline style="" attributes in the old overviewPage.js. */
+.tech-page .verify-card {
+  margin: 24px 0;
+}
+
+.tech-page .verify-item {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tech-page .verify-item h4 {
+  margin: 0 0 4px;
+}
+
+.tech-page .verify-item p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ── Alerts: queue and log tables ──────────────────── */
+/* Was an inline style="margin-top: 16px" on both tables. */
+.tech-page .alerts-table {
+  margin-top: 16px;
+}
+
+/* ── Maintenance: notes cards ──────────────────────── */
+/* These were inline style="" attributes in technician_maintenance.html. */
+.tech-page .notes-saved-text {
+  font-size: 14px;
+  color: var(--dark);
+  white-space: pre-wrap; /* keep the line breaks the technician typed */
+  margin-bottom: 12px;
+}
+
+.tech-page .notes-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.tech-page .notes-save-bar {
+  margin-bottom: 24px;
+}
+
+.tech-page .classification-note {
+  margin-bottom: 12px;
+}
+
+.tech-page .close-fault-bar {
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+}
+
+/* ── Maintenance: work-order popup form ────────────── */
+/* These were inline style="" attributes in getWOModalHTML(). The popup is
+   drawn inside .tech-page, so the prefix still applies. */
+.tech-page .wo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tech-page .wo-form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.tech-page .wo-form-row .field {
+  flex: 1;
+}
+
+/* ── Work orders ───────────────────────────────────── */
+/* tech_work_orders.css styles high / medium / low only. Urgent repairs from
+   the Diagnostics page are "immediate", so give them the high (red) look. */
+.tech-page .priority-immediate {
+  background: var(--badge-critical-bg);
+  color: var(--badge-critical-text);
+}
+
+/* These were inline style="" attributes in technician_work_orders.html. */
+.tech-page .cost-card-title {
+  font-size: 14px;
+}
+
+.tech-page .cost-status-line {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.tech-page .cost-form-heading {
+  color: var(--amber);
+  font-size: 13px;
+  margin: 0 0 8px 0;
+}
+
+.tech-page .summary-unassigned {
+  font-style: italic;
+}
+
+.tech-page .resolution-notes {
+  font-size: 13px;
+  color: var(--dark);
+}
+
+/* The "Fill in the asset…" hint sat flush against the Create button. */
+.tech-page .form-actions {
+  display: flex;
+  justify-content: flex-end; /* same right alignment as the old text-align */
+  align-items: center;
+  gap: 12px;
+}
+
+.tech-page .stage-note {
+  font-size: 13px;
+  color: var(--dark);
+}
+
+.tech-page .completion-notes {
+  min-height: 60px;
+  margin-bottom: 8px;
+}
+
+/* Service request panel (were inline styles in renderServiceRequests). */
+.tech-page .sr-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.tech-page .heading-icon {
+  margin-right: 8px;
+  vertical-align: bottom;
+}
+
+.tech-page .sr-item {
+  border-left: 4px solid var(--amber);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tech-page .sr-item-text {
+  flex: 1;
+}
+
+.tech-page .sr-item-text h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: var(--dark);
+}
+
+.tech-page .sr-item-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.tech-page .reassign-heading {
+  color: var(--red);
+  font-size: 13px;
+  margin: 0 0 8px 0;
+}
+
+/* ── Buttons ───────────────────────────────────────── */
+/* Extra-small button (Edit / Delete on a saved note). */
+.tech-page .btn-xs {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* The old CSS has no disabled style, so a busy button looked clickable. */
+/* Small button inside a table row. Was an inline style in alertsPage.js. */
+.tech-page .btn-sm {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.tech-page .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
