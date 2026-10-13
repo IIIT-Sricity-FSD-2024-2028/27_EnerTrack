@@ -1,0 +1,484 @@
+/*
+ * wastage.css — extra styles for the Report Wastage page only.
+ *
+ * Loaded by Wastage.jsx with "?inline", after campus.css, so it only applies
+ * while that page is on screen. These rules used to be inline style={{...}}
+ * objects (copied from the original HTML strings in js/enduser/wastage.js);
+ * naming them here keeps the components short. The values are unchanged.
+ */
+
+/* ── Header: the notification bell's box ── */
+.notif-container {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+
+/* ── A report card's top row: details left, status right ── */
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 16px;
+}
+
+.card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.card-id {
+  font-size: 14px;
+  color: var(--dark);
+}
+
+/* Green "Energy Wastage" tag next to the id */
+.type-tag {
+  background: #059669;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+.card-summary {
+  font-size: 13px;
+  color: #374151;
+  margin: 0 0 6px 0;
+  line-height: 1.5;
+}
+
+.card-meta-row {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.card-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  margin-left: auto;
+  max-width: 200px;
+}
+
+.card-side .ticket-status-hint {
+  text-align: right;
+}
+
+/* Cards can be clicked; the selected one gets a green border */
+.ticket-card.selectable {
+  cursor: pointer;
+}
+
+.ticket-card.is-selected {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+}
+
+/* Row of figures inside an .exp-box */
+.exp-row {
+  display: flex;
+  gap: 12px;
+}
+
+.exp-row.wrap {
+  flex-wrap: wrap;
+}
+
+/* ── Green "Decision Summary" box ── */
+.decision-summary {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.decision-summary h5 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #065f46;
+  margin: 0 0 8px 0;
+}
+
+.decision-text {
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.7;
+}
+
+.decision-text p {
+  margin: 0 0 6px 0;
+}
+
+/* ── Grey "Dismissal Notice" box ── */
+.dismissal-notice {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.dismissal-notice h5 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #475569;
+  margin: 0 0 8px 0;
+}
+
+.dismissal-text {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.dismissal-text p {
+  margin: 0 0 4px 0;
+}
+
+.dismissal-text .dismissed-on {
+  margin: 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ── Before / after comparison bars ── */
+.compare-box {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.compare-box h5 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #374151;
+  margin: 0 0 10px 0;
+}
+
+.compare-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compare-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compare-label {
+  font-size: 11px;
+  color: #6b7280;
+  width: 60px;
+}
+
+.compare-track {
+  flex: 1;
+  border-radius: 4px;
+  height: 18px;
+  overflow: hidden;
+}
+
+.compare-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.compare-value {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* ── Archive button and photo thumbnails ── */
+.archive-btn {
+  margin-top: 10px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+/* The original changed the colour on hover too */
+.archive-btn:hover {
+  background: #f3f4f6;
+}
+
+.photo-gallery {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.photo-gallery img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+}
+
+/* ── Comment thread at the bottom of a card ── */
+.comments {
+  margin-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+}
+
+.comments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.comments-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.comments-toggle {
+  font-size: 11px;
+  color: #059669;
+  font-weight: 600;
+}
+
+.comments-empty {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 8px 0;
+}
+
+.comment-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.comment-form input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #1f2937;
+}
+
+.comment-form button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background: #111827;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.comment {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* Round SO / FA / You badge; its colour is set in the component */
+.comment-badge {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comment-author {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.comment-date {
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+.comment-text {
+  font-size: 12px;
+  color: #374151;
+  margin: 2px 0 0 0;
+  line-height: 1.5;
+}
+
+/* ── "Possible Duplicate Report" popup ── */
+.dup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.dup-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 32px;
+  width: 480px;
+  max-width: 94vw;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
+}
+
+.dup-box h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #111827;
+}
+
+.dup-warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.dup-warning p {
+  font-size: 13px;
+  color: #92400e;
+  margin: 0;
+}
+
+.dup-question {
+  font-size: 14px;
+  color: #374151;
+  margin: 0 0 20px 0;
+}
+
+.dup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dup-btn {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+}
+
+.dup-btn.primary {
+  border: none;
+  background: #111827;
+  color: #fff;
+}
+
+/* ── Form: baseline hint, and "Create New Report" while viewing ── */
+.baseline-hint {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.new-report-link {
+  margin-top: 12px;
+  text-align: center;
+  padding: 10px 0;
+  cursor: pointer;
+  color: #059669;
+  font-weight: 600;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+
+/* The original faded the link on hover too */
+.new-report-link:hover {
+  opacity: 0.7;
+}
+
+.new-report-link span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Audit timeline: "Showing audit trail for #id" line ── */
+.trail-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.trail-label strong {
+  color: #111827;
+}
+
+/* Grey note under a dismissed step (the normal note is green) */
+.tl-active-desc.muted {
+  color: #6b7280;
+}
+
+/* Form, while viewing a report: "2 photos attached — see the report card
+   below." in place of the file picker */
+.photos-note {
+  font-size: 13px;
+  color: #6b7280;
+}
