@@ -67,7 +67,7 @@ being repeated on 27 routes.
 /technician/overview | alerts | maintenance | work-orders
 /technician-jr/overview | work-orders
 /auditor/overview | audits
-/campus/dashboard | wastage
+/campus/dashboard | wastage | archives
 *                                 404
 ```
 
