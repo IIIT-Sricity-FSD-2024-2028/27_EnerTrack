@@ -12,8 +12,82 @@
   width: 100%;
 }
 
-a.menu-item {
-  text-decoration: none;
+/* ── FITTING INTO THE SHARED DASHBOARD LAYOUT ──────────
+   App.jsx shows every finance page inside the shared DashboardLayout
+   (sidebar + top bar). The finance stylesheets were written for a page
+   that fills the whole window (.content { height: 100vh } with
+   body { overflow: hidden }), so the bottom of the page fell below the
+   window and could not be scrolled to. These rules only apply when a
+   finance page (.fa-page) is inside the layout: the layout becomes exactly
+   one window tall and the finance page scrolls inside the space left. */
+.dashboard-layout:has(.fa-page) {
+  height: 100vh;
+}
+.dashboard-layout__main:has(> .fa-page) {
+  min-height: 0;
+}
+.content.fa-page {
+  height: 100%;
+}
+
+/* ── UNDOING GLOBAL SIGN-IN STYLES ─────────────────────
+   Vite keeps every imported stylesheet loaded for the whole app, and
+   App.jsx imports the sign-in and sign-up pages, so their auth_shared.css
+   rules (body line-height, h1 font, .card width) also hit the finance
+   pages. Scoped to .fa-page so nothing outside finance changes — the same
+   approach the technician pages use (.tech-page). */
+.fa-page,
+.fa-toast-container {
+  line-height: normal; /* auth_shared: body { line-height: 1.65 } */
+}
+.fa-page h1 {
+  /* auth_shared: h1 { font-family: "Source Serif 4"; line-height: 1.2 } */
+  font-family: "Inter", sans-serif;
+  line-height: normal;
+  letter-spacing: normal;
+}
+.fa-page .card {
+  width: auto; /* sign_in / sign_up: .card { width: min(430px | 520px) } */
+}
+
+/* Same problem from the technician pages' tech_shared.css, which App.jsx
+   also loads for the whole app. Each rule puts back the browser / original
+   finance value. A finance page stylesheet that sets the property itself
+   (e.g. .sub-table th, .calc-row input) still wins, because those are
+   loaded after this file. */
+.fa-page input,
+.fa-page select,
+.fa-page textarea {
+  width: auto; /* tech_shared: input, select, textarea { width: 100% } */
+  background: #fff; /* tech_shared: background: #fafafa */
+  min-height: 0; /* tech_shared: textarea { min-height: 70px } */
+}
+.fa-page input[type="file"] {
+  /* tech_shared also gave the file picker a border and padding */
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-size: inherit;
+}
+.fa-page th {
+  text-transform: none; /* tech_shared: th { text-transform: uppercase } */
+  letter-spacing: normal;
+}
+.fa-page td {
+  border-top: none; /* tech_shared: td { border-top: 1px solid } */
+}
+.fa-page .cards .card {
+  margin-bottom: 0; /* tech_shared: .card { margin-bottom: 20px } */
+}
+.fa-page .card small {
+  line-height: normal; /* tech_shared: .card small { line-height: 1.4 } */
+}
+.fa-page .sub-card {
+  margin-top: 0 !important; /* tech_maintenance: .sub-card { margin-top: 12px !important } */
+}
+.fa-page .empty-state {
+  font-size: 16px; /* tech_shared: .empty-state { font-size: 13px } */
 }
 
 /* ── MODAL (openModal) ─────────────────────────────── */
