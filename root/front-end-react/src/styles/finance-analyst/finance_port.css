@@ -1,0 +1,744 @@
+/*
+ * finance_port.css — styles the original Financial Analyst pages created
+ * from JavaScript (modal, form fields, toasts, notification bell, profile
+ * popup) plus classes for markup that was written with inline styles
+ * (maintenance approval cards, wastage review cards). Values are copied
+ * unchanged from utils.js, notifications.js, dashboardProfileMenu.js and
+ * overviewPage.js. Every class is prefixed, so this file is safe to load
+ * globally next to the per-page stylesheets.
+ */
+
+#root {
+  width: 100%;
+}
+
+a.menu-item {
+  text-decoration: none;
+}
+
+/* ── MODAL (openModal) ─────────────────────────────── */
+@keyframes faFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes faSlideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.fa-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8888;
+  animation: faFadeIn 0.18s ease;
+}
+.fa-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 32px;
+  width: 520px;
+  max-width: 94vw;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
+  animation: faSlideUp 0.2s ease;
+  user-select: text;
+}
+.fa-modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #111827;
+}
+.fa-modal-body {
+  margin-bottom: 24px;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.fa-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.fa-modal-cancel,
+.fa-modal-confirm {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fa-modal-cancel {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+}
+.fa-modal-confirm {
+  background: #111827;
+  color: #fff;
+  border: none;
+}
+.fa-modal-confirm.danger {
+  background: #dc2626;
+}
+.fa-modal-confirm:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.fa-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 24px;
+  font-size: 14px;
+}
+.fa-detail-notes {
+  margin-top: 14px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #374151;
+}
+
+/* ── FORM FIELDS (injectModalStyles) ───────────────── */
+.fm-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+.fm-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5px;
+}
+.fm-group input,
+.fm-group select,
+.fm-group textarea {
+  padding: 9px 11px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1f2937;
+  background: #fff;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.fm-group textarea {
+  resize: vertical;
+}
+.fm-group input:focus,
+.fm-group select:focus,
+.fm-group textarea:focus {
+  border-color: #6b7280;
+}
+.fm-group.has-error input,
+.fm-group.has-error select,
+.fm-group.has-error textarea {
+  border-color: #dc2626;
+}
+.fm-hint {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.field-error-msg {
+  display: block;
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.fm-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── TOASTS (showToast) ────────────────────────────── */
+@keyframes faToastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fa-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.fa-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  border: 1px solid;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+  min-width: 240px;
+  max-width: 380px;
+  animation: faToastIn 0.25s ease;
+}
+.fa-toast-icon {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* ── NOTIFICATION BELL (renderBellIcon) ────────────── */
+.fa-bell {
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+.fa-bell-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #dc2626;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+.fa-bell-dropdown {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  width: 320px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+}
+.fa-bell-head {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.fa-bell-empty {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 16px;
+}
+.fa-bell-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.fa-bell-item.unread {
+  background: #f0fdf4;
+}
+.fa-bell-item p {
+  font-size: 12px;
+  color: #374151;
+  margin: 0 0 4px 0;
+  line-height: 1.5;
+}
+.fa-bell-item span {
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+/* ── PROFILE POPUP (dashboardProfileMenu.js) ───────── */
+.dash-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dash-popup-card {
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 28px 24px 20px;
+  width: 320px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+.dash-popup-name {
+  color: #111111;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.dash-popup-role {
+  color: #555555;
+  font-size: 13px;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+.dash-popup-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0 0 8px;
+}
+.dash-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+  border: none;
+  background: none;
+  width: 100%;
+  cursor: pointer;
+  font-family: "Inter", system-ui, sans-serif;
+}
+.dash-popup-item svg {
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+.dash-popup-logout {
+  color: #dc2626;
+}
+.dash-popup-logout:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+.dash-popup-logout:hover svg {
+  opacity: 1;
+  stroke: #dc2626;
+}
+
+/* ── SIGN-IN GATE ──────────────────────────────────── */
+.fa-signin-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ededed;
+  font-family: "Inter", system-ui, sans-serif;
+}
+.fa-signin {
+  background: #fff;
+  border: 1px solid #d8dde2;
+  border-radius: 12px;
+  padding: 32px;
+  width: 380px;
+  max-width: 94vw;
+}
+.fa-signin h2 {
+  font-size: 20px;
+  margin: 12px 0 6px;
+  color: #111827;
+}
+.fa-signin p {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 18px;
+}
+.fa-signin .fa-modal-confirm {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* ── OVERVIEW: maintenance approval cards ──────────── */
+.fa-empty {
+  padding: 20px;
+  color: #8a95a2;
+  font-size: 14px;
+  text-align: center;
+}
+.fa-approval {
+  padding: 16px;
+  border-bottom: 1px solid #d8dde2;
+}
+.fa-approval-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.fa-approval-head h4 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  color: #111827;
+}
+.fa-approval-kind {
+  font-size: 12px;
+  color: #d97706;
+  font-weight: 600;
+}
+.fa-approval-kind.paid {
+  color: #10b981;
+}
+.fa-approval-type {
+  font-size: 10px;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.fa-estimate {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.fa-estimate-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.fa-estimate-row span:first-child {
+  color: #6b7280;
+}
+.fa-estimate-row span:last-child {
+  font-weight: 500;
+}
+.fa-estimate-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+}
+.fa-estimate-total.dashed {
+  border-top: 1px dashed #d1d5db;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+.fa-btn-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.fa-btn-dark,
+.fa-btn-light,
+.fa-btn-green {
+  flex: 1;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s, background 0.2s;
+}
+.fa-btn-dark {
+  background: #111827;
+  color: #fff;
+  border: none;
+}
+.fa-btn-green {
+  background: #0f8f63;
+  color: #fff;
+  border: none;
+}
+.fa-btn-light {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+.fa-btn-dark:hover,
+.fa-btn-green:hover {
+  opacity: 0.9;
+}
+.fa-btn-light:hover {
+  background: #f9fafb;
+}
+.fa-btn-dark:disabled,
+.fa-btn-light:disabled,
+.fa-btn-green:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ── OVERVIEW: sustainability wastage review cards ─── */
+.fa-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-left: 8px;
+}
+.fa-dashed-empty {
+  text-align: center;
+  padding: 28px;
+  color: #9ca3af;
+  font-size: 14px;
+  border: 2px dashed #e5e7eb;
+  border-radius: 10px;
+}
+.fa-wr {
+  background: #fdfdfd;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 14px;
+  transition: box-shadow 0.2s;
+}
+.fa-wr:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+.fa-wr-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.fa-wr-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fa-wr-head strong {
+  font-size: 14px;
+  color: #111827;
+}
+.fa-wr-type {
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.fa-wr-by {
+  font-size: 12px;
+  color: #9ca3af;
+}
+.fa-wr-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.fa-wr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.fa-wr-panel {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px;
+}
+.fa-wr-panel.sensor {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+.fa-wr-panel h4,
+.fa-wr-box h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  margin: 0 0 10px 0;
+}
+.fa-wr-panel.sensor h4 {
+  color: #0369a1;
+}
+.fa-wr-panel p {
+  font-size: 13px;
+  color: #374151;
+  margin: 0 0 6px 0;
+  line-height: 1.5;
+}
+.fa-wr-location {
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.fa-wr-priority {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.fa-wr-muted {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.fa-wr-label {
+  font-size: 11px;
+  color: #6b7280;
+}
+.fa-wr-reading {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+.fa-wr-reading small {
+  font-size: 12px;
+}
+.fa-wr-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.fa-wr-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.fa-wr-box {
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 14px;
+}
+.fa-wr-box.impact {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+.fa-wr-box.impact h4 {
+  color: #92400e;
+}
+.fa-wr-box.revision {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+.fa-wr-box.revision h4 {
+  color: #991b1b;
+  margin-bottom: 8px;
+}
+.fa-wr-impact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+.fa-wr-impact-grid.two {
+  grid-template-columns: 1fr 1fr;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #fde68a;
+}
+.fa-wr-impact-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+.fa-wr-note {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+}
+.fa-wr-comments {
+  margin-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+}
+.fa-wr-comments-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.fa-wr-comments-toggle span:first-child {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6b7280;
+  font-weight: 600;
+}
+.fa-wr-comments-toggle span:last-child {
+  font-size: 11px;
+  color: #059669;
+  font-weight: 600;
+}
+.fa-comment {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.fa-comment-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+.fa-comment-author {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  margin-right: 6px;
+}
+.fa-comment p {
+  font-size: 12px;
+  color: #374151;
+  margin: 2px 0 0 0;
+  line-height: 1.5;
+}
+.fa-comment-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.fa-comment-form input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #1f2937;
+}
+.fa-comment-form button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background: #111827;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fa-wr .fa-btn-dark,
+.fa-wr .fa-btn-green {
+  font-weight: 600;
+}
+.fa-btn-edit {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+}
+.fa-wr-date {
+  margin-left: auto;
+  font-size: 11px;
+  color: #9ca3af;
+}
