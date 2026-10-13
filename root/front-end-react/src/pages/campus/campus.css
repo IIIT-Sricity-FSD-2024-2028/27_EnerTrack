@@ -1,0 +1,472 @@
+/*
+ * campus.css — styles for the Campus Visitor pages (Dashboard, Wastage,
+ * Archives).
+ *
+ * Copied from the <style> block in html/enduser/enduser_dashboard.html, plus
+ * the few rules those pages took from css/shared/tech_shared.css. Loaded with
+ * "?inline" into a <style> tag, so it only applies while a campus page is on
+ * screen and never leaks into other people's pages.
+ *
+ * Two original rules were dropped on purpose:
+ *  - The var(--shadow) box-shadows (and the card hover that only added one):
+ *    tech_shared.css sets --shadow to "none", so they were invalid and never
+ *    drew. Leaving them out looks identical.
+ *  - .status-resolved: no status ever maps to it.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+/* ── 1. Page basics (from tech_shared.css) ── */
+body {
+  background: #ededed;
+  color: #111827;
+}
+
+/* Same reset the old pages had, but only inside our page so the shared
+   sidebar and top bar are left alone. */
+.campus-page *,
+.campus-page *::before,
+.campus-page *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Arial,
+    sans-serif;
+}
+
+/* The shared layout already pads its content by 24px; this adds the rest so
+   the page sits where the original did (36px top/bottom, 40px left/right). */
+.campus-page {
+  padding: 12px 16px;
+  --border: #d8dde2;
+  --dark: #111827;
+  --muted: #6b7280;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.page-header {
+  margin-bottom: 28px;
+}
+
+.page-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 6px;
+}
+
+.page-header p {
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 720px;
+  line-height: 1.55;
+}
+
+/* ── 2. Two-column layout: form left, info panel right ── */
+.eu-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .eu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 3. Form card (dark header + white body) ── */
+.report-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.report-card-header {
+  background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+  padding: 24px 28px;
+  color: white;
+}
+
+.report-card-header h2 {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+}
+
+.report-card-header p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.report-card-body {
+  padding: 28px;
+}
+
+/* ── 4. Form fields ── */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--dark);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--dark);
+}
+
+/* Red border on an empty required field */
+.error-highlight {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+/* ── 5. Priority buttons (Low / Medium / High) ── */
+.priority-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.priority-btn {
+  padding: 10px 6px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.18s;
+}
+
+.priority-btn.selected-low {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.priority-btn.selected-medium {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.priority-btn.selected-high {
+  border-color: #ef4444;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+/* ── 6. Submit button ── */
+.btn-submit {
+  width: 100%;
+  background: linear-gradient(135deg, #111827, #374151);
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition:
+    opacity 0.2s,
+    transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-submit:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+/* ── 7. Right panel: info cards, timeline, tips ── */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.info-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.info-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 14px 0;
+  color: var(--dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeline {
+  list-style: none;
+}
+
+.timeline li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 20px;
+  position: relative;
+}
+
+/* The grey line joining one step to the next */
+.timeline li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 28px;
+  width: 2px;
+  height: calc(100% - 28px);
+  background: var(--border);
+}
+
+.tl-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tl-dot.done {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.tl-dot.active {
+  background: #111827;
+  color: white;
+}
+
+.tl-dot.pending {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border: 1.5px dashed #d1d5db;
+}
+
+.tl-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+  color: var(--dark);
+}
+
+.tl-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  color: #374151;
+}
+
+.tip-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #111827;
+  margin-top: 6px;
+}
+
+/* ── 8. "My Reports" list and report cards ── */
+.ticket-section {
+  margin-top: 32px;
+}
+
+.ticket-section h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticket-count {
+  background: #111827;
+  color: white;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.ticket-card {
+  background: white;
+  padding: 18px 20px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.ticket-meta {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+.ticket-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #374151;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+/* ── 9. Coloured pills: priority and status ── */
+.ticket-priority {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.p-Low {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.p-Medium {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.p-High {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.ticket-status {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.status-reported {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-forwarded {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-dispatched {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.status-progress {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-closed {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* ── 10. Empty list message ── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 2px dashed var(--border);
+}
+
+.empty-state p {
+  color: #9ca3af;
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+/* ── 11. Success toast (slides up from bottom-right) ── */
+.eu-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background: #111827;
+  color: white;
+  padding: 14px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 9999;
+}
+
+.eu-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
