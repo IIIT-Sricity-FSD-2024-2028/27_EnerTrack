@@ -1,0 +1,10 @@
+/*
+ * technician-jr.css — the few styles only the Technician Jr pages need.
+ * Everything else comes from ../technician/technician.css.
+ */
+
+/* Reject button: was an inline style="color:var(--red); border-color:var(--red)" */
+.tech-page .reject-btn {
+  color: var(--red);
+  border-color: var(--red);
+}
