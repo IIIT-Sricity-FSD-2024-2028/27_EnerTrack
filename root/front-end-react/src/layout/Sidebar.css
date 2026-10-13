@@ -10,30 +10,50 @@
  * generic .sidebar / .nav rules already in tech_shared.css and friends.
  */
 
+/*
+ * Sidebar.css — styles for the app shell only.
+ */
+
 .app-sidebar {
-  width: 260px;
+  width: 272px;
   flex-shrink: 0;
   height: 100vh;
   overflow-y: auto;
   box-sizing: border-box;
-  padding: 24px 18px;
+  padding: 16px 18px 18px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 
   background: #b8cdb7;
   border-right: 1px solid rgba(28, 46, 46, 0.16);
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
 
-.app-sidebar__brand img {
-  height: 26px;
+.app-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  padding: 6px 4px 14px;
+  margin: 0 -4px 4px;
+  border-bottom: 1px solid rgba(28, 46, 46, 0.14);
+}
+
+.app-sidebar__logo-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.app-sidebar__logo-text {
+  height: 20px;
   width: auto;
   display: block;
 }
 
 .app-sidebar__title {
-  margin: 0;
+  margin: 0 0 4px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -44,25 +64,55 @@
 .app-sidebar__nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  flex: 1;
 }
 
 .app-sidebar__link {
-  display: block;
-  padding: 11px 14px;
-  border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.35;
-  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #374151;
   text-decoration: none;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-sidebar__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.72;
+}
+
+.app-sidebar__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.app-sidebar__label {
+  display: inline-block;
 }
 
 .app-sidebar__link:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.38);
 }
 
 .app-sidebar__link.is-active {
   background: #0f172a;
   color: #ffffff;
 }
+
+.app-sidebar__link.is-active .app-sidebar__icon {
+  opacity: 1;
+  color: #ffffff;
+}
+

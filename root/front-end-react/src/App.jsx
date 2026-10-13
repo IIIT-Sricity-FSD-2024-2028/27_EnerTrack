@@ -8,8 +8,9 @@
  *
  * Every path comes from routes.js. No URL string is ever typed here.
  */
-import { Routes, Route } from "react-router-dom";
-import { PATHS } from "./routes";
+import { Routes, Route, useLocation } from "react-router-dom";
+import { PATHS, NAV, areaForRole } from "./routes";
+import { useAuth } from "./auth/useAuth";
 import Sidebar from "./layout/Sidebar";
 
 import Landing from "./pages/landing/Landing";
@@ -54,14 +55,29 @@ import CampusArchives from "./pages/campus/Archives";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
-  return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      {/* Temporary: the area is hardcoded until DashboardLayout derives it
-          from the signed-in user's role. Sidebar does not care which — that is
-          the point of passing it as a prop. */}
-      <Sidebar area="technician" title="Navigation" />
+  const location = useLocation();
+  const { user } = useAuth();
 
-      <main style={{ flex: 1, padding: "24px" }}>
+  const segment = location.pathname.split("/")[1];
+  const area = NAV[segment]
+    ? segment
+    : user?.role
+      ? areaForRole(user.role) || "sustainability"
+      : "sustainability";
+
+  return (
+    <div style={{ display: "flex", height: "100vh", width: "100%", overflow: "hidden" }}>
+      <Sidebar area={area} title="Navigation" />
+
+      <main
+        style={{
+          flex: 1,
+          height: "100vh",
+          overflowY: "auto",
+          padding: "24px",
+          minWidth: 0,
+        }}
+      >
         <Routes>
           {/* Public */}
           <Route path={PATHS.landing} element={<Landing />} />

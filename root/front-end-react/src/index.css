@@ -26,6 +26,10 @@ body {
   margin: 0;
 }
 
+main {
+  scroll-behavior: smooth;
+}
+
 img {
   max-width: 100%;
 }
