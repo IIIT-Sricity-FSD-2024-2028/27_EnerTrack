@@ -7,6 +7,9 @@
    Only the sign-in page's own measure belongs here.
    ══════════════════════════════════════════════════════════════ */
 
-.card {
+/* Scoped to this page's wrapper. sign_in.css and sign_up.css are both loaded
+   for the whole session, so an unscoped .card here would fight the sign-up
+   card's width. */
+.auth-page.sign-in-page .card {
   width: min(430px, 100%);
 }

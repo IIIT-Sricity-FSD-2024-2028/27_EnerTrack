@@ -1,0 +1,71 @@
+/* Shell around signed-in pages. Prefixed dashboard-layout__ like Sidebar.css. */
+
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.dashboard-layout__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-layout__bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid rgba(28, 46, 46, 0.16);
+  font-size: 14px;
+}
+
+.dashboard-layout__signout {
+  padding: 7px 16px;
+  border: 1px solid rgba(28, 46, 46, 0.3);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dashboard-layout__signout:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* "Acting as" strip above the top bar */
+.dashboard-layout__banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
+  background: #fff4d6;
+  border-bottom: 1px solid #f0d58c;
+  color: #6b4e00;
+  font-size: 14px;
+}
+
+.dashboard-layout__banner button {
+  padding: 6px 14px;
+  border: 1px solid #6b4e00;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b4e00;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dashboard-layout__banner button:hover {
+  background: rgba(107, 78, 0, 0.1);
+}
+
+.dashboard-layout__main {
+  flex: 1;
+  padding: 24px;
+}
