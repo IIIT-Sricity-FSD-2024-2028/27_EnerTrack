@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import api from "../../api/client";
-import "../../styles/sustainability_officer/sust_overview.css";
-import "../../styles/sustainability_officer/sust_shared.css";
+import overviewCss from "../../styles/sustainability_officer/sust_overview.css?inline";
+import sharedCss from "../../styles/sustainability_officer/sust_shared.css?inline";
+import sustLayoutCss from "./sustainability.css?inline";
 
 const DEMO_REPORTS = [
   {
@@ -246,6 +247,9 @@ export default function SustainabilityArchives() {
       className="sustainability-archives-container"
       style={{ width: "100%", maxWidth: "1400px", margin: "0 auto" }}
     >
+      <style>{overviewCss}</style>
+      <style>{sharedCss}</style>
+      <style>{sustLayoutCss}</style>
       {toast && (
         <div
           style={{

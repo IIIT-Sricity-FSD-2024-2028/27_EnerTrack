@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../../api/client";
-import "../../styles/sustainability_officer/sust_monitor.css";
+import monitorCss from "../../styles/sustainability_officer/sust_monitor.css?inline";
+import sustLayoutCss from "./sustainability.css?inline";
 
 const PERIOD_DATA = {
   "30 Days": [
@@ -122,6 +123,8 @@ export default function SustainabilityMonitoring() {
 
   return (
     <div className="sustainability-monitoring-page" style={{ width: "100%" }}>
+      <style>{monitorCss}</style>
+      <style>{sustLayoutCss}</style>
       {toast && (
         <div
           style={{

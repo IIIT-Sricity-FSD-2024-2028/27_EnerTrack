@@ -1,0 +1,28 @@
+/*
+ * sustainability.css — layout fixes for sustainability pages inside DashboardLayout.
+ * Overrides body overflow locks from legacy sust_*.css while the page is mounted.
+ */
+
+html,
+body {
+  height: auto !important;
+  overflow-y: auto !important;
+}
+
+.sustainability-overview-page,
+.sustainability-monitoring-page,
+.sustainability-report-page,
+.sustainability-initiatives-page,
+.sustainability-archives-container {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sustainability-overview-page h1,
+.sustainability-monitoring-page h1,
+.sustainability-report-page h1,
+.sustainability-initiatives-page h1,
+.sustainability-archives-container h1 {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  line-height: normal;
+}

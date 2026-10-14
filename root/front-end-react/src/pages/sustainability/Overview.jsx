@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
-import "../../styles/sustainability_officer/sust_overview.css";
+import overviewCss from "../../styles/sustainability_officer/sust_overview.css?inline";
+import sustLayoutCss from "./sustainability.css?inline";
 
 export default function SustainabilityOverview() {
   const { user } = useAuth();
@@ -76,6 +77,8 @@ export default function SustainabilityOverview() {
 
   return (
     <div className="sustainability-overview-page" style={{ width: "100%" }}>
+      <style>{overviewCss}</style>
+      <style>{sustLayoutCss}</style>
       {/* HEADER */}
       <header
         className="page-header"

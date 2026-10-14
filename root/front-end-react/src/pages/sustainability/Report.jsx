@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
-import "../../styles/sustainability_officer/sust_report.css";
+import reportCss from "../../styles/sustainability_officer/sust_report.css?inline";
+import sustLayoutCss from "./sustainability.css?inline";
 
 const YEAR_OPTIONS = ["2026", "2025", "2024"];
 const QUARTER_OPTIONS = ["Q1", "Q2", "Q3", "Q4"];
@@ -141,6 +142,8 @@ export default function SustainabilityReport() {
 
   return (
     <div className="sustainability-report-page" style={{ width: "100%" }}>
+      <style>{reportCss}</style>
+      <style>{sustLayoutCss}</style>
       {toast && (
         <div
           style={{

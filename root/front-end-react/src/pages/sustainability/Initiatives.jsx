@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
-import "../../styles/sustainability_officer/sust_initiatives.css";
+import initiativesCss from "../../styles/sustainability_officer/sust_initiatives.css?inline";
+import sustLayoutCss from "./sustainability.css?inline";
 
 const STATE_ORDER = ["proposed", "approved", "in-progress", "completed"];
 
@@ -337,6 +338,8 @@ export default function SustainabilityInitiatives() {
 
   return (
     <div className="sustainability-initiatives-page" style={{ width: "100%" }}>
+      <style>{initiativesCss}</style>
+      <style>{sustLayoutCss}</style>
       {toast && (
         <div
           style={{
