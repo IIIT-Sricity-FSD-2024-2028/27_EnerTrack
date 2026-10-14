@@ -6,6 +6,7 @@
  * "render whichever child route matched here". Because this component stays
  * mounted while the child changes, the sidebar does not remount on navigation.
  */
+import { startTransition } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { PATHS, areaForRole, homeForRole } from "../routes";
@@ -24,8 +25,13 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
 
   function handleSignOut() {
-    logout();
+    // The router applies navigation as a "transition" (a deferred update).
+    // If the session were cleared as an ordinary update, React would apply it
+    // first: RequireRole would see "signed out" while the URL is still the
+    // dashboard, and redirect to sign-in. Putting logout() in a transition
+    // too makes React apply both together: new URL and no session at once.
     navigate(PATHS.landing);
+    startTransition(() => logout());
   }
 
   // Hand the session back to the Super Admin who was "acting as" this user,
