@@ -13,9 +13,10 @@ const NAV_LINKS = [
 ];
 
 // `user` is null when signed out. `onSignOut` is passed on to the profile menu.
-export default function Navbar({ user, onSignOut }) {
+// `scrolled` is true once the page has been scrolled; it adds the shadow.
+export default function Navbar({ user, onSignOut, scrolled }) {
   return (
-    <nav className="navbar">
+    <nav className={scrolled ? "navbar scrolled" : "navbar"}>
       <div className="nav-inner">
         <div className="left-nav">
           <a href="#hero" className="logo">
