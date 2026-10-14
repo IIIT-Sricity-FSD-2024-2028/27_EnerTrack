@@ -569,3 +569,39 @@ body {
   margin-top: 0;
   line-height: normal;
 }
+
+/* ── 13. Popups made with the technician Modal (Infrastructure page) ──
+   InfrastructureManager is a teammate's component. Its popup has a bare
+   <h3> title (no .modal-header wrapper) and buttons called btn-light and
+   btn-red. These rules make that popup look like the original admin one:
+   a title bar with a divider, an outline Cancel and a solid red Delete. */
+.admin-page .modal-card > h3 {
+  margin: 0;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--line);
+  font-size: 19px;
+  font-weight: 700;
+  color: inherit;
+}
+
+.admin-page .modal-actions .btn {
+  min-height: 38px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-page .modal-actions .btn:hover {
+  opacity: 1;
+}
+
+.admin-page .modal-actions .btn-light {
+  color: #344054;
+  background: #ffffff;
+  border-color: var(--line-strong);
+}
+
+.admin-page .modal-actions .btn-red {
+  color: #ffffff;
+  background: var(--red);
+}
