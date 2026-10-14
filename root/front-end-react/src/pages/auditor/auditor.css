@@ -1,0 +1,16 @@
+/*
+ * auditor.css — small additions for the auditor pages only.
+ *
+ * tech_shared.css gives table cells no left/right padding, so a
+ * right-aligned number column ran straight into the column after it
+ * ("PAYBACKBUILDINGS"). This adds a gap between columns.
+ */
+.auditor-table th,
+.auditor-table td {
+  padding-right: 16px;
+}
+
+.auditor-table th:last-child,
+.auditor-table td:last-child {
+  padding-right: 0;
+}
