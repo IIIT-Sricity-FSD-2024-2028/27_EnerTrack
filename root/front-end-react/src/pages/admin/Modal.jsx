@@ -17,7 +17,7 @@
  *
  * Replaces openModal() in js/system_admin/utils/ui.js.
  */
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 export default function Modal({
   title,
@@ -28,16 +28,6 @@ export default function Modal({
   onClose,
   children,
 }) {
-  // A ref gives us the real popup element on the page, so we can move the
-  // keyboard focus into it.
-  const cardRef = useRef(null);
-
-  // When the popup opens: put the cursor in its first field (or on its first
-  // button), like the original did.
-  useEffect(() => {
-    cardRef.current.querySelector("input, select, button")?.focus();
-  }, []);
-
   // While the popup is open, the Escape key closes it. The cleanup function
   // removes the listener again when the popup closes.
   useEffect(() => {
@@ -61,7 +51,6 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modalTitle"
-        ref={cardRef}
       >
         <div className="modal-header">
           <h2 id="modalTitle">{title}</h2>
