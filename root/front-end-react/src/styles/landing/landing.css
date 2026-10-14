@@ -547,6 +547,39 @@
     border-color: var(--line);
   }
 
+  /* Signed-in states. The original script set these as inline styles; they
+     are classes now so the markup stays plain. */
+  .role-card--open {
+    border: 2px solid var(--primary-green);
+    cursor: pointer;
+  }
+
+  .role-card__badge {
+    margin-top: auto;
+    padding-top: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-green);
+  }
+
+  .role-card-locked {
+    opacity: 0.5;
+    filter: grayscale(0.6);
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .role-card__lock {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #999;
+  }
+
   /* ── Engagement lifecycle ────────────────────────────────────── */
   .stage-grid {
     display: grid;

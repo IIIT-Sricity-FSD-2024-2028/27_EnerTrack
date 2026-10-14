@@ -1,7 +1,12 @@
 import { Link } from "react-router-dom";
-import { PATHS } from "../../routes";
+import { PATHS, homeForRole } from "../../routes";
 
-export default function Hero() {
+export default function Hero({ user }) {
+  // homeForRole falls back to the landing page for a role with no dashboard,
+  // so only offer the button when it leads somewhere else.
+  const dashboard = user ? homeForRole(user.role) : null;
+  const hasDashboard = dashboard && dashboard !== PATHS.landing;
+
   return (
     <header className="hero" id="hero">
       <div className="hero-content">
@@ -23,9 +28,18 @@ export default function Hero() {
           You pay a subscription for the service. Every rupee you save is yours.
         </p>
         <div className="hero-cta">
-          <Link to={PATHS.registerOrganisation} className="btn-primary">
-            Request an audit
-          </Link>
+          {/* A signed-in user already has an organisation, so "Request an
+              audit" would only invite them to create a second one. */}
+          {!user && (
+            <Link to={PATHS.registerOrganisation} className="btn-primary">
+              Request an audit
+            </Link>
+          )}
+          {hasDashboard && (
+            <Link to={dashboard} className="btn-primary">
+              Go to your dashboard
+            </Link>
+          )}
           <a href="#engagement" className="btn-secondary">
             See how it works
           </a>

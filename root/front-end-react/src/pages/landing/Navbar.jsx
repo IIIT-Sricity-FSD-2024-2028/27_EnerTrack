@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { PATHS } from "../../routes";
+import ProfileMenu from "./ProfileMenu";
 
 // The page links are plain data. The nav renders them with .map(), so adding
 // a link means adding one line here instead of another <a> in the markup.
@@ -11,7 +12,8 @@ const NAV_LINKS = [
   { label: "Roles", href: "#roles" },
 ];
 
-export default function Navbar() {
+// `user` is null when signed out. `onSignOut` is passed on to the profile menu.
+export default function Navbar({ user, onSignOut }) {
   return (
     <nav className="navbar">
       <div className="nav-inner">
@@ -29,9 +31,13 @@ export default function Navbar() {
           </div>
         </div>
         <div className="right-nav">
-          <Link to={PATHS.signUp} className="btn-primary">
-            Sign Up
-          </Link>
+          {user ? (
+            <ProfileMenu user={user} onSignOut={onSignOut} />
+          ) : (
+            <Link to={PATHS.signUp} className="btn-primary">
+              Sign Up
+            </Link>
+          )}
         </div>
       </div>
     </nav>
