@@ -128,12 +128,22 @@ export function areaForRole(role) {
  * Labels taken verbatim from the old HTML sidebars.
  */
 export const NAV = {
+  // `roles` is optional: a link with no `roles` is shown to everyone in the
+  // area. Sidebar hides links whose `roles` do not include the signed-in role.
   admin: [
     { label: "User Management", to: PATHS.admin.users },
-    { label: "Organisations", to: PATHS.admin.organizations },
-    { label: "Pricing Plans", to: PATHS.admin.plans },
-    { label: "Revenue", to: PATHS.admin.revenue },
-    { label: "EnerTrack Proposal", to: PATHS.admin.proposals },
+    {
+      label: "Organisations",
+      to: PATHS.admin.organizations,
+      roles: ["Super Admin"],
+    },
+    { label: "Pricing Plans", to: PATHS.admin.plans, roles: ["Super Admin"] },
+    { label: "Revenue", to: PATHS.admin.revenue, roles: ["Super Admin"] },
+    {
+      label: "EnerTrack Proposal",
+      to: PATHS.admin.proposals,
+      roles: ["Organization Admin"],
+    },
     { label: "Infrastructure", to: PATHS.admin.infrastructure },
   ],
   finance: [

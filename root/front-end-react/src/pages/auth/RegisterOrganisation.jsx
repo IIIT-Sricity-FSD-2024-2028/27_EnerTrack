@@ -108,7 +108,7 @@ export default function RegisterOrganisation() {
   }
 
   return (
-    <>
+    <div className="auth-page sign-up-page">
       <div className="background">
         <img src="/assets/hero.png" alt="" aria-hidden="true" />
       </div>
@@ -229,6 +229,6 @@ export default function RegisterOrganisation() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

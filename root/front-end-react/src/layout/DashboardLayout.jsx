@@ -8,12 +8,19 @@
  */
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
-import { PATHS, areaForRole } from "../routes";
+import { PATHS, areaForRole, homeForRole } from "../routes";
 import Sidebar from "./Sidebar";
 import "./DashboardLayout.css";
 
 export default function DashboardLayout() {
-  const { user, role, logout } = useAuth();
+  const {
+    user,
+    role,
+    logout,
+    impersonator,
+    isImpersonating,
+    stopImpersonating,
+  } = useAuth();
   const navigate = useNavigate();
 
   function handleSignOut() {
@@ -21,17 +28,41 @@ export default function DashboardLayout() {
     navigate(PATHS.landing);
   }
 
+  // Hand the session back to the Super Admin who was "acting as" this user,
+  // then go to that admin's own home page.
+  function handleReturnToAdmin() {
+    const admin = stopImpersonating();
+    if (admin) navigate(homeForRole(admin.role));
+  }
+
   return (
     <div className="dashboard-layout">
       {/* Sidebar only needs to be told WHICH links to show. */}
-      <Sidebar area={areaForRole(role)} title="Navigation" />
+      <Sidebar area={areaForRole(role)} role={role} title="Navigation" />
 
       <div className="dashboard-layout__body">
+        {/* Only drawn while a Super Admin is acting as someone else. */}
+        {isImpersonating && (
+          <div className="dashboard-layout__banner">
+            <span>
+              Viewing as {user?.name} ({role}) — signed in as{" "}
+              {impersonator?.name}
+            </span>
+            <button type="button" onClick={handleReturnToAdmin}>
+              Return to admin
+            </button>
+          </div>
+        )}
+
         <header className="dashboard-layout__bar">
           <span>
             {user?.name} · {role}
           </span>
-          <button type="button" onClick={handleSignOut}>
+          <button
+            type="button"
+            className="dashboard-layout__signout"
+            onClick={handleSignOut}
+          >
             Sign Out
           </button>
         </header>
