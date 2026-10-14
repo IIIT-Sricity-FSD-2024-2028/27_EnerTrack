@@ -15,9 +15,12 @@ import { NavLink } from "react-router-dom";
 import { NAV } from "../routes";
 import "./Sidebar.css";
 
-export default function Sidebar({ area, title }) {
-  // An unknown area gives an empty list rather than crashing on undefined.map
-  const items = NAV[area] ?? [];
+export default function Sidebar({ area, role, title }) {
+  // An unknown area gives an empty list rather than crashing on undefined.map.
+  // A link with a `roles` list is only kept when the signed-in role is in it.
+  const items = (NAV[area] ?? []).filter(
+    (item) => !item.roles || item.roles.includes(role),
+  );
 
   return (
     <aside className="app-sidebar">

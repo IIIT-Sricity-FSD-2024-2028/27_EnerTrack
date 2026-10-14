@@ -127,7 +127,7 @@ export default function SignUp() {
   );
 
   return (
-    <>
+    <div className="auth-page sign-up-page">
       <div className="background">
         <img src="/assets/hero.png" alt="" aria-hidden="true" />
       </div>
@@ -267,6 +267,6 @@ export default function SignUp() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

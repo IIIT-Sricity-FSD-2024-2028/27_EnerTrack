@@ -41,7 +41,7 @@ export default function SignIn() {
   }
 
   return (
-    <>
+    <div className="auth-page sign-in-page">
       <div className="background">
         <img src="/assets/hero.png" alt="" aria-hidden="true" />
       </div>
@@ -109,6 +109,6 @@ export default function SignIn() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
