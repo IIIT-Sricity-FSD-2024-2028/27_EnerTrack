@@ -14,6 +14,7 @@ import api from "../../api/client";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
 import { addToast, formatCurrency, formatLabel } from "./adminHelpers";
+import { PATTERNS, validators } from "../auth/validators";
 
 const STATUSES = ["prospect", "audited", "active", "churned"];
 
@@ -236,6 +237,7 @@ function OrgFormModal({ org, onSave, onClose }) {
     floor_area_sqm: org?.floor_area_sqm ?? "",
     tariff_rate: org?.tariff_rate ?? "",
     contract_start: org?.contract_start || "",
+    email_domain: org?.email_domain || "",
   });
   const [errors, setErrors] = useState({});
 
@@ -250,17 +252,31 @@ function OrgFormModal({ org, onSave, onClose }) {
     const area = String(form.floor_area_sqm).trim();
     const tariff = String(form.tariff_rate).trim();
 
+    const location = form.location.trim();
+    const domain = form.email_domain.trim().toLowerCase();
+
+    // The same patterns the backend enforces (see auth/validators.js)
     const newErrors = {};
-    if (name.length < 3) {
-      newErrors.name = "Enter an organisation name (min 3 chars).";
-    }
+    const nameError = validators.orgName(name);
+    if (nameError) newErrors.name = nameError;
     if (!type) newErrors.type = "Enter a type, for example University.";
-    if (area !== "" && Number(area) < 0) {
-      newErrors.floor_area_sqm = "Enter a positive number.";
+    else if (!PATTERNS.label.test(type))
+      newErrors.type = "Use 2-60 characters: letters, spaces and & / -";
+    if (location !== "" && !PATTERNS.location.test(location)) {
+      newErrors.location =
+        "Use 2-120 characters: letters, numbers, spaces and . , ' / ( ) -";
     }
-    if (tariff !== "" && Number(tariff) < 0) {
-      newErrors.tariff_rate = "Enter a positive number.";
+    if (area !== "" && !(PATTERNS.area.test(area) && Number(area) >= 1)) {
+      newErrors.floor_area_sqm = "Enter a positive number (up to 2 decimals).";
     }
+    if (
+      tariff !== "" &&
+      !(PATTERNS.area.test(tariff) && Number(tariff) <= 1000)
+    ) {
+      newErrors.tariff_rate = "Enter a number from 0 to 1000 (up to 2 decimals).";
+    }
+    const domainError = validators.emailDomain(domain);
+    if (domainError) newErrors.email_domain = domainError;
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors); // the popup stays open, showing what is wrong
       return;
@@ -269,7 +285,8 @@ function OrgFormModal({ org, onSave, onClose }) {
     onSave({
       name: name,
       type: type,
-      location: form.location.trim() || null,
+      location: location || null,
+      email_domain: domain || null,
       // A new organisation always starts as a prospect: its status then
       // moves on its own as EnerTrack's proposal goes out and is accepted.
       status: isEdit ? form.status : "prospect",
@@ -368,6 +385,22 @@ function OrgFormModal({ org, onSave, onClose }) {
             onChange={handleChange}
           />
           <span className="field-error">{errors.tariff_rate}</span>
+        </div>
+
+        <div className="form-field full">
+          <label htmlFor="orgDomain">Email domain (optional)</label>
+          <input
+            id="orgDomain"
+            name="email_domain"
+            placeholder="example.edu"
+            value={form.email_domain}
+            onChange={handleChange}
+          />
+          <span className="field-error">{errors.email_domain}</span>
+          <p className="muted-cell" style={{ marginTop: "6px" }}>
+            When set, every account the organisation's administrator creates
+            must use this domain.
+          </p>
         </div>
 
         <div className="form-field">

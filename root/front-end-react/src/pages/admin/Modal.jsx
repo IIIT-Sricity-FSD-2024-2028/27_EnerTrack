@@ -11,6 +11,9 @@
  *   confirmLabel  text of the dark button (default "Save")
  *   cancelLabel   text of the outline button (default "Cancel")
  *   danger        true -> the confirm button is red (deleting, declining)
+ *   confirmDisabled  true -> the confirm button is greyed out and inert
+ *   hideConfirm      true -> only the cancel button shows (for result popups)
+ *   wide          true -> a wider card, for popups that hold a table
  *   onConfirm     called by the confirm button
  *   onClose       called by Cancel, the Escape key, or a click on the
  *                 dark background
@@ -24,6 +27,9 @@ export default function Modal({
   confirmLabel = "Save",
   cancelLabel = "Cancel",
   danger = false,
+  confirmDisabled = false,
+  hideConfirm = false,
+  wide = false,
   onConfirm,
   onClose,
   children,
@@ -48,6 +54,7 @@ export default function Modal({
     >
       <section
         className="modal-card"
+        style={wide ? { width: "min(900px, 100%)" } : undefined}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modalTitle"
@@ -62,13 +69,16 @@ export default function Modal({
           <button className="btn-outline" type="button" onClick={onClose}>
             {cancelLabel}
           </button>
-          <button
-            className={danger ? "btn-dark btn-danger-fill" : "btn-dark"}
-            type="button"
-            onClick={onConfirm}
-          >
-            {confirmLabel}
-          </button>
+          {!hideConfirm && (
+            <button
+              className={danger ? "btn-dark btn-danger-fill" : "btn-dark"}
+              type="button"
+              disabled={confirmDisabled}
+              onClick={onConfirm}
+            >
+              {confirmLabel}
+            </button>
+          )}
         </div>
       </section>
     </div>

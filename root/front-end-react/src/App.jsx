@@ -16,15 +16,14 @@
  *
  * Every path comes from routes.js. No URL string is ever typed here.
  */
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 import { PATHS } from "./routes";
 import RequireRole from "./layout/RequireRole";
 import DashboardLayout from "./layout/DashboardLayout";
 
 import Landing from "./pages/landing/Landing";
-import SignIn from "./pages/auth/SignIn";
-import SignUp from "./pages/auth/SignUp";
-import RegisterOrganisation from "./pages/auth/RegisterOrganisation";
+import AuthPage from "./pages/auth/AuthPage";
+import ChangePassword from "./pages/auth/ChangePassword";
 
 import AdminUsers from "./pages/admin/Users";
 import AdminOrganizations from "./pages/admin/Organizations";
@@ -67,11 +66,20 @@ export default function App() {
     <Routes>
       {/* Public: no sidebar, no guard */}
       <Route path={PATHS.landing} element={<Landing />} />
-      <Route path={PATHS.signIn} element={<SignIn />} />
-      <Route path={PATHS.signUp} element={<SignUp />} />
+      <Route path={PATHS.signIn} element={<AuthPage />} />
+      <Route path={PATHS.changePassword} element={<ChangePassword />} />
+      {/* The old sign-in / sign-up / register pages are one page now */}
       <Route
-        path={PATHS.registerOrganisation}
-        element={<RegisterOrganisation />}
+        path={PATHS.legacy.signIn}
+        element={<Navigate to={PATHS.signIn} replace />}
+      />
+      <Route
+        path={PATHS.legacy.signUp}
+        element={<Navigate to={PATHS.signIn} replace />}
+      />
+      <Route
+        path={PATHS.legacy.registerOrganisation}
+        element={<Navigate to={PATHS.registerOrganisation} replace />}
       />
 
       {/* Signed-in pages. The inner element is the same DashboardLayout for

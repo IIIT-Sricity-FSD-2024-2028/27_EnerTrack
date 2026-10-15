@@ -45,21 +45,10 @@ export function AuthProvider({ children }) {
     readSession(IMPERSONATOR_KEY),
   );
 
-  const login = useCallback(async (email, password) => {
-    // Email is lower-cased here rather than in the form, so every caller
-    // gets the same normalisation — the old sign_in.js did it inline and
-    // sign_up.js did not, which is why mixed-case logins behaved oddly.
-    const account = await api.post("/users/login", {
-      email: email.trim().toLowerCase(),
-      password,
-    });
-    localStorage.setItem(USER_KEY, JSON.stringify(account));
-    setUser(account);
-    return account;
-  }, []);
-
-  /** Adopts a session the caller already obtained — used by the sign-up flows,
-   *  which create a user and are handed a session back in the same response. */
+  /** Starts a session from an account the caller already obtained. The auth
+   *  page calls the API itself (see pages/auth/authFlow.js) and hands the
+   *  account here, as do the forced password change and the admin's own
+   *  profile edits. */
   const adoptSession = useCallback((account) => {
     localStorage.setItem(USER_KEY, JSON.stringify(account));
     setUser(account);
@@ -114,7 +103,6 @@ export function AuthProvider({ children }) {
       isImpersonating: Boolean(impersonator),
       isSignedIn: Boolean(user),
       role: user?.role ?? null,
-      login,
       logout,
       adoptSession,
       impersonate,
@@ -123,7 +111,6 @@ export function AuthProvider({ children }) {
     [
       user,
       impersonator,
-      login,
       logout,
       adoptSession,
       impersonate,

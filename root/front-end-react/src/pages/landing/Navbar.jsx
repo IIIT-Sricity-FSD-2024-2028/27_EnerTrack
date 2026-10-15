@@ -35,9 +35,14 @@ export default function Navbar({ user, onSignOut, scrolled }) {
           {user ? (
             <ProfileMenu user={user} onSignOut={onSignOut} />
           ) : (
-            <Link to={PATHS.signUp} className="btn-primary">
-              Sign Up
-            </Link>
+            <>
+              <Link to={PATHS.signIn} className="btn-secondary">
+                Sign In
+              </Link>
+              <Link to={PATHS.registerOrganisation} className="btn-primary">
+                Register organisation
+              </Link>
+            </>
           )}
         </div>
       </div>
