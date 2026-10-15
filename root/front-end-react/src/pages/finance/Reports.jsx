@@ -14,7 +14,6 @@ import ToastProvider from "./components/ToastProvider";
 import Modal from "./components/Modal";
 import { useToast } from "./components/toastContext";
 import {
-  deleteRecord,
   loadDepartmentsAndBuildings,
   loadReports,
   normalizeReport,
@@ -142,7 +141,7 @@ function ReportsContent() {
 
   async function handleDelete(report) {
     const ok = await callApi(
-      () => deleteRecord("financialReports", "/financial-reports", report.id, user.role),
+      () => api.delete(`/financial-reports/${report.id}`),
       "Failed to delete report",
     );
     setModal(null);

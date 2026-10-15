@@ -39,15 +39,23 @@ export default function WastageReviewQueue() {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  /** Saves the changes and swaps the updated report into state. */
+  /**
+   * Saves the changes and swaps the updated report into state.
+   * Returns null (after an error toast) if the server refuses.
+   */
   async function saveReport(report, changes) {
-    const updated = await updateWastageReport(report, changes, user.role);
-    setReports((list) => list.map((r) => (r.id === updated.id ? updated : r)));
-    return updated;
+    try {
+      const updated = await updateWastageReport(report, changes);
+      setReports((list) => list.map((r) => (r.id === updated.id ? updated : r)));
+      return updated;
+    } catch (error) {
+      showToast("Could not save the report: " + error.message, "error");
+      return null;
+    }
   }
 
   async function handleSaveCostImpact(costImpact) {
-    await saveReport(editing, { status: "Cost Impact Added", costImpact });
+    if (!(await saveReport(editing, { status: "Cost Impact Added", costImpact }))) return;
     showToast("Cost impact saved. Review and return to SO when ready.", "success");
     notifyOnStateChange({ id: editing.id }, "cost_added", "Finance Analyst");
     setEditing(null);
@@ -58,7 +66,8 @@ export default function WastageReviewQueue() {
       showToast("Please add cost impact figures before returning.", "warning");
       return;
     }
-    await saveReport(report, { status: "Returned to SO", returnedAt: new Date().toISOString() });
+    const saved = await saveReport(report, { status: "Returned to SO", returnedAt: new Date().toISOString() });
+    if (!saved) return;
     showToast("Report sent back to Sustainability Officer with cost figures.", "success");
     notifyOnStateChange(report, "returned_to_so", "Finance Analyst");
   }

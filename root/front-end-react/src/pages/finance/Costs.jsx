@@ -17,7 +17,6 @@ import CostBreakdown from "./costs/CostBreakdown";
 import CostFormModal from "./costs/CostFormModal";
 import CostViewModal from "./costs/CostViewModal";
 import {
-  deleteRecord,
   loadDepartmentsAndBuildings,
   loadEnergyCosts,
   normalizeCost,
@@ -120,7 +119,7 @@ function CostsContent() {
     setModal(null);
     if (!offline) {
       try {
-        await deleteRecord("energyCosts", "/energy-costs", record.id, user.role);
+        await api.delete(`/energy-costs/${record.id}`);
       } catch (error) {
         showToast("Failed to delete cost record: " + error.message, "error");
         return;

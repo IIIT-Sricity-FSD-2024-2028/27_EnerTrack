@@ -81,7 +81,7 @@ export class FinancialReportsController {
   @ApiResponse({ status: 404, description: "Financial report with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Financial Analyst")
   remove(@Param("id") id: string) {
     return this.financialReportsService.remove(id);
   }

@@ -113,7 +113,7 @@ export class WastageReportsController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "Organization Admin")
+  @Roles("Sustainability Officer", "Organization Admin", "Financial Analyst")
   update(@Param("id") id: string, @Body() updateDto: UpdateWastageReportDto) {
     return this.wastageReportsService.update(id, updateDto);
   }
