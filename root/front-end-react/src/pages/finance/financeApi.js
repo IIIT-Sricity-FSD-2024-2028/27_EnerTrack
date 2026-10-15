@@ -42,45 +42,6 @@ export function saveLocalFinance(key, rows) {
   universalDB.save();
 }
 
-/* ── DELETING ─────────────────────────────────────── */
-
-/*
- * The backend only lets an Organization Admin DELETE energy costs, financial
- * reports and invoices. For any other role (the Financial Analyst) we do not
- * send a request the server will refuse. Instead the deleted record's id is
- * remembered in localStorage and the loaders below leave it out of the list.
- * Note: the record still exists on the server for other users.
- */
-const DELETED_KEY = "enertrack_finance_deleted";
-
-function readDeletedIds() {
-  try {
-    return JSON.parse(localStorage.getItem(DELETED_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-/** Drops the rows whose id was deleted locally. `kind` is e.g. "invoices". */
-function withoutDeleted(kind, rows, idField) {
-  const deleted = readDeletedIds()[kind] || [];
-  return rows.filter((row) => !deleted.includes(row[idField] || row.id));
-}
-
-/**
- * Deletes one record. Organization Admin → real DELETE on the server.
- * Anyone else → hidden locally (see above). Throws if the real DELETE fails.
- */
-export async function deleteRecord(kind, path, id, role) {
-  if (role === "Organization Admin") {
-    await api.delete(`${path}/${id}`);
-    return;
-  }
-  const deleted = readDeletedIds();
-  deleted[kind] = [...(deleted[kind] || []), id];
-  localStorage.setItem(DELETED_KEY, JSON.stringify(deleted));
-}
-
 /* ── DEPARTMENTS & BUILDINGS ──────────────────────── */
 
 // The local demo data uses short ids ("dept-001") but the backend expects
@@ -163,8 +124,7 @@ export async function loadEnergyCosts() {
   // id → name lookup, so a record without a stored label still shows a name
   const names = {};
   [...places.departments, ...places.buildings].forEach((p) => (names[p.id] = p.name));
-  const visible = withoutDeleted("energyCosts", rows, "energy_cost_id");
-  return { costs: visible.map((r) => normalizeCost(r, names)), offline };
+  return { costs: rows.map((r) => normalizeCost(r, names)), offline };
 }
 
 /* ── FINANCIAL REPORTS ────────────────────────────── */
@@ -208,8 +168,7 @@ export async function loadReports() {
     "/financial-reports",
     universalDB.data.finance.financialReports,
   );
-  const visible = withoutDeleted("financialReports", rows, "financial_report_id");
-  return { reports: visible.map(normalizeReport), offline };
+  return { reports: rows.map(normalizeReport), offline };
 }
 
 /* ── INVOICES ─────────────────────────────────────── */
@@ -236,18 +195,15 @@ export function normalizeInvoice(inv) {
 
 export async function loadInvoices() {
   const { rows, offline } = await getList("/invoices", universalDB.data.finance.invoices);
-  const visible = withoutDeleted("invoices", rows, "invoice_id");
-  return { invoices: visible.map(normalizeInvoice), offline };
+  return { invoices: rows.map(normalizeInvoice), offline };
 }
 
 /* ── WASTAGE REPORTS (Sustainability workflow) ────── */
 
 /*
- * The backend only lets a Sustainability Officer or Organization Admin PATCH
- * a wastage report. The original page therefore fell back to saving the
- * Financial Analyst's changes (cost impact, comments, "returned") in
- * localStorage. We keep that behaviour: local changes live in
- * universalDB.data.workflow.wastageReports and are laid over the API rows.
+ * The backend is the source of truth for wastage reports. Local copies in
+ * universalDB.data.workflow.wastageReports are only used when the backend
+ * cannot be reached (offline demo mode).
  */
 function localWastageReports() {
   return universalDB.data.workflow.wastageReports || [];
@@ -276,46 +232,33 @@ export function normalizeWastageReport(r, user) {
 }
 
 export async function loadWastageReports(user) {
-  const { rows } = await getList("/wastage-reports", []);
-  const reports = rows.map((r) => normalizeWastageReport(r, user));
-
-  // Lay the locally saved Financial Analyst changes over the API rows.
-  const local = localWastageReports();
-  const merged = reports.map((r) => {
-    const saved = local.find((l) => l.id === r.id);
-    return saved ? { ...r, ...saved } : r;
-  });
-  // Reports that only exist locally (backend offline) are kept too.
-  local.forEach((l) => {
-    if (!merged.some((r) => r.id === l.id)) merged.push(normalizeWastageReport(l, user));
-  });
-  return merged;
+  // Server rows when the backend is up; the local copies only when offline.
+  const { rows } = await getList("/wastage-reports", localWastageReports());
+  return rows.map((r) => normalizeWastageReport(r, user));
 }
 
 /**
  * Saves changes to one wastage report. `changes` holds the new status and
  * the fields that live inside `details` (costImpact, comments, returnedAt).
+ * Throws if the server refuses, so the page can show an error.
  */
-export async function updateWastageReport(report, changes, role) {
-  // Only these roles may PATCH a wastage report on the backend, so a
-  // Financial Analyst's change is saved locally without a doomed request.
-  if (role === "Sustainability Officer" || role === "Organization Admin") {
-    const { status, ...detailChanges } = changes;
-    try {
-      await api.patch(`/wastage-reports/${report.id}`, {
-        status: status || report.status,
-        details: { ...report.details, ...detailChanges },
-      });
-    } catch (error) {
-      console.warn("[Finance] Wastage update failed, saving locally.", error.message);
-    }
-  }
+export async function updateWastageReport(report, changes) {
+  const { status, ...detailChanges } = changes;
+  // The backend replaces `details` with what we send, so send all of it.
+  const details = { ...report.details, ...detailChanges };
+  const updated = { ...report, ...changes, details };
 
-  // Always keep the local copy as well — it is what the Archives page and
-  // the overlay above read when the backend refuses the update.
-  const updated = { ...report, ...changes };
-  const others = localWastageReports().filter((r) => r.id !== report.id);
-  universalDB.data.workflow.wastageReports = [...others, updated];
-  universalDB.save();
+  try {
+    await api.patch(`/wastage-reports/${report.id}`, {
+      status: status || report.status,
+      details,
+    });
+  } catch (error) {
+    if (!isNetworkError(error)) throw error;
+    // Backend not running → keep the change locally (offline demo mode).
+    const others = localWastageReports().filter((r) => r.id !== report.id);
+    universalDB.data.workflow.wastageReports = [...others, updated];
+    universalDB.save();
+  }
   return updated;
 }
