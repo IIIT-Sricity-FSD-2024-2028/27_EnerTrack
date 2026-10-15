@@ -48,26 +48,6 @@ export const PLATFORM_SIDE_ROLES: string[] = [
   // which made the tenant boundary depend on seed data rather than on the role.
 ];
 
-/**
- * The only roles a visitor may give themselves through public sign-up.
- *
- * An allowlist rather than "anything not in PLATFORM_SIDE_ROLES". A denylist
- * silently opens a hole whenever a role leaves PLATFORM_SIDE_ROLES for an
- * unrelated reason, which is exactly what happened when Organization Admin
- * was removed above. Anything not named here is refused, so a role added to
- * the enum later is safe by default.
- */
-export const SELF_REGISTERABLE_ROLES: string[] = [
-  UserRole.CAMPUS_VISITOR,
-  UserRole.FINANCIAL_ANALYST,
-  UserRole.TECHNICIAN,
-  UserRole.TECHNICIAN_ADMINISTRATOR,
-  UserRole.SUSTAINABILITY_OFFICER,
-  UserRole.FACILITY_MANAGER,
-  UserRole.ECONOMIC_BUYER,
-  UserRole.DEPARTMENT_HEAD,
-];
-
 export enum OrganizationStatus {
   PROSPECT = "prospect",
   AUDITED = "audited",
@@ -172,6 +152,8 @@ export interface Organization {
   floor_area_sqm: number | null;
   tariff_rate: number | null;
   contract_start: string | null;
+  /** Mail domain of this organisation's people (e.g. iiits.in). When set, every account created for the organisation must use it. */
+  email_domain?: string | null;
 }
 
 export interface User {
@@ -184,6 +166,8 @@ export interface User {
   password: string;
   role: UserRole;
   specialization: string | null;
+  /** True for accounts an administrator provisioned: the first login must replace the issued password. */
+  must_change_password?: boolean;
 }
 export interface Campus {
   campus_id: string;
@@ -461,8 +445,7 @@ export enum InvoiceLineType {
  *
  * The only entity in the system with NO organization_id. It is a global
  * catalogue, identical for every tenant, so scopeToTenant() must never be
- * applied to it — the same exception already made for
- * GET /api/organizations/public.
+ * applied to it.
  *
  * Both limits below are real, which is what makes the tiers genuinely
  * different rather than a feature list that gates nothing:
@@ -750,6 +733,7 @@ export class DatabaseService {
       floor_area_sqm: 42000,
       tariff_rate: 8.5,
       contract_start: "2025-01-01",
+      email_domain: null,
     },
     {
       organization_id: "org-002",
@@ -760,6 +744,7 @@ export class DatabaseService {
       floor_area_sqm: 68000,
       tariff_rate: 9.2,
       contract_start: "2025-06-01",
+      email_domain: null,
     },
     {
       organization_id: "org-003",
@@ -770,6 +755,7 @@ export class DatabaseService {
       floor_area_sqm: 31000,
       tariff_rate: null,
       contract_start: null,
+      email_domain: null,
     },
     {
       // Mid-onboarding: an audit is already in progress (see energyAudits
@@ -783,6 +769,7 @@ export class DatabaseService {
       floor_area_sqm: 24000,
       tariff_rate: 8.9,
       contract_start: null,
+      email_domain: null,
     },
   ];
 
@@ -1100,8 +1087,7 @@ export class DatabaseService {
     //
     // Every organisation's FIRST account is its Organization Admin. They are
     // the client's account owner, they receive the audit proposal, and they
-    // are provisioned by a Super Admin rather than self-registered — which is
-    // why this role is absent from SELF_REGISTERABLE_ROLES.
+    // are provisioned by a Super Admin rather than self-registered.
     {
       user_id: "550e8400-00b0-4000-8000-0000000000b0",
       organization_id: "org-002",

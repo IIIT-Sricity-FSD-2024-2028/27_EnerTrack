@@ -1,4 +1,5 @@
 import * as crypto from "crypto";
+import { FREE_EMAIL_DOMAINS } from "../../common/patterns";
 import {
   Injectable,
   NotFoundException,
@@ -29,7 +30,28 @@ import { RegisterOrganizationDto } from "./dto/register-organization.dto";
 export class OrganizationsService {
   constructor(private database: DatabaseService) {}
 
+  /**
+   * An organisation's mail domain decides which addresses its administrator
+   * may issue, so it has to name one organisation only and cannot be a public
+   * mailbox provider (everyone on gmail.com would "belong" to it).
+   */
+  private assertDomainUsable(domain: string | null | undefined, exceptId?: string) {
+    if (!domain) return;
+    if (FREE_EMAIL_DOMAINS.includes(domain))
+      throw new BadRequestException(
+        `${domain} is a public mailbox provider; use your organisation's own domain`,
+      );
+    const taken = this.database.organizations.find(
+      (o) => o.email_domain === domain && o.organization_id !== exceptId,
+    );
+    if (taken)
+      throw new ConflictException(
+        `The domain ${domain} already belongs to another organisation`,
+      );
+  }
+
   create(createDto: CreateOrganizationDto) {
+    this.assertDomainUsable(createDto.email_domain);
     const exists = this.database.organizations.find(
       (x) => x.name.toLowerCase() === createDto.name.toLowerCase(),
     );
@@ -47,18 +69,17 @@ export class OrganizationsService {
   /**
    * An organisation signing itself up. This is where the engagement starts.
    *
-   * Public, because the person doing it has no account yet — the same
-   * reasoning as POST /users/register. It creates the organisation as a
+   * Public, because the person doing it has no account yet. It creates the
+   * organisation as a
    * PROSPECT and its first user as an Organization Admin, together, because
    * either one alone is a dead record: an organisation with nobody in it
    * cannot request an audit, and a user with no organisation belongs to no
    * tenant and would see nothing.
    *
    * That first user being an Organization Admin is deliberate, and it is the
-   * one case where self-appointing as account owner is correct. Joining an
-   * *existing* organisation in that role is still refused by
-   * UsersService.register via SELF_REGISTERABLE_ROLES — you may own the
-   * organisation you just created, never one that already exists.
+   * one case where self-appointing as account owner is correct. Every other
+   * account is created by that admin (UsersService.create / bulkCreate), and
+   * nobody can join an existing organisation on their own.
    *
    * Honest limitation: this is an unauthenticated write, so it is spammable.
    * What limits the damage is that the record does nothing on its own — a
@@ -76,6 +97,12 @@ export class OrganizationsService {
       );
 
     const email = dto.admin_email.trim().toLowerCase();
+    const emailDomain = dto.email_domain?.trim().toLowerCase() || null;
+    this.assertDomainUsable(emailDomain);
+    if (emailDomain && email.split("@")[1] !== emailDomain)
+      throw new BadRequestException(
+        `The administrator's email must use the organisation's @${emailDomain} domain`,
+      );
     const emailTaken = this.database.users.find(
       (u) => u.email.toLowerCase() === email,
     );
@@ -93,6 +120,7 @@ export class OrganizationsService {
       floor_area_sqm: dto.floor_area_sqm ?? null,
       tariff_rate: null,
       contract_start: null,
+      email_domain: emailDomain,
     };
     this.database.organizations.push(organization as any);
 
@@ -105,6 +133,7 @@ export class OrganizationsService {
       password: dto.admin_password,
       role: UserRole.ORGANIZATION_ADMIN,
       specialization: null,
+      must_change_password: false,
     };
     this.database.users.push(admin as any);
 
@@ -112,20 +141,6 @@ export class OrganizationsService {
     // into a session rather than making them type their password again.
     const { password: _pw, ...safeAdmin } = admin;
     return { organization, admin: safeAdmin };
-  }
-
-  /**
-   * Id and name of every organisation, for the public sign-up selector.
-   *
-   * Deliberately NOT scoped to the tenant: the caller has no account and so no
-   * tenant yet. That is safe only because the projection is minimal — a name a
-   * visitor could read off a website anyway. Never widen this shape.
-   */
-  listPublic() {
-    return this.database.organizations.map((o) => ({
-      organization_id: o.organization_id,
-      name: o.name,
-    }));
   }
 
   findAll() {
@@ -150,6 +165,7 @@ export class OrganizationsService {
     );
     if (index === -1 || !assertTenantOwns(this.database.organizations[index]))
       throw new NotFoundException(`Organization with ID ${id} not found`);
+    this.assertDomainUsable(putDto.email_domain, id);
     this.database.organizations[index] = {
       organization_id: id,
       ...putDto,
@@ -163,6 +179,7 @@ export class OrganizationsService {
     );
     if (index === -1 || !assertTenantOwns(this.database.organizations[index]))
       throw new NotFoundException(`Organization with ID ${id} not found`);
+    this.assertDomainUsable(updateDto.email_domain, id);
     this.database.organizations[index] = {
       ...this.database.organizations[index],
       ...updateDto,

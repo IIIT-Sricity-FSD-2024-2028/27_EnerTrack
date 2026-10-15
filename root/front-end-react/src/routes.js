@@ -7,9 +7,16 @@
 
 export const PATHS = {
   landing: "/",
-  signIn: "/sign-in",
-  signUp: "/sign-up",
-  registerOrganisation: "/register-organisation",
+  // One page, two modes (sign in / register an organisation). See AuthPage.jsx.
+  signIn: "/auth",
+  registerOrganisation: "/auth?mode=register",
+  changePassword: "/change-password",
+  // Old addresses. They still work (bookmarks, emailed links) by redirecting.
+  legacy: {
+    signIn: "/sign-in",
+    signUp: "/sign-up",
+    registerOrganisation: "/register-organisation",
+  },
 
   admin: {
     users: "/admin/users",

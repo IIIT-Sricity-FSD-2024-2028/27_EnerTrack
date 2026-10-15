@@ -11,6 +11,8 @@
  *   users          every user, to catch a repeated email / phone
  *   organizations  for the Organisation dropdown
  *   isSuperAdmin   only a Super Admin picks an organisation (see below)
+ *   defaultOrgId   the signed-in admin's own organisation (an Organization
+ *                  Admin creates accounts only inside it)
  *   onSave         called with the data to send to the backend
  *   onClose        closes the popup
  *
@@ -18,6 +20,7 @@
  * js/system_admin/modules/UserManagement.js.
  */
 import { useState } from "react";
+import api from "../../api/client";
 import Modal from "./Modal";
 import {
   getUserErrors,
@@ -31,6 +34,7 @@ export default function UserFormModal({
   users,
   organizations,
   isSuperAdmin,
+  defaultOrgId,
   onSave,
   onClose,
 }) {
@@ -48,6 +52,18 @@ export default function UserFormModal({
     password: "",
   });
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  // The organisation this account will belong to decides the email domain it
+  // must use. A Super Admin picks it in the form; an Organization Admin is
+  // fixed to their own.
+  const targetOrgId = isSuperAdmin
+    ? form.organization_id || user?.organization_id
+    : defaultOrgId;
+  const emailDomain =
+    organizations.find((o) => o.organization_id === targetOrgId)
+      ?.email_domain || "";
 
   // When is there an Organisation dropdown?
   //  - Adding: a Super Admin has no organisation of their own to put the new
@@ -68,6 +84,24 @@ export default function UserFormModal({
     setForm({ ...form, [name]: value });
   }
 
+  // Asks the backend for a random one-time password that satisfies the rule
+  async function handleGenerate() {
+    setGenerating(true);
+    try {
+      const result = await api.post("/users/generate-password", {});
+      setForm((prev) => ({ ...prev, password: result.password }));
+      setErrors((prev) => ({ ...prev, password: "" }));
+      setShowPassword(true);
+    } catch (err) {
+      setErrors((prev) => ({
+        ...prev,
+        password: err.message || "Could not generate a password.",
+      }));
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   function handleConfirm() {
     // The original trimmed every value before checking
     const values = {
@@ -84,6 +118,7 @@ export default function UserFormModal({
       values,
       users,
       isEdit ? user.user_id : null,
+      emailDomain,
     );
     if (showOrgPicker && !values.organization_id) {
       newErrors.organization_id = isEdit
@@ -99,12 +134,13 @@ export default function UserFormModal({
       name: values.name,
       email: values.email.toLowerCase(),
       phone: values.phone,
-      password: values.password,
       role: values.role,
       specialization: TECHNICIAN_ROLES.includes(values.role)
         ? values.specialization
         : null,
     };
+    // Editing: a blank password means "keep the current one"
+    if (values.password) payload.password = values.password;
     if (showOrgPicker) payload.organization_id = values.organization_id;
 
     onSave(payload);
@@ -145,6 +181,7 @@ export default function UserFormModal({
             id={id.name}
             name="name"
             autoComplete="name"
+            maxLength={50}
             placeholder={isEdit ? undefined : "Teja Rao"}
             value={form.name}
             onChange={handleChange}
@@ -158,11 +195,23 @@ export default function UserFormModal({
             id={id.email}
             name="email"
             autoComplete="email"
-            placeholder={isEdit ? undefined : "name@example.com"}
+            placeholder={
+              isEdit
+                ? undefined
+                : emailDomain
+                  ? `name@${emailDomain}`
+                  : "name@example.com"
+            }
+            maxLength={254}
             value={form.email}
             onChange={handleChange}
           />
           <span className="field-error">{errors.email}</span>
+          {emailDomain && (
+            <p className="muted-cell" style={{ marginTop: "6px" }}>
+              This organisation's accounts use @{emailDomain}.
+            </p>
+          )}
         </div>
 
         <div className="form-field">
@@ -171,6 +220,7 @@ export default function UserFormModal({
             id={id.phone}
             name="phone"
             autoComplete="tel"
+            maxLength={10}
             placeholder={isEdit ? undefined : "9876543210"}
             value={form.phone}
             onChange={handleChange}
@@ -240,18 +290,42 @@ export default function UserFormModal({
 
         <div className="form-field">
           <label htmlFor={id.password}>
-            {isEdit ? "Password" : "Temporary Password"}
+            {isEdit ? "Reset password (optional)" : "Temporary Password"}
           </label>
-          <input
-            id={id.password}
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            placeholder="Minimum 8 characters"
-            value={form.password}
-            onChange={handleChange}
-          />
+          <div style={{ display: "flex", gap: "8px" }}>
+            <input
+              id={id.password}
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder={isEdit ? "Leave blank to keep" : "8-32 characters"}
+              maxLength={32}
+              style={{ flex: 1, minWidth: 0 }}
+              value={form.password}
+              onChange={handleChange}
+            />
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={() => setShowPassword((shown) => !shown)}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+            <button
+              type="button"
+              className="btn-outline"
+              disabled={generating}
+              onClick={handleGenerate}
+            >
+              {generating ? "…" : "Generate"}
+            </button>
+          </div>
           <span className="field-error">{errors.password}</span>
+          <p className="muted-cell" style={{ marginTop: "6px" }}>
+            8-32 characters with an uppercase letter, a lowercase letter, a
+            number and a special character. The person must replace it when
+            they first sign in.
+          </p>
         </div>
       </form>
     </Modal>

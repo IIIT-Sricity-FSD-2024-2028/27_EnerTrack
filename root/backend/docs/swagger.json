@@ -110,22 +110,6 @@
         ]
       }
     },
-    "/api/organizations/public": {
-      "get": {
-        "operationId": "OrganizationsController_listPublic",
-        "summary": "Public Organization Directory",
-        "description": "Returns id and name only, for the organisation selector on the sign-up page — the path for someone JOINING an organisation that already exists. Status, tariff rate, floor area and contract dates stay behind the authenticated findAll(). No authorization headers required.",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Array of { organization_id, name }."
-          }
-        },
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
     "/api/organizations/{id}": {
       "get": {
         "operationId": "OrganizationsController_findOne",
@@ -2479,25 +2463,105 @@
         ]
       }
     },
-    "/api/users/register": {
+    "/api/users/signup": {
       "post": {
-        "operationId": "UsersController_register",
-        "summary": "Public User Registration",
-        "description": "Registers a new user account without requiring any authorization headers. Intended for the public sign-up page.",
+        "operationId": "UsersController_signup",
+        "summary": "Campus Visitor Sign-up (public)",
+        "description": "Lets a student or faculty member create their own Campus Visitor account. The organisation is found from the email domain the organisation's administrator registered; role and organisation cannot be supplied. Returns the same shape as login so the client can start a session. No x-role header required.",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateUserDto"
+                "$ref": "#/components/schemas/SignupDto"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "User created successfully."
+            "description": "Account created. Returns the user record (without password)."
+          },
+          "400": {
+            "description": "Email domain is not linked to an organisation, or a field is invalid."
+          },
+          "409": {
+            "description": "Email or phone already registered."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/change-password": {
+      "post": {
+        "operationId": "UsersController_changePassword",
+        "summary": "Change Password",
+        "description": "Replaces a password after proving the current one. Used for the forced change on first sign-in after an administrator issued the credentials. No x-role header required.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed. Returns the user record (without password)."
+          },
+          "401": {
+            "description": "Invalid email or current password."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/bulk": {
+      "post": {
+        "operationId": "UsersController_bulkCreate",
+        "summary": "Bulk Create Users",
+        "description": "Creates up to 500 accounts in the caller's organisation with generated one-time passwords and returns the credentials per row. Only the Organization Admin can do this.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkCreateUsersDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Per-row results with the issued credentials."
+          },
+          "403": {
+            "description": "Forbidden – caller role is not Organization Admin."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/generate-password": {
+      "post": {
+        "operationId": "UsersController_generatePassword",
+        "summary": "Generate Password",
+        "description": "Returns a random one-time password that satisfies the password rule, for an administrator to issue.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
           }
         },
         "tags": [
@@ -7925,7 +7989,8 @@
           "status": "active",
           "floor_area_sqm": 42000,
           "tariff_rate": 8.5,
-          "contract_start": "2025-01-01"
+          "contract_start": "2025-01-01",
+          "email_domain": null
         }
       },
       "RegisterOrganizationDto": {
@@ -7946,7 +8011,8 @@
           "status": "active",
           "floor_area_sqm": 42000,
           "tariff_rate": 8.5,
-          "contract_start": "2025-01-01"
+          "contract_start": "2025-01-01",
+          "email_domain": null
         }
       },
       "CreateSubscriptionPlanDto": {
@@ -8023,14 +8089,25 @@
           },
           "password": {
             "type": "string",
-            "example": "Aadi@123",
-            "description": "User password (min 6 chars)"
+            "description": "User password"
           }
         },
         "required": [
           "email",
           "password"
         ]
+      },
+      "SignupDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "BulkCreateUsersDto": {
+        "type": "object",
+        "properties": {}
       },
       "CreateUserDto": {
         "type": "object",

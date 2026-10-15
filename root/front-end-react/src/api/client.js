@@ -64,21 +64,12 @@ async function _apiFetch(path, options = {}) {
     if (headers[key] === undefined) delete headers[key];
   });
 
-  // FormData bodies are not JSON, so only try to pretty-print the ones that are.
-  const isFormData =
-    typeof FormData !== "undefined" && options.body instanceof FormData;
-  console.log(
-    `[API Request] ${options.method || "GET"} ${path}`,
-    isFormData ? "(file upload)" : options.body ? JSON.parse(options.body) : "",
-  );
-
   let response;
   try {
     response = await fetch(`${API_BASE}${path}`, { ...options, headers });
   } catch (networkErr) {
-    console.error(`[API Network Error] ${path}`, networkErr);
     throw new Error(
-      "Cannot reach server. Is the backend running on port 3000?",
+      "We could not reach the server. Check your connection and try again.",
       { cause: networkErr },
     );
   }
@@ -91,11 +82,8 @@ async function _apiFetch(path, options = {}) {
     const msg = Array.isArray(body.message)
       ? body.message.join(", ")
       : body.message || `HTTP ${response.status}`;
-    console.error(`[API Error] ${response.status} on ${path}:`, body);
     throw new Error(msg);
   }
-
-  console.log(`[API Response] ${path}:`, body);
 
   // Backend wraps everything in { success, data, timestamp }
   // Return data directly for convenience

@@ -13,6 +13,9 @@ import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { PutUserDto } from "./dto/put-user.dto";
 import { LoginDto } from "./dto/login.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
+import { SignupDto } from "./dto/signup.dto";
+import { BulkCreateUsersDto } from "./dto/bulk-create-users.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
 
@@ -52,14 +55,49 @@ export class UsersController {
     return this.usersService.impersonate(id, body?.actor ?? null);
   }
 
-  @Post('register')
+  @Post('signup')
   @ApiOperation({
-    summary: 'Public User Registration',
-    description: 'Registers a new user account without requiring any authorization headers. Intended for the public sign-up page.',
+    summary: 'Campus Visitor Sign-up (public)',
+    description:
+      "Lets a student or faculty member create their own Campus Visitor account. The organisation is found from the email domain the organisation's administrator registered; role and organisation cannot be supplied. Returns the same shape as login so the client can start a session. No x-role header required.",
   })
-  @ApiResponse({ status: 201, description: 'User created successfully.' })
-  register(@Body() createDto: CreateUserDto) {
-    return this.usersService.register(createDto);
+  @ApiResponse({ status: 201, description: 'Account created. Returns the user record (without password).' })
+  @ApiResponse({ status: 400, description: 'Email domain is not linked to an organisation, or a field is invalid.' })
+  @ApiResponse({ status: 409, description: 'Email or phone already registered.' })
+  signup(@Body() dto: SignupDto) {
+    return this.usersService.signup(dto);
+  }
+
+  @Post('change-password')
+  @ApiOperation({
+    summary: 'Change Password',
+    description:
+      'Replaces a password after proving the current one. Used for the forced change on first sign-in after an administrator issued the credentials. No x-role header required.',
+  })
+  @ApiResponse({ status: 200, description: 'Password changed. Returns the user record (without password).' })
+  @ApiResponse({ status: 401, description: 'Invalid email or current password.' })
+  changePassword(@Body() dto: ChangePasswordDto) {
+    return this.usersService.changePassword(dto.email, dto.current_password, dto.new_password);
+  }
+
+  @Post('bulk')
+  @ApiOperation({
+    summary: 'Bulk Create Users',
+    description:
+      "Creates up to 500 accounts in the caller's organisation with generated one-time passwords and returns the credentials per row. Only the Organization Admin can do this.",
+  })
+  @ApiResponse({ status: 201, description: 'Per-row results with the issued credentials.' })
+  @ApiResponse({ status: 403, description: 'Forbidden – caller role is not Organization Admin.' })
+  @Roles('Organization Admin')
+  bulkCreate(@Body() dto: BulkCreateUsersDto) {
+    return this.usersService.bulkCreate(dto.users);
+  }
+
+  @Post('generate-password')
+  @ApiOperation({ summary: 'Generate Password', description: 'Returns a random one-time password that satisfies the password rule, for an administrator to issue.' })
+  @Roles('Organization Admin', 'Super Admin')
+  generatePassword() {
+    return { password: this.usersService.generatePassword() };
   }
 
   @Post()
