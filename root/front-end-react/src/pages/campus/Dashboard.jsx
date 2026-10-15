@@ -8,7 +8,9 @@
  *   - shows the "submitted" toast
  *
  * Works with the backend stopped: reports are then saved to and read from
- * the old local store (universalDB), exactly like the original page.
+ * the old local store (universalDB), exactly like the original page. That
+ * fallback is ONLY for "server not running". If the server is running but
+ * refuses the report, the visitor is told, not shown a fake success.
  */
 import { useEffect, useState } from "react";
 import api from "../../api/client";
@@ -17,6 +19,12 @@ import universalDB from "../../legacy/universalDB";
 import IssueForm from "./IssueForm";
 import MyReports from "./MyReports";
 import campusCss from "./campus.css?inline";
+
+// True when the request never reached the server (backend stopped). Any
+// other error means the server answered and said no.
+function isNetworkError(error) {
+  return String(error?.message || "").startsWith("Cannot reach server");
+}
 
 // Loads this user's reports and returns them in the shape <MyReports> wants,
 // newest first. Backend first; if that fails or finds nothing, the local store.
@@ -88,6 +96,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [toastVisible, setToastVisible] = useState(false);
+  const [errorText, setErrorText] = useState(""); // red toast when not empty
 
   // Load the reports when the page opens
   useEffect(() => {
@@ -95,8 +104,15 @@ export default function Dashboard() {
   }, [user]);
 
   function showToast() {
+    setErrorText("");
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 3500);
+  }
+
+  function showError(message) {
+    setErrorText(message);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 5000);
   }
 
   // Called by <IssueForm> with { location, issueType, priority, description }
@@ -115,15 +131,20 @@ export default function Dashboard() {
       });
       showToast();
       setTickets(await fetchMyTickets(user));
-      return;
+      return true;
     } catch (err) {
+      // The server answered but refused (e.g. 403): do not pretend it worked
+      if (!isNetworkError(err)) {
+        showError("Could not submit your report: " + err.message);
+        return false; // tells <IssueForm> to keep what the visitor typed
+      }
       console.warn(
         "[EndUser] Could not reach backend, saving locally only:",
         err.message,
       );
     }
 
-    // 2. Backend failed: save in the browser instead
+    // 2. Backend is not running: save in the browser instead
     universalDB.data.workflow.serviceRequests.push({
       id: "SR-" + Date.now().toString(36).toUpperCase(),
       source: "User-Reported",
@@ -142,6 +163,7 @@ export default function Dashboard() {
     universalDB.save();
     showToast();
     setTickets(await fetchMyTickets(user));
+    return true;
   }
 
   return (
@@ -167,8 +189,14 @@ export default function Dashboard() {
 
       <MyReports tickets={tickets} />
 
-      <div className={toastVisible ? "eu-toast show" : "eu-toast"}>
-        Report submitted successfully!
+      <div
+        className={
+          "eu-toast" +
+          (toastVisible ? " show" : "") +
+          (errorText ? " error" : "")
+        }
+      >
+        {errorText || "Report submitted successfully!"}
       </div>
     </div>
   );
@@ -204,21 +232,42 @@ const STEPS = [
   },
 ];
 
+// Each tip has an id, used as its React key
 const TIPS = [
-  <>
-    Be specific about the <strong>exact location</strong> — floor, room number,
-    wing.
-  </>,
-  <>
-    Mention <strong>when</strong> the issue started or was first noticed.
-  </>,
-  <>
-    If it's a <strong>safety hazard</strong>, set priority to High.
-  </>,
-  <>
-    Leave a <strong>contact</strong> so we can reach you for more details if
-    needed.
-  </>,
+  {
+    id: "location",
+    text: (
+      <>
+        Be specific about the <strong>exact location</strong> — floor, room
+        number, wing.
+      </>
+    ),
+  },
+  {
+    id: "when",
+    text: (
+      <>
+        Mention <strong>when</strong> the issue started or was first noticed.
+      </>
+    ),
+  },
+  {
+    id: "safety",
+    text: (
+      <>
+        If it's a <strong>safety hazard</strong>, set priority to High.
+      </>
+    ),
+  },
+  {
+    id: "contact",
+    text: (
+      <>
+        Leave a <strong>contact</strong> so we can reach you for more details if
+        needed.
+      </>
+    ),
+  },
 ];
 
 function InfoPanel() {
@@ -272,10 +321,10 @@ function InfoPanel() {
           </svg>
           Tips for a Good Report
         </h3>
-        {TIPS.map((tip, index) => (
-          <div className="tip-item" key={index}>
+        {TIPS.map((tip) => (
+          <div className="tip-item" key={tip.id}>
             <div className="tip-dot"></div>
-            <span>{tip}</span>
+            <span>{tip.text}</span>
           </div>
         ))}
       </div>

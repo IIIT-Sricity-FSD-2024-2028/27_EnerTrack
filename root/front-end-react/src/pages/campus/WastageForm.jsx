@@ -80,6 +80,8 @@ export default function WastageForm({
   const [fileInputKey, setFileInputKey] = useState(0);
   // A similar recent report, while the duplicate popup is open
   const [duplicate, setDuplicate] = useState(null);
+  // Red message above the submit button (empty = hidden)
+  const [message, setMessage] = useState("");
 
   // Save the draft every time the form changes
   useEffect(() => {
@@ -110,6 +112,7 @@ export default function WastageForm({
     const { name, value } = event.target;
     setForm({ ...form, [name]: value });
     setErrors({ ...errors, [name]: false }); // typing clears the red border
+    setMessage("");
   }
 
   function handlePriority(value) {
@@ -119,6 +122,7 @@ export default function WastageForm({
   async function handleSubmit(event) {
     event.preventDefault(); // stop the browser reloading the page
     if (!type) return; // no category chosen yet
+    setMessage("");
 
     // 1. Required fields: every field of the chosen category, after trimming
     const newErrors = {};
@@ -131,7 +135,7 @@ export default function WastageForm({
 
     // 2. At most 4 photos
     if (photos.length > 4) {
-      window.alert("Attach at most 4 photos.");
+      setMessage("Attach at most 4 photos.");
       return;
     }
 
@@ -149,14 +153,12 @@ export default function WastageForm({
 
     // 4. The estimate must be at least half the typical (baseline) minimum
     if (!specificData.reportedValue) {
-      window.alert(
-        "Please enter an estimated wastage value before submitting.",
-      );
+      setMessage("Please enter an estimated wastage value before submitting.");
       return;
     }
     const minimum = baseline.min * 0.5;
     if (reported < minimum) {
-      window.alert(
+      setMessage(
         `This form cannot be accepted. Entered estimate (${reported} ${baseline.unit}) is below 50% of baseline (${minimum} ${baseline.unit}).`,
       );
       return;
@@ -188,9 +190,11 @@ export default function WastageForm({
     await sendReport(values);
   }
 
-  // Hand the values to the parent, then start a fresh form
+  // Hand the values to the parent, then start a fresh form. The parent
+  // returns false when the report was refused: then keep what was typed.
   async function sendReport(values) {
-    await onSubmit(values);
+    const saved = await onSubmit(values);
+    if (saved === false) return;
     setForm(EMPTY_FORM);
     setErrors({});
     setPhotos([]);
@@ -348,9 +352,10 @@ export default function WastageForm({
                   id="wastagePhotos"
                   accept="image/jpeg,image/png,.jpg,.jpeg,.png"
                   multiple
-                  onChange={(event) =>
-                    setPhotos(Array.from(event.target.files))
-                  }
+                  onChange={(event) => {
+                    setPhotos(Array.from(event.target.files));
+                    setMessage("");
+                  }}
                 />
               )}
             </div>
@@ -366,6 +371,12 @@ export default function WastageForm({
                 disabled={viewing}
               />
             </div>
+
+            {message && (
+              <p className="form-message" role="alert">
+                {message}
+              </p>
+            )}
 
             {!viewing && (
               <button type="submit" className="btn-submit">
