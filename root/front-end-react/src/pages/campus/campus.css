@@ -471,6 +471,10 @@ body {
   opacity: 1;
 }
 
+.eu-toast.error {
+  background: #b42318;
+}
+
 /* ── 12. Finished-report styles (Archives, later Wastage) ──
    From the <style> blocks in enduser_archives.html / enduser_wastage.html,
    where both pages define them identically. */

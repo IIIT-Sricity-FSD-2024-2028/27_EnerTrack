@@ -11,7 +11,9 @@
  *                    handleAddComment
  *
  * Works with the backend stopped: reports are then saved to and read from
- * the browser's local store (universalDB), like the original page.
+ * the browser's local store (universalDB), like the original page. That
+ * fallback is ONLY for "server not running"; if the server answers and
+ * refuses, the visitor sees a red message instead.
  */
 import { useEffect, useState } from "react";
 import api from "../../api/client";
@@ -32,6 +34,12 @@ import WastageForm from "./WastageForm";
 import { getLocationKey } from "./wastageHelpers";
 import campusCss from "./campus.css?inline";
 import wastageCss from "./wastage.css?inline";
+
+// True when the request never reached the server (backend stopped). Any
+// other error means the server answered and said no.
+function isNetworkError(error) {
+  return String(error?.message || "").startsWith("Cannot reach server");
+}
 
 // Loads this user's reports that are not archived, newest first.
 // Backend reports plus any saved in the browser while the backend was down.
@@ -103,6 +111,7 @@ export default function Wastage() {
   const [reports, setReports] = useState([]);
   const [selectedId, setSelectedId] = useState(null); // the clicked card
   const [toastVisible, setToastVisible] = useState(false);
+  const [errorText, setErrorText] = useState(""); // red toast when not empty
 
   // The selected report, looked up fresh so it is never out of date
   const selectedReport = reports.find((r) => r.id === selectedId) || null;
@@ -119,8 +128,16 @@ export default function Wastage() {
   }, [user.email]);
 
   function showToast() {
+    setErrorText("");
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 3500);
+  }
+
+  // A red message in the same toast, instead of a blocking popup
+  function showError(message) {
+    setErrorText(message);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 5000);
   }
 
   // Called by <WastageForm> with { type, priority, specificData, photos }
@@ -139,6 +156,9 @@ export default function Wastage() {
       status: "Reported",
       timestamp: new Date().toISOString(),
     };
+
+    // Set if the report saves but its photos do not
+    let photoError = "";
 
     // 1. Try the backend
     try {
@@ -166,22 +186,31 @@ export default function Wastage() {
             photos,
           );
         } catch (err) {
-          window.alert(
-            "Report submitted, but the photos failed to upload: " + err.message,
-          );
+          photoError =
+            "Report submitted, but the photos failed to upload: " + err.message;
         }
       }
     } catch (err) {
-      // 2. Backend failed: save in the browser instead
+      // The server answered but refused: do not pretend it worked
+      if (!isNetworkError(err)) {
+        showError("Could not submit your report: " + err.message);
+        return false; // tells <WastageForm> to keep what the visitor typed
+      }
+      // 2. Backend is not running: save in the browser instead
       console.warn("[EndUser] Saving locally only:", err.message);
       universalDB.data.workflow.wastageReports.push(report);
       universalDB.save();
     }
 
-    showToast();
+    if (photoError) {
+      showError(photoError);
+    } else {
+      showToast();
+    }
     setReports(await fetchMyReports(user));
     notifyOnStateChange(report, "submitted", user.name); // tell the officers
     renderBellIcon("notif-container", user.email);
+    return true;
   }
 
   // Clicking a card opens it read-only in the form and in the timeline
@@ -197,7 +226,7 @@ export default function Wastage() {
         archivedAt: new Date().toISOString(),
       });
     } catch (err) {
-      window.alert("Could not archive this report: " + err.message);
+      showError("Could not archive this report: " + err.message);
       return;
     }
     if (selectedId === report.id) setSelectedId(null);
@@ -217,7 +246,7 @@ export default function Wastage() {
         comments: [...(report.comments || []), comment],
       });
     } catch (err) {
-      window.alert("Could not save your comment: " + err.message);
+      showError("Could not save your comment: " + err.message);
       return;
     }
     setReports(await fetchMyReports(user));
@@ -290,8 +319,14 @@ export default function Wastage() {
         )}
       </div>
 
-      <div className={toastVisible ? "eu-toast show" : "eu-toast"}>
-        Wastage Report Logged Successfully!
+      <div
+        className={
+          "eu-toast" +
+          (toastVisible ? " show" : "") +
+          (errorText ? " error" : "")
+        }
+      >
+        {errorText || "Wastage Report Logged Successfully!"}
       </div>
     </div>
   );

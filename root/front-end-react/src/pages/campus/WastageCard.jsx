@@ -371,8 +371,11 @@ export default function WastageCard({
             {comments.length === 0 ? (
               <p className="comments-empty">No comments yet.</p>
             ) : (
-              comments.map((comment, index) => (
-                <Comment key={index} comment={comment} />
+              comments.map((comment) => (
+                <Comment
+                  key={comment.timestamp + "-" + comment.author}
+                  comment={comment}
+                />
               ))
             )}
             <div className="comment-form">

@@ -83,14 +83,18 @@ export default function IssueForm({ email, onSubmit }) {
     setErrors(newErrors);
     if (newErrors.location || newErrors.description) return;
 
-    await onSubmit({
+    const saved = await onSubmit({
       location: form.location.trim(),
       issueType: form.issueType,
       priority: form.priority,
       description: form.description.trim(),
     });
 
-    setForm(EMPTY_FORM); // back to a blank form (priority back to Medium)
+    // The parent returns false when the report was refused: keep the text
+    // so the visitor does not have to type it all again.
+    if (saved !== false) {
+      setForm(EMPTY_FORM); // back to a blank form (priority back to Medium)
+    }
   }
 
   return (
