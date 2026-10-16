@@ -31,8 +31,20 @@
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Matches .logo in the landing page's navbar (landing.css) */
+.app-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #111111;
+}
+
 .app-sidebar__brand img {
-  height: 26px;
+  height: 30px;
   width: auto;
   display: block;
 }
@@ -70,4 +82,38 @@
 .app-sidebar__link.is-active {
   background: #0f172a;
   color: #ffffff;
+}
+
+/* Holds the profile card; pushed to the bottom of the column */
+.app-sidebar__footer {
+  margin-top: auto;
+}
+
+/* Keyboard users can see where they are */
+.app-sidebar__link:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
+
+/* Narrow screens: the sidebar becomes a strip of links above the page
+   instead of a fixed 260px column that squeezes the content. */
+@media (max-width: 900px) {
+  .app-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    padding: 12px 16px;
+    gap: 10px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(28, 46, 46, 0.16);
+  }
+
+  .app-sidebar__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .app-sidebar__link {
+    padding: 8px 12px;
+  }
 }

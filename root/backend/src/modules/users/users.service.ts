@@ -10,7 +10,7 @@ import {
 import {
   DatabaseService,
   PLATFORM_SIDE_ROLES,
-  SELF_REGISTERABLE_ROLES,
+  UserRole,
 } from "../../core/database/database.service";
 import {
   scopeToTenant,
@@ -20,6 +20,8 @@ import {
 } from "../../core/tenancy/tenant-context";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { PutUserDto } from "./dto/put-user.dto";
+import { BulkUserRowDto } from "./dto/bulk-create-users.dto";
+import { SignupDto } from "./dto/signup.dto";
 
 import { UpdateUserDto } from "./dto/update-user.dto";
 
@@ -42,46 +44,12 @@ export class UsersService {
   }
 
   /**
-   * Public sign-up.
-   *
-   * Distinct from create() because create() is reached by an authenticated
-   * administrator, whose organisation comes from their x-org-id header. A
-   * visitor has no header, so the organisation has to come from the request
-   * body — which means both of these have to be enforced here, server side.
-   * The sign-up form's dropdown is a convenience, not a control: anyone can
-   * POST this endpoint directly with whatever body they like.
+   * Accounts are provisioned, never self-created: the organisation's
+   * Organization Admin (or EnerTrack staff) issues the credentials and hands
+   * them over, so the organisation controls its own address format. The
+   * issued password is temporary (must_change_password), so the admin only
+   * knows it until the person's first sign-in.
    */
-  register(createDto: CreateUserDto) {
-    // 1. Self-registration may only ever grant a role on the allowlist. This
-    //    is checked positively rather than by excluding staff roles: a
-    //    denylist would silently admit any role that leaves PLATFORM_SIDE_ROLES
-    //    for an unrelated reason, which is precisely what happened to
-    //    Organization Admin when it stopped being platform-side.
-    if (!SELF_REGISTERABLE_ROLES.includes(createDto.role)) {
-      throw new BadRequestException(
-        `Role '${createDto.role}' cannot be self-registered. Contact an administrator.`,
-      );
-    }
-
-    // 2. An account with no organisation belongs to no tenant, and tenant
-    //    scoping fails closed, so such an account would see nothing at all.
-    //    Rejecting it here gives a clear error instead of a silently empty app.
-    if (!createDto.organization_id) {
-      throw new BadRequestException("organization_id is required to sign up");
-    }
-
-    const org = this.database.organizations.find(
-      (o) => o.organization_id === createDto.organization_id,
-    );
-    if (!org) {
-      throw new BadRequestException(
-        `Unknown organization '${createDto.organization_id}'`,
-      );
-    }
-
-    return this.create(createDto);
-  }
-
   create(createDto: CreateUserDto) {
     // Only EnerTrack's own staff may create an account that holds an
     // EnerTrack staff role. Without this, a client's Organization Admin
@@ -96,9 +64,28 @@ export class UsersService {
       );
     }
 
+    createDto = { ...createDto, email: createDto.email.trim().toLowerCase() };
+
+    // The organisation may require its own mail domain (e.g. iiits.in). The
+    // target organisation is the caller's tenant, or the body's for platform
+    // staff creating an Organization Admin on a client's behalf.
+    const orgId = currentOrgId() ?? createDto.organization_id ?? null;
+    const org = orgId
+      ? this.database.organizations.find((o) => o.organization_id === orgId)
+      : null;
+    if (orgId && !org)
+      throw new BadRequestException(`Unknown organization '${orgId}'`);
+    if (org?.email_domain) {
+      const domain = createDto.email.split("@")[1];
+      if (domain !== org.email_domain)
+        throw new BadRequestException(
+          `${org.name} accounts must use an @${org.email_domain} email address`,
+        );
+    }
+
     if (createDto.email) {
       const exists = this.database.users.find(
-        (x) => x.email === createDto.email,
+        (x) => x.email.toLowerCase() === createDto.email,
       );
       if (exists)
         throw new ConflictException(`Duplicate email '${createDto.email}'`);
@@ -111,9 +98,50 @@ export class UsersService {
         throw new ConflictException(`Duplicate phone '${createDto.phone}'`);
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { user_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
+    const newRecord = { user_id: generatedId, ...createDto, organization_id: orgId, must_change_password: true };
     this.database.users.push(newRecord as any);
     return this.withoutPassword(newRecord);
+  }
+
+  /**
+   * Self-service sign-up for students and faculty, and ONLY for them.
+   *
+   * Everyone else is created by their organisation's administrator. The
+   * organisation is found from the email domain the administrator registered
+   * (Organization.email_domain), and the role is always Campus Visitor, the
+   * least-privileged one: the caller chooses neither.
+   *
+   * Honest limitation: the address is not verified, so someone could sign up
+   * with a student address they do not own. That is accepted for now (no
+   * mailer yet); the blast radius is the Campus Visitor dashboard of that one
+   * organisation.
+   */
+  signup(dto: SignupDto) {
+    const email = dto.email.trim().toLowerCase();
+    const domain = email.split("@")[1];
+    const org = this.database.organizations.find(
+      (o) => o.email_domain === domain,
+    );
+    if (!org)
+      throw new BadRequestException(
+        "Your email domain is not linked to an organisation on EnerTrack yet. Ask your campus administrator to register it or to create your account.",
+      );
+
+    // create() applies the same checks as an admin-created account: duplicate
+    // email/phone and the organisation's domain.
+    const created = this.create({
+      name: dto.name,
+      email,
+      phone: dto.phone,
+      password: dto.password,
+      role: UserRole.CAMPUS_VISITOR,
+      organization_id: org.organization_id,
+    } as CreateUserDto);
+
+    // The person chose this password themselves, so there is nothing to replace.
+    const record = this.database.users.find((u) => u.user_id === created.user_id);
+    if (record) record.must_change_password = false;
+    return { ...created, must_change_password: false };
   }
 
   findAll() {
@@ -136,6 +164,7 @@ export class UsersService {
       user_id: id,
       ...putDto,
       organization_id: this.database.users[index].organization_id,
+      must_change_password: true,
     } as any;
     return this.withoutPassword(this.database.users[index]);
   }
@@ -161,6 +190,8 @@ export class UsersService {
       ...current,
       ...updateDto,
       organization_id,
+      // An administrator-issued password is temporary, like at creation.
+      ...(updateDto.password ? { must_change_password: true } : {}),
     };
     return this.withoutPassword(this.database.users[index]);
   }
@@ -179,12 +210,65 @@ export class UsersService {
 
   login(email: string, password: string) {
     const user = this.database.users.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+      (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password,
     );
     if (!user) throw new UnauthorizedException('Invalid email or password');
     // Never send the password back to the client
     const { password: _pw, ...safeUser } = user;
-    return safeUser;
+    return { ...safeUser, must_change_password: !!user.must_change_password };
+  }
+
+  /**
+   * Replaces the issued (or any) password. Proves knowledge of the current
+   * one rather than trusting a header, because this route is public.
+   */
+  changePassword(email: string, currentPassword: string, newPassword: string) {
+    const user = this.database.users.find(
+      (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === currentPassword,
+    );
+    if (!user) throw new UnauthorizedException('Invalid email or password');
+    if (newPassword === currentPassword)
+      throw new BadRequestException('Choose a password different from the current one');
+    user.password = newPassword;
+    user.must_change_password = false;
+    const { password: _pw, ...safeUser } = user;
+    return { ...safeUser, must_change_password: false };
+  }
+
+  /** A one-time password that always satisfies the password rule. */
+  generatePassword() {
+    const pick = (chars: string) => chars[crypto.randomInt(chars.length)];
+    const required = [
+      pick("ABCDEFGHJKLMNPQRSTUVWXYZ"),
+      pick("abcdefghijkmnpqrstuvwxyz"),
+      pick("23456789"),
+      pick("@#$%&*!?"),
+    ];
+    const all = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$%&*!?";
+    while (required.length < 12) required.push(pick(all));
+    // Fisher-Yates so the guaranteed characters are not always first
+    for (let i = required.length - 1; i > 0; i--) {
+      const j = crypto.randomInt(i + 1);
+      [required[i], required[j]] = [required[j], required[i]];
+    }
+    return required.join("");
+  }
+
+  /**
+   * Creates many accounts at once (e.g. a class of students) and returns the
+   * issued credentials for the administrator to distribute. Rows are
+   * independent: one bad row never blocks the rest.
+   */
+  bulkCreate(rows: BulkUserRowDto[]) {
+    return rows.map((row, i) => {
+      const password = this.generatePassword();
+      try {
+        const user = this.create({ ...row, password } as CreateUserDto);
+        return { row: i + 1, ok: true, email: user.email, name: user.name, role: user.role, password };
+      } catch (err: any) {
+        return { row: i + 1, ok: false, email: row.email, name: row.name, role: row.role, error: err?.message ?? "Could not create user" };
+      }
+    });
   }
 
   /**

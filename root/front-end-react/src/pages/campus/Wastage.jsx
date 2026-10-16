@@ -11,7 +11,9 @@
  *                    handleAddComment
  *
  * Works with the backend stopped: reports are then saved to and read from
- * the browser's local store (universalDB), like the original page.
+ * the browser's local store (universalDB), like the original page. That
+ * fallback is ONLY for "server not running"; if the server answers and
+ * refuses, the visitor sees a red message instead.
  */
 import { useEffect, useState } from "react";
 import api from "../../api/client";
@@ -22,16 +24,19 @@ import {
   getMetricCategory,
   getMetricUnit,
 } from "../../legacy/sensorSimulator";
-import {
-  notifyOnStateChange,
-  renderBellIcon,
-} from "../../legacy/notifications";
+import { notifyOnStateChange } from "../../legacy/notifications";
 import AuditTimeline from "./AuditTimeline";
 import WastageCard from "./WastageCard";
 import WastageForm from "./WastageForm";
 import { getLocationKey } from "./wastageHelpers";
 import campusCss from "./campus.css?inline";
 import wastageCss from "./wastage.css?inline";
+
+// True when the request never reached the server (backend stopped). Any
+// other error means the server answered and said no.
+function isNetworkError(error) {
+  return String(error?.message || "").startsWith("Cannot reach server");
+}
 
 // Loads this user's reports that are not archived, newest first.
 // Backend reports plus any saved in the browser while the backend was down.
@@ -82,20 +87,14 @@ async function fetchMyReports(user) {
     .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
 }
 
-// Changes one report: on the backend if it came from there, otherwise in the
-// browser's store. `changes` is merged into the report's details.
-async function updateReport(report, changes) {
-  if (report.fromBackend) {
-    await api.patch(`/wastage-reports/${report.id}`, {
-      details: { ...report.details, ...changes },
-    });
-  } else {
-    const local = universalDB.data.workflow.wastageReports.find(
-      (r) => r.id === report.id,
-    );
-    Object.assign(local, changes);
-    universalDB.save();
-  }
+// Changes a report saved in the browser's store (made while the backend was
+// down). `changes` is merged into the report.
+function updateLocalReport(report, changes) {
+  const local = universalDB.data.workflow.wastageReports.find(
+    (r) => r.id === report.id,
+  );
+  Object.assign(local, changes);
+  universalDB.save();
 }
 
 export default function Wastage() {
@@ -103,6 +102,7 @@ export default function Wastage() {
   const [reports, setReports] = useState([]);
   const [selectedId, setSelectedId] = useState(null); // the clicked card
   const [toastVisible, setToastVisible] = useState(false);
+  const [errorText, setErrorText] = useState(""); // red toast when not empty
 
   // The selected report, looked up fresh so it is never out of date
   const selectedReport = reports.find((r) => r.id === selectedId) || null;
@@ -112,15 +112,17 @@ export default function Wastage() {
     fetchMyReports(user).then(setReports);
   }, [user]);
 
-  // The notification bell is drawn by an old helper straight into the
-  // empty <div id="notif-container"> below
-  useEffect(() => {
-    renderBellIcon("notif-container", user.email);
-  }, [user.email]);
-
   function showToast() {
+    setErrorText("");
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 3500);
+  }
+
+  // A red message in the same toast, instead of a blocking popup
+  function showError(message) {
+    setErrorText(message);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 5000);
   }
 
   // Called by <WastageForm> with { type, priority, specificData, photos }
@@ -139,6 +141,9 @@ export default function Wastage() {
       status: "Reported",
       timestamp: new Date().toISOString(),
     };
+
+    // Set if the report saves but its photos do not
+    let photoError = "";
 
     // 1. Try the backend
     try {
@@ -166,22 +171,30 @@ export default function Wastage() {
             photos,
           );
         } catch (err) {
-          window.alert(
-            "Report submitted, but the photos failed to upload: " + err.message,
-          );
+          photoError =
+            "Report submitted, but the photos failed to upload: " + err.message;
         }
       }
     } catch (err) {
-      // 2. Backend failed: save in the browser instead
+      // The server answered but refused: do not pretend it worked
+      if (!isNetworkError(err)) {
+        showError("Could not submit your report: " + err.message);
+        return false; // tells <WastageForm> to keep what the visitor typed
+      }
+      // 2. Backend is not running: save in the browser instead
       console.warn("[EndUser] Saving locally only:", err.message);
       universalDB.data.workflow.wastageReports.push(report);
       universalDB.save();
     }
 
-    showToast();
+    if (photoError) {
+      showError(photoError);
+    } else {
+      showToast();
+    }
     setReports(await fetchMyReports(user));
     notifyOnStateChange(report, "submitted", user.name); // tell the officers
-    renderBellIcon("notif-container", user.email);
+    return true;
   }
 
   // Clicking a card opens it read-only in the form and in the timeline
@@ -192,12 +205,17 @@ export default function Wastage() {
 
   async function handleArchive(report) {
     try {
-      await updateReport(report, {
-        archived: true,
-        archivedAt: new Date().toISOString(),
-      });
+      if (report.fromBackend) {
+        // Its own route: a visitor may archive, but not edit, a report
+        await api.patch(`/wastage-reports/${report.id}/archive`);
+      } else {
+        updateLocalReport(report, {
+          archived: true,
+          archivedAt: new Date().toISOString(),
+        });
+      }
     } catch (err) {
-      window.alert("Could not archive this report: " + err.message);
+      showError("Could not archive this report: " + err.message);
       return;
     }
     if (selectedId === report.id) setSelectedId(null);
@@ -205,22 +223,33 @@ export default function Wastage() {
     showToast();
   }
 
+  // Returns true when the comment was saved, so the card knows whether to
+  // clear the text box (on failure the visitor keeps what they typed).
   async function handleAddComment(report, text) {
-    const comment = {
-      author: user.name,
-      role: "Campus Visitor",
-      text: text,
-      timestamp: new Date().toISOString(),
-    };
     try {
-      await updateReport(report, {
-        comments: [...(report.comments || []), comment],
-      });
+      if (report.fromBackend) {
+        // Its own route: the server adds the comment to the list itself
+        await api.post(`/wastage-reports/${report.id}/comments`, {
+          text: text,
+          author: user.name,
+        });
+      } else {
+        const comment = {
+          author: user.name,
+          role: "Campus Visitor",
+          text: text,
+          timestamp: new Date().toISOString(),
+        };
+        updateLocalReport(report, {
+          comments: [...(report.comments || []), comment],
+        });
+      }
     } catch (err) {
-      window.alert("Could not save your comment: " + err.message);
-      return;
+      showError("Could not save your comment: " + err.message);
+      return false;
     }
     setReports(await fetchMyReports(user));
+    return true;
   }
 
   return (
@@ -236,7 +265,6 @@ export default function Wastage() {
             energy, water, emissions or food wastage.
           </p>
         </div>
-        <div id="notif-container" className="notif-container"></div>
       </div>
 
       <div className="eu-grid">
@@ -290,8 +318,14 @@ export default function Wastage() {
         )}
       </div>
 
-      <div className={toastVisible ? "eu-toast show" : "eu-toast"}>
-        Wastage Report Logged Successfully!
+      <div
+        className={
+          "eu-toast" +
+          (toastVisible ? " show" : "") +
+          (errorText ? " error" : "")
+        }
+      >
+        {errorText || "Wastage Report Logged Successfully!"}
       </div>
     </div>
   );

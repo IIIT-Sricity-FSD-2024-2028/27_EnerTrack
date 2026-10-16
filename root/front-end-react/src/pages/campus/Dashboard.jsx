@@ -8,7 +8,9 @@
  *   - shows the "submitted" toast
  *
  * Works with the backend stopped: reports are then saved to and read from
- * the old local store (universalDB), exactly like the original page.
+ * the old local store (universalDB), exactly like the original page. That
+ * fallback is ONLY for "server not running". If the server is running but
+ * refuses the report, the visitor is told, not shown a fake success.
  */
 import { useEffect, useState } from "react";
 import api from "../../api/client";
@@ -16,7 +18,18 @@ import { useAuth } from "../../auth/useAuth";
 import universalDB from "../../legacy/universalDB";
 import IssueForm from "./IssueForm";
 import MyReports from "./MyReports";
+import {
+  getProgress,
+  splitDescription,
+  TIMELINE_STEPS,
+} from "./serviceRequestHelpers";
 import campusCss from "./campus.css?inline";
+
+// True when the request never reached the server (backend stopped). Any
+// other error means the server answered and said no.
+function isNetworkError(error) {
+  return String(error?.message || "").startsWith("Cannot reach server");
+}
 
 // Loads this user's reports and returns them in the shape <MyReports> wants,
 // newest first. Backend first; if that fails or finds nothing, the local store.
@@ -51,16 +64,21 @@ async function fetchMyTickets(user) {
             status = "in_progress";
           }
 
+          const parts = splitDescription(sr.description);
+          const progress = getProgress(status, related);
+
           return {
             id: sr.service_request_id,
-            description: sr.description,
-            location: "Campus",
+            description: parts.description,
+            location: parts.location,
             priority: sr.priority
               ? sr.priority.charAt(0).toUpperCase() + sr.priority.slice(1)
               : "Medium",
             status: status,
-            timestamp: sr.created_at, // the backend sends none, so no date
-            issueType: "",
+            timestamp: sr.created_at, // when it was filed (none on seeded rows)
+            issueType: sr.issue_type || parts.issueType,
+            step: progress.step,
+            stepNote: progress.note,
           };
         })
         // The backend lists oldest first, so reverse it: newest on top
@@ -78,7 +96,11 @@ async function fetchMyTickets(user) {
   if (tickets.length === 0) {
     tickets = universalDB.data.workflow.serviceRequests
       .filter((sr) => sr.reporterEmail === user.email)
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .map((t) => {
+        const progress = getProgress(t.status);
+        return { ...t, step: progress.step, stepNote: progress.note };
+      });
   }
 
   return tickets;
@@ -87,16 +109,34 @@ async function fetchMyTickets(user) {
 export default function Dashboard() {
   const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
+  const [selectedId, setSelectedId] = useState(null); // the clicked card
   const [toastVisible, setToastVisible] = useState(false);
+  const [errorText, setErrorText] = useState(""); // red toast when not empty
 
   // Load the reports when the page opens
   useEffect(() => {
     fetchMyTickets(user).then(setTickets);
   }, [user]);
 
+  // The selected report, looked up fresh so it is never out of date
+  const selectedTicket = tickets.find((t) => t.id === selectedId) || null;
+
+  // Clicking a card opens it read-only in the form and in the timeline
+  function handleSelect(ticket) {
+    setSelectedId(ticket.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function showToast() {
+    setErrorText("");
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 3500);
+  }
+
+  function showError(message) {
+    setErrorText(message);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 5000);
   }
 
   // Called by <IssueForm> with { location, issueType, priority, description }
@@ -115,15 +155,20 @@ export default function Dashboard() {
       });
       showToast();
       setTickets(await fetchMyTickets(user));
-      return;
+      return true;
     } catch (err) {
+      // The server answered but refused (e.g. 403): do not pretend it worked
+      if (!isNetworkError(err)) {
+        showError("Could not submit your report: " + err.message);
+        return false; // tells <IssueForm> to keep what the visitor typed
+      }
       console.warn(
         "[EndUser] Could not reach backend, saving locally only:",
         err.message,
       );
     }
 
-    // 2. Backend failed: save in the browser instead
+    // 2. Backend is not running: save in the browser instead
     universalDB.data.workflow.serviceRequests.push({
       id: "SR-" + Date.now().toString(36).toUpperCase(),
       source: "User-Reported",
@@ -142,6 +187,7 @@ export default function Dashboard() {
     universalDB.save();
     showToast();
     setTickets(await fetchMyTickets(user));
+    return true;
   }
 
   return (
@@ -160,68 +206,89 @@ export default function Dashboard() {
 
       <div className="eu-grid">
         <div>
-          <IssueForm email={user.email} onSubmit={handleSubmit} />
+          <IssueForm
+            email={user.email}
+            selectedTicket={selectedTicket}
+            onSubmit={handleSubmit}
+            onNewReport={() => setSelectedId(null)}
+          />
         </div>
-        <InfoPanel />
+        {/* Shows the clicked report; on a new form, the start of the flow */}
+        <InfoPanel
+          ticket={selectedTicket}
+          showLabel={selectedTicket !== null}
+        />
       </div>
 
-      <MyReports tickets={tickets} />
+      <MyReports
+        tickets={tickets}
+        selectedId={selectedId}
+        onSelect={handleSelect}
+      />
 
-      <div className={toastVisible ? "eu-toast show" : "eu-toast"}>
-        Report submitted successfully!
+      <div
+        className={
+          "eu-toast" +
+          (toastVisible ? " show" : "") +
+          (errorText ? " error" : "")
+        }
+      >
+        {errorText || "Report submitted successfully!"}
       </div>
     </div>
   );
 }
 
-/* ── Right-hand info panel. Static: it never changes. ── */
+/* ── Right-hand info panel: the progress timeline and tips. ── */
 
-const STEPS = [
-  {
-    state: "done",
-    label: "You Report",
-    desc: "Submit this form — takes under 1 minute.",
-  },
-  {
-    state: "active",
-    label: "System Admin Review",
-    desc: "The Administrator triages and forwards your request.",
-  },
-  {
-    state: "pending",
-    label: "Dispatched",
-    desc: "A Technician is assigned and briefed.",
-  },
-  {
-    state: "pending",
-    label: "Work in Progress",
-    desc: "Technician assesses and carries out repairs.",
-  },
-  {
-    state: "pending",
-    label: "Resolved",
-    desc: "Issue is verified and closed. Track it below.",
-  },
-];
+// How one step looks for the given report: "done", "active" or "pending".
+function getStepState(stepNum, ticket) {
+  const step = ticket ? ticket.step : 1; // no report yet: the visitor is on step 1
+  if (step >= 5) return "done"; // Resolved is the end: every step is done
+  if (stepNum < step) return "done";
+  if (stepNum === step) return "active";
+  return "pending";
+}
 
+// Each tip has an id, used as its React key
 const TIPS = [
-  <>
-    Be specific about the <strong>exact location</strong> — floor, room number,
-    wing.
-  </>,
-  <>
-    Mention <strong>when</strong> the issue started or was first noticed.
-  </>,
-  <>
-    If it's a <strong>safety hazard</strong>, set priority to High.
-  </>,
-  <>
-    Leave a <strong>contact</strong> so we can reach you for more details if
-    needed.
-  </>,
+  {
+    id: "location",
+    text: (
+      <>
+        Be specific about the <strong>exact location</strong> — floor, room
+        number, wing.
+      </>
+    ),
+  },
+  {
+    id: "when",
+    text: (
+      <>
+        Mention <strong>when</strong> the issue started or was first noticed.
+      </>
+    ),
+  },
+  {
+    id: "safety",
+    text: (
+      <>
+        If it's a <strong>safety hazard</strong>, set priority to High.
+      </>
+    ),
+  },
+  {
+    id: "contact",
+    text: (
+      <>
+        Leave a <strong>contact</strong> so we can reach you for more details if
+        needed.
+      </>
+    ),
+  },
 ];
 
-function InfoPanel() {
+function InfoPanel({ ticket, showLabel }) {
   return (
     <div className="right-panel">
       <div className="info-card">
@@ -241,16 +308,29 @@ function InfoPanel() {
           </svg>
           What Happens Next
         </h3>
+
+        {showLabel && ticket && (
+          <div className="trail-label">
+            Showing progress for <strong>#{ticket.id}</strong>
+          </div>
+        )}
+
         <ul className="timeline">
-          {STEPS.map((step, index) => (
-            <li key={step.label}>
-              <div className={`tl-dot ${step.state}`}>{index + 1}</div>
-              <div>
-                <p className="tl-label">{step.label}</p>
-                <p className="tl-desc">{step.desc}</p>
-              </div>
-            </li>
-          ))}
+          {TIMELINE_STEPS.map((step) => {
+            const state = getStepState(step.num, ticket);
+            return (
+              <li key={step.num}>
+                <div className={`tl-dot ${state}`}>{step.num}</div>
+                <div>
+                  <p className="tl-label">{step.label}</p>
+                  <p className="tl-desc">{step.desc}</p>
+                  {state === "active" && ticket && ticket.stepNote && (
+                    <p className="tl-active-desc">{ticket.stepNote}</p>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
@@ -272,10 +352,10 @@ function InfoPanel() {
           </svg>
           Tips for a Good Report
         </h3>
-        {TIPS.map((tip, index) => (
-          <div className="tip-item" key={index}>
+        {TIPS.map((tip) => (
+          <div className="tip-item" key={tip.id}>
             <div className="tip-dot"></div>
-            <span>{tip}</span>
+            <span>{tip.text}</span>
           </div>
         ))}
       </div>

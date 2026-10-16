@@ -5,6 +5,8 @@
  * Loads the users (and organisations, for their names), and shows them in a
  * table that can be filtered and sorted. Its popups:
  *   - Add / Edit    <UserFormModal>, which hands back the user to save
+ *   - Import        <BulkImportModal>: many accounts from pasted rows / a CSV
+ *   - Credentials   shown once after an account is created
  *   - Delete        a confirm popup
  *   - Act as        Super Admin only: open the product as that user
  *
@@ -19,7 +21,15 @@ import { homeForRole } from "../../routes";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
 import UserFormModal from "./UserFormModal";
-import { addToast, formatLabel, USER_ROLES } from "./adminHelpers";
+import BulkImportModal from "./BulkImportModal";
+import CredentialsModal from "./CredentialsModal";
+import SearchBox from "./SearchBox";
+import {
+  addToast,
+  formatLabel,
+  matchesSearch,
+  USER_ROLES,
+} from "./adminHelpers";
 
 // The filter choices are remembered in the browser between visits
 const FILTERS_KEY = "admin_userFilters";
@@ -87,10 +97,20 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
   const [filters, setFilters] = useState(loadFilters);
-  // The open popup: null, or { type: "add" | "edit" | "delete" | "actAs", user }
+  // What is typed in the search box. Not remembered between visits, unlike
+  // the filters: an old search would make the table look empty on return.
+  const [search, setSearch] = useState("");
+  // The open popup: null, or { type: "add" | "edit" | "delete" | "actAs" |
+  // "import" | "credentials", user }
   const [modal, setModal] = useState(null);
 
   const isSuperAdmin = me.role === "Super Admin";
+  // Only an Organization Admin imports: the accounts land in their own
+  // organisation, and only they can issue a whole organisation's credentials.
+  const canImport = me.role === "Organization Admin";
+  const myOrganisation = organizations.find(
+    (o) => o.organization_id === me.organization_id,
+  );
 
   // Load the users and organisations when the page opens
   useEffect(() => {
@@ -146,6 +166,18 @@ export default function Users() {
         `${editing ? "Updated" : "Added"} ${payload.name}.`,
         "success",
       );
+      // The password exists only in this form. Show it once so it can be
+      // handed over (a blank one when editing means it was not changed).
+      if (payload.password) {
+        setModal({
+          type: "credentials",
+          credentials: {
+            name: payload.name,
+            email: payload.email,
+            password: payload.password,
+          },
+        });
+      }
     } catch (err) {
       addToast(setToasts, err.message || "Could not save the user.", "error");
     }
@@ -176,12 +208,21 @@ export default function Users() {
     }
   }
 
-  const rows = filterAndSort(users, filters, organizations);
-  const filtersActive = filters.organization_id || filters.role;
+  const rows = filterAndSort(users, filters, organizations).filter((u) =>
+    matchesSearch(search, [
+      u.name,
+      u.email,
+      u.phone,
+      u.role,
+      u.specialization,
+      orgName(u.organization_id, organizations),
+    ]),
+  );
+  const filtersActive = filters.organization_id || filters.role || search;
 
   return (
     <AdminPage
-      subtitle="Manage campus users, roles, and login access."
+      subtitle="Create your team's and campus's accounts and hand over their credentials."
       loading={loading}
       toasts={toasts}
     >
@@ -190,17 +231,31 @@ export default function Users() {
           <div>
             <h2>User Management</h2>
             <p>
-              Uses the backend User table shape: user_id, name, email, phone,
-              password, role, specialization.
+              People cannot sign themselves up. You create each account, give
+              them the temporary password, and they choose their own when they
+              first sign in.
+              {myOrganisation?.email_domain &&
+                ` Accounts use @${myOrganisation.email_domain}.`}
             </p>
           </div>
-          <button
-            className="btn-dark"
-            type="button"
-            onClick={() => setModal({ type: "add", user: null })}
-          >
-            Add User
-          </button>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            {canImport && (
+              <button
+                className="btn-outline"
+                type="button"
+                onClick={() => setModal({ type: "import", user: null })}
+              >
+                Import people
+              </button>
+            )}
+            <button
+              className="btn-dark"
+              type="button"
+              onClick={() => setModal({ type: "add", user: null })}
+            >
+              Add User
+            </button>
+          </div>
         </div>
 
         {/* ── Filter bar ── */}
@@ -215,6 +270,14 @@ export default function Users() {
             flexWrap: "wrap",
           }}
         >
+          <SearchBox
+            id="userSearch"
+            label="Search"
+            value={search}
+            onChange={setSearch}
+            placeholder="Name, email, phone, role or organisation"
+          />
+
           {isSuperAdmin && (
             <div
               className="form-field"
@@ -279,9 +342,10 @@ export default function Users() {
             <button
               className="btn-outline"
               type="button"
-              onClick={() =>
-                setFilters({ ...DEFAULT_FILTERS, sort: filters.sort })
-              }
+              onClick={() => {
+                setFilters({ ...DEFAULT_FILTERS, sort: filters.sort });
+                setSearch("");
+              }}
             >
               Clear filters
             </button>
@@ -384,7 +448,24 @@ export default function Users() {
           users={users}
           organizations={organizations}
           isSuperAdmin={isSuperAdmin}
+          defaultOrgId={me.organization_id}
           onSave={handleSave}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {modal?.type === "import" && (
+        <BulkImportModal
+          emailDomain={myOrganisation?.email_domain || ""}
+          existing={users}
+          onClose={() => setModal(null)}
+          onDone={reloadUsers}
+        />
+      )}
+
+      {modal?.type === "credentials" && (
+        <CredentialsModal
+          {...modal.credentials}
           onClose={() => setModal(null)}
         />
       )}
@@ -398,7 +479,8 @@ export default function Users() {
           onClose={() => setModal(null)}
         >
           <p>
-            Delete <strong>{modal.user.name}</strong> from the User mock table?
+            Delete <strong>{modal.user.name}</strong>? They will no longer be
+            able to sign in.
           </p>
         </Modal>
       )}

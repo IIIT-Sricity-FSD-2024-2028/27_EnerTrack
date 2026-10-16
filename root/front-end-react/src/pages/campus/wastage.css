@@ -7,13 +7,6 @@
  * naming them here keeps the components short. The values are unchanged.
  */
 
-/* ── Header: the notification bell's box ── */
-.notif-container {
-  position: relative;
-  flex-shrink: 0;
-  margin-top: 8px;
-}
-
 /* ── A report card's top row: details left, status right ── */
 .card-row {
   display: flex;
@@ -481,4 +474,16 @@
 .photos-note {
   font-size: 13px;
   color: #6b7280;
+}
+
+/* Red message above "Log Wastage Report" (replaces the old alert popups) */
+.form-message {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid #fecdca;
+  border-radius: 8px;
+  background: #fef3f2;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
 }

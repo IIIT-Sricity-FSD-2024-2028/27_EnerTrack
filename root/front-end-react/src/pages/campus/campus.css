@@ -471,6 +471,10 @@ body {
   opacity: 1;
 }
 
+.eu-toast.error {
+  background: #b42318;
+}
+
 /* ── 12. Finished-report styles (Archives, later Wastage) ──
    From the <style> blocks in enduser_archives.html / enduser_wastage.html,
    where both pages define them identically. */
@@ -641,4 +645,53 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ── Report an Issue: clickable report cards, "viewing" mode, timeline ── */
+.ticket-card.selectable {
+  cursor: pointer;
+}
+
+.ticket-card.is-selected {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+}
+
+.new-report-link {
+  margin-top: 12px;
+  text-align: center;
+  padding: 10px 0;
+  cursor: pointer;
+  color: #059669;
+  font-weight: 600;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+
+.new-report-link:hover {
+  opacity: 0.7;
+}
+
+.new-report-link span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trail-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.trail-label strong {
+  color: #111827;
+}
+
+/* Greyed out while a report is being sent (Report an Issue and Report Wastage) */
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }

@@ -7,11 +7,19 @@
 
 export const PATHS = {
   landing: "/",
-  signIn: "/sign-in",
-  signUp: "/sign-up",
-  registerOrganisation: "/register-organisation",
+  // One page, two modes (sign in / register an organisation). See AuthPage.jsx.
+  signIn: "/auth",
+  registerOrganisation: "/auth?mode=register",
+  changePassword: "/change-password",
+  // Old addresses. They still work (bookmarks, emailed links) by redirecting.
+  legacy: {
+    signIn: "/sign-in",
+    signUp: "/sign-up",
+    registerOrganisation: "/register-organisation",
+  },
 
   admin: {
+    subscription: "/admin/subscription",
     users: "/admin/users",
     organizations: "/admin/organizations",
     plans: "/admin/plans",
@@ -140,11 +148,16 @@ export const NAV = {
     { label: "Pricing Plans", to: PATHS.admin.plans, roles: ["Super Admin"] },
     { label: "Revenue", to: PATHS.admin.revenue, roles: ["Super Admin"] },
     {
-      label: "EnerTrack Proposal",
+      label: "Audit & Proposal",
       to: PATHS.admin.proposals,
       roles: ["Organization Admin"],
     },
     { label: "Infrastructure", to: PATHS.admin.infrastructure },
+    {
+      label: "Your Plan",
+      to: PATHS.admin.subscription,
+      roles: ["Organization Admin"],
+    },
   ],
   finance: [
     { label: "Overview", to: PATHS.finance.overview },

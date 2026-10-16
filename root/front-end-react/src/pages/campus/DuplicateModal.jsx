@@ -11,7 +11,9 @@
  *   daysAgo    whole days since it was filed (worked out by the form when
  *              Submit is pressed: a component may not read the clock while
  *              it draws, or it could show a different result each time)
- *   onCancel   called by Cancel, or by clicking the dark background
+ *   onCancel   called by Cancel
+ *   onClose    called by clicking the dark background (just closes the
+ *              popup); falls back to onCancel when not given
  *   onConfirm  called by Submit Anyway
  *
  * Styles: wastage.css. Replaces the overlay built with innerHTML in
@@ -22,6 +24,7 @@ export default function DuplicateModal({
   duplicate,
   daysAgo,
   onCancel,
+  onClose,
   onConfirm,
 }) {
   let when = "today";
@@ -29,11 +32,11 @@ export default function DuplicateModal({
   if (daysAgo > 1) when = `${daysAgo} days ago`;
 
   return (
-    // The dark background. A click on it (but not on the white box) cancels.
+    // The dark background. A click on it (but not on the white box) closes.
     <div
       className="dup-overlay"
       onClick={(event) => {
-        if (event.target === event.currentTarget) onCancel();
+        if (event.target === event.currentTarget) (onClose || onCancel)();
       }}
     >
       <div className="dup-box">

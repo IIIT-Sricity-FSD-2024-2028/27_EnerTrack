@@ -7,6 +7,8 @@
  * there belong to the Infrastructure page, which is not part of these pages.)
  */
 
+import { emailOnDomain, validators } from "../auth/validators";
+
 // Every role a user can be given, in the order the dropdowns show them
 export const USER_ROLES = [
   "Organization Admin",
@@ -67,47 +69,28 @@ export function addToast(setToasts, message, type = "info") {
   }, 3000);
 }
 
-// Something@something.something
-export function isEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-// "" when the phone number is fine, otherwise what is wrong with it
-export function getPhoneError(phone) {
-  const number = String(phone || "").trim();
-
-  if (number.length === 0) return "Phone number is required.";
-  if (!/^[0-9]+$/.test(number)) return "Only digits are allowed.";
-  if (number.length !== 10) return "Phone number must be exactly 10 digits.";
-  if (number === "0000000000") return "Phone number cannot be all zeros.";
-  if (/^(\d)\1{9}$/.test(number)) {
-    return "Phone number cannot repeat the same digit.";
-  }
-  return "";
-}
-
 /**
  * Checks the Add / Edit User form. Returns { field: message } for every
- * field that is wrong, or {} when everything is fine.
+ * field that is wrong, or {} when everything is fine. Every text rule is the
+ * same regular expression the backend enforces (see auth/validators.js).
  *
- *   values     { name, email, phone, role, specialization, password }
- *              (already trimmed)
- *   users      every existing user, to catch a repeated email or phone
- *   editingId  the id of the user being edited, or null when adding;
- *              that user is skipped in the "already exists" checks
+ *   values       { name, email, phone, role, specialization, password }
+ *                (already trimmed)
+ *   users        every existing user, to catch a repeated email or phone
+ *   editingId    the id of the user being edited, or null when adding;
+ *                that user is skipped in the "already exists" checks
+ *   emailDomain  the organisation's required mail domain, or "" for none
  */
-export function getUserErrors(values, users, editingId) {
+export function getUserErrors(values, users, editingId, emailDomain = "") {
   const errors = {};
   const others = users.filter((user) => user.user_id !== editingId);
 
-  if (!values.name || values.name.length < 2) {
-    errors.name = "Enter a name with at least 2 characters.";
-  }
+  const nameError = validators.name(values.name);
+  if (nameError) errors.name = nameError;
 
-  if (!values.email) {
-    errors.email = "Email is required.";
-  } else if (!isEmail(values.email)) {
-    errors.email = "Enter a valid email address.";
+  const emailError = emailOnDomain(values.email, emailDomain);
+  if (emailError) {
+    errors.email = emailError;
   } else if (
     others.some(
       (user) => user.email.toLowerCase() === values.email.toLowerCase(),
@@ -116,7 +99,7 @@ export function getUserErrors(values, users, editingId) {
     errors.email = "A user with this email already exists.";
   }
 
-  const phoneError = getPhoneError(values.phone);
+  const phoneError = validators.phone(values.phone);
   if (phoneError) {
     errors.phone = phoneError;
   } else if (others.some((user) => user.phone && user.phone === values.phone)) {
@@ -124,21 +107,43 @@ export function getUserErrors(values, users, editingId) {
   }
 
   if (!USER_ROLES.includes(values.role)) {
-    errors.role = "Select a valid DB role.";
+    errors.role = "Select a valid role.";
   }
 
-  if (
-    TECHNICIAN_ROLES.includes(values.role) &&
-    values.specialization.length < 2
-  ) {
+  if (TECHNICIAN_ROLES.includes(values.role) && values.specialization === "") {
     errors.specialization = "Technician specialization is required.";
+  } else {
+    const specializationError = validators.specialization(
+      values.specialization,
+    );
+    if (specializationError) errors.specialization = specializationError;
   }
 
-  if (!values.password || values.password.length < 8) {
-    errors.password = editingId
-      ? "Password must be at least 8 characters."
-      : "Temporary password must be at least 8 characters.";
+  // A new account needs a password. When editing, a blank one means "leave it".
+  if (!editingId || values.password !== "") {
+    const passwordError = validators.password(values.password);
+    if (passwordError) errors.password = passwordError;
   }
 
   return errors;
+}
+
+/**
+ * Does a row match what was typed in a search box?
+ *
+ * Every word typed has to appear somewhere in the row (case-insensitive), so
+ * "priya admin" finds Priya Nair, Super Admin. An empty box matches everything.
+ * `fields` are the row's searchable values; blanks and nulls are ignored.
+ */
+export function matchesSearch(query, fields) {
+  const words = String(query || "")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return true;
+  const haystack = fields
+    .filter((value) => value !== null && value !== undefined)
+    .join(" ")
+    .toLowerCase();
+  return words.every((word) => haystack.includes(word));
 }

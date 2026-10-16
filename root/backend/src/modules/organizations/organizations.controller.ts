@@ -65,14 +65,9 @@ export class OrganizationsController {
   }
 
   /**
-   * The two public routes are grouped here, and both sit BEFORE @Get(":id")
-   * on purpose. Nest matches routes in declaration order, so a lower
-   * "/organizations/public" would be swallowed by the :id route and arrive
-   * as findOne("public").
-   *
-   * Neither carries @Roles, so RolesGuard lets them through
-   * unauthenticated — which they have to be, because the caller has no
-   * account yet. That is exactly why their shapes are kept minimal.
+   * Public on purpose: it carries no @Roles, so RolesGuard lets it through
+   * unauthenticated, because the caller has no account yet. It sits BEFORE
+   * @Get(":id") so route order can never swallow it.
    */
   @Post("register")
   @ApiOperation({
@@ -84,17 +79,6 @@ export class OrganizationsController {
   @ApiResponse({ status: 409, description: "Organisation name or email already registered." })
   registerSelfServe(@Body() dto: RegisterOrganizationDto) {
     return this.organizationsService.registerSelfServe(dto);
-  }
-
-  @Get("public")
-  @ApiOperation({
-    summary: "Public Organization Directory",
-    description:
-      "Returns id and name only, for the organisation selector on the sign-up page — the path for someone JOINING an organisation that already exists. Status, tariff rate, floor area and contract dates stay behind the authenticated findAll(). No authorization headers required.",
-  })
-  @ApiResponse({ status: 200, description: "Array of { organization_id, name }." })
-  listPublic() {
-    return this.organizationsService.listPublic();
   }
 
   @Get(":id")

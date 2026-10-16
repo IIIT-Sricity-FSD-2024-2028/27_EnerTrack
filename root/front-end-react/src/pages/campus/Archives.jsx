@@ -15,6 +15,7 @@ import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 import universalDB from "../../legacy/universalDB";
 import WastageArchiveCard from "./WastageArchiveCard";
+import { splitDescription } from "./serviceRequestHelpers";
 import campusCss from "./campus.css?inline";
 
 // Loads this user's archived items. Returns { wastage: [...], requests: [...] }.
@@ -66,11 +67,17 @@ async function fetchArchives(user) {
             (closedByStatus || closedByWorkOrder)
           );
         })
-        .map((sr) => ({
-          id: sr.service_request_id,
-          description: sr.description || "Service request",
-          priority: sr.priority || "medium",
-        }))
+        .map((sr) => {
+          const parts = splitDescription(sr.description);
+          return {
+            id: sr.service_request_id,
+            description: parts.description || "Service request",
+            location: parts.location,
+            issueType: sr.issue_type || parts.issueType,
+            priority: sr.priority || "medium",
+            timestamp: sr.created_at, // when it was filed (none on seeded rows)
+          };
+        })
         // The backend lists oldest first, so reverse it: newest on top
         .reverse();
     }
@@ -211,15 +218,15 @@ function ServiceRequestCard({ request }) {
             </strong>
             <span
               style={{
-                background: "#1f2937",
-                color: "white",
+                background: "#f3f4f6",
+                color: "#374151",
                 padding: "2px 8px",
                 borderRadius: "4px",
                 fontSize: "11px",
                 marginLeft: "8px",
               }}
             >
-              Service Request
+              {request.issueType || "Service Request"}
             </span>
           </div>
 
@@ -234,6 +241,25 @@ function ServiceRequestCard({ request }) {
             {request.description}
           </p>
 
+          {request.location && (
+            <div className="ticket-location">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              {request.location}
+            </div>
+          )}
+
           <div
             style={{
               marginTop: "6px",
@@ -246,10 +272,10 @@ function ServiceRequestCard({ request }) {
             <span className={`ticket-priority p-${priority}`}>
               {priority} Priority
             </span>
-            {/* Only local items carry a date; the backend sends none */}
+            {/* When the request was filed. Seeded requests have no date. */}
             {request.timestamp && (
               <span style={{ fontSize: "11px", color: "#9ca3af" }}>
-                Archived{" "}
+                Reported{" "}
                 {new Date(request.timestamp).toLocaleDateString("en-GB", {
                   day: "numeric",
                   month: "short",

@@ -12,7 +12,8 @@
  *   isSelected    true if this is the report open in the form (green border)
  *   onSelect      called with the report when the card is clicked
  *   onArchive     called with the report when Archive is clicked
- *   onAddComment  called with (report, text) when a comment is sent
+ *   onAddComment  called with (report, text) when a comment is sent;
+ *                 resolves to true when it was saved
  *
  * The card does not save anything itself: the parent (Wastage.jsx) does.
  * Styles: campus.css + wastage.css. Replaces the card part of
@@ -28,6 +29,10 @@ import {
 } from "./wastageHelpers";
 
 const FINISHED = ["Finalized", "Target Set", "Delivered"];
+
+// A report can be archived once it is over: finished, or dismissed by the
+// officer. A dismissed report has no results, so it is not "finished".
+const ARCHIVABLE = [...FINISHED, "Dismissed"];
 
 // Used when a report has no photo list. Defined once, here: a new [] made
 // on every render would look "changed" to the useEffect below and make it
@@ -96,17 +101,18 @@ export default function WastageCard({
   const priority = report.priority || "Low";
   const type = report.type.toLowerCase();
   const isFinished = FINISHED.includes(report.status);
+  const canArchive = ARCHIVABLE.includes(report.status);
   const impact = report.costImpact; // money figures from Finance, or null
   const target = report.metricTarget; // new target from the officer, or null
   const sensor = report.systemData || {}; // simulated sensor reading
   const comments = report.comments || [];
   const ret = impact ? getReturn(impact) : null;
 
-  function handleSend() {
+  async function handleSend() {
     const text = commentText.trim();
     if (!text) return;
-    onAddComment(report, text);
-    setCommentText("");
+    const saved = await onAddComment(report, text);
+    if (saved) setCommentText(""); // keep the text if saving failed
   }
 
   return (
@@ -320,8 +326,8 @@ export default function WastageCard({
         </div>
       )}
 
-      {/* ── Archive button (finished reports only) ── */}
-      {isFinished && (
+      {/* ── Archive button (finished or dismissed reports only) ── */}
+      {canArchive && (
         <button
           type="button"
           className="archive-btn"
@@ -371,8 +377,11 @@ export default function WastageCard({
             {comments.length === 0 ? (
               <p className="comments-empty">No comments yet.</p>
             ) : (
-              comments.map((comment, index) => (
-                <Comment key={index} comment={comment} />
+              comments.map((comment) => (
+                <Comment
+                  key={comment.timestamp + "-" + comment.author}
+                  comment={comment}
+                />
               ))
             )}
             <div className="comment-form">

@@ -70,7 +70,7 @@ export class EnergyCostsController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Financial Analyst")
   remove(@Param("id") id: string) {
     return this.energyCostsService.remove(id);
   }
