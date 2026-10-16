@@ -24,10 +24,11 @@ function getStepLook(stepNum, report) {
   const activeStep = status ? status.step : 2;
   const hint = status ? status.hint : "Your report is being processed.";
 
-  // Dismissed: steps 1-2 done, step 3 marked dismissed, the rest never reached
+  // Dismissed: step 1 done, step 2 (officer validation) marked dismissed,
+  // the rest never reached
   if (report.status === "Dismissed") {
-    if (stepNum < 3) return { dotClass: "done", note: "" };
-    if (stepNum === 3) {
+    if (stepNum < 2) return { dotClass: "done", note: "" };
+    if (stepNum === 2) {
       return {
         dotClass: "dismissed",
         note: "This report was dismissed by the officer.",
@@ -36,8 +37,9 @@ function getStepLook(stepNum, report) {
     return { dotClass: "pending", note: "" };
   }
 
-  // Delivered (step 6) is the end of the flow: every step is done
-  if (activeStep >= 6) return { dotClass: "done", note: "" };
+  // Delivered is the end of the flow: every step is done. (Finalized is
+  // also on step 6, but still waiting to be sent, so it shows as active.)
+  if (report.status === "Delivered") return { dotClass: "done", note: "" };
 
   if (stepNum < activeStep) return { dotClass: "done", note: "" };
   if (stepNum === activeStep) return { dotClass: "active", note: hint };

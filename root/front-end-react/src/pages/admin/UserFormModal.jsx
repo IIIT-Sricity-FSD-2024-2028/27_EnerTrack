@@ -289,7 +289,7 @@ export default function UserFormModal({
           <span className="field-error">{errors.specialization}</span>
         </div>
 
-        <div className="form-field">
+        <div className="form-field full">
           <label htmlFor={id.password}>
             {isEdit ? "Reset password (optional)" : "Temporary Password"}
           </label>
@@ -324,8 +324,8 @@ export default function UserFormModal({
           <span className="field-error">{errors.password}</span>
           <p className="muted-cell" style={{ marginTop: "6px" }}>
             8-32 characters with an uppercase letter, a lowercase letter, a
-            number and a special character. The person must replace it when
-            they first sign in.
+            number and a special character. The person must replace it when they
+            first sign in.
           </p>
         </div>
       </form>

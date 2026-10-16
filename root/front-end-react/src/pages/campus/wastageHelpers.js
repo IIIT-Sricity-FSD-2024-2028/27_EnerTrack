@@ -100,37 +100,37 @@ export const STATUS_MAP = {
     label: "Validated",
     cssClass: "status-validated",
     step: 3,
-    hint: "The Sustainability Officer has confirmed this as a genuine issue.",
+    hint: "The Sustainability Officer has confirmed this as a genuine issue. It goes to Finance next.",
   },
   "Forwarded to Finance": {
     label: "Under Finance Review",
     cssClass: "status-finance",
-    step: 4,
+    step: 3,
     hint: "Forwarded to the Finance Analyst for cost-impact assessment.",
   },
   "Cost Impact Added": {
     label: "Under Finance Review",
     cssClass: "status-finance",
-    step: 4,
+    step: 3,
     hint: "Finance is finalizing cost-impact figures for this report.",
   },
   "Returned to SO": {
     label: "Cost Assessed",
     cssClass: "status-cost-assessed",
     step: 4,
-    hint: "Finance has added cost data. The officer is preparing the final decision.",
+    hint: "Finance has added cost data. The officer is setting a reduction target.",
   },
   Finalized: {
     label: "Resolved",
     cssClass: "status-finalized",
-    step: 5,
-    hint: "The report has been fully resolved and archived.",
+    step: 6,
+    hint: "The officer has finalized the report and will send it to you shortly.",
   },
   "Target Set": {
     label: "Target Set",
     cssClass: "status-target-set",
     step: 5,
-    hint: "A new sustainability target was set based on your report.",
+    hint: "A new reduction target was set based on your report. The officer is finalizing the findings.",
   },
   Delivered: {
     label: "Report Delivered",
@@ -141,7 +141,7 @@ export const STATUS_MAP = {
   Dismissed: {
     label: "Dismissed",
     cssClass: "status-dismissed",
-    step: 3,
+    step: 2,
     hint: "The officer dismissed this report as not actionable.",
   },
 };
@@ -158,37 +158,39 @@ export function getStatusInfo(status) {
   );
 }
 
-// The six steps of the "Sustainability Audit Flow" timeline
+// The six steps of the "Sustainability Audit Flow" timeline, one per stage
+// of the backend workflow (see WastageAuditQueue.jsx). STATUS_MAP above
+// says which step each status is on.
 export const TIMELINE_STEPS = [
   {
     num: 1,
-    label: "Observation Logging",
-    desc: "You observe and document exactly where waste is happening.",
+    label: "Report Submitted",
+    desc: "You log where the waste is. The matching sensor reading is attached automatically.",
   },
   {
     num: 2,
-    label: "System Cross-Check",
-    desc: "We correlate your report with real-time IoT campus sensor data.",
+    label: "Officer Validation",
+    desc: "The Sustainability Officer checks it against the sensor data, then validates or dismisses it.",
   },
   {
     num: 3,
-    label: "Officer Audit",
-    desc: "Our Sustainability Officer validates and compiles the footprint report.",
+    label: "Finance Assessment",
+    desc: "A Finance Analyst works out the cost impact of the waste.",
   },
   {
     num: 4,
-    label: "Finance Review",
-    desc: "Analysts assign ROI impacts to justify process change.",
+    label: "Target Set",
+    desc: "The officer sets a new reduction target to stop the waste recurring.",
   },
   {
     num: 5,
-    label: "Target Adjusted",
-    desc: "Policy and process changes are finalized to prevent future waste.",
+    label: "Report Finalized",
+    desc: "The officer signs off the findings.",
   },
   {
     num: 6,
     label: "Report Delivered",
-    desc: "Detailed findings report sent back to you. Check My Wastage Logs.",
+    desc: "The findings report is sent back to you. Check My Wastage Logs.",
   },
 ];
 
