@@ -18,7 +18,7 @@
  *
  * Replaces the form half of js/enduser/wastage.js.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getBaselineRange } from "../../legacy/sensorSimulator";
 import DuplicateModal from "./DuplicateModal";
 import {
@@ -74,6 +74,11 @@ export default function WastageForm({
   const [form, setForm] = useState(loadDraft);
   // Which fields failed validation: { "Energy-building": true, ... }
   const [errors, setErrors] = useState({});
+  // True while a report is being sent, so a double-click (on Log Wastage
+  // Report or on the popup's Submit Anyway) sends only one. The ref blocks a
+  // second click at once; the state greys out the button.
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
   // Chosen photo files. A file input cannot be controlled by React, so we
   // only read from it; changing fileInputKey gives a fresh, empty one.
   const [photos, setPhotos] = useState([]);
@@ -121,6 +126,7 @@ export default function WastageForm({
 
   async function handleSubmit(event) {
     event.preventDefault(); // stop the browser reloading the page
+    if (submittingRef.current) return; // the first click is still sending
     if (!type) return; // no category chosen yet
     setMessage("");
 
@@ -193,7 +199,16 @@ export default function WastageForm({
   // Hand the values to the parent, then start a fresh form. The parent
   // returns false when the report was refused: then keep what was typed.
   async function sendReport(values) {
-    const saved = await onSubmit(values);
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    let saved;
+    try {
+      saved = await onSubmit(values);
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
     if (saved === false) return;
     setForm(EMPTY_FORM);
     setErrors({});
@@ -379,7 +394,11 @@ export default function WastageForm({
             )}
 
             {!viewing && (
-              <button type="submit" className="btn-submit">
+              <button
+                type="submit"
+                className="btn-submit"
+                disabled={submitting}
+              >
                 <svg
                   width="18"
                   height="18"

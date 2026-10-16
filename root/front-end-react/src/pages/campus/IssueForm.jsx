@@ -13,7 +13,7 @@
  *
  * Replaces the form half of the old js/enduser/enduser.js.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getStatusInfo } from "./serviceRequestHelpers";
 
 // sessionStorage key for the half-typed draft (same key the old page used)
@@ -62,6 +62,10 @@ export default function IssueForm({
   const [form, setForm] = useState(loadDraft);
   // Which required fields failed validation: { location: true, ... }
   const [errors, setErrors] = useState({});
+  // True while a submit is in flight, so a double-click sends only one report.
+  // The ref blocks a second click at once; the state greys out the button.
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Save the draft every time the form changes
   useEffect(() => {
@@ -100,6 +104,7 @@ export default function IssueForm({
 
   async function handleSubmit(event) {
     event.preventDefault(); // stop the browser reloading the page
+    if (submittingRef.current) return; // the first click is still sending
     if (viewing) return;
 
     // The form has noValidate, so the browser's popup never shows: this
@@ -111,12 +116,20 @@ export default function IssueForm({
     setErrors(newErrors);
     if (newErrors.location || newErrors.description) return;
 
-    const saved = await onSubmit({
-      location: form.location.trim(),
-      issueType: form.issueType,
-      priority: form.priority,
-      description: form.description.trim(),
-    });
+    submittingRef.current = true;
+    setSubmitting(true);
+    let saved;
+    try {
+      saved = await onSubmit({
+        location: form.location.trim(),
+        issueType: form.issueType,
+        priority: form.priority,
+        description: form.description.trim(),
+      });
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
 
     // The parent returns false when the report was refused: keep the text
     // so the visitor does not have to type it all again.
@@ -223,7 +236,11 @@ export default function IssueForm({
             </div>
 
             {!viewing && (
-              <button type="submit" className="btn-submit">
+              <button
+                type="submit"
+                className="btn-submit"
+                disabled={submitting}
+              >
                 <svg
                   width="18"
                   height="18"
