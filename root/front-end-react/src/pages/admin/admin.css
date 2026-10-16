@@ -336,7 +336,9 @@ body {
 /* ── 8. Form fields (in modals and the filter bar) ── */
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr), not 1fr: a plain 1fr column will not shrink below its
+     widest field, so long fields pushed the second column out of the popup */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -345,6 +347,7 @@ body {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 14px;
+  min-width: 0; /* let the field shrink with its column */
 }
 
 /* A field that spans both columns of .form-grid */
@@ -360,6 +363,7 @@ body {
 
 .form-field input,
 .form-field select {
+  width: 100%;
   min-height: 40px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
