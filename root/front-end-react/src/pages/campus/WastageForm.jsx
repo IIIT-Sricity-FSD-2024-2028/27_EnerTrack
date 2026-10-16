@@ -127,7 +127,11 @@ export default function WastageForm({
   async function handleSubmit(event) {
     event.preventDefault(); // stop the browser reloading the page
     if (submittingRef.current) return; // the first click is still sending
-    if (!type) return; // no category chosen yet
+    // No category chosen yet: mark the dropdown red and stop
+    if (!type) {
+      setErrors({ type: true });
+      return;
+    }
     setMessage("");
 
     // 1. Required fields: every field of the chosen category, after trimming
@@ -152,23 +156,26 @@ export default function WastageForm({
     });
     if (type === "Food") specificData.estimatedAmount = valueOf("estimate");
     const reported = Number(valueOf("estimate"));
-    if (Number.isFinite(reported) && reported > 0) {
-      specificData.reportedValue = reported;
-      specificData.reportedUnit = baseline.unit;
-    }
 
-    // 4. The estimate must be at least half the typical (baseline) minimum
-    if (!specificData.reportedValue) {
+    // 4. The estimate must be a number of at least half the typical
+    // (baseline) minimum. Zero and negative values fail the same check, so
+    // they get the same message as any other too-small estimate.
+    const estimateError = { [`${type}-estimate`]: true };
+    if (!Number.isFinite(reported)) {
+      setErrors(estimateError);
       setMessage("Please enter an estimated wastage value before submitting.");
       return;
     }
     const minimum = baseline.min * 0.5;
     if (reported < minimum) {
+      setErrors(estimateError);
       setMessage(
         `This form cannot be accepted. Entered estimate (${reported} ${baseline.unit}) is below 50% of baseline (${minimum} ${baseline.unit}).`,
       );
       return;
     }
+    specificData.reportedValue = reported;
+    specificData.reportedUnit = baseline.unit;
 
     const values = { type, priority, specificData, photos };
 
@@ -210,8 +217,14 @@ export default function WastageForm({
       setSubmitting(false);
     }
     if (saved === false) return;
+    resetForm();
+  }
+
+  // Back to a blank form: fields, red borders, message and chosen photos
+  function resetForm() {
     setForm(EMPTY_FORM);
     setErrors({});
+    setMessage("");
     setPhotos([]);
     setFileInputKey(fileInputKey + 1);
   }
@@ -238,7 +251,10 @@ export default function WastageForm({
         </div>
 
         <div className="report-card-body">
-          <form onSubmit={handleSubmit}>
+          {/* noValidate: the browser's own "Please fill in this field" popup
+              is off, so handleSubmit's checks run and mark every empty
+              field in red */}
+          <form onSubmit={handleSubmit} noValidate>
             {/* 1. Category */}
             <div className="form-group">
               <label htmlFor="wastageType">Wastage Category</label>
@@ -246,6 +262,7 @@ export default function WastageForm({
                 id="wastageType"
                 name="type"
                 required
+                className={errors.type ? "error-highlight" : ""}
                 disabled={viewing}
                 value={type}
                 onChange={handleChange}
@@ -441,14 +458,18 @@ export default function WastageForm({
         </div>
       )}
 
-      {/* The popup lives here: Cancel keeps everything typed, Submit Anyway
-          sends and resets */}
+      {/* The popup lives here: Cancel clears the form, Submit Anyway sends
+          and resets, a click on the dark background just closes it */}
       {duplicate && (
         <DuplicateModal
           type={type}
           duplicate={duplicate.report}
           daysAgo={duplicate.daysAgo}
-          onCancel={() => setDuplicate(null)}
+          onCancel={() => {
+            setDuplicate(null);
+            resetForm();
+          }}
+          onClose={() => setDuplicate(null)}
           onConfirm={() => {
             const values = duplicate.values;
             setDuplicate(null);

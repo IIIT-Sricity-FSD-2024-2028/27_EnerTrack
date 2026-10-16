@@ -29,6 +29,10 @@ import {
 
 const FINISHED = ["Finalized", "Target Set", "Delivered"];
 
+// A report can be archived once it is over: finished, or dismissed by the
+// officer. A dismissed report has no results, so it is not "finished".
+const ARCHIVABLE = [...FINISHED, "Dismissed"];
+
 // Used when a report has no photo list. Defined once, here: a new [] made
 // on every render would look "changed" to the useEffect below and make it
 // run again and again.
@@ -96,6 +100,7 @@ export default function WastageCard({
   const priority = report.priority || "Low";
   const type = report.type.toLowerCase();
   const isFinished = FINISHED.includes(report.status);
+  const canArchive = ARCHIVABLE.includes(report.status);
   const impact = report.costImpact; // money figures from Finance, or null
   const target = report.metricTarget; // new target from the officer, or null
   const sensor = report.systemData || {}; // simulated sensor reading
@@ -320,8 +325,8 @@ export default function WastageCard({
         </div>
       )}
 
-      {/* ── Archive button (finished reports only) ── */}
-      {isFinished && (
+      {/* ── Archive button (finished or dismissed reports only) ── */}
+      {canArchive && (
         <button
           type="button"
           className="archive-btn"
