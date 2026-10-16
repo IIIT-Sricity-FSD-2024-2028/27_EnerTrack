@@ -1,7 +1,9 @@
 /**
  * InvoicesSection — the "Utility Invoices" box on the Reports page:
  * summary tiles, filters, table, and every invoice action
- * (view, add, edit, attach PDF, approve, archive, delete).
+ * (view, add, edit, attach PDF, view PDF, archive, delete).
+ * There is no approve step: the Financial Analyst creates the invoice, and
+ * marks it Paid (or Overdue) through Edit.
  *
  * It owns the invoice list in state and loads it with useEffect.
  * `modal` remembers which dialog is open: { kind: "edit", invoice }.
@@ -16,6 +18,7 @@ import { loadInvoices, normalizeInvoice, saveLocalFinance } from "../financeApi"
 import { can, formatCurrency, formatDate, generateId } from "../financeUtils";
 import AttachDocumentModal from "./AttachDocumentModal";
 import InvoiceFormModal from "./InvoiceFormModal";
+import InvoicePdfModal from "./InvoicePdfModal";
 import InvoiceViewModal from "./InvoiceViewModal";
 
 export default function InvoicesSection({ departments }) {
@@ -100,15 +103,11 @@ export default function InvoicesSection({ departments }) {
     showToast("Invoice updated.", "success");
   }
 
-  async function handleApprove(inv) {
-    const ok = await callApi(
-      () => api.patch(`/invoices/${inv.id}`, { status: "approved", approved_by_id: user.user_id }),
-      "Failed to approve invoice",
+  /** After a PDF upload: swap in the updated invoice so "View PDF" appears. */
+  function handleUploaded(saved) {
+    updateList(
+      invoices.map((i) => (i.id === saved.invoice_id ? normalizeInvoice({ ...i, ...saved }) : i)),
     );
-    if (!ok) return;
-    updateList(invoices.map((i) => (i.id === inv.id ? { ...i, status: "approved", approvedBy: user.name } : i)));
-    setModal(null);
-    showToast(`Invoice ${inv.invoiceNumber} approved.`, "success");
   }
 
   async function handleArchive(inv) {
@@ -157,7 +156,7 @@ export default function InvoicesSection({ departments }) {
         )}
       </div>
       <div className="section-sub">
-        Approve, edit, or delete utility invoices. Pending invoices require approval.
+        Add, edit, or delete utility invoices. Mark an invoice Paid through Edit once it has been settled.
       </div>
 
       <div className="summary-tiles">
@@ -166,7 +165,7 @@ export default function InvoicesSection({ departments }) {
           <div className="tile-value">{formatCurrency(total)}</div>
         </div>
         <div className="tile">
-          <div className="tile-label">Pending Approval</div>
+          <div className="tile-label">Pending Payment</div>
           <div className="tile-value">{pendingCount}</div>
         </div>
         <div className="tile">
@@ -179,7 +178,7 @@ export default function InvoicesSection({ departments }) {
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="all">All Statuses</option>
           <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
+          <option value="paid">Paid</option>
           <option value="overdue">Overdue</option>
         </select>
         <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
@@ -230,10 +229,10 @@ export default function InvoicesSection({ departments }) {
                       {can(role, "edit") && (
                         <button className="action-btn" onClick={() => setModal({ kind: "attach", invoice: inv })}>Attach PDF</button>
                       )}
-                      {can(role, "approve") && inv.status === "pending" && (
-                        <button className="action-btn btn-approve" onClick={() => setModal({ kind: "approve", invoice: inv })}>Approve</button>
+                      {inv.documentName && (
+                        <button className="action-btn" onClick={() => setModal({ kind: "pdf", invoice: inv })}>View PDF</button>
                       )}
-                      {inv.status === "approved" && (
+                      {inv.status === "paid" && (
                         <button className="action-btn btn-export" onClick={() => setModal({ kind: "archive", invoice: inv })}>Archive</button>
                       )}
                     </div>
@@ -270,16 +269,11 @@ export default function InvoicesSection({ departments }) {
         />
       )}
 
-      {modal?.kind === "attach" && <AttachDocumentModal invoice={modal.invoice} onClose={() => setModal(null)} />}
-
-      {modal?.kind === "approve" && (
-        <Modal title="Approve Invoice" confirmLabel="Approve" onConfirm={() => handleApprove(modal.invoice)} onClose={() => setModal(null)}>
-          <p>
-            Approve <strong>{modal.invoice.invoiceNumber}</strong> from <strong>{modal.invoice.vendor}</strong> for{" "}
-            <strong>{formatCurrency(modal.invoice.amount)}</strong>?
-          </p>
-        </Modal>
+      {modal?.kind === "attach" && (
+        <AttachDocumentModal invoice={modal.invoice} onUploaded={handleUploaded} onClose={() => setModal(null)} />
       )}
+
+      {modal?.kind === "pdf" && <InvoicePdfModal invoice={modal.invoice} onClose={() => setModal(null)} />}
 
       {modal?.kind === "archive" && (
         <Modal title="Archive Invoice" confirmLabel="Archive" onConfirm={() => handleArchive(modal.invoice)} onClose={() => setModal(null)}>

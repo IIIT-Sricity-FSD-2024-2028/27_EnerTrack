@@ -22,7 +22,7 @@ export default function InvoiceViewModal({ invoice, archived = false, onClose })
         <div><strong>Issued</strong><p>{formatDate(invoice.issuedDate)}</p></div>
         <div><strong>Due Date</strong><p>{formatDate(invoice.dueDate)}</p></div>
         <div><strong>Status</strong><p><Badge status={invoice.status} /></p></div>
-        <div><strong>Approved By</strong><p>{invoice.approvedBy ?? "—"}</p></div>
+        <div><strong>Attached PDF</strong><p>{invoice.documentName ?? "None"}</p></div>
       </div>
     </Modal>
   );

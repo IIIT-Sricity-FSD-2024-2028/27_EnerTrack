@@ -187,8 +187,11 @@ export function normalizeInvoice(inv) {
     type: inv.type || "utility",
     dueDate: inv.due_date || inv.dueDate || null,
     issuedDate: inv.issued_date || inv.issuedDate || null,
-    status: inv.status || "pending",
-    approvedBy: inv.approvedBy || inv.approved_by_id || null,
+    // The Financial Analyst creates invoices, so there is no separate approval
+    // step: older invoices saved as "approved" are shown as "paid".
+    status: inv.status === "approved" ? "paid" : inv.status || "pending",
+    // Name of the attached PDF (set by POST /invoices/:id/document), or null.
+    documentName: inv.document_original_name || inv.documentName || null,
     archived: inv.archived === true || inv.archived === "true",
   };
 }
