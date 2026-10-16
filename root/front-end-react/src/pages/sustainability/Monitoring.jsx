@@ -336,7 +336,7 @@ export default function SustainabilityMonitoring() {
         {/* GROUPED BARS CHART */}
         <div className="chart-container" id="trendsChart">
           {chartBars.map((item, idx) => (
-            <div key={idx} className="chart-group">
+            <div key={item.label || idx} className="chart-group">
               <div
                 className="bar energy"
                 style={{ height: `${item.energy * 2.2}px` }}
@@ -364,7 +364,7 @@ export default function SustainabilityMonitoring() {
         {/* LABELS */}
         <div className="chart-labels">
           {chartBars.map((item, idx) => (
-            <span key={idx}>{item.label}</span>
+            <span key={item.label || idx}>{item.label}</span>
           ))}
         </div>
 

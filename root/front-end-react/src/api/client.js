@@ -163,4 +163,11 @@ const api = {
   getBlobUrl: _apiFetchBlobUrl,
 };
 
+/**
+ * Checks whether an error is due to network failure / unreachable backend.
+ */
+export function isNetworkError(error) {
+  return String(error?.message || "").startsWith("Cannot reach server");
+}
+
 export default api;

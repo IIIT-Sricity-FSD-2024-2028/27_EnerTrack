@@ -17,7 +17,7 @@ import { statusFromRoi, statusFromVariance } from "./financeUtils";
 
 /* ── OFFLINE HELPERS ──────────────────────────────── */
 
-function isNetworkError(error) {
+export function isNetworkError(error) {
   return String(error?.message || "").startsWith("Cannot reach server");
 }
 

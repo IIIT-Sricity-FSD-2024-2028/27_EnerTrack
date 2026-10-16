@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import api from "../../api/client";
+import api, { isNetworkError } from "../../api/client";
+import { useAuth } from "../../auth/useAuth";
 import overviewCss from "../../styles/sustainability_officer/sust_overview.css?inline";
 import sharedCss from "../../styles/sustainability_officer/sust_shared.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
@@ -79,6 +80,15 @@ const DEMO_WASTAGE = [
 ];
 
 export default function SustainabilityArchives() {
+  const { user } = useAuth();
+  const canDeleteReport = user?.role === "Organization Admin";
+  const canDeleteInitiative =
+    user?.role === "Organization Admin" ||
+    user?.role === "Sustainability Officer";
+  const canManageWastage =
+    user?.role === "Organization Admin" ||
+    user?.role === "Sustainability Officer";
+
   const [activeTab, setActiveTab] = useState("reports"); // 'reports' | 'initiatives' | 'wastage'
   const [searchQuery, setSearchQuery] = useState("");
   const [reports, setReports] = useState(DEMO_REPORTS);
@@ -170,43 +180,91 @@ export default function SustainabilityArchives() {
 
   // Remove report
   const handleRemoveReport = async (reportId) => {
-    setReports((prev) =>
-      prev.filter((r) => (r.report_id || r.id) !== reportId),
-    );
     try {
       await api.delete(`/sustainability-reports/${reportId}`);
-      showToast("Report removed from compliance ledger.");
+      setReports((prev) =>
+        prev.filter((r) => (r.report_id || r.id) !== reportId),
+      );
+      showToast("Report removed from compliance ledger.", "success");
     } catch (e) {
-      console.warn("[Archive Delete]", e);
-      showToast("Report removed locally.", "info");
+      console.error("[Archive Delete]", e);
+      if (isNetworkError(e)) {
+        setReports((prev) =>
+          prev.filter((r) => (r.report_id || r.id) !== reportId),
+        );
+        showToast("Server offline. Report removed locally.", "warning");
+      } else {
+        showToast(e.message || "Failed to remove report", "error");
+      }
     }
   };
 
   // Remove initiative
   const handleRemoveInitiative = async (initId) => {
-    setInitiatives((prev) =>
-      prev.filter((i) => (i.initiative_id || i.id) !== initId),
-    );
     try {
       await api.delete(`/initiatives/${initId}`);
-      showToast("Initiative removed from archive.");
+      setInitiatives((prev) =>
+        prev.filter((i) => (i.initiative_id || i.id) !== initId),
+      );
+      // Clean up local storage if present
+      try {
+        const raw = localStorage.getItem("enertrack_universal_v1");
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data.sust?.initiativeArchives) {
+            data.sust.initiativeArchives = data.sust.initiativeArchives.filter(
+              (i) => i.id !== initId,
+            );
+            localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
+          }
+        }
+      } catch (err) {
+        console.warn(err);
+      }
+      showToast("Initiative removed from archive.", "success");
     } catch (e) {
-      console.warn("[Archive Delete]", e);
-      showToast("Initiative removed locally.", "info");
+      console.error("[Archive Delete]", e);
+      if (isNetworkError(e)) {
+        setInitiatives((prev) =>
+          prev.filter((i) => (i.initiative_id || i.id) !== initId),
+        );
+        try {
+          const raw = localStorage.getItem("enertrack_universal_v1");
+          if (raw) {
+            const data = JSON.parse(raw);
+            if (data.sust?.initiativeArchives) {
+              data.sust.initiativeArchives = data.sust.initiativeArchives.filter(
+                (i) => i.id !== initId,
+              );
+              localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
+            }
+          }
+        } catch (err) {
+          console.warn(err);
+        }
+        showToast("Server offline. Initiative removed locally.", "warning");
+      } else {
+        showToast(e.message || "Failed to remove initiative", "error");
+      }
     }
   };
 
   // Remove wastage archive
   const handleRemoveWastage = async (wastageId) => {
-    setWastage((prev) => prev.filter((w) => w.id !== wastageId));
     try {
       await api.patch(`/wastage-reports/${wastageId}`, {
         details: { soArchived: false, status: "Investigating" },
       });
-      showToast(`Wastage record #${wastageId} removed from archive.`);
+      setWastage((prev) => prev.filter((w) => w.id !== wastageId));
+      showToast(`Wastage record #${wastageId} removed from archive.`, "success");
     } catch (e) {
-      console.warn("[Wastage Unarchive]", e);
-      showToast(`Wastage #${wastageId} removed locally.`, "info");
+      console.error("[Wastage Unarchive]", e);
+      if (isNetworkError(e)) {
+        setWastage((prev) => prev.filter((w) => w.id !== wastageId));
+        showToast(`Server offline. Wastage #${wastageId} removed locally.`, "warning");
+      } else {
+        showToast(e.message || `Failed to remove wastage #${wastageId}`, "error");
+      }
     }
   };
 
@@ -485,21 +543,23 @@ export default function SustainabilityArchives() {
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => handleRemoveReport(rId)}
-                      style={{
-                        background: "none",
-                        border: "1px solid #ef4444",
-                        color: "#ef4444",
-                        padding: "5px 10px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Delete Archive
-                    </button>
+                    {canDeleteReport && (
+                      <button
+                        onClick={() => handleRemoveReport(rId)}
+                        style={{
+                          background: "none",
+                          border: "1px solid #ef4444",
+                          color: "#ef4444",
+                          padding: "5px 10px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Delete Archive
+                      </button>
+                    )}
                   </div>
 
                   {/* Impact Grid */}
@@ -712,21 +772,23 @@ export default function SustainabilityArchives() {
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => handleRemoveInitiative(iId)}
-                      style={{
-                        background: "none",
-                        border: "1px solid #ef4444",
-                        color: "#ef4444",
-                        padding: "5px 10px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Delete Archive
-                    </button>
+                    {canDeleteInitiative && (
+                      <button
+                        onClick={() => handleRemoveInitiative(iId)}
+                        style={{
+                          background: "none",
+                          border: "1px solid #ef4444",
+                          color: "#ef4444",
+                          padding: "5px 10px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Delete Archive
+                      </button>
+                    )}
                   </div>
 
                   {Array.isArray(i.outcomes) && i.outcomes.length > 0 && (
@@ -862,21 +924,23 @@ export default function SustainabilityArchives() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleRemoveWastage(w.id)}
-                      style={{
-                        background: "none",
-                        border: "1px solid #ef4444",
-                        color: "#ef4444",
-                        padding: "5px 10px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Delete Archive
-                    </button>
+                    {canManageWastage && (
+                      <button
+                        onClick={() => handleRemoveWastage(w.id)}
+                        style={{
+                          background: "none",
+                          border: "1px solid #ef4444",
+                          color: "#ef4444",
+                          padding: "5px 10px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Delete Archive
+                      </button>
+                    )}
                   </div>
 
                   {/* Decision Summary Box */}
