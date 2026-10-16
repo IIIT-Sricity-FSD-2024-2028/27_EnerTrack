@@ -178,6 +178,7 @@ export class UsersService {
     if (index === -1 || !assertTenantOwns(this.database.users[index]))
       throw new NotFoundException(`User with ID ${id} not found`);
     this.assertMayAssignRole(putDto.role);
+    this.database.revokeSessions(id);
     this.database.users[index] = {
       user_id: id,
       ...putDto,
@@ -206,6 +207,15 @@ export class UsersService {
     const organization_id =
       current.organization_id ?? updateDto.organization_id ?? null;
 
+    // A new role, organisation or password ends the sessions the account
+    // already had, so they cannot keep acting with the old ones.
+    if (
+      (updateDto.role && updateDto.role !== current.role) ||
+      organization_id !== current.organization_id ||
+      updateDto.password
+    )
+      this.database.revokeSessions(id);
+
     this.database.users[index] = {
       ...current,
       ...updateDto,
@@ -222,6 +232,7 @@ export class UsersService {
     const index = this.database.users.findIndex((item) => item.user_id === id);
     if (index === -1 || !assertTenantOwns(this.database.users[index]))
       throw new NotFoundException(`User with ID ${id} not found`);
+    this.database.revokeSessions(id);
     const removed = this.database.users.splice(index, 1);
     return this.withoutPassword(removed[0]);
   }
@@ -290,6 +301,8 @@ export class UsersService {
       throw new BadRequestException('Choose a password different from the current one');
     user.password = hashPassword(newPassword);
     user.must_change_password = false;
+    // Signs out every other session; the token returned below is newer.
+    this.database.revokeSessions(user.user_id);
     const { password: _pw, ...safeUser } = user;
     return { ...safeUser, must_change_password: false, token: signToken(user) };
   }
@@ -357,6 +370,7 @@ export class UsersService {
         );
     }
 
+    this.database.revokeSessions(user.user_id);
     this.database.users.splice(this.database.users.indexOf(user), 1);
     return { deleted: true };
   }
@@ -411,7 +425,11 @@ export class UsersService {
    * leaves a record naming both parties, which is the part that actually
    * matters for a support tool.
    */
-  impersonate(targetUserId: string, actor: string | null) {
+  impersonate(targetUserId: string, actorId: string | null) {
+    const caller = actorId
+      ? this.database.users.find((u) => u.user_id === actorId)
+      : undefined;
+    const actor = caller ? caller.name : null;
     const target = this.database.users.find((u) => u.user_id === targetUserId);
     if (!target)
       throw new NotFoundException(`User with ID ${targetUserId} not found`);

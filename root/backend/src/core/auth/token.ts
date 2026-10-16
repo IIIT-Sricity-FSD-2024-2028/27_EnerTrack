@@ -17,6 +17,9 @@ export interface TokenClaims {
   role: string;
   /** organization_id; absent for EnerTrack staff, who have no organisation. */
   org?: string;
+  /** When it was issued, in milliseconds (iat is only whole seconds). */
+  iat_ms?: number;
+  iat?: number;
 }
 
 export function signToken(user: {
@@ -28,6 +31,7 @@ export function signToken(user: {
     sub: user.user_id,
     role: user.role,
     ...(user.organization_id ? { org: user.organization_id } : {}),
+    iat_ms: Date.now(),
   };
   return jwt.sign(claims, SECRET, {
     algorithm: "HS256",

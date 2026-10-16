@@ -8,6 +8,7 @@ import {
   Param,
   Delete,
   Put,
+  Headers,
 } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
@@ -42,7 +43,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'Act as Another User',
     description:
-      "Returns another user's session so a Super Admin can see the product as they see it. Same shape as login, so the client can drop it straight into the session it already holds. Every call is written to the activity log naming both parties. This is a support tool, not a security boundary: authorisation here is a client-supplied x-role header with no token, so the capability already exists to anyone with devtools — this route makes it deliberate, logged and one click.",
+      "Returns another user's session so a Super Admin can see the product as they see it. Same shape as login, so the client can drop it straight into the session it already holds. Every call is written to the activity log naming both parties. This is a support tool, not a security boundary: the caller must hold a signed Super Admin token, and the log entry names that caller.",
   })
   @ApiResponse({ status: 200, description: 'Returns the target user record (without password).' })
   @ApiResponse({ status: 404, description: 'User with the given ID not found.' })
@@ -53,8 +54,10 @@ export class UsersController {
     required: false,
   })
   @Roles('Super Admin')
-  impersonate(@Param('id') id: string, @Body() body: { actor?: string }) {
-    return this.usersService.impersonate(id, body?.actor ?? null);
+  impersonate(@Param('id') id: string, @Headers('x-user-id') callerId?: string) {
+    // The log names the signed-in caller (set by AuthMiddleware from the
+    // token), never a name the client sends.
+    return this.usersService.impersonate(id, callerId ?? null);
   }
 
   @Post('signup')

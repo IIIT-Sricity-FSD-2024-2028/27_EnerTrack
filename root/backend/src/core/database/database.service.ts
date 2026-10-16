@@ -847,6 +847,19 @@ function buildMonthlyUtilityReadings(): MeterReading[] {
 @Injectable({ scope: Scope.DEFAULT })
 export class DatabaseService {
   /**
+   * When each user's existing sign-ins stopped counting, in milliseconds, by
+   * user_id. A token issued before this moment is refused (AuthMiddleware),
+   * so deleting an account, changing its role or organisation, or changing
+   * its password signs out every session it already had.
+   */
+  public sessionsRevokedAt: Record<string, number> = {};
+
+  /** Ends every session the user currently holds. */
+  revokeSessions(userId: string) {
+    this.sessionsRevokedAt[userId] = Date.now();
+  }
+
+  /**
    * Client organisations (tenants). org-001 owns all of the original
    * single-campus demo data; org-002 is a second live client used to prove
    * tenant isolation; org-003 is a prospect that has not been onboarded yet.

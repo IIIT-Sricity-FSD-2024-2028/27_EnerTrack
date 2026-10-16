@@ -220,8 +220,10 @@ export class OrganizationsService {
     // listed and still able to sign in). Removed in place, from the end, so
     // the shared users array keeps its identity.
     for (let i = this.database.users.length - 1; i >= 0; i--) {
-      if (this.database.users[i].organization_id === id)
+      if (this.database.users[i].organization_id === id) {
+        this.database.revokeSessions(this.database.users[i].user_id);
         this.database.users.splice(i, 1);
+      }
     }
 
     const removed = this.database.organizations.splice(index, 1);

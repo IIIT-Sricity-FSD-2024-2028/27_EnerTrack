@@ -361,10 +361,14 @@ describe('Subscription model (e2e)', () => {
     });
 
     it('writes the switch to the activity log, naming both parties', async () => {
+      // The actor is whoever is signed in, so sign in as Priya for real.
+      const priya = await request(server())
+        .post('/api/users/login')
+        .send({ email: 'priya@enertrack.com', password: 'Priya@123' })
+        .expect(201);
       await request(server())
         .post(`/api/users/${husaam}/impersonate`)
-        .set('x-role', 'Super Admin')
-        .send({ actor: 'Priya Nair' })
+        .set('Authorization', `Bearer ${(priya.body.data ?? priya.body).token}`)
         .expect(201);
 
       const logs = await request(server())
@@ -372,9 +376,9 @@ describe('Subscription model (e2e)', () => {
         .set('x-role', 'Super Admin')
         .expect(200);
 
-      const entry = logs.body.data.find(
-        (l: any) => l.action_type === 'impersonation',
-      );
+      const entry = logs.body.data
+        .filter((l: any) => l.action_type === 'impersonation')
+        .find((l: any) => l.title.includes('Priya Nair'));
       expect(entry).toBeDefined();
       expect(entry.title).toContain('Priya Nair');
       expect(entry.title).toContain('Husaam');

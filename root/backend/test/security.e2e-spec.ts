@@ -9,6 +9,7 @@ import { AllExceptionsFilter } from '../src/core/filters/all-exceptions.filter';
 import { TransformInterceptor } from '../src/core/interceptors/transform.interceptor';
 import { RolesGuard } from '../src/core/guards/roles.guard';
 import { DatabaseService } from '../src/core/database/database.service';
+import { hashPassword } from '../src/core/auth/passwords';
 
 /**
  * Who you are comes from a signed token, never from a header you typed.
@@ -211,6 +212,105 @@ describe('Security (e2e)', () => {
       expect(staff.status).toBe(201);
       expect(body(staff).token).toEqual(expect.any(String));
       expect(body(staff).password).toBeUndefined();
+    });
+  });
+
+  describe('revoked sessions', () => {
+    const PASS = 'Rev0ke@Pass1';
+    let n = 0;
+    /** A real account with a known password, and the token its sign-in returns. */
+    const signedIn = async () => {
+      n += 1;
+      const db = app.get(DatabaseService);
+      const user = {
+        user_id: `revoke-${Date.now()}-${n}`,
+        name: 'Revoke Test',
+        email: `revoke${Date.now()}${n}@gmail.com`,
+        role: 'Financial Analyst',
+        organization_id: 'org-001',
+        password: hashPassword(PASS),
+        must_change_password: false,
+      };
+      db.users.push(user as any);
+      const token = body(await login(user.email, PASS)).token as string;
+      return { user, token };
+    };
+    const status = async (token: string) =>
+      (await http().get('/api/users').set('Authorization', `Bearer ${token}`)).status;
+    const superAdmin = async () => body(await login('priya@enertrack.com', 'Priya@123'));
+
+    it('refuses the token of an account that was deleted', async () => {
+      const { user, token } = await signedIn();
+      expect(await status(token)).not.toBe(401);
+      const admin = await superAdmin();
+      const del = await http().delete(`/api/users/${user.user_id}`).set('Authorization', `Bearer ${admin.token}`);
+      expect(del.status).toBe(200);
+      expect(await status(token)).toBe(401);
+    });
+
+    it('refuses the old token after a role change', async () => {
+      const { user, token } = await signedIn();
+      const admin = await superAdmin();
+      const patch = await http()
+        .patch(`/api/users/${user.user_id}`)
+        .set('Authorization', `Bearer ${admin.token}`)
+        .send({ role: 'Technician' });
+      expect(patch.status).toBe(200);
+      expect(await status(token)).toBe(401);
+    });
+
+    it('refuses the old token after a password change, and accepts the new one', async () => {
+      const { user, token } = await signedIn();
+      const changed = await http()
+        .post('/api/users/change-password')
+        .send({ email: user.email, current_password: PASS, new_password: 'N3w@Passw0rd' });
+      expect(changed.status).toBe(201);
+      expect(await status(token)).toBe(401);
+      expect(await status(body(changed).token)).not.toBe(401);
+    });
+
+    it('takes the role from the current account, not the token', async () => {
+      const { user, token } = await signedIn();
+      expect(await status(token)).toBe(200);
+      // Changed directly, without revoking, to show the token's own claim is not used.
+      (app.get(DatabaseService).users.find((u) => u.user_id === user.user_id) as any).role = 'Campus Visitor';
+      expect(await status(token)).toBe(403);
+    });
+  });
+
+  describe('who did it', () => {
+    it('records the signed-in Super Admin as decided_by, whatever the body says', async () => {
+      const admin = body(await login('priya@enertrack.com', 'Priya@123'));
+      const submit = await http()
+        .post('/api/audit-requests')
+        .send({
+          name: `Who Decided ${Date.now()}`,
+          type: 'University',
+          admin_name: 'Head Person',
+          admin_email: `head${Date.now()}@whodecided.edu`,
+          admin_password: 'Wh0@Decided1',
+        });
+      expect(submit.status).toBe(201);
+      const res = await http()
+        .patch(`/api/audit-requests/${body(submit).request_id}/deny`)
+        .set('Authorization', `Bearer ${admin.token}`)
+        .send({ decided_by: 'someone-else' });
+      expect(res.status).toBe(200);
+      expect(body(res).decided_by).toBe(admin.user_id);
+    });
+
+    it('names the signed-in caller in the impersonation log, not a name from the body', async () => {
+      const admin = body(await login('priya@enertrack.com', 'Priya@123'));
+      const db = app.get(DatabaseService);
+      const target = db.users.find((u) => u.role === 'Financial Analyst')!;
+      const res = await http()
+        .post(`/api/users/${target.user_id}/impersonate`)
+        .set('Authorization', `Bearer ${admin.token}`)
+        .send({ actor: 'Mallory' });
+      expect([200, 201]).toContain(res.status);
+      const entry = db.activityLogs[db.activityLogs.length - 1];
+      expect(entry.title).toContain(admin.name);
+      expect(entry.title).not.toContain('Mallory');
     });
   });
 });

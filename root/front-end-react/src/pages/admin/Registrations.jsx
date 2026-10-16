@@ -12,7 +12,6 @@
  */
 import { useEffect, useState } from "react";
 import api from "../../api/client";
-import { useAuth } from "../../auth/useAuth";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
 import { addToast } from "./adminHelpers";
@@ -30,7 +29,6 @@ function formatDay(iso) {
 }
 
 export default function Registrations() {
-  const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
@@ -66,7 +64,8 @@ export default function Registrations() {
   async function confirmDecision() {
     if (busy) return;
     const { kind, request } = decision;
-    const body = { decided_by: user.user_id };
+    // Who decided comes from the sign-in token on the server.
+    const body = {};
     if (kind === "deny" && note.trim()) body.note = note.trim();
 
     setBusy(true);

@@ -1982,6 +1982,14 @@
             }
           },
           {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
             "in": "header",
             "description": "Caller role for RBAC. Super Admin only",
@@ -2030,6 +2038,14 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -2573,12 +2589,20 @@
       "post": {
         "operationId": "UsersController_impersonate",
         "summary": "Act as Another User",
-        "description": "Returns another user's session so a Super Admin can see the product as they see it. Same shape as login, so the client can drop it straight into the session it already holds. Every call is written to the activity log naming both parties. This is a support tool, not a security boundary: authorisation here is a client-supplied x-role header with no token, so the capability already exists to anyone with devtools — this route makes it deliberate, logged and one click.",
+        "description": "Returns another user's session so a Super Admin can see the product as they see it. Same shape as login, so the client can drop it straight into the session it already holds. Every call is written to the activity log naming both parties. This is a support tool, not a security boundary: the caller must hold a signed Super Admin token, and the log entry names that caller.",
         "parameters": [
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -8493,7 +8517,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$ZEzFPoqpfIhcjDuSjl.Xfur.lS3isDATTHmHHI704T.QXP2FM/4g2",
+          "password": "$2b$08$akKlxt9.5Eft1.PXLDj5w.TSuxIff/bHYt.raB8FHegzZY0paQTPG",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -8510,7 +8534,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$ZEzFPoqpfIhcjDuSjl.Xfur.lS3isDATTHmHHI704T.QXP2FM/4g2",
+          "password": "$2b$08$akKlxt9.5Eft1.PXLDj5w.TSuxIff/bHYt.raB8FHegzZY0paQTPG",
           "role": "Organization Admin",
           "specialization": null
         }

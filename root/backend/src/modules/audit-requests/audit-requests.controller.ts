@@ -5,7 +5,7 @@ import {
   ApiHeader,
   ApiQuery,
 } from "@nestjs/swagger";
-import { Controller, Get, Post, Patch, Body, Param, Query } from "@nestjs/common";
+import { Controller, Get, Post, Patch, Body, Param, Query, Headers } from "@nestjs/common";
 import { AuditRequestsService } from "./audit-requests.service";
 import { RegisterOrganizationDto } from "../organizations/dto/register-organization.dto";
 import { DecideAuditRequestDto } from "./dto/decide-audit-request.dto";
@@ -66,8 +66,14 @@ export class AuditRequestsController {
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
   @Roles("Super Admin")
-  approve(@Param("id") id: string, @Body() dto: DecideAuditRequestDto) {
-    return this.auditRequestsService.approve(id, dto);
+  approve(
+    @Param("id") id: string,
+    @Body() dto: DecideAuditRequestDto,
+    @Headers("x-user-id") callerId?: string,
+  ) {
+    // Who decided is the signed-in caller (set by AuthMiddleware from the
+    // token), never a decided_by the client sends.
+    return this.auditRequestsService.approve(id, { ...dto, decided_by: callerId });
   }
 
   @Patch(":id/deny")
@@ -82,7 +88,13 @@ export class AuditRequestsController {
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
   @Roles("Super Admin")
-  deny(@Param("id") id: string, @Body() dto: DecideAuditRequestDto) {
-    return this.auditRequestsService.deny(id, dto);
+  deny(
+    @Param("id") id: string,
+    @Body() dto: DecideAuditRequestDto,
+    @Headers("x-user-id") callerId?: string,
+  ) {
+    // Who decided is the signed-in caller (set by AuthMiddleware from the
+    // token), never a decided_by the client sends.
+    return this.auditRequestsService.deny(id, { ...dto, decided_by: callerId });
   }
 }
