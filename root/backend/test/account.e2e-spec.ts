@@ -19,7 +19,6 @@ describe('My account (e2e)', () => {
 
   const asOrgAdmin = (orgId: string) => ({ 'x-role': 'Organization Admin', 'x-org-id': orgId });
   const asSuperAdmin = { 'x-role': 'Super Admin' };
-  const asAuditor = { 'x-role': 'Certified Energy Auditor' };
 
   const PASS = 'Acc0unt@Pass1';
   let nextPhone = 9100000000 + Number(stamp);
@@ -61,7 +60,7 @@ describe('My account (e2e)', () => {
     expect(submit.status).toBe(201);
     const approved = await http()
       .patch(`/api/audit-requests/${body(submit).request_id}/approve`)
-      .set(asAuditor)
+      .set(asSuperAdmin)
       .send({});
     expect(approved.status).toBe(200);
     return { orgId: body(approved).organization.organization_id as string, adminEmail };

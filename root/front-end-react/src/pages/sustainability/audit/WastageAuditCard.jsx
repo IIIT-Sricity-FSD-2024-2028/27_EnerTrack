@@ -103,7 +103,7 @@ function ActionButtons({ status, busy, onAction }) {
 }
 
 /**
- * Photo evidence. The photo route is RBAC-gated on the x-role header, which
+ * Photo evidence. The photo route is RBAC-gated on the Authorization token, which
  * a plain <img src> can't send, so each photo is fetched through
  * api.getBlobUrl() and its object URL is revoked when the row goes away.
  * Clicking a thumbnail opens it full size (see ui/PhotoViewer).

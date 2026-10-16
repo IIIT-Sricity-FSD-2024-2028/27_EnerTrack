@@ -13,9 +13,9 @@
  *                                                               Visitor, organisation
  *                                                               found from the email
  *                                                               domain
- *   request an audit         POST /audit-requests               a new customer. Creates
+ *   register organisation    POST /audit-requests               a new customer. Creates
  *                                                               only a PENDING request:
- *                                                               a certified auditor must
+ *                                                               a Super Admin must
  *                                                               approve it before the
  *                                                               organisation and its
  *                                                               Organization Admin exist
@@ -69,7 +69,7 @@ function organisationPayload(values) {
 
 /**
  * Asks for an audit. Nothing is created and nobody is signed in: the request
- * waits for an auditor's decision. Returns a small receipt.
+ * waits for a Super Admin's decision. Returns a small receipt.
  */
 export function requestAudit(values) {
   return api.post("/audit-requests", organisationPayload(values));

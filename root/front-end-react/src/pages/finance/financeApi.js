@@ -272,7 +272,7 @@ export async function updateWastageReport(report, changes) {
  * The server appends it to the list itself, so a comment someone else posted
  * in the meantime (e.g. the occupant) is never overwritten, which re-sending
  * the whole list in a PATCH could do. The server records the role from the
- * x-role header. Offline, the comment is kept locally instead.
+ * signed-in token. Offline, the comment is kept locally instead.
  * Returns the report with its new comment list; throws if the server refuses.
  */
 export async function addWastageComment(report, { author, role, text }) {

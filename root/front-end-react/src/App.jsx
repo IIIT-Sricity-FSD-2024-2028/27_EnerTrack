@@ -28,6 +28,7 @@ import Account from "./pages/account/Account";
 
 import AdminUsers from "./pages/admin/Users";
 import AdminOrganizations from "./pages/admin/Organizations";
+import AdminRegistrations from "./pages/admin/Registrations";
 import AdminPlans from "./pages/admin/Plans";
 import AdminRevenue from "./pages/admin/Revenue";
 import AdminProposals from "./pages/admin/Proposals";
@@ -54,7 +55,6 @@ import TechnicianJrOverview from "./pages/technician-jr/Overview";
 import TechnicianJrWorkOrders from "./pages/technician-jr/WorkOrders";
 
 import AuditorOverview from "./pages/auditor/Overview";
-import AuditorRequests from "./pages/auditor/Requests";
 import AuditorAudits from "./pages/auditor/Audits";
 
 import CampusDashboard from "./pages/campus/Dashboard";
@@ -100,6 +100,10 @@ export default function App() {
           <Route
             path={PATHS.admin.organizations}
             element={<AdminOrganizations />}
+          />
+          <Route
+            path={PATHS.admin.registrations}
+            element={<AdminRegistrations />}
           />
           <Route path={PATHS.admin.plans} element={<AdminPlans />} />
           <Route path={PATHS.admin.revenue} element={<AdminRevenue />} />
@@ -192,7 +196,6 @@ export default function App() {
       <Route element={<RequireRole area="auditor" />}>
         <Route element={<DashboardLayout />}>
           <Route path={PATHS.auditor.overview} element={<AuditorOverview />} />
-          <Route path={PATHS.auditor.requests} element={<AuditorRequests />} />
           <Route path={PATHS.auditor.audits} element={<AuditorAudits />} />
         </Route>
       </Route>

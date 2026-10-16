@@ -116,6 +116,28 @@ async function bootstrap() {
     }),
   );
 
+  // ── C2. Sign-in limiter — slows password guessing ──
+  //    The general limiter allows 1000 requests per window, far too many for a
+  //    login form. These three routes check a password, so each IP gets 20
+  //    attempts per 15 minutes across them.
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: Number(process.env.AUTH_RATE_MAX) || 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: 'Too many sign-in attempts. Please wait a few minutes and try again.',
+    },
+  });
+  app.use('/api/users/login', authLimiter);
+  app.use('/api/users/change-password', authLimiter);
+  app.use('/api/users/update-details', authLimiter);
+  app.use('/api/users/delete-account', authLimiter);
+  app.use('/api/users/signup', authLimiter);
+
   // ══ NEST-LEVEL ENHANCERS ═════════════════════════════════════════════
 
   // 1. ValidationPipe globally
@@ -142,11 +164,18 @@ async function bootstrap() {
   //    pipeline, including inside middleware, and writes it to logs/error-*.log
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  // 5. CORS enabled for all origins
+  // 5. CORS — only the frontend may call the API from a browser. Set
+  //    FRONTEND_ORIGIN (comma separated) when it is hosted somewhere else.
+  const allowedOrigins = (
+    process.env.FRONTEND_ORIGIN ||
+    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173'
+  )
+    .split(',')
+    .map((o) => o.trim());
   app.enableCors({
-    origin: '*',
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'x-role', 'x-org-id'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
   });
 
   // 6. Swagger setup at /api/docs
@@ -174,10 +203,13 @@ async function bootstrap() {
     .addTag('initiatives', 'Sustainability initiative proposals and lifecycle')
     .addTag('activity-logs', 'System-wide audit log')
     .addTag('sustainability-reports', 'Sustainability report generation and archiving')
-    .addApiKey({ type: 'apiKey', name: 'x-role', in: 'header' }, 'x-role')
-    .addApiKey({ type: 'apiKey', name: 'x-org-id', in: 'header' }, 'x-org-id')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Token from POST /api/users/login' },
+      'bearer',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
+  document.security = [{ bearer: [] }];
   
   // Inject preset examples from Universal DB (DatabaseService)
   const { DatabaseService } = require('./core/database/database.service');

@@ -32,7 +32,7 @@ export default function Hero({ user }) {
               audit" would only invite them to create a second one. */}
           {!user && (
             <Link to={PATHS.registerOrganisation} className="btn-primary">
-              Request an audit
+              Register your organisation
             </Link>
           )}
           {hasDashboard && (
@@ -45,9 +45,9 @@ export default function Hero({ user }) {
           </a>
         </div>
         <ol className="hero-steps">
-          <li>Request an audit. It takes a minute.</li>
+          <li>Register your organisation. It takes a minute.</li>
           <li>
-            An auditor approves your request, visits, and reports where the
+            We approve your registration, an auditor visits, and reports where the
             savings are.
           </li>
           <li>You get one proposal. Nothing is charged until you accept it.</li>

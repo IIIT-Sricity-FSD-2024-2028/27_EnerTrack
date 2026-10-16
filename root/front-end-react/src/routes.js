@@ -27,6 +27,7 @@ export const PATHS = {
     plans: "/admin/plans",
     revenue: "/admin/revenue",
     proposals: "/admin/proposals",
+    registrations: "/admin/registrations",
     infrastructure: "/admin/infrastructure",
   },
   finance: {
@@ -55,7 +56,6 @@ export const PATHS = {
   },
   auditor: {
     overview: "/auditor/overview",
-    requests: "/auditor/requests",
     audits: "/auditor/audits",
   },
   campus: {
@@ -78,7 +78,7 @@ export const ROLE_HOME = {
   "Sustainability Officer": PATHS.sustainability.overview,
   "Campus Visitor": PATHS.campus.dashboard,
 
-  // EnerTrack's own staff — they send no x-org-id, so their dashboards
+  // EnerTrack's own staff — their token carries no organisation, so their dashboards
   // render the cross-tenant view rather than one client's.
   "Super Admin": PATHS.admin.users,
   "Certified Energy Auditor": PATHS.auditor.overview,
@@ -163,6 +163,11 @@ export const NAV = {
       to: PATHS.admin.organizations,
       roles: ["Super Admin"],
     },
+    {
+      label: "Registrations",
+      to: PATHS.admin.registrations,
+      roles: ["Super Admin"],
+    },
     { label: "Pricing Plans", to: PATHS.admin.plans, roles: ["Super Admin"] },
     { label: "Revenue", to: PATHS.admin.revenue, roles: ["Super Admin"] },
     {
@@ -212,7 +217,6 @@ export const NAV = {
   ],
   auditor: [
     { label: "Overview", to: PATHS.auditor.overview },
-    { label: "Audit Requests", to: PATHS.auditor.requests },
     { label: "Audits & Recommendations", to: PATHS.auditor.audits },
   ],
   campus: [

@@ -32,7 +32,7 @@ export default function Footer() {
 
         <div className="footer-col">
           <h5>Get started</h5>
-          <Link to={PATHS.registerOrganisation}>Request an audit</Link>
+          <Link to={PATHS.registerOrganisation}>Register your organisation</Link>
           <Link to={PATHS.signIn}>Sign in</Link>
           <Link to={`${PATHS.signIn}?mode=campus`}>
             Students and faculty: create an account

@@ -2,6 +2,10 @@
  * api.js — Centralized API client for EnerTrack frontend.
  * All pages should load this script FIRST before any other JS.
  *
+ * Every request carries the signed-in user's token as
+ * `Authorization: Bearer <token>`; the backend works out role and organisation
+ * from that, never from headers the browser could make up.
+ *
  * Usage:
  *   const result = await api.get('/work-orders');        // GET
  *   const result = await api.post('/users/login', dto);  // POST
@@ -59,44 +63,49 @@ export async function pingBackend() {
 }
 
 /**
- * Returns the current user's role from localStorage.
- * Sent as the x-role header for RBAC on every request.
+ * The sign-in token the backend issued at login, kept inside the
+ * localStorage.currentUser session. It is the only thing the backend trusts to
+ * know who is calling and what role they hold: the role and organisation are
+ * read from the token's signature, not from anything the browser types.
  */
-function _getRole() {
+function _getToken() {
   try {
     const user = JSON.parse(localStorage.getItem("currentUser") || "null");
-    return user ? user.role : "";
+    return user && user.token ? user.token : "";
   } catch {
     return "";
   }
 }
 
+/** Event fired when the backend refuses our token (expired or invalid). */
+export const SESSION_EXPIRED_EVENT = "enertrack:session-expired";
+
 /**
- * Returns the current user's organisation id from localStorage.
- * Sent as the x-org-id header so the backend can scope data to that tenant.
- *
- * EnerTrack staff have no organisation, so this returns "" for them and the
- * header is omitted, which gives them the platform-wide view.
+ * A 401 on a request that carried a token means the session is no longer
+ * valid. Drop it and tell the app, so the person lands on sign-in instead of
+ * staring at pages that fail to load. A 401 with no token (a wrong password at
+ * the sign-in form) is not an expired session and is left alone.
  */
-function _getOrgId() {
+function _endSessionIfRejected(response, hadToken) {
+  if (response.status !== 401 || !hadToken) return;
   try {
-    const user = JSON.parse(localStorage.getItem("currentUser") || "null");
-    return user && user.organization_id ? user.organization_id : "";
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("enertrack_impersonator");
   } catch {
-    return "";
+    // storage unavailable: the event below still signs the app out
   }
+  window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 }
 
 /**
- * Core fetch wrapper. Adds Content-Type, x-role and x-org-id headers
+ * Core fetch wrapper. Adds Content-Type and the Authorization token
  * automatically. Throws an Error with a human-readable message on HTTP errors.
  */
 async function _apiFetch(path, options = {}) {
-  const orgId = _getOrgId();
+  const token = _getToken();
   const headers = {
     "Content-Type": "application/json",
-    "x-role": _getRole(),
-    ...(orgId ? { "x-org-id": orgId } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
 
@@ -108,6 +117,7 @@ async function _apiFetch(path, options = {}) {
   });
 
   const response = await _fetch(`${API_BASE}${path}`, { ...options, headers });
+  _endSessionIfRejected(response, Boolean(token));
 
   // Parse body whether success or error
   const body = await response.json().catch(() => ({}));
@@ -158,10 +168,10 @@ function _apiUpload(path, fieldName, files) {
  * plain <img>/<a> tag can use.
  *
  * A bare <img src="..."> request carries no headers at all, but every route
- * in this app is gated on the x-role/x-org-id headers _apiFetch adds — a
- * plain <img> pointed at a protected file route would just 403. Routing the
- * fetch through here instead sends those headers like any other API call,
- * then hands back a local blob: URL for the <img> to use.
+ * in this app is gated on the Authorization token _apiFetch adds — a plain
+ * <img> pointed at a protected file route would just 403. Routing the fetch
+ * through here instead sends that token like any other API call, then hands
+ * back a local blob: URL for the <img> to use.
  *
  * Caller is responsible for revoking the URL (URL.revokeObjectURL) once the
  * image is no longer needed, the same as any other object URL.
@@ -169,12 +179,10 @@ function _apiUpload(path, fieldName, files) {
  * @param {string} path API path, e.g. '/wastage-reports/<id>/photos/<file>'
  */
 async function _apiFetchBlobUrl(path) {
-  const orgId = _getOrgId();
-  const headers = {
-    "x-role": _getRole(),
-    ...(orgId ? { "x-org-id": orgId } : {}),
-  };
+  const token = _getToken();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
   const response = await _fetch(`${API_BASE}${path}`, { headers });
+  _endSessionIfRejected(response, Boolean(token));
   if (!response.ok) {
     throw new Error(`Could not load file (HTTP ${response.status})`);
   }

@@ -80,7 +80,7 @@ export default function Pricing() {
 
       {failed && plans.length === 0 && (
         <p className="pricing-note">
-          Our current prices could not be loaded. Request an audit and your
+          Our current prices could not be loaded. Register your organisation and your
           auditor's proposal will show exactly what your plan costs.
         </p>
       )}

@@ -13,7 +13,7 @@ import { Roles } from "../../core/decorators/roles.decorator";
 
 const ROLE_HEADER = {
   name: "x-role",
-  description: "Caller role for RBAC. Certified Energy Auditor | Super Admin",
+  description: "Caller role for RBAC. Super Admin only",
   required: false,
 };
 
@@ -25,13 +25,13 @@ export class AuditRequestsController {
   /**
    * Public on purpose: it carries no @Roles, so RolesGuard lets it through
    * unauthenticated, because the person asking has no account yet. It only
-   * records a request. Nothing real is created until an auditor approves it.
+   * records a request. Nothing real is created until a Super Admin approves it.
    */
   @Post()
   @ApiOperation({
-    summary: "Request an audit (public)",
+    summary: "Register an organisation (public)",
     description:
-      "An organisation asking to be taken on. Records a pending request and creates nothing else: no organisation, no account, no session. A certified auditor approves or denies it, and only approval creates the organisation and its administrator. Refused if the organisation name, the email or the mail domain is already taken, by a real record or by another pending request.",
+      "An organisation asking to be taken on. Records a pending request and creates nothing else: no organisation, no account, no session. A Super Admin approves or rejects it, and only approval creates the organisation and its administrator. Refused if the organisation name, the email or the mail domain is already taken, by a real record or by another pending request.",
   })
   @ApiResponse({ status: 201, description: "Request recorded and awaiting approval." })
   @ApiResponse({ status: 409, description: "Name, email or domain already taken or already awaiting approval." })
@@ -49,7 +49,7 @@ export class AuditRequestsController {
   @ApiResponse({ status: 200, description: "Array of audit requests." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Certified Energy Auditor", "Super Admin")
+  @Roles("Super Admin")
   findAll(@Query("status") status?: string) {
     return this.auditRequestsService.findAll(status);
   }
@@ -65,7 +65,7 @@ export class AuditRequestsController {
   @ApiResponse({ status: 409, description: "Already decided, or the name, email or domain was taken in the meantime." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Certified Energy Auditor", "Super Admin")
+  @Roles("Super Admin")
   approve(@Param("id") id: string, @Body() dto: DecideAuditRequestDto) {
     return this.auditRequestsService.approve(id, dto);
   }
@@ -81,7 +81,7 @@ export class AuditRequestsController {
   @ApiResponse({ status: 409, description: "Already decided." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader(ROLE_HEADER)
-  @Roles("Certified Energy Auditor", "Super Admin")
+  @Roles("Super Admin")
   deny(@Param("id") id: string, @Body() dto: DecideAuditRequestDto) {
     return this.auditRequestsService.deny(id, dto);
   }

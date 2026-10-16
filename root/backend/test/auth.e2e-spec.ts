@@ -57,7 +57,7 @@ describe('Auth & onboarding (e2e)', () => {
   });
 
   describe('organisation registration (request, then approval)', () => {
-    const asAuditor = { 'x-role': 'Certified Energy Auditor' };
+    const asSuperAdmin = { 'x-role': 'Super Admin' };
     let requestId: string;
     const payload = () => ({
       name: `Campus ${stamp} College`,
@@ -114,7 +114,7 @@ describe('Auth & onboarding (e2e)', () => {
         .post('/api/users/login')
         .send({ email: adminEmail, password: adminPassword });
       expect(res.status).toBe(403);
-      expect(res.body.message).toContain('awaiting approval');
+      expect(res.body.message).toContain('waiting for approval');
     });
 
     it('does not reveal a pending request to a wrong password', async () => {
@@ -124,13 +124,14 @@ describe('Auth & onboarding (e2e)', () => {
       expect(res.status).toBe(401);
     });
 
-    it('lets only an auditor see and decide requests', async () => {
+    it('lets only a Super Admin see and decide requests', async () => {
       expect((await http().get('/api/audit-requests')).status).toBe(403);
       expect((await http().get('/api/audit-requests').set({ 'x-role': 'Organization Admin' })).status).toBe(403);
+      expect((await http().get('/api/audit-requests').set({ 'x-role': 'Certified Energy Auditor' })).status).toBe(403);
       expect(
         (await http().patch(`/api/audit-requests/${requestId}/approve`).set({ 'x-role': 'Campus Visitor' }).send({})).status,
       ).toBe(403);
-      const list = await http().get('/api/audit-requests?status=pending').set(asAuditor);
+      const list = await http().get('/api/audit-requests?status=pending').set(asSuperAdmin);
       expect(list.status).toBe(200);
       const mine = body(list).find((r: any) => r.request_id === requestId);
       expect(mine).toBeDefined();
@@ -138,7 +139,7 @@ describe('Auth & onboarding (e2e)', () => {
     });
 
     it('creates the organisation and its admin on approval', async () => {
-      const res = await http().patch(`/api/audit-requests/${requestId}/approve`).set(asAuditor).send({});
+      const res = await http().patch(`/api/audit-requests/${requestId}/approve`).set(asSuperAdmin).send({});
       expect(res.status).toBe(200);
       const data = body(res);
       orgId = data.organization.organization_id;
