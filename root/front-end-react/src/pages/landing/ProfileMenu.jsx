@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { homeForRole } from "../../routes";
+import { homeForRole, roleLabel } from "../../routes";
 
 // What the dashboard link in the dropdown is called, per role. The address
 // itself comes from homeForRole() in routes.js, so it is never typed here.
@@ -62,7 +62,7 @@ export default function ProfileMenu({ user, onSignOut }) {
 
       <div className={open ? "profile-dropdown open" : "profile-dropdown"}>
         <div className="dropdown-header">{user.name}</div>
-        <div className="dropdown-role">{user.role}</div>
+        <div className="dropdown-role">{roleLabel(user.role)}</div>
         <div className="dropdown-divider" />
 
         {dashboardLabel && (

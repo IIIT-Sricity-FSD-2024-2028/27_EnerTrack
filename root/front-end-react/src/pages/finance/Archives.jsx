@@ -25,7 +25,7 @@ const STATUS_MAP = {
   "Returned to SO": { label: "Returned to SO", cssClass: "status-target-set" },
   "Target Set": { label: "Target Set by SO", cssClass: "status-target-set" },
   Finalized: { label: "Finalized", cssClass: "status-finalized" },
-  Delivered: { label: "Delivered to Visitor", cssClass: "status-finalized" },
+  Delivered: { label: "Delivered to occupant", cssClass: "status-finalized" },
   Dismissed: { label: "Dismissed", cssClass: "status-dismissed" },
 };
 

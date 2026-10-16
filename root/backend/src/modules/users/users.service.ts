@@ -8,6 +8,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import {
+  AuditRequestStatus,
   DatabaseService,
   PLATFORM_SIDE_ROLES,
   UserRole,
@@ -212,10 +213,42 @@ export class UsersService {
     const user = this.database.users.find(
       (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password,
     );
-    if (!user) throw new UnauthorizedException('Invalid email or password');
+    if (!user) {
+      this.explainUnapprovedRequest(email, password);
+      throw new UnauthorizedException('Invalid email or password');
+    }
     // Never send the password back to the client
     const { password: _pw, ...safeUser } = user;
     return { ...safeUser, must_change_password: !!user.must_change_password };
+  }
+
+  /**
+   * Someone who asked for an audit has no account until an auditor approves,
+   * so signing in would just say "Invalid email or password", which looks
+   * like a mistake rather than a wait. If the email AND password match a
+   * request that has not been approved, say where it stands instead.
+   *
+   * Matching the password too is deliberate: the message must not let anyone
+   * discover which email addresses have applied.
+   */
+  private explainUnapprovedRequest(email: string, password: string) {
+    const wanted = email.trim().toLowerCase();
+    const request = [...this.database.auditRequests]
+      .reverse()
+      .find(
+        (r) =>
+          r.admin_email.toLowerCase() === wanted &&
+          r.admin_password === password &&
+          r.status !== AuditRequestStatus.APPROVED,
+      );
+    if (!request) return;
+    if (request.status === AuditRequestStatus.PENDING)
+      throw new ForbiddenException(
+        'Your audit request is still awaiting approval by an EnerTrack auditor. You can sign in once it is approved.',
+      );
+    throw new ForbiddenException(
+      `Your audit request was not approved.${request.decision_note ? ` Reason: ${request.decision_note}` : ''}`,
+    );
   }
 
   /**

@@ -53,6 +53,7 @@ import TechnicianJrOverview from "./pages/technician-jr/Overview";
 import TechnicianJrWorkOrders from "./pages/technician-jr/WorkOrders";
 
 import AuditorOverview from "./pages/auditor/Overview";
+import AuditorRequests from "./pages/auditor/Requests";
 import AuditorAudits from "./pages/auditor/Audits";
 
 import CampusDashboard from "./pages/campus/Dashboard";
@@ -182,6 +183,7 @@ export default function App() {
       <Route element={<RequireRole area="auditor" />}>
         <Route element={<DashboardLayout />}>
           <Route path={PATHS.auditor.overview} element={<AuditorOverview />} />
+          <Route path={PATHS.auditor.requests} element={<AuditorRequests />} />
           <Route path={PATHS.auditor.audits} element={<AuditorAudits />} />
         </Route>
       </Route>

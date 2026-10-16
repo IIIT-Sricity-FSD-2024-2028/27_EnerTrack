@@ -45,8 +45,8 @@ const ROLES = [
     ],
   },
   {
-    role: "Campus Visitor",
-    title: "Campus Visitor",
+    role: "Campus Visitor", // stored role value
+    title: "Occupant",
     points: [
       "Reports energy, water, emissions, and food wastage observations.",
       "Tracks report progress through the sustainability and finance workflow.",

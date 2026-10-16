@@ -32,7 +32,7 @@ const QUICK_LINKS = [
     ),
   },
   {
-    label: "Register organisation",
+    label: "Request an audit",
     to: PATHS.registerOrganisation,
     icon: (
       <>

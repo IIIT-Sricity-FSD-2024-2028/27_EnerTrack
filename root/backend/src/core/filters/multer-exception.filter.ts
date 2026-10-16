@@ -6,7 +6,7 @@ import { MulterError } from "multer";
  * Translates multer's raw error codes into the same JSON envelope every other
  * error in the app uses.
  *
- * Applied per-route with @UseFilters on the three upload endpoints rather than
+ * Applied per-route with @UseFilters on the two upload endpoints rather than
  * globally: route-level filters take precedence over the global @Catch() one,
  * and a MulterError can only ever originate from a route that accepts uploads.
  */

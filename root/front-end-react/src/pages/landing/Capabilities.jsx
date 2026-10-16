@@ -48,8 +48,8 @@ const CAPABILITIES = [
     ),
   },
   {
-    title: "Free for anyone on campus",
-    text: "A Campus Visitor account costs nothing. Anyone who spots a leak or a fault can report it in seconds.",
+    title: "Free for everyone in the building",
+    text: "An Occupant account costs nothing. Anyone who spots a leak or a fault can report it in seconds.",
     icon: (
       <>
         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />

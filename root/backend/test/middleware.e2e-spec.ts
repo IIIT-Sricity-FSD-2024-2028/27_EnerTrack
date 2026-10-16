@@ -310,39 +310,25 @@ describe('Middleware (e2e)', () => {
 
   describe('File upload', () => {
     it('returns 400, not 500, when no file is sent', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/meter-readings/upload')
-        .set('x-role', 'Organization Admin')
+      await request(app.getHttpServer())
+        .post('/api/invoices/vvvv0000-0001-4000-8000-000000000000/document')
+        .set('x-role', 'Financial Analyst')
+        .set('x-org-id', 'org-001')
         .expect(400);
-
-      expect(res.body.message).toContain('No file was uploaded');
     });
 
-    it('rejects a non-CSV file', async () => {
+    it('rejects a file with the wrong extension', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/meter-readings/upload')
-        .set('x-role', 'Organization Admin')
-        .attach('file', Buffer.from('not a csv'), {
+        .post('/api/invoices/vvvv0000-0001-4000-8000-000000000000/document')
+        .set('x-role', 'Financial Analyst')
+        .set('x-org-id', 'org-001')
+        .attach('file', Buffer.from('not a pdf'), {
           filename: 'evil.exe',
           contentType: 'application/octet-stream',
         })
         .expect(400);
 
-      expect(res.body.message).toContain('.csv');
-    });
-
-    it('rejects a CSV whose rows reference an unknown meter, importing nothing', async () => {
-      const csv = 'meter_id,value,unit\nnot-a-real-meter,42,kWh\n';
-      const res = await request(app.getHttpServer())
-        .post('/api/meter-readings/upload')
-        .set('x-role', 'Organization Admin')
-        .attach('file', Buffer.from(csv), {
-          filename: 'readings.csv',
-          contentType: 'text/csv',
-        })
-        .expect(400);
-
-      expect(res.body.message).toContain('nothing was imported');
+      expect(res.body.message).toContain('.pdf');
     });
 
     it('rejects a forged file whose contents do not match its extension', async () => {
@@ -377,23 +363,11 @@ describe('Middleware (e2e)', () => {
         .expect(201);
     });
 
-    it('rejects binary content disguised as a CSV', async () => {
-      const binary = Buffer.alloc(300);
-      binary[10] = 0x00; // a NUL byte — never present in a text file
-      binary[11] = 0xff;
-      const res = await request(app.getHttpServer())
-        .post('/api/meter-readings/upload')
-        .set('x-role', 'Organization Admin')
-        .attach('file', binary, { filename: 'readings.csv', contentType: 'text/csv' })
-        .expect(400);
-
-      expect(res.body.message).toContain('binary data');
-    });
-
     it('blocks an upload from a role without permission', async () => {
       await request(app.getHttpServer())
-        .post('/api/meter-readings/upload')
+        .post('/api/invoices/vvvv0000-0001-4000-8000-000000000000/document')
         .set('x-role', 'Campus Visitor')
+        .set('x-org-id', 'org-001')
         .expect(403);
     });
   });

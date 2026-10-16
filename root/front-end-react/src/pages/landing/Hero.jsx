@@ -45,8 +45,11 @@ export default function Hero({ user }) {
           </a>
         </div>
         <ol className="hero-steps">
-          <li>Register your organisation. It takes a minute.</li>
-          <li>A certified auditor visits and reports where the savings are.</li>
+          <li>Request an audit. It takes a minute.</li>
+          <li>
+            An auditor approves your request, visits, and reports where the
+            savings are.
+          </li>
           <li>You get one proposal. Nothing is charged until you accept it.</li>
         </ol>
       </div>

@@ -418,6 +418,19 @@
   box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
 }
 
+/* Total Budget (Add/Edit Campus): no up/down spinner arrows. It stays a
+   number input, so the numeric keyboard and min/step checks still work. */
+#campusBudget {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+#campusBudget::-webkit-outer-spin-button,
+#campusBudget::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .field-error {
   color: var(--red);
   min-height: 16px;

@@ -56,25 +56,7 @@ function makeStorage() {
   });
 }
 
-// --- Recipe 1: Spreadsheet (bulk meter readings) ---
-export const spreadsheetUploadConfig = {
-  storage: makeStorage(),
-  fileFilter: (req: any, file: Express.Multer.File, callback: Function) => {
-    const extOk = extname(file.originalname).toLowerCase() === '.csv';
-    const mimeOk = [
-      'text/csv',
-      'application/vnd.ms-excel',
-      'application/csv',
-    ].includes(file.mimetype);
-    if (!extOk || !mimeOk) {
-      return callback(new BadRequestException('Only .csv files are accepted'), false);
-    }
-    callback(null, true);
-  },
-  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
-};
-
-// --- Recipe 2: Document (invoice PDF attachment) ---
+// --- Recipe 1: Document (invoice PDF attachment) ---
 export const documentUploadConfig = {
   storage: makeStorage(),
   fileFilter: (req: any, file: Express.Multer.File, callback: Function) => {
@@ -88,7 +70,7 @@ export const documentUploadConfig = {
   limits: { fileSize: 15 * 1024 * 1024, files: 1 },
 };
 
-// --- Recipe 3: Photo (wastage report evidence, up to 4) ---
+// --- Recipe 2: Photo (wastage report evidence, up to 4) ---
 export const photoUploadConfig = {
   storage: makeStorage(),
   fileFilter: (req: any, file: Express.Multer.File, callback: Function) => {

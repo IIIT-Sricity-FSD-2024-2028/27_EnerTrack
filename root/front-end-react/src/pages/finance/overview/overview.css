@@ -1,0 +1,524 @@
+/*
+ * overview.css — Financial Analyst overview (/finance/overview).
+ * Same tokens as the Sustainability pages and the other finance pages:
+ * white panels with a #d8dde2 hairline, 8px radius, grey ink scale, dark
+ * primary buttons (as on Utility Costs / Financial Reports) and green for
+ * money-positive actions. Classes are prefixed fo-* so the legacy
+ * finance_overview.css (.card, .box, .bar, ...) cannot restyle them.
+ */
+
+.fa-page :is(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
+}
+
+/* ── Header ───────────────────────────────────────── */
+
+.fo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.fa-page .fo-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.fo-header p {
+  margin: 6px 0 0 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+/* ── KPI row ──────────────────────────────────────── */
+
+.fo-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1100px) {
+  .fo-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .fo-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Panel ────────────────────────────────────────── */
+
+.fo-panel {
+  background: #ffffff;
+  border: 1px solid #d8dde2;
+  border-radius: 8px;
+  padding: 20px 24px 8px;
+  margin-bottom: 24px;
+}
+
+.fo-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-bottom: 8px;
+}
+
+.fo-panel-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.fo-panel-head p {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.fo-count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fo-count.has-items {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.fo-panel-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: #059669;
+  text-decoration: none;
+}
+
+.fo-panel-link:hover {
+  text-decoration: underline;
+}
+
+.fo-empty {
+  padding: 28px 0 32px;
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ── Rows (approvals and wastage reports) ─────────── */
+
+.fo-row {
+  padding: 16px 0;
+  border-top: 1px solid #eef0f2;
+}
+
+.fo-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.fo-row-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  color: #111827;
+}
+
+.fo-row-title strong {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fo-row-title span {
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-type-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.fo-chip {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.fo-chip.action {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.fo-chip.neutral {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.fo-chip.ready {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.fo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.fo-meta .high {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.fo-observation {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+  max-width: 70ch;
+}
+
+/* Figures strip: estimate on approvals, cost impact on wastage reports */
+.fo-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.fo-figures strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.fo-figures .total {
+  margin-left: auto;
+  text-align: right;
+}
+
+.fo-note {
+  margin: 10px 0 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.fo-note strong {
+  color: #374151;
+}
+
+.fo-note.revision {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.fo-note.revision strong {
+  color: #78350f;
+}
+
+/* Wastage row: text on the left, sensor column on the right (spanning the
+   text and the buttons); on narrow screens text, sensor, then buttons. */
+.fo-report-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  grid-template-areas:
+    "main sensor"
+    "actions sensor";
+  column-gap: 24px;
+}
+
+.fo-report-main {
+  grid-area: main;
+  min-width: 0;
+}
+
+.fo-report-body .fo-actions {
+  grid-area: actions;
+}
+
+.fo-sensor {
+  grid-area: sensor;
+  align-self: start;
+  border-left: 1px solid #eef0f2;
+  padding-left: 20px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.fo-sensor-value {
+  margin: 2px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.fo-sensor-value small {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.fo-sensor .anomaly {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.fo-sensor .normal {
+  color: #065f46;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .fo-report-body {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "main"
+      "sensor"
+      "actions";
+  }
+
+  .fo-sensor {
+    margin-top: 12px;
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
+/* ── Buttons ──────────────────────────────────────── */
+
+.fo-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.fo-btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.fo-btn:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.fo-btn.primary {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+.fo-btn.primary:hover:not(:disabled) {
+  background: #1f2937;
+}
+
+.fo-btn.positive {
+  border-color: #059669;
+  background: #059669;
+  color: #ffffff;
+}
+
+.fo-btn.positive:hover:not(:disabled) {
+  background: #047857;
+}
+
+.fo-btn.danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.fo-btn.danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.fo-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.fo-link {
+  margin-left: 8px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #059669;
+  cursor: pointer;
+}
+
+/* ── Comments ─────────────────────────────────────── */
+
+.fo-comments {
+  margin-top: 12px;
+  padding-top: 4px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.fo-comment {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 12px;
+}
+
+.fo-comment-avatar {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.fo-comment p {
+  margin: 2px 0 0 0;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.fo-comment time {
+  margin-left: 8px;
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.fo-comment-form {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0 4px;
+}
+
+.fa-page .fo-comment-form input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1f2937;
+  font-family: inherit;
+}
+
+/* ── Cost by department ───────────────────────────── */
+
+.fo-dept {
+  padding: 12px 0;
+  border-top: 1px solid #eef0f2;
+}
+
+.fo-dept-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.fo-dept-top strong {
+  font-weight: 600;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.fo-dept-over {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.fo-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: #f3f4f6;
+  overflow: hidden;
+}
+
+.fo-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: #059669;
+}
+
+.fo-panel:last-child {
+  margin-bottom: 0;
+}
+
+/* Narrow screens: let row titles wrap and drop the chip under them,
+   instead of truncating the title to a few letters. */
+@media (max-width: 560px) {
+  .fo-row-top {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .fo-row-title {
+    flex-wrap: wrap;
+  }
+
+  .fo-row-title strong,
+  .fo-row-title span {
+    white-space: normal;
+  }
+}

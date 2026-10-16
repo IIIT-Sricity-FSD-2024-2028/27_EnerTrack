@@ -1,16 +1,9 @@
 /**
- * MeterPanel — the meters on the selected building, plus the bulk
- * readings upload.
+ * MeterPanel — the meters on the selected building.
  */
 import { label } from "../auditorUtils";
 
-export default function MeterPanel({
-  building,
-  meters,
-  onEdit,
-  onDelete,
-  onUpload,
-}) {
+export default function MeterPanel({ building, meters, onEdit, onDelete }) {
   let subtitle = "Select a building to view its meters.";
   if (building) {
     subtitle = "Showing meters for " + building.name;
@@ -78,9 +71,6 @@ export default function MeterPanel({
           <p>{subtitle}</p>
         </div>
         <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-          <button type="button" className="btn-outline" onClick={onUpload}>
-            Upload Readings CSV
-          </button>
           <button
             type="button"
             className="btn-dark"

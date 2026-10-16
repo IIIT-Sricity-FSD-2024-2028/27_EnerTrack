@@ -37,7 +37,7 @@ HTTP request
   ├─ 6. SecurityMiddleware          → role + XSS checks      module, "*"
   ├─ 7. TenantMiddleware            → opens x-org-id scope   module, "*"
   ├─ 8. LoggerMiddleware            → req/res bodies         module, "*" minus /api/docs
-  ├─ 9. UploadAuditMiddleware       → upload trail           module, 3 routes  ← router-level
+  ├─ 9. UploadAuditMiddleware       → upload trail           module, 2 routes  ← router-level
   ├─10. InvoiceAccessMiddleware     → invoice trail          feature module    ← router-level
   │
   ├─11. RolesGuard                  → RBAC
@@ -135,11 +135,10 @@ middlewares below are bound to specific routes, so their selectivity is observab
 
 ### `UploadAuditMiddleware` — bound by path + method
 
-Registered in `app.module.ts`, bound to three routes:
+Registered in `app.module.ts`, bound to two routes:
 
 ```ts
 consumer.apply(UploadAuditMiddleware).forRoutes(
-  { path: "meter-readings/upload",      method: RequestMethod.POST },
   { path: "invoices/:id/document",      method: RequestMethod.POST },
   { path: "wastage-reports/:id/photos", method: RequestMethod.POST },
 );
@@ -166,9 +165,6 @@ the one that stops an attack: rename `payload.exe` to `invoice.pdf`, set
 The signature check cannot live in the `fileFilter`, because multer runs that *before* any
 bytes are written and it only ever sees declared metadata. It therefore runs in the
 controller after the file lands, and deletes the rejected file rather than merely refusing it.
-
-CSV has no magic number, so the check is inverted there: reject anything containing a NUL
-byte in the first 512 bytes, which text files never have and binaries almost always do.
 
 ### `InvoiceAccessMiddleware` — bound by controller, from a feature module
 
@@ -267,9 +263,9 @@ triggers it:
 | Request | Entries added to `upload-audit-*.log` |
 |---|---|
 | `GET /api/invoices` | 0 |
-| `POST /api/meter-readings` — same module, different route | 0 |
+| `POST /api/invoices` — same module, different route | 0 |
 | `GET /api/invoices/:id/document` — right path, wrong method | 0 |
-| `POST /api/meter-readings/upload` | **1** |
+| `POST /api/invoices/:id/document` | **1** |
 
 Row three is the sharpest: the identical URL to an upload route, but a `GET`, and nothing
 fires — because the binding specifies `method: RequestMethod.POST`. That contrast is not
@@ -298,9 +294,8 @@ producible with a wildcard.
 
 Worth stating plainly rather than being caught out by:
 
-- **Signature checking covers PDF, JPEG and PNG only.** Those are the formats the three
-  upload routes accept. A format with no fixed magic number would need a different strategy;
-  CSV already uses one (binary-content detection rather than signature matching).
+- **Signature checking covers PDF, JPEG and PNG only.** Those are the formats the two
+  upload routes accept. A format with no fixed magic number would need a different strategy.
 - **Uploads are separated by tenant folder, not access-controlled at the filesystem level.**
   Tenant ownership is enforced in the service layer on both upload and download.
 - **There is no upload UI.** `api.upload()` exists in the frontend client, but no page

@@ -29,7 +29,6 @@ import CampusModal from "./CampusModal";
 import BuildingModal from "./BuildingModal";
 import DepartmentModal from "./DepartmentModal";
 import MeterModal from "./MeterModal";
-import UploadReadingsModal from "./UploadReadingsModal";
 import { API_PATH } from "./infraConstants";
 
 import "../../../styles/shared/infrastructure_shared.css";
@@ -297,7 +296,6 @@ export default function InfrastructureManager({ orgId, onChange }) {
           meters={buildingMeters}
           onEdit={(kind, item) => setPopup({ kind: kind, item: item })}
           onDelete={(type, item) => setPopup({ kind: "delete", type, item })}
-          onUpload={() => setPopup({ kind: "upload" })}
         />
       </div>
 
@@ -355,13 +353,6 @@ export default function InfrastructureManager({ orgId, onChange }) {
           allMeters={meters}
           orgId={orgId}
           onSaved={afterChange}
-          onClose={() => setPopup(null)}
-          showToast={showToast}
-        />
-      )}
-
-      {popup && popup.kind === "upload" && (
-        <UploadReadingsModal
           onClose={() => setPopup(null)}
           showToast={showToast}
         />

@@ -415,8 +415,8 @@ function PlanFormModal({ plan, onSave, onClose }) {
       </form>
 
       <p className="muted-cell" style={{ marginTop: "10px" }}>
-        A Campus Visitor never counts towards a seat. A campus may have
-        thousands of students reporting problems, and billing per student would
+        An Occupant never counts towards a seat. A site may have thousands of
+        students or staff reporting problems, and billing per person would
         punish the client for opening the product up to the people who spot
         faults first.
       </p>

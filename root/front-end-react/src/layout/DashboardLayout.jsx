@@ -10,7 +10,7 @@
 import { startTransition } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
-import { PATHS, areaForRole, homeForRole } from "../routes";
+import { PATHS, areaForRole, homeForRole, roleLabel } from "../routes";
 import Sidebar from "./Sidebar";
 import "./DashboardLayout.css";
 
@@ -57,7 +57,7 @@ export default function DashboardLayout() {
               </span>
               <div className="dashboard-layout__who-text">
                 <strong title={user?.name}>{user?.name}</strong>
-                <span>{role}</span>
+                <span>{roleLabel(role)}</span>
               </div>
             </div>
             <button
@@ -76,7 +76,7 @@ export default function DashboardLayout() {
         {isImpersonating && (
           <div className="dashboard-layout__banner">
             <span>
-              Viewing as {user?.name} ({role}) — signed in as{" "}
+              Viewing as {user?.name} ({roleLabel(role)}) — signed in as{" "}
               {impersonator?.name}
             </span>
             <button type="button" onClick={handleReturnToAdmin}>

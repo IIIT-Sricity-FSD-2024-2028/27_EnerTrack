@@ -7,10 +7,11 @@
  * drawn by <WastageReportCard>, which reports clicks back through props.
  */
 import { useEffect, useState } from "react";
+import api from "../../../api/client";
 import { useAuth } from "../../../auth/useAuth";
 import { notifyOnStateChange } from "../../../legacy/notifications";
 import { useToast } from "../components/toastContext";
-import { loadWastageReports, updateWastageReport } from "../financeApi";
+import { addWastageComment, loadWastageReports, updateWastageReport } from "../financeApi";
 import CostImpactModal from "./CostImpactModal";
 import WastageReportCard from "./WastageReportCard";
 
@@ -24,8 +25,23 @@ export default function WastageReviewQueue() {
   const [reloadKey, setReloadKey] = useState(0); // bump to reload the list
 
   useEffect(() => {
-    loadWastageReports(user)
-      .then(setReports)
+    Promise.all([
+      loadWastageReports(user),
+      // Only used to show who reported each one; optional.
+      api.get("/users").catch(() => []),
+    ])
+      .then(([rows, users]) => {
+        const names = {};
+        (Array.isArray(users) ? users : []).forEach((u) => {
+          if (u.user_id) names[u.user_id] = u.name;
+        });
+        setReports(
+          rows.map((r) => ({
+            ...r,
+            reporterName: names[r.reporterId] || (r.reporterName !== "Unknown" ? r.reporterName : "Occupant"),
+          })),
+        );
+      })
       .catch((error) => console.error("API Error", error));
   }, [user, reloadKey]);
 
@@ -73,13 +89,12 @@ export default function WastageReviewQueue() {
   }
 
   async function handleAddComment(report, text) {
-    const comment = {
-      author: user.name || "Finance Analyst",
-      role: "Finance Analyst",
-      text,
-      timestamp: new Date().toISOString(),
-    };
-    await saveReport(report, { comments: [...(report.comments || []), comment] });
+    try {
+      const updated = await addWastageComment(report, { author: user.name || "Finance Analyst", role: "Financial Analyst", text });
+      setReports((list) => list.map((r) => (r.id === updated.id ? updated : r)));
+    } catch (error) {
+      showToast("Could not save the comment: " + error.message, "error");
+    }
   }
 
   // Newest first, only the ones waiting on Finance.
@@ -88,14 +103,17 @@ export default function WastageReviewQueue() {
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   return (
-    <div className="box">
-      <div className="section-title">
-        Sustainability Reports — Pending Cost Review
-        <span className="fa-count">{actionable.length > 0 ? `${actionable.length} pending` : ""}</span>
+    <section className="fo-panel" aria-labelledby="costReviewTitle">
+      <div className="fo-panel-head">
+        <div>
+          <h2 id="costReviewTitle">Wastage reports for cost review</h2>
+          <p>Reports the Sustainability Officer validated. Add the cost impact, then return them.</p>
+        </div>
+        <span className={actionable.length ? "fo-count has-items" : "fo-count"}>{actionable.length} pending</span>
       </div>
 
       {actionable.length === 0 ? (
-        <div className="fa-dashed-empty">No sustainability reports pending cost review.</div>
+        <div className="fo-empty">No reports waiting for cost review. Forwarded reports will appear here.</div>
       ) : (
         actionable.map((report) => (
           <WastageReportCard
@@ -115,6 +133,6 @@ export default function WastageReviewQueue() {
           onClose={() => setEditing(null)}
         />
       )}
-    </div>
+    </section>
   );
 }

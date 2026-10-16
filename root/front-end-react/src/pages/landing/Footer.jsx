@@ -16,8 +16,8 @@ export default function Footer() {
         <div className="footer-brand">
           <strong>EnerTrack</strong>
           <p>
-            Energy audits and monitoring for campuses: we audit, we monitor,
-            you save.
+            Energy audits and monitoring for campuses: we audit, we monitor, you
+            save.
           </p>
         </div>
 
@@ -32,7 +32,7 @@ export default function Footer() {
 
         <div className="footer-col">
           <h5>Get started</h5>
-          <Link to={PATHS.registerOrganisation}>Register your organisation</Link>
+          <Link to={PATHS.registerOrganisation}>Request an audit</Link>
           <Link to={PATHS.signIn}>Sign in</Link>
           <Link to={`${PATHS.signIn}?mode=campus`}>
             Students and faculty: create an account

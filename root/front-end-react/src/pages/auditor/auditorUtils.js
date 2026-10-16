@@ -60,6 +60,10 @@ const BADGE_CLASS = {
   "in-progress": "inprogress",
   "changes-requested": "review",
   declined: "critical",
+  // Audit request statuses
+  pending: "review",
+  approved: "resolved",
+  denied: "critical",
   // Finding statuses
   proposed: "new",
   accepted: "inprogress",

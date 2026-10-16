@@ -563,6 +563,52 @@ export interface EnergyAudit {
   summary: string | null;
 }
 
+export enum AuditRequestStatus {
+  PENDING = "pending",
+  APPROVED = "approved",
+  DENIED = "denied",
+}
+
+/**
+ * An organisation asking for an audit, before it exists.
+ *
+ * Signing up used to create the organisation and its administrator at once,
+ * for anyone, with no check. That is a free write to the database for every
+ * visitor, so it is now a request: nothing is created until a certified
+ * auditor approves it. The fields below are the same ones the old sign-up took
+ * (they match RegisterOrganizationDto), so approving can hand the record
+ * straight to the code that creates the organisation.
+ *
+ * admin_password is held here only because the account does not exist yet. It
+ * is kept exactly as the rest of this in-memory database keeps passwords, and
+ * it is never sent back in a response.
+ */
+export interface AuditRequest {
+  request_id: string;
+  status: AuditRequestStatus;
+  requested_at: string;
+
+  /* The organisation */
+  name: string;
+  type: string;
+  location: string | null;
+  floor_area_sqm: number | null;
+  email_domain: string | null;
+
+  /* The person who becomes its Organization Admin once approved */
+  admin_name: string;
+  admin_email: string;
+  admin_phone: string | null;
+  admin_password: string;
+
+  /* The decision. Empty while pending. */
+  decided_at: string | null;
+  decided_by: string | null;
+  decision_note: string | null;
+  /** The organisation created on approval. */
+  organization_id: string | null;
+}
+
 export interface PlatformInvoiceLine {
   type: InvoiceLineType;
   description: string;
@@ -2772,6 +2818,50 @@ export class DatabaseService {
       started_on: "2025-06-01",
       renews_on: "2026-12-01",
       cancelled_on: null,
+    },
+  ];
+
+  /**
+   * Organisations waiting for an auditor's decision. Two sample requests are
+   * seeded so the Audit Requests page has something to show; they are
+   * fictional and only become real organisations if an auditor approves them.
+   */
+  public auditRequests: AuditRequest[] = [
+    {
+      request_id: "req-0001-4000-8000-000000000001",
+      status: AuditRequestStatus.PENDING,
+      requested_at: "2026-10-14T09:30:00.000Z",
+      name: "Meridian Institute of Technology",
+      type: "Engineering College",
+      location: "Hyderabad, Telangana",
+      floor_area_sqm: 42000,
+      email_domain: "meridian.edu.in",
+      admin_name: "Kavya Reddy",
+      admin_email: "kavya@meridian.edu.in",
+      admin_phone: "9123456780",
+      admin_password: "Kavya@123",
+      decided_at: null,
+      decided_by: null,
+      decision_note: null,
+      organization_id: null,
+    },
+    {
+      request_id: "req-0002-4000-8000-000000000002",
+      status: AuditRequestStatus.PENDING,
+      requested_at: "2026-10-15T14:05:00.000Z",
+      name: "Lakeside Medical College",
+      type: "Hospital",
+      location: "Pune, Maharashtra",
+      floor_area_sqm: null,
+      email_domain: "lakeside-med.in",
+      admin_name: "Rohan Mehta",
+      admin_email: "rohan@lakeside-med.in",
+      admin_phone: null,
+      admin_password: "Rohan@123",
+      decided_at: null,
+      decided_by: null,
+      decision_note: null,
+      organization_id: null,
     },
   ];
 
