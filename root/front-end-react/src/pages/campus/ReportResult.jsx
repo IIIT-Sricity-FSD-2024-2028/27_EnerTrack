@@ -1,7 +1,6 @@
 /**
  * ReportResult — the outcome of a finished wastage report: what was decided,
- * Finance's figures, the new target against the sensor readings, and the
- * officer's comment.
+ * Finance's figures and the new target against the sensor readings.
  *
  * It is what the occupant receives, so the same component is used in two
  * places: on the occupant's report card (pages/campus/WastageCard) and in the
@@ -88,21 +87,6 @@ export default function ReportResult({ report }) {
 
       {sensor.readingValue != null && sensor.baselineValue != null && <Readings sensor={sensor} target={target} />}
 
-      {target?.justification && (
-        <div className="rr-comment">
-          <div className="rr-avatar" aria-hidden="true">
-            SO
-          </div>
-          <div>
-            <div className="rr-comment-head">
-              <strong>{target.setBy || "Sustainability Officer"}</strong>
-              <span>on the target</span>
-              {target.setAt && <time dateTime={target.setAt}>{formatDay(target.setAt)}</time>}
-            </div>
-            <p>{target.justification}</p>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

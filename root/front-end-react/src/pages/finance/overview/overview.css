@@ -460,45 +460,142 @@
 
 /* ── Cost by department ───────────────────────────── */
 
+.fo-dept-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* name | bar | figures. The bar column takes the room, so a long
+   department name wraps rather than squeezing the bar. */
 .fo-dept {
-  padding: 12px 0;
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) 1fr auto;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 14px 0;
   border-top: 1px solid #eef0f2;
 }
 
-.fo-dept-top {
+.fo-dept-name {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: #374151;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
-.fo-dept-top strong {
+.fo-dept-name strong {
+  font-size: 14px;
   font-weight: 600;
   color: #111827;
+  overflow-wrap: anywhere;
+}
+
+.fo-dept-status {
+  font-size: 12px;
+  color: #047857;
+}
+
+.fo-dept-status.over {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.fo-dept-bar {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: #f1f3f5;
+}
+
+.fo-dept-fill,
+.fo-dept-overrun {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.fo-dept-fill {
+  left: 0;
+  border-radius: 5px 0 0 5px;
+  background: #059669;
+}
+
+.fo-dept-fill.whole {
+  border-radius: 5px;
+}
+
+.fo-dept-overrun {
+  border-radius: 0 5px 5px 0;
+  background: #dc2626;
+}
+
+/* Where the budget ends: a tick that stands just proud of the bar. */
+.fo-dept-budget {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: #111827;
+}
+
+.fo-dept-figures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 96px;
   font-variant-numeric: tabular-nums;
 }
 
-.fo-dept-over {
-  margin-left: 8px;
-  font-size: 12px;
+.fo-dept-figures strong {
+  font-size: 14px;
   font-weight: 600;
-  color: #b91c1c;
+  color: #111827;
 }
 
-.fo-bar {
-  height: 6px;
-  border-radius: 3px;
-  background: #f3f4f6;
-  overflow: hidden;
+.fo-dept-figures span {
+  font-size: 12px;
+  color: #6b7280;
 }
 
-.fo-bar span {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-  background: #059669;
+.fo-dept-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  padding: 12px 0 14px;
+  border-top: 1px solid #eef0f2;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.fo-dept-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fo-dept-legend .sw {
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.fo-dept-legend .sw.spent { background: #059669; }
+.fo-dept-legend .sw.over { background: #dc2626; }
+.fo-dept-legend .sw.tick { width: 2px; height: 12px; border-radius: 1px; background: #111827; }
+
+@media (max-width: 640px) {
+  .fo-dept {
+    grid-template-columns: 1fr auto;
+  }
+  .fo-dept-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 }
 
 .fo-panel:last-child {

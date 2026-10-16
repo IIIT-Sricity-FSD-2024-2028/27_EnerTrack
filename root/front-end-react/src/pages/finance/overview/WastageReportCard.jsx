@@ -117,7 +117,6 @@ export default function WastageReportCard({ report, onEditCostImpact, onReturn, 
               </div>
             </div>
           )}
-          {ci?.notes && <p className="fo-note">Your note: {ci.notes}</p>}
         </div>
 
         <div className="fo-actions">

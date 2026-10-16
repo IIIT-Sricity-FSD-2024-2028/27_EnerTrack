@@ -1,0 +1,238 @@
+/*
+ * wastageArchive.css — the Wastage Resolutions tab of Sustainability Archives.
+ * Same tokens as the officer's overview (overview.css): white panel with a
+ * #d8dde2 hairline, 8px radius, one green accent, grey ink scale. Prefixed
+ * sa-* and doubled where the legacy sust_*.css resets would win.
+ */
+
+.sa-panel {
+  background: #ffffff;
+  border: 1px solid #d8dde2;
+  border-radius: 8px;
+  padding: 4px 24px;
+  margin-bottom: 40px;
+}
+
+.sa-empty {
+  margin: 0;
+  padding: 40px 0;
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.sa-list.sa-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sa-item + .sa-item {
+  border-top: 1px solid #eef0f2;
+}
+
+.sa-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 4px 14px;
+  align-items: start;
+  padding: 18px 0;
+}
+
+.sa-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 50%;
+}
+
+.sa-main {
+  min-width: 0;
+}
+
+.sa-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.sa-title strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.sa-location {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.sa-chip {
+  align-self: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sa-chip.delivered { background: #ecfdf5; color: #047857; }
+.sa-chip.dismissed { background: #fef2f2; color: #b91c1c; }
+.sa-chip.archived { background: #f3f4f6; color: #4b5563; }
+
+.sa-summary.sa-summary {
+  margin: 6px 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+  overflow-wrap: anywhere;
+}
+
+.sa-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12px;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.sa-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sa-btn.sa-btn {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sa-btn.sa-btn:hover {
+  background: #f9fafb;
+}
+
+.sa-btn.danger.danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.sa-btn.danger.danger:hover {
+  background: #fef2f2;
+}
+
+.sa-btn:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
+}
+
+/* ── Opened record ── */
+
+.sa-details {
+  margin: 0 0 20px 24px;
+  padding: 4px 0 0 18px;
+  border-left: 2px solid #eef0f2;
+}
+
+.sa-block {
+  margin-top: 18px;
+}
+
+.sa-block h4.sa-heading {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.sa-reason.sa-reason {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.sa-text.sa-text {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.sa-text.muted {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.sa-comments.sa-comments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.sa-comment {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+}
+
+.sa-avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sa-comment-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.sa-comment-head strong {
+  color: #111827;
+}
+
+.sa-comment-head time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.sa-comment p.sa-comment-text {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+@media (max-width: 720px) {
+  .sa-panel {
+    padding: 4px 16px;
+  }
+  .sa-row {
+    grid-template-columns: auto 1fr;
+  }
+  .sa-actions {
+    grid-column: 2;
+  }
+  .sa-details {
+    margin-left: 0;
+    padding-left: 12px;
+  }
+}

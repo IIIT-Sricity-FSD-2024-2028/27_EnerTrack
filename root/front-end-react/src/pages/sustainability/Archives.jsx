@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import api, { isNetworkError } from "../../api/client";
+import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 import overviewCss from "../../styles/sustainability_officer/sust_overview.css?inline";
 import sharedCss from "../../styles/sustainability_officer/sust_shared.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
+import WastageArchive from "./archives/WastageArchive";
+import { normalizeStatus } from "./audit/auditShared";
+import { normalizeWastageReport } from "../finance/financeApi";
+import { reportRef, wastageSummary } from "../finance/financeUtils";
 
 export default function SustainabilityArchives() {
   const { user } = useAuth();
@@ -14,30 +18,17 @@ export default function SustainabilityArchives() {
   const canDeleteInitiative =
     user?.role === "Organization Admin" ||
     user?.role === "Sustainability Officer";
-  const canManageWastage =
-    user?.role === "Organization Admin" ||
-    user?.role === "Sustainability Officer";
+  // The backend lets only the Organization Admin delete a wastage report.
+  const canDeleteWastage = user?.role === "Organization Admin";
 
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState(
-    urlTab && ["reports", "initiatives", "wastage"].includes(urlTab)
-      ? urlTab
-      : "reports",
-  );
-
-  useEffect(() => {
-    if (
-      urlTab &&
-      ["reports", "initiatives", "wastage"].includes(urlTab) &&
-      urlTab !== activeTab
-    ) {
-      setActiveTab(urlTab);
-    }
-  }, [urlTab]);
+  // The tab lives in the URL (?tab=), so links and the back button land on it.
+  const activeTab = ["reports", "initiatives", "wastage"].includes(urlTab)
+    ? urlTab
+    : "reports";
 
   const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
     setSearchParams({ tab: tabId }, { replace: true });
   };
 
@@ -60,8 +51,9 @@ export default function SustainabilityArchives() {
       api.get("/sustainability-reports"),
       api.get("/initiatives"),
       api.get("/wastage-reports"),
+      api.get("/users"),
     ])
-      .then(([reportsRes, initsRes, wastageRes]) => {
+      .then(([reportsRes, initsRes, wastageRes, usersRes]) => {
         if (!active) return;
 
         if (
@@ -80,7 +72,7 @@ export default function SustainabilityArchives() {
             return Array.isArray(parsed?.sust?.initiativeArchives)
               ? parsed.sust.initiativeArchives
               : [];
-          } catch (e) {
+          } catch {
             return [];
           }
         })();
@@ -106,60 +98,37 @@ export default function SustainabilityArchives() {
           wastageRes.status === "fulfilled" &&
           Array.isArray(wastageRes.value)
         ) {
+          // Who reported each one, by name; optional.
+          const directory = {};
+          if (usersRes.status === "fulfilled" && Array.isArray(usersRes.value))
+            usersRes.value.forEach((u) => (directory[u.user_id] = u));
+
+          // Closed reports only: sent to the occupant, dismissed, or
+          // archived by the officer. The rest are still in the overview queue.
           const archivedW = wastageRes.value
+            .map((raw) => {
+              const r = normalizeWastageReport(raw, user);
+              const reporter = directory[raw.reporter_id];
+              return {
+                ...r,
+                status: normalizeStatus(r.status),
+                shortId: reportRef(r.id),
+                priority: r.details?.priority || "Medium",
+                reporterName:
+                  reporter?.name ||
+                  (r.reporterName && r.reporterName !== "Unknown" ? r.reporterName : "Occupant"),
+              };
+            })
             .filter(
               (r) =>
-                r.status === "Finalized" ||
-                r.status === "Dismissed" ||
                 r.status === "Delivered" ||
-                r.status === "Target Set" ||
-                r.status === "rejected" ||
-                r.details?.soArchived ||
-                r.details?.archived,
+                r.status === "Dismissed" ||
+                r.details?.soArchived,
             )
-            .map((r) => {
-              const spec = r.details?.specificData || {};
-              const sys = r.details?.systemData || {};
-              const location =
-                spec.location ||
-                spec.building ||
-                spec.cafeteria ||
-                r.details?.location ||
-                "Campus Grounds";
-              const summary =
-                spec.observation ||
-                spec.nature ||
-                (spec.typeOfWastage
-                  ? `${spec.typeOfWastage}${spec.estimatedAmount ? ` (~${spec.estimatedAmount}kg)` : ""}`
-                  : null) ||
-                r.details?.summary ||
-                r.details?.description ||
-                "Wastage incident resolved.";
-
-              return {
-                id: r.wastage_report_id || r.id,
-                type: r.type || "Resource",
-                status: r.status || "Finalized",
-                location,
-                summary,
-                priority: r.details?.priority || "Medium",
-                archivedAt:
-                  r.details?.dismissedAt ||
-                  r.details?.soArchivedAt ||
-                  r.details?.auditedAt ||
-                  r.created_at ||
-                  new Date().toISOString(),
-                decisionSummary:
-                  r.details?.auditDecision ||
-                  r.details?.auditNotes ||
-                  (r.status === "Dismissed" || r.status === "rejected"
-                    ? "Dismissed as false alarm or resolved."
-                    : "Remedial measures inspected and finalized."),
-                baselineValue: sys.baselineValue || 100,
-                currentValue: sys.readingValue || 30,
-                targetValue: Number(r.details?.targetReductionPct) || 15,
-                unit: sys.readingUnit || "%",
-              };
+            .sort((x, y) => {
+              const at = (r) =>
+                r.details?.deliveredAt || r.details?.dismissedAt || r.details?.soArchivedAt || r.timestamp;
+              return String(at(y)).localeCompare(String(at(x)));
             });
 
           setWastage(archivedW);
@@ -175,7 +144,7 @@ export default function SustainabilityArchives() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [user]);
 
   // Remove report
   const handleRemoveReport = async (reportId) => {
@@ -238,34 +207,15 @@ export default function SustainabilityArchives() {
     showToast("Initiative removed from archive.", "success");
   };
 
-  // Remove wastage archive
-  const handleRemoveWastage = async (wastageId) => {
-    setWastage((prev) => prev.filter((w) => (w.wastage_report_id || w.id) !== wastageId));
-
+  // Delete a closed wastage report for good (Organization Admin only).
+  const handleDeleteWastage = async (report) => {
     try {
-      const raw = localStorage.getItem("enertrack_universal_v1");
-      if (raw) {
-        const data = JSON.parse(raw);
-        if (data.sust?.wastageArchives) {
-          data.sust.wastageArchives = data.sust.wastageArchives.filter(
-            (w) => (w.wastage_report_id || w.id) !== wastageId,
-          );
-          localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
-        }
-      }
+      await api.delete(`/wastage-reports/${report.id}`);
+      setWastage((prev) => prev.filter((w) => w.id !== report.id));
+      showToast(`WR-${report.shortId} deleted.`, "success");
     } catch (err) {
-      console.warn("[Archives] Failed to clean wastage localStorage:", err);
+      showToast(err.message || "Could not delete the report.", "error");
     }
-
-    try {
-      await api.patch(`/wastage-reports/${wastageId}`, {
-        details: { soArchived: false, status: "Investigating" },
-      });
-    } catch (e) {
-      console.warn("[Wastage Unarchive] Backend sync notice:", e?.message);
-    }
-
-    showToast(`Wastage record #${wastageId} removed from archive.`, "success");
   };
 
   // Filtered collections based on search
@@ -292,12 +242,12 @@ export default function SustainabilityArchives() {
   const filteredWastage = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return wastage;
-    return wastage.filter(
-      (w) =>
-        (w.id && w.id.toLowerCase().includes(q)) ||
-        (w.location && w.location.toLowerCase().includes(q)) ||
-        (w.summary && w.summary.toLowerCase().includes(q)),
-    );
+    return wastage.filter((w) => {
+      const { summary, location } = wastageSummary(w);
+      return [`WR-${w.shortId}`, w.type, location, summary, w.reporterName]
+        .filter(Boolean)
+        .some((text) => String(text).toLowerCase().includes(q));
+    });
   }, [wastage, searchQuery]);
 
   return (
@@ -835,271 +785,12 @@ export default function SustainabilityArchives() {
 
       {/* TAB 3: Wastage Resolutions */}
       {activeTab === "wastage" && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "16px",
-            marginBottom: "40px",
-          }}
-        >
-          {filteredWastage.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "48px",
-                background: "#ffffff",
-                borderRadius: "12px",
-                border: "1px solid #e5e7eb",
-                color: "#9ca3af",
-              }}
-            >
-              No wastage resolutions recorded in archive.
-            </div>
-          ) : (
-            filteredWastage.map((w) => {
-              const dateStr = w.archivedAt
-                ? new Date(w.archivedAt).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })
-                : "Recent";
-              const typeColor =
-                w.type === "Energy"
-                  ? "#10b981"
-                  : w.type === "Water"
-                    ? "#3b82f6"
-                    : "#f59e0b";
-
-              return (
-                <div
-                  key={w.id}
-                  style={{
-                    background: "#ffffff",
-                    borderRadius: "12px",
-                    border: "1px solid #e5e7eb",
-                    padding: "20px 24px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        <strong style={{ fontSize: "15px", color: "#111827" }}>
-                          #{w.id}
-                        </strong>
-                        <span
-                          style={{
-                            background: typeColor,
-                            color: "#ffffff",
-                            fontSize: "11px",
-                            fontWeight: "700",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                          }}
-                        >
-                          {w.type} Wastage
-                        </span>
-                        <span
-                          style={{
-                            background: "#f3f4f6",
-                            color: "#374151",
-                            fontSize: "11px",
-                            fontWeight: "600",
-                            padding: "2px 6px",
-                            borderRadius: "4px",
-                          }}
-                        >
-                          {w.priority} Priority
-                        </span>
-                      </div>
-                      <p
-                        style={{
-                          margin: "4px 0",
-                          fontSize: "13px",
-                          color: "#374151",
-                          fontWeight: "500",
-                        }}
-                      >
-                        {w.summary}
-                      </p>
-                      <div style={{ fontSize: "12px", color: "#6b7280" }}>
-                        Location: <strong>{w.location}</strong> &bull; Resolved
-                        on {dateStr}
-                      </div>
-                    </div>
-
-                    {canManageWastage && (
-                      <button
-                        onClick={() => handleRemoveWastage(w.id)}
-                        style={{
-                          background: "none",
-                          border: "1px solid #ef4444",
-                          color: "#ef4444",
-                          padding: "5px 10px",
-                          borderRadius: "6px",
-                          fontSize: "12px",
-                          fontWeight: "600",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Delete Archive
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Decision Summary Box */}
-                  <div
-                    style={{
-                      background: "#f0fdf4",
-                      border: "1px solid #bbf7d0",
-                      borderRadius: "8px",
-                      padding: "12px 14px",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        fontWeight: "700",
-                        color: "#065f46",
-                        display: "block",
-                        marginBottom: "4px",
-                      }}
-                    >
-                      Sustainability Officer Decision Summary:
-                    </span>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "13px",
-                        color: "#166534",
-                        lineHeight: "1.4",
-                      }}
-                    >
-                      {w.decisionSummary}
-                    </p>
-                  </div>
-
-                  {/* Before / After Comparison Bar */}
-                  <div
-                    style={{
-                      background: "#f9fafb",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                      padding: "12px 14px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        fontWeight: "700",
-                        color: "#374151",
-                        display: "block",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      Before / After Metric Comparison:
-                    </span>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "16px",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: "11px", color: "#6b7280" }}>
-                          Pre-Fix Baseline
-                        </span>
-                        <div
-                          style={{
-                            height: "8px",
-                            background: "#f87171",
-                            borderRadius: "4px",
-                            marginTop: "3px",
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            fontWeight: "700",
-                            color: "#dc2626",
-                          }}
-                        >
-                          {w.baselineValue} {w.unit}
-                        </span>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: "11px", color: "#6b7280" }}>
-                          Post-Resolution Measured
-                        </span>
-                        <div
-                          style={{
-                            height: "8px",
-                            background: "#34d399",
-                            borderRadius: "4px",
-                            marginTop: "3px",
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            fontWeight: "700",
-                            color: "#059669",
-                          }}
-                        >
-                          {w.currentValue} {w.unit}
-                        </span>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: "11px", color: "#6b7280" }}>
-                          Institutional Target
-                        </span>
-                        <div
-                          style={{
-                            height: "8px",
-                            background: "#60a5fa",
-                            borderRadius: "4px",
-                            marginTop: "3px",
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            fontWeight: "700",
-                            color: "#2563eb",
-                          }}
-                        >
-                          {w.targetValue} {w.unit}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+        <WastageArchive
+          reports={filteredWastage}
+          totalCount={wastage.length}
+          canDelete={canDeleteWastage}
+          onDelete={handleDeleteWastage}
+        />
       )}
     </div>
   );
