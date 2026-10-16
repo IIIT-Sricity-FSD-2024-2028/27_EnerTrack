@@ -424,6 +424,11 @@
   font-size: 12px;
 }
 
+.field-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .toast-stack {
   position: fixed;
   right: 22px;

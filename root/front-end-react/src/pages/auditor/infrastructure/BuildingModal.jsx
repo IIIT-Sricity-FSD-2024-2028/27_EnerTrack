@@ -7,10 +7,14 @@
 import { useState } from "react";
 import api from "../../../api/client";
 import Modal from "../../technician/components/Modal";
+import { formatCurrency } from "../auditorUtils";
+import { maxBuildingBudget, minBuildingBudget } from "./budgetRules";
 
 export default function BuildingModal({
   building,
   campuses,
+  buildings,
+  departments,
   selectedCampusId,
   orgId,
   onSaved,
@@ -24,6 +28,18 @@ export default function BuildingModal({
   const [budget, setBudget] = useState(building ? building.budget || 0 : 0);
   const [errors, setErrors] = useState({});
 
+  // The budget has to fit in what the chosen campus has left, and (when
+  // editing) cannot drop below what this building's departments hold.
+  const editingId = building ? building.building_id : undefined;
+  const maxBudget = maxBuildingBudget(
+    campuses.find((c) => c.campus_id === campusId),
+    buildings,
+    editingId,
+  );
+  const minBudget = building
+    ? minBuildingBudget(building.building_id, departments)
+    : 0;
+
   function handleConfirm() {
     const newErrors = {};
     if (name.trim().length < 3) {
@@ -34,6 +50,12 @@ export default function BuildingModal({
     }
     if (budget === "" || Number(budget) < 0) {
       newErrors.budget = "Enter a valid positive number.";
+    } else if (maxBudget !== null && Number(budget) > maxBudget) {
+      newErrors.budget =
+        "The campus has only " + formatCurrency(maxBudget) + " unallocated.";
+    } else if (Number(budget) < minBudget) {
+      newErrors.budget =
+        "Its departments already hold " + formatCurrency(minBudget) + ".";
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
@@ -112,6 +134,14 @@ export default function BuildingModal({
             value={budget}
             onChange={(e) => setBudget(e.target.value)}
           />
+          {maxBudget !== null && (
+            <span className="field-hint">
+              {minBudget > 0
+                ? "Between " + formatCurrency(minBudget) + " and "
+                : "Up to "}
+              {formatCurrency(maxBudget)}
+            </span>
+          )}
           <span className="field-error">{errors.budget}</span>
         </div>
       </div>
