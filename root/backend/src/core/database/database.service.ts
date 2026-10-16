@@ -1344,7 +1344,8 @@ export class DatabaseService {
       organization_id: "org-001",
       name: "Campus 1",
       location: "Location 1",
-      total_budget: 1000000,
+      // Must cover its buildings (4L + 8L): see core/utils/budget-rules.ts
+      total_budget: 1200000,
     },
     {
       campus_id: "660e8700-0002-4000-8000-000000000000",
@@ -1374,7 +1375,8 @@ export class DatabaseService {
       organization_id: "org-001",
       campus_id: "660e8700-0002-4000-8000-000000000000",
       name: "Building 1",
-      budget: 200000,
+      // Must cover its departments (2.5L total): see core/utils/budget-rules.ts
+      budget: 250000,
     },
     {
       building_id: "660e8800-0002-4000-8000-000000000000",

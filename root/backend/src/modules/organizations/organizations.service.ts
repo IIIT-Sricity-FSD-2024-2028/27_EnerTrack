@@ -273,11 +273,21 @@ export class OrganizationsService {
     const months = periods.map((period) => {
       const now = this.kwhIn(meterIds, period);
       const before = this.kwhIn(meterIds, this.oneYearEarlier(period));
-      return { period, kwh: now, kwh_year_ago: before, saved_kwh: before - now };
+      return {
+        period,
+        kwh: now,
+        kwh_year_ago: before,
+        saved_kwh: before - now,
+        // Only a month with readings on both sides is a comparison. A month
+        // not yet reported this year would otherwise read as a 100% saving,
+        // the same trap as a decommissioned meter's silence.
+        compared: now > 0 && before > 0,
+      };
     });
+    const compared = months.filter((m) => m.compared);
 
-    const kwh = months.reduce((sum, m) => sum + m.kwh, 0);
-    const kwhYearAgo = months.reduce((sum, m) => sum + m.kwh_year_ago, 0);
+    const kwh = compared.reduce((sum, m) => sum + m.kwh, 0);
+    const kwhYearAgo = compared.reduce((sum, m) => sum + m.kwh_year_ago, 0);
     const savedKwh = kwhYearAgo - kwh;
 
     return {
@@ -285,7 +295,10 @@ export class OrganizationsService {
       organization_name: org.name,
       from: periods[0],
       to: periods[periods.length - 1],
-      months_compared: periods.length,
+      months_compared: compared.length,
+      // The months actually measured, which can be narrower than from..to.
+      compared_from: compared.length ? compared[0].period : null,
+      compared_to: compared.length ? compared[compared.length - 1].period : null,
       meter_ids: meterIds,
       kwh,
       kwh_year_ago: kwhYearAgo,

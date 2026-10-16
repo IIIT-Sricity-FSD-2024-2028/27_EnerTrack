@@ -17,6 +17,7 @@ import {
   assertTenantOwns,
   getTenantContext,
 } from "../../core/tenancy/tenant-context";
+import { assertCampusCoversBuildings } from "../../core/utils/budget-rules";
 import { CreateCampusDto } from "./dto/create-campus.dto";
 import { PutCampusDto } from "./dto/put-campus.dto";
 
@@ -118,6 +119,7 @@ export class CampusService {
     if (index === -1 || !assertTenantOwns(this.database.campus[index]))
       throw new NotFoundException(`Campus with ID ${id} not found`);
     this.assertAuditorHasOpenEngagement(this.database.campus[index].organization_id);
+    assertCampusCoversBuildings(this.database, id, putDto.total_budget);
     this.database.campus[index] = {
       campus_id: id,
       ...putDto,
@@ -132,6 +134,8 @@ export class CampusService {
     if (index === -1 || !assertTenantOwns(this.database.campus[index]))
       throw new NotFoundException(`Campus with ID ${id} not found`);
     this.assertAuditorHasOpenEngagement(this.database.campus[index].organization_id);
+    if (updateDto.total_budget !== undefined)
+      assertCampusCoversBuildings(this.database, id, updateDto.total_budget);
     this.database.campus[index] = {
       ...this.database.campus[index],
       ...updateDto,

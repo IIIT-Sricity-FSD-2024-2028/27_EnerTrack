@@ -9,7 +9,7 @@
  *
  * <InfrastructureManager /> is used WITHOUT an orgId on purpose. With no
  * orgId it shows every record the backend returns for this user, and a
- * Super Admin also gets the Organisation filter.
+ * Super Admin also gets the Organisation filter (the manager checks the role).
  */
 import AdminPage from "./AdminPage";
 import InfrastructureManager from "../auditor/infrastructure/InfrastructureManager";

@@ -8554,7 +8554,7 @@
           "organization_id": "org-001",
           "name": "Campus 1",
           "location": "Location 1",
-          "total_budget": 1000000
+          "total_budget": 1200000
         }
       },
       "PutCampusDto": {
@@ -8568,7 +8568,7 @@
           "organization_id": "org-001",
           "name": "Campus 1",
           "location": "Location 1",
-          "total_budget": 1000000
+          "total_budget": 1200000
         }
       },
       "CreateBuildingDto": {
@@ -8578,7 +8578,7 @@
           "organization_id": "org-001",
           "campus_id": "660e8700-0002-4000-8000-000000000000",
           "name": "Building 1",
-          "budget": 200000
+          "budget": 250000
         }
       },
       "PutBuildingDto": {
@@ -8592,7 +8592,7 @@
           "organization_id": "org-001",
           "campus_id": "660e8700-0002-4000-8000-000000000000",
           "name": "Building 1",
-          "budget": 200000
+          "budget": 250000
         }
       },
       "CreateDepartmentDto": {

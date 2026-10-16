@@ -17,15 +17,12 @@ import Kpi from "./components/Kpi";
 import ImpactTable from "./overview/ImpactTable";
 import Pipeline from "./overview/Pipeline";
 import OutstandingTable from "./overview/OutstandingTable";
+import { impactClients, hasComparison } from "./overview/impact";
 import { formatCurrency, formatKwh } from "./auditorUtils";
 
 import "../../styles/shared/tech_shared.css";
 import "../../styles/shared/platform_shared.css";
 import "./auditor.css";
-
-// The months the "Did it work?" table compares against a year earlier.
-const IMPACT_FROM = "2026-03";
-const IMPACT_TO = "2026-08";
 
 /**
  * Gets everything the page shows. Only fetches — it does not touch React
@@ -42,42 +39,28 @@ async function fetchPortfolio() {
     api.get("/organizations").catch(() => []),
   ]);
 
-  // Savings are per organisation, so only ask for the ones we audited.
-  const orgIds = [];
-  for (const audit of audits || []) {
-    if (!orgIds.includes(audit.organization_id)) {
-      orgIds.push(audit.organization_id);
-    }
-  }
-
-  const savingsList = await Promise.all(
-    orgIds.map((id) =>
-      api
-        .get(
-          "/organizations/" +
-            id +
-            "/savings?from=" +
-            IMPACT_FROM +
-            "&to=" +
-            IMPACT_TO,
-        )
-        .catch(() => null),
-    ),
+  // Each client is measured over their own window: from the month after
+  // their first implemented measure (see overview/impact.js). A client with
+  // no window has nothing to measure yet, so no call is made for them.
+  const clients = impactClients(audits || []);
+  const impact = await Promise.all(
+    clients.map((client) => {
+      if (!client.window) return { ...client, savings: null };
+      const { from, to } = client.window;
+      return api
+        .get(`/organizations/${client.organization_id}/savings?from=${from}&to=${to}`)
+        .catch(() => null)
+        .then((savings) => ({ ...client, savings }));
+    }),
   );
 
-  // Turn the list into { orgId: savings } so the tables can look one up.
-  const savingsByOrg = {};
-  orgIds.forEach((id, i) => {
-    savingsByOrg[id] = savingsList[i];
-  });
-
-  return { audits: audits || [], orgs: orgs || [], savingsByOrg };
+  return { audits: audits || [], orgs: orgs || [], impact };
 }
 
 export default function AuditorOverview() {
   const [audits, setAudits] = useState([]);
   const [orgs, setOrgs] = useState([]);
-  const [savingsByOrg, setSavingsByOrg] = useState({});
+  const [impact, setImpact] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -89,7 +72,7 @@ export default function AuditorOverview() {
         setError("");
         setAudits(data.audits);
         setOrgs(data.orgs);
-        setSavingsByOrg(data.savingsByOrg);
+        setImpact(data.impact);
         setLoading(false);
       })
       .catch((err) => {
@@ -128,13 +111,14 @@ export default function AuditorOverview() {
     }
   }
 
-  // A client that used more this year counts as 0, not a negative saving.
+  // Summed from the same rows "Did it work?" shows, so the cards and the
+  // table always agree. A client that used more counts as 0, not a negative.
   let savedKwh = 0;
   let savedAmount = 0;
-  for (const savings of Object.values(savingsByOrg)) {
-    if (savings) {
-      savedKwh += Math.max(0, savings.saved_kwh || 0);
-      savedAmount += Math.max(0, savings.saved_amount || 0);
+  for (const client of impact) {
+    if (hasComparison(client)) {
+      savedKwh += Math.max(0, client.savings.saved_kwh || 0);
+      savedAmount += Math.max(0, client.savings.saved_amount || 0);
     }
   }
 
@@ -173,7 +157,7 @@ export default function AuditorOverview() {
           <Kpi
             label="Energy saved"
             value={formatKwh(savedKwh)}
-            note="Against the same months last year"
+            note="Since each client's measures went in"
             tone="pos"
           />
           <Kpi
@@ -184,11 +168,7 @@ export default function AuditorOverview() {
           />
         </div>
 
-        <ImpactTable
-          audits={audits}
-          savingsByOrg={savingsByOrg}
-          orgName={orgName}
-        />
+        <ImpactTable impact={impact} orgName={orgName} />
         <Pipeline audits={audits} orgName={orgName} />
         <OutstandingTable audits={audits} orgName={orgName} />
       </div>

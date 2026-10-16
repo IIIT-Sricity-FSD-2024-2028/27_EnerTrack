@@ -16,6 +16,10 @@ import {
   assertTenantOwns,
   getTenantContext,
 } from "../../core/tenancy/tenant-context";
+import {
+  assertBuildingFitsCampus,
+  assertBuildingCoversDepartments,
+} from "../../core/utils/budget-rules";
 import { CreateBuildingDto } from "./dto/create-building.dto";
 import { PutBuildingDto } from "./dto/put-building.dto";
 
@@ -26,15 +30,8 @@ export class BuildingsService {
   constructor(private database: DatabaseService) {}
 
   create(createDto: CreateBuildingDto) {
-    if (createDto.campus_id) {
-      const exists = this.database.campus.find(
-        (x) => x.campus_id === createDto.campus_id,
-      );
-      if (!exists)
-        throw new NotFoundException(
-          `Target campus with id '${createDto.campus_id}' not found`,
-        );
-    }
+    // Also confirms the campus exists.
+    assertBuildingFitsCampus(this.database, createDto.campus_id, createDto.budget);
     const orgId = currentOrgId() ?? createDto.organization_id ?? null;
     this.assertAuditorHasOpenEngagement(orgId);
     const generatedId = crypto.randomUUID();
@@ -89,6 +86,8 @@ export class BuildingsService {
     if (index === -1 || !assertTenantOwns(this.database.buildings[index]))
       throw new NotFoundException(`Building with ID ${id} not found`);
     this.assertAuditorHasOpenEngagement(this.database.buildings[index].organization_id);
+    assertBuildingFitsCampus(this.database, putDto.campus_id, putDto.budget, id);
+    assertBuildingCoversDepartments(this.database, id, putDto.budget);
     this.database.buildings[index] = {
       building_id: id,
       ...putDto,
@@ -103,6 +102,17 @@ export class BuildingsService {
     if (index === -1 || !assertTenantOwns(this.database.buildings[index]))
       throw new NotFoundException(`Building with ID ${id} not found`);
     this.assertAuditorHasOpenEngagement(this.database.buildings[index].organization_id);
+    // A PATCH may change the budget, the campus, or both; check the result.
+    const current = this.database.buildings[index];
+    const budget =
+      updateDto.budget !== undefined ? updateDto.budget : current.budget;
+    assertBuildingFitsCampus(
+      this.database,
+      updateDto.campus_id ?? current.campus_id,
+      budget,
+      id,
+    );
+    assertBuildingCoversDepartments(this.database, id, budget);
     this.database.buildings[index] = {
       ...this.database.buildings[index],
       ...updateDto,

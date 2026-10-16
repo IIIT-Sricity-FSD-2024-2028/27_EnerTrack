@@ -16,6 +16,7 @@ import {
   assertTenantOwns,
   getTenantContext,
 } from "../../core/tenancy/tenant-context";
+import { assertDepartmentFitsBuilding } from "../../core/utils/budget-rules";
 import { CreateDepartmentDto } from "./dto/create-department.dto";
 import { PutDepartmentDto } from "./dto/put-department.dto";
 
@@ -26,15 +27,12 @@ export class DepartmentsService {
   constructor(private database: DatabaseService) {}
 
   create(createDto: CreateDepartmentDto) {
-    if (createDto.building_id) {
-      const exists = this.database.buildings.find(
-        (x) => x.building_id === createDto.building_id,
-      );
-      if (!exists)
-        throw new NotFoundException(
-          `Target buildings with id '${createDto.building_id}' not found`,
-        );
-    }
+    // Also confirms the building exists.
+    assertDepartmentFitsBuilding(
+      this.database,
+      createDto.building_id,
+      createDto.budget,
+    );
     const orgId = currentOrgId() ?? createDto.organization_id ?? null;
     this.assertAuditorHasOpenEngagement(orgId);
     const generatedId = crypto.randomUUID();
@@ -89,6 +87,12 @@ export class DepartmentsService {
     if (index === -1 || !assertTenantOwns(this.database.departments[index]))
       throw new NotFoundException(`Department with ID ${id} not found`);
     this.assertAuditorHasOpenEngagement(this.database.departments[index].organization_id);
+    assertDepartmentFitsBuilding(
+      this.database,
+      putDto.building_id,
+      putDto.budget,
+      id,
+    );
     this.database.departments[index] = {
       department_id: id,
       ...putDto,
@@ -103,6 +107,14 @@ export class DepartmentsService {
     if (index === -1 || !assertTenantOwns(this.database.departments[index]))
       throw new NotFoundException(`Department with ID ${id} not found`);
     this.assertAuditorHasOpenEngagement(this.database.departments[index].organization_id);
+    // A PATCH may change the budget, the building, or both; check the result.
+    const current = this.database.departments[index];
+    assertDepartmentFitsBuilding(
+      this.database,
+      updateDto.building_id ?? current.building_id,
+      updateDto.budget !== undefined ? updateDto.budget : current.budget,
+      id,
+    );
     this.database.departments[index] = {
       ...this.database.departments[index],
       ...updateDto,

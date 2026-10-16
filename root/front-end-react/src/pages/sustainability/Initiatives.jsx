@@ -262,8 +262,6 @@ export default function SustainabilityInitiatives() {
       onTrack: true,
       target_reduction: target.includes("%") ? target : `${target}%`,
       outcomes: [],
-      cost: newCost.trim() ? newCost.trim() : undefined,
-      timeline: newTimeline,
     };
 
     api
