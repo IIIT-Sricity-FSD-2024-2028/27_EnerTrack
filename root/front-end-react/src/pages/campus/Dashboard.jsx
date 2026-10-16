@@ -18,6 +18,11 @@ import { useAuth } from "../../auth/useAuth";
 import universalDB from "../../legacy/universalDB";
 import IssueForm from "./IssueForm";
 import MyReports from "./MyReports";
+import {
+  getProgress,
+  splitDescription,
+  TIMELINE_STEPS,
+} from "./serviceRequestHelpers";
 import campusCss from "./campus.css?inline";
 
 // True when the request never reached the server (backend stopped). Any
@@ -59,16 +64,21 @@ async function fetchMyTickets(user) {
             status = "in_progress";
           }
 
+          const parts = splitDescription(sr.description);
+          const progress = getProgress(status, related);
+
           return {
             id: sr.service_request_id,
-            description: sr.description,
-            location: "Campus",
+            description: parts.description,
+            location: parts.location,
             priority: sr.priority
               ? sr.priority.charAt(0).toUpperCase() + sr.priority.slice(1)
               : "Medium",
             status: status,
             timestamp: sr.created_at, // the backend sends none, so no date
-            issueType: "",
+            issueType: sr.issue_type || parts.issueType,
+            step: progress.step,
+            stepNote: progress.note,
           };
         })
         // The backend lists oldest first, so reverse it: newest on top
@@ -86,7 +96,11 @@ async function fetchMyTickets(user) {
   if (tickets.length === 0) {
     tickets = universalDB.data.workflow.serviceRequests
       .filter((sr) => sr.reporterEmail === user.email)
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .map((t) => {
+        const progress = getProgress(t.status);
+        return { ...t, step: progress.step, stepNote: progress.note };
+      });
   }
 
   return tickets;
@@ -95,6 +109,7 @@ async function fetchMyTickets(user) {
 export default function Dashboard() {
   const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
+  const [selectedId, setSelectedId] = useState(null); // the clicked card
   const [toastVisible, setToastVisible] = useState(false);
   const [errorText, setErrorText] = useState(""); // red toast when not empty
 
@@ -102,6 +117,15 @@ export default function Dashboard() {
   useEffect(() => {
     fetchMyTickets(user).then(setTickets);
   }, [user]);
+
+  // The selected report, looked up fresh so it is never out of date
+  const selectedTicket = tickets.find((t) => t.id === selectedId) || null;
+
+  // Clicking a card opens it read-only in the form and in the timeline
+  function handleSelect(ticket) {
+    setSelectedId(ticket.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   function showToast() {
     setErrorText("");
@@ -182,12 +206,25 @@ export default function Dashboard() {
 
       <div className="eu-grid">
         <div>
-          <IssueForm email={user.email} onSubmit={handleSubmit} />
+          <IssueForm
+            email={user.email}
+            selectedTicket={selectedTicket}
+            onSubmit={handleSubmit}
+            onNewReport={() => setSelectedId(null)}
+          />
         </div>
-        <InfoPanel />
+        {/* Shows the clicked report; on a new form, the start of the flow */}
+        <InfoPanel
+          ticket={selectedTicket}
+          showLabel={selectedTicket !== null}
+        />
       </div>
 
-      <MyReports tickets={tickets} />
+      <MyReports
+        tickets={tickets}
+        selectedId={selectedId}
+        onSelect={handleSelect}
+      />
 
       <div
         className={
@@ -202,35 +239,16 @@ export default function Dashboard() {
   );
 }
 
-/* ── Right-hand info panel. Static: it never changes. ── */
+/* ── Right-hand info panel: the progress timeline and tips. ── */
 
-const STEPS = [
-  {
-    state: "done",
-    label: "You Report",
-    desc: "Submit this form — takes under 1 minute.",
-  },
-  {
-    state: "active",
-    label: "System Admin Review",
-    desc: "The Administrator triages and forwards your request.",
-  },
-  {
-    state: "pending",
-    label: "Dispatched",
-    desc: "A Technician is assigned and briefed.",
-  },
-  {
-    state: "pending",
-    label: "Work in Progress",
-    desc: "Technician assesses and carries out repairs.",
-  },
-  {
-    state: "pending",
-    label: "Resolved",
-    desc: "Issue is verified and closed. Track it below.",
-  },
-];
+// How one step looks for the given report: "done", "active" or "pending".
+function getStepState(stepNum, ticket) {
+  const step = ticket ? ticket.step : 1; // no report yet: the visitor is on step 1
+  if (step >= 5) return "done"; // Resolved is the end: every step is done
+  if (stepNum < step) return "done";
+  if (stepNum === step) return "active";
+  return "pending";
+}
 
 // Each tip has an id, used as its React key
 const TIPS = [
@@ -270,7 +288,7 @@ const TIPS = [
   },
 ];
 
-function InfoPanel() {
+function InfoPanel({ ticket, showLabel }) {
   return (
     <div className="right-panel">
       <div className="info-card">
@@ -290,16 +308,29 @@ function InfoPanel() {
           </svg>
           What Happens Next
         </h3>
+
+        {showLabel && ticket && (
+          <div className="trail-label">
+            Showing progress for <strong>#{ticket.id}</strong>
+          </div>
+        )}
+
         <ul className="timeline">
-          {STEPS.map((step, index) => (
-            <li key={step.label}>
-              <div className={`tl-dot ${step.state}`}>{index + 1}</div>
-              <div>
-                <p className="tl-label">{step.label}</p>
-                <p className="tl-desc">{step.desc}</p>
-              </div>
-            </li>
-          ))}
+          {TIMELINE_STEPS.map((step) => {
+            const state = getStepState(step.num, ticket);
+            return (
+              <li key={step.num}>
+                <div className={`tl-dot ${state}`}>{step.num}</div>
+                <div>
+                  <p className="tl-label">{step.label}</p>
+                  <p className="tl-desc">{step.desc}</p>
+                  {state === "active" && ticket && ticket.stepNote && (
+                    <p className="tl-active-desc">{ticket.stepNote}</p>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </div>
 

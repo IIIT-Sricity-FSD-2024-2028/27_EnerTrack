@@ -10,28 +10,6 @@
  * Replaces renderTickets() in the old js/enduser/enduser.js.
  */
 
-// Turns a raw status ("open", "inprogress", "closed", ...) into the pill's
-// CSS class and label. Same rules as deriveStatusMeta() in enduser.js.
-function getStatusInfo(statusValue) {
-  const status = String(statusValue || "open").toLowerCase();
-
-  if (["closed", "resolved", "completed"].includes(status)) {
-    return { cssClass: "status-closed", label: "Completed" };
-  }
-  if (
-    ["in_progress", "inprogress", "approval", "review", "new"].includes(status)
-  ) {
-    return { cssClass: "status-progress", label: "In Progress" };
-  }
-  if (["pending", "pending_category"].includes(status)) {
-    return { cssClass: "status-forwarded", label: "Under Review" };
-  }
-  if (status === "dispatched") {
-    return { cssClass: "status-dispatched", label: "Dispatched" };
-  }
-  return { cssClass: "status-reported", label: "Reported" };
-}
-
 // "2026-05-01T..." -> "1 May 2026"
 function formatDate(timestamp) {
   return new Date(timestamp).toLocaleDateString("en-GB", {
@@ -41,7 +19,9 @@ function formatDate(timestamp) {
   });
 }
 
-export default function MyReports({ tickets }) {
+import { getStatusInfo } from "./serviceRequestHelpers";
+
+export default function MyReports({ tickets, selectedId, onSelect }) {
   return (
     <div className="ticket-section">
       <h2>
@@ -72,7 +52,15 @@ export default function MyReports({ tickets }) {
           const priority = ticket.priority || "Medium";
 
           return (
-            <div className="ticket-card" key={ticket.id}>
+            <div
+              className={
+                ticket.id === selectedId
+                  ? "ticket-card selectable is-selected"
+                  : "ticket-card selectable"
+              }
+              key={ticket.id}
+              onClick={() => onSelect(ticket)}
+            >
               {/* Left side: id, description, location, priority, date */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
@@ -114,22 +102,24 @@ export default function MyReports({ tickets }) {
                   {ticket.description}
                 </p>
 
-                <div className="ticket-location">
-                  <svg
-                    width="11"
-                    height="11"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  {ticket.location}
-                </div>
+                {ticket.location && (
+                  <div className="ticket-location">
+                    <svg
+                      width="11"
+                      height="11"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    {ticket.location}
+                  </div>
+                )}
 
                 <div
                   style={{
