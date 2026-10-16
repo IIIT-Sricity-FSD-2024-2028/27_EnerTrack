@@ -5,8 +5,8 @@
  *   sign in (default)       everyone: staff, admins, auditors, campus visitors
  *   campus                  a student or faculty member creating their own
  *                           Campus Visitor account
- *   register                a new customer asking for an audit. This only files a
- *                           request: a certified auditor must approve it before the
+ *   register                a new organisation registering. This only files a
+ *                           request: a Super Admin must approve it before the
  *                           organisation and its Organization Admin exist
  *
  * Nobody picks a role or an organisation here. What the person is doing
@@ -103,7 +103,7 @@ export default function AuthPage() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // Set once an audit request is filed: { name, email }. The page then shows
+  // Set once a registration is filed: { name, email }. The page then shows
   // a confirmation instead of the form, because nobody is signed in yet.
   const [requestSent, setRequestSent] = useState(null);
   const showConfirmation = isRegister && requestSent !== null;
@@ -185,7 +185,7 @@ export default function AuthPage() {
     try {
       if (isRegister) {
         // Files a pending request. Nothing is created and nobody is signed in
-        // until a certified auditor approves it.
+        // until a Super Admin approves it.
         await requestAudit(registerValues);
         setRequestSent({
           name: registerValues.orgName.trim(),
@@ -290,17 +290,17 @@ export default function AuthPage() {
 
           {showConfirmation ? (
             <>
-              <h1>Request received</h1>
+              <h1>Registration received</h1>
               <p className="sub">
                 Thank you. <strong>{requestSent.name}</strong> is now waiting
-                for an EnerTrack auditor to review it. Nothing has been created
-                yet, and there is nothing more to do right now.
+                for EnerTrack to approve it. Nothing has been created yet, and
+                there is nothing more to do right now.
               </p>
               <p className="sub">
                 Once it is approved, sign in with{" "}
                 <strong>{requestSent.email}</strong> and the password you chose.
                 If you try to sign in before then, the page will tell you where
-                your request stands.
+                your registration stands.
               </p>
               <button
                 type="button"
@@ -312,10 +312,10 @@ export default function AuthPage() {
             </>
           ) : isRegister ? (
             <>
-              <h1>Request an audit</h1>
+              <h1>Register your organisation</h1>
               <p className="sub">
-                Tell us about your organisation. An EnerTrack auditor reviews
-                every request before an account is created, so you can sign in
+                Tell us about your organisation. EnerTrack reviews every
+                registration before an account is created, so you can sign in
                 once it is approved. Nothing is charged until you accept a
                 proposal.
               </p>
@@ -562,7 +562,7 @@ export default function AuthPage() {
                 {isRegister
                   ? submitting
                     ? "Submitting…"
-                    : "Submit request"
+                    : "Register organisation"
                   : isCampus
                     ? submitting
                       ? "Creating account…"

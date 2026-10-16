@@ -24,6 +24,15 @@ export const USER_ROLES = [
 // Such a user has no organisation, so the form never asks for one.
 export const PLATFORM_SIDE_ROLES = ["Certified Energy Auditor"];
 
+// The roles the signed-in person may give someone. Only a Super Admin may give
+// an EnerTrack staff role (the backend enforces this too; hiding the option
+// just stops an Organization Admin choosing something that would be refused).
+export function assignableRoles(isSuperAdmin) {
+  return USER_ROLES.filter(
+    (role) => isSuperAdmin || !PLATFORM_SIDE_ROLES.includes(role),
+  );
+}
+
 // Roles that must have a specialization (e.g. "Electrical")
 export const TECHNICIAN_ROLES = ["Technician", "Technician Administrator"];
 

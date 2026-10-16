@@ -9,6 +9,7 @@ import { AppService } from "./app.service";
 import { DatabaseModule } from "./core/database/database.module";
 import { TenantMiddleware } from "./core/tenancy/tenant.middleware";
 import { LoggerMiddleware } from "./core/middleware/logger.middleware";
+import { AuthMiddleware } from "./core/middleware/auth.middleware";
 import { SecurityMiddleware } from "./core/middleware/security.middleware";
 import { UploadAuditMiddleware } from "./core/middleware/upload-audit.middleware";
 
@@ -81,6 +82,8 @@ export class AppModule implements NestModule {
    * tier 1, then tier 2, then tier 3 before reaching guards and controllers.
    *
    * ── TIER 1: every route ─────────────────────────────────────────────
+   *  AuthMiddleware     — verifies the Bearer token and derives x-role /
+   *    x-org-id from it; client-supplied values are discarded
    *  SecurityMiddleware — validates x-role against the UserRole enum and
    *    deep-scans body/query/params for XSS, writing blocked attempts to
    *    logs/security-threats-YYYY-MM-DD.log
@@ -116,9 +119,11 @@ export class AppModule implements NestModule {
    * registered separately with app.use() in main.ts.
    */
   configure(consumer: MiddlewareConsumer) {
-    // Tier 1 — application-wide
+    // Tier 1 — application-wide. AuthMiddleware is first: it throws away the
+    // client's x-role / x-org-id and rewrites them from the signed token, so
+    // everything after it can trust those headers.
     consumer
-      .apply(SecurityMiddleware, TenantMiddleware)
+      .apply(AuthMiddleware, SecurityMiddleware, TenantMiddleware)
       .forRoutes("*");
 
     // Tier 2 — application-wide, minus the Swagger assets

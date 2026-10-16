@@ -23,6 +23,7 @@ import { useState } from "react";
 import api from "../../api/client";
 import Modal from "./Modal";
 import {
+  assignableRoles,
   getUserErrors,
   PLATFORM_SIDE_ROLES,
   TECHNICIAN_ROLES,
@@ -237,7 +238,8 @@ export default function UserFormModal({
             value={form.role}
             onChange={handleChange}
           >
-            {USER_ROLES.map((role) => (
+            {/* Only a Super Admin is offered Certified Energy Auditor. */}
+            {assignableRoles(isSuperAdmin).map((role) => (
               <option key={role} value={role}>
                 {formatLabel(role)}
               </option>

@@ -1,4 +1,5 @@
 import * as crypto from "crypto";
+import { hashPassword } from "../../core/auth/passwords";
 import {
   BadRequestException,
   ConflictException,
@@ -19,7 +20,7 @@ import { DecideAuditRequestDto } from "./dto/decide-audit-request.dto";
  *
  * The point of this module is the gap it puts between "someone typed a form"
  * and "the database has a new organisation and account". Nothing is created
- * until a certified auditor approves, so an anonymous visitor can no longer
+ * until a Super Admin approves, so an anonymous visitor can no longer
  * write organisations and users into the system just by posting.
  */
 @Injectable()
@@ -29,7 +30,7 @@ export class AuditRequestsService {
     private organizations: OrganizationsService,
   ) {}
 
-  /** A request as the auditor sees it. The password never leaves the server. */
+  /** A request as the Super Admin sees it. The password never leaves the server. */
   private view(request: AuditRequest) {
     const { admin_password: _password, ...visible } = request;
     return visible;
@@ -95,7 +96,7 @@ export class AuditRequestsService {
       admin_name: dto.admin_name.trim(),
       admin_email: email,
       admin_phone: dto.admin_phone?.trim() || null,
-      admin_password: dto.admin_password,
+      admin_password: hashPassword(dto.admin_password),
       decided_at: null,
       decided_by: null,
       decision_note: null,
@@ -130,7 +131,7 @@ export class AuditRequestsService {
   /**
    * Approving is what creates the organisation and its administrator. If the
    * name, email or domain has been taken since the request was made, creation
-   * fails with a 409 and the request stays pending, so the auditor can deny it.
+   * fails with a 409 and the request stays pending, so the Super Admin can deny it.
    */
   approve(id: string, dto: DecideAuditRequestDto) {
     const request = this.find(id);

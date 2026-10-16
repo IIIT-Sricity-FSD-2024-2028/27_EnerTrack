@@ -9,8 +9,8 @@
  *
  * Important: localStorage is still the source of truth, not React state.
  * api/client.js reads localStorage.currentUser on every single request to
- * build the x-role and x-org-id headers, so if the session lived only in
- * React state the very next API call would go out with the wrong role.
+ * pick up the sign-in token, so if the session lived only in React state the
+ * very next API call would go out signed in as nobody.
  * Every action below therefore writes localStorage FIRST and sets state
  * second — state is a mirror kept in sync so components re-render.
  *
@@ -18,8 +18,8 @@
  * calling component decide where to go, which keeps this file independent of
  * the router and keeps every redirect visible in the component that causes it.
  */
-import { useState, useCallback, useMemo } from "react";
-import api from "../api/client";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import api, { SESSION_EXPIRED_EVENT } from "../api/client";
 import { AuthContext } from "./context";
 
 const USER_KEY = "currentUser";
@@ -92,6 +92,18 @@ export function AuthProvider({ children }) {
     setImpersonator(null);
     setUser(admin);
     return admin;
+  }, []);
+
+  // The backend answered 401 to our token (it expired, or the backend
+  // restarted with a new signing key). api/client.js has already cleared
+  // storage; mirror that into state so the route guards send us to sign-in.
+  useEffect(() => {
+    function onExpired() {
+      setUser(null);
+      setImpersonator(null);
+    }
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
   }, []);
 
   // Without useMemo this object is rebuilt on every provider render, and since

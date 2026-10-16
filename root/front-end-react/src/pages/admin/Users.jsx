@@ -27,8 +27,8 @@ import SearchBox from "./SearchBox";
 import {
   addToast,
   formatLabel,
+  assignableRoles,
   matchesSearch,
-  USER_ROLES,
 } from "./adminHelpers";
 
 // The page always opens with no filters: every user, sorted by name
@@ -308,7 +308,7 @@ function UsersPage() {
               onChange={(e) => setFilters({ ...filters, role: e.target.value })}
             >
               <option value="">All roles</option>
-              {USER_ROLES.map((role) => (
+              {assignableRoles(isSuperAdmin).map((role) => (
                 <option key={role} value={role}>
                   {formatLabel(role)}
                 </option>

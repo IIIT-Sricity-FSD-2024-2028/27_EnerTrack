@@ -1,3 +1,4 @@
+import { hashPassword } from "../auth/passwords";
 import { Injectable, Scope } from "@nestjs/common";
 
 export enum UserRole {
@@ -574,8 +575,8 @@ export enum AuditRequestStatus {
  *
  * Signing up used to create the organisation and its administrator at once,
  * for anyone, with no check. That is a free write to the database for every
- * visitor, so it is now a request: nothing is created until a certified
- * auditor approves it. The fields below are the same ones the old sign-up took
+ * visitor, so it is now a request: nothing is created until a Super Admin
+ * approves it. The fields below are the same ones the old sign-up took
  * (they match RegisterOrganizationDto), so approving can hand the record
  * straight to the code that creates the organisation.
  *
@@ -2824,9 +2825,9 @@ export class DatabaseService {
   ];
 
   /**
-   * Organisations waiting for an auditor's decision. Two sample requests are
-   * seeded so the Audit Requests page has something to show; they are
-   * fictional and only become real organisations if an auditor approves them.
+   * Organisations waiting for a Super Admin's decision. Two sample requests are
+   * seeded so the Registrations page has something to show; they are
+   * fictional and only become real organisations if a Super Admin approves them.
    */
   public auditRequests: AuditRequest[] = [
     {
@@ -3132,5 +3133,11 @@ export class DatabaseService {
   constructor() {
     this.meterReadings.push(...buildMonthlyElectricityReadings());
     this.meterReadings.push(...buildMonthlyUtilityReadings());
+
+    // The seed lists plain passwords so the demo accounts are easy to read,
+    // but nothing is ever stored or compared in the clear: hash them now.
+    for (const user of this.users) user.password = hashPassword(user.password);
+    for (const request of this.auditRequests)
+      request.admin_password = hashPassword(request.admin_password);
   }
 }

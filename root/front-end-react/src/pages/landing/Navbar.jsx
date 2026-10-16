@@ -40,7 +40,7 @@ export default function Navbar({ user, onSignOut, scrolled }) {
                 Sign In
               </Link>
               <Link to={PATHS.registerOrganisation} className="btn-primary">
-                Request an audit
+                Register your organisation
               </Link>
             </>
           )}

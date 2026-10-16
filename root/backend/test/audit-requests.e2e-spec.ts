@@ -9,7 +9,7 @@ import { RolesGuard } from '../src/core/guards/roles.guard';
 
 /**
  * Audit requests: an organisation asking to be taken on does not become an
- * organisation until a certified auditor approves. These tests cover the rules
+ * organisation until a Super Admin approves. These tests cover the rules
  * around that gap: what a request can and cannot do, who may decide, and what
  * the person sees when they try to sign in.
  */
@@ -17,7 +17,7 @@ describe('Audit requests (e2e)', () => {
   let app: INestApplication;
   const http = () => request(app.getHttpServer());
   const body = (res: request.Response) => res.body?.data ?? res.body;
-  const asAuditor = { 'x-role': 'Certified Energy Auditor' };
+  const asSuperAdmin = { 'x-role': 'Super Admin' };
   const stamp = Date.now().toString().slice(-6);
 
   /** A fresh, valid request, different every call unless overridden. */
@@ -98,11 +98,11 @@ describe('Audit requests (e2e)', () => {
     });
   });
 
-  describe('the auditor’s list', () => {
+  describe('the Super Admin’s list', () => {
     it('shows pending requests, newest first, without any password', async () => {
       const first = await submit();
       const second = await submit();
-      const res = await http().get('/api/audit-requests?status=pending').set(asAuditor);
+      const res = await http().get('/api/audit-requests?status=pending').set(asSuperAdmin);
       expect(res.status).toBe(200);
       const rows: any[] = body(res);
       const ids = rows.map((r) => r.request_id);
@@ -112,13 +112,13 @@ describe('Audit requests (e2e)', () => {
     });
 
     it('rejects a status that does not exist', async () => {
-      const res = await http().get('/api/audit-requests?status=banana').set(asAuditor);
+      const res = await http().get('/api/audit-requests?status=banana').set(asSuperAdmin);
       expect(res.status).toBe(400);
     });
 
-    it('lets a Super Admin read it too, but nobody else', async () => {
+    it('is the Super Admin’s alone, not even an auditor', async () => {
       expect((await http().get('/api/audit-requests').set({ 'x-role': 'Super Admin' })).status).toBe(200);
-      for (const role of ['Organization Admin', 'Technician', 'Financial Analyst', 'Campus Visitor']) {
+      for (const role of ['Certified Energy Auditor', 'Organization Admin', 'Technician', 'Financial Analyst', 'Campus Visitor']) {
         expect((await http().get('/api/audit-requests').set({ 'x-role': role })).status).toBe(403);
       }
     });
@@ -129,7 +129,7 @@ describe('Audit requests (e2e)', () => {
       const { sent, id } = await submit();
       const denied = await http()
         .patch(`/api/audit-requests/${id}/deny`)
-        .set(asAuditor)
+        .set(asSuperAdmin)
         .send({ note: 'We do not cover your region yet' });
       expect(denied.status).toBe(200);
       expect(body(denied).status).toBe('denied');
@@ -148,14 +148,14 @@ describe('Audit requests (e2e)', () => {
 
     it('can be decided only once', async () => {
       const { id } = await submit();
-      await http().patch(`/api/audit-requests/${id}/deny`).set(asAuditor).send({});
-      expect((await http().patch(`/api/audit-requests/${id}/deny`).set(asAuditor).send({})).status).toBe(409);
-      expect((await http().patch(`/api/audit-requests/${id}/approve`).set(asAuditor).send({})).status).toBe(409);
+      await http().patch(`/api/audit-requests/${id}/deny`).set(asSuperAdmin).send({});
+      expect((await http().patch(`/api/audit-requests/${id}/deny`).set(asSuperAdmin).send({})).status).toBe(409);
+      expect((await http().patch(`/api/audit-requests/${id}/approve`).set(asSuperAdmin).send({})).status).toBe(409);
     });
 
     it('lets the same organisation ask again after a denial', async () => {
       const first = await submit();
-      await http().patch(`/api/audit-requests/${first.id}/deny`).set(asAuditor).send({});
+      await http().patch(`/api/audit-requests/${first.id}/deny`).set(asSuperAdmin).send({});
       const again = await submit({
         name: first.sent.name,
         admin_email: first.sent.admin_email,
@@ -168,7 +168,7 @@ describe('Audit requests (e2e)', () => {
   describe('approving', () => {
     it('creates the organisation as a prospect and an admin who can then sign in', async () => {
       const { sent, id } = await submit();
-      const res = await http().patch(`/api/audit-requests/${id}/approve`).set(asAuditor).send({});
+      const res = await http().patch(`/api/audit-requests/${id}/approve`).set(asSuperAdmin).send({});
       expect(res.status).toBe(200);
       const data = body(res);
       expect(data.organization.name).toBe(sent.name);
@@ -187,24 +187,24 @@ describe('Audit requests (e2e)', () => {
 
     it('stays pending, and can still be denied, if the name was taken in the meantime', async () => {
       const first = await submit();
-      // Someone creates the organisation directly (Super Admin) before the auditor decides.
+      // Someone creates the organisation directly (Super Admin) before the Super Admin decides.
       const direct = await http()
         .post('/api/organizations')
         .set({ 'x-role': 'Super Admin' })
         .send({ name: first.sent.name, type: 'University', status: 'prospect' });
       expect(direct.status).toBe(201);
 
-      const approve = await http().patch(`/api/audit-requests/${first.id}/approve`).set(asAuditor).send({});
+      const approve = await http().patch(`/api/audit-requests/${first.id}/approve`).set(asSuperAdmin).send({});
       expect(approve.status).toBe(409);
 
-      const list = await http().get('/api/audit-requests?status=pending').set(asAuditor);
+      const list = await http().get('/api/audit-requests?status=pending').set(asSuperAdmin);
       expect(body(list).some((r: any) => r.request_id === first.id)).toBe(true);
-      expect((await http().patch(`/api/audit-requests/${first.id}/deny`).set(asAuditor).send({})).status).toBe(200);
+      expect((await http().patch(`/api/audit-requests/${first.id}/deny`).set(asSuperAdmin).send({})).status).toBe(200);
     });
 
-    it('is refused for anyone but an auditor or Super Admin', async () => {
+    it('is refused for anyone but a Super Admin', async () => {
       const { id } = await submit();
-      for (const role of ['Organization Admin', 'Technician', 'Campus Visitor']) {
+      for (const role of ['Certified Energy Auditor', 'Organization Admin', 'Technician', 'Campus Visitor']) {
         expect(
           (await http().patch(`/api/audit-requests/${id}/approve`).set({ 'x-role': role }).send({})).status,
         ).toBe(403);
@@ -213,7 +213,7 @@ describe('Audit requests (e2e)', () => {
     });
 
     it('returns 404 for a request that does not exist', async () => {
-      expect((await http().patch('/api/audit-requests/nope/approve').set(asAuditor).send({})).status).toBe(404);
+      expect((await http().patch('/api/audit-requests/nope/approve').set(asSuperAdmin).send({})).status).toBe(404);
     });
   });
 });

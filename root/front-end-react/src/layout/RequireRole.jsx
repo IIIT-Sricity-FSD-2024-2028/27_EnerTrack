@@ -8,7 +8,8 @@
  *   - signed in, right area    -> render the child routes via <Outlet />
  *
  * `area` is the nav area this group belongs to ("admin", "finance", ...), the
- * same names routes.js uses for ROLE_AREA and NAV.
+ * same names routes.js uses for ROLE_AREA and NAV. Leave it out for a page
+ * every signed-in role may open (My account): the area check is skipped.
  */
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
@@ -25,7 +26,7 @@ export default function RequireRole({ area }) {
   if (user?.must_change_password) {
     return <Navigate to={PATHS.changePassword} replace />;
   }
-  if (areaForRole(role) !== area) {
+  if (area && areaForRole(role) !== area) {
     return <Navigate to={homeForRole(role)} replace />;
   }
   return <Outlet />;

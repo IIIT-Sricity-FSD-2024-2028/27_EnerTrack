@@ -19,6 +19,8 @@ import {
   assertTenantOwns,
   getTenantContext,
 } from "../../core/tenancy/tenant-context";
+import { hashPassword, verifyPassword } from "../../core/auth/passwords";
+import { signToken } from "../../core/auth/token";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { PutUserDto } from "./dto/put-user.dto";
 import { BulkUserRowDto } from "./dto/bulk-create-users.dto";
@@ -51,19 +53,27 @@ export class UsersService {
    * issued password is temporary (must_change_password), so the admin only
    * knows it until the person's first sign-in.
    */
-  create(createDto: CreateUserDto) {
-    // Only EnerTrack's own staff may create an account that holds an
-    // EnerTrack staff role. Without this, a client's Organization Admin
-    // could POST a user with role "Super Admin" and hand themselves back the
-    // organisation-write access that the @Roles decorators just removed.
+  /**
+   * Only EnerTrack's own staff may give anyone an EnerTrack staff role
+   * (Super Admin, Certified Energy Auditor). Without this, a client's
+   * Organization Admin could POST or PATCH a user to "Super Admin" and hand
+   * themselves back the organisation-write access that the @Roles decorators
+   * just removed. Called wherever a role can be set: create, update and put.
+   */
+  private assertMayAssignRole(role?: string) {
     if (
-      PLATFORM_SIDE_ROLES.includes(createDto.role) &&
+      role &&
+      PLATFORM_SIDE_ROLES.includes(role) &&
       !getTenantContext()?.isPlatformSide
     ) {
       throw new ForbiddenException(
-        `Only EnerTrack staff may create a user with the '${createDto.role}' role`,
+        `Only EnerTrack staff may give a user the '${role}' role`,
       );
     }
+  }
+
+  create(createDto: CreateUserDto) {
+    this.assertMayAssignRole(createDto.role);
 
     createDto = { ...createDto, email: createDto.email.trim().toLowerCase() };
 
@@ -99,7 +109,13 @@ export class UsersService {
         throw new ConflictException(`Duplicate phone '${createDto.phone}'`);
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { user_id: generatedId, ...createDto, organization_id: orgId, must_change_password: true };
+    const newRecord = {
+      user_id: generatedId,
+      ...createDto,
+      password: hashPassword(createDto.password),
+      organization_id: orgId,
+      must_change_password: true,
+    };
     this.database.users.push(newRecord as any);
     return this.withoutPassword(newRecord);
   }
@@ -142,7 +158,7 @@ export class UsersService {
     // The person chose this password themselves, so there is nothing to replace.
     const record = this.database.users.find((u) => u.user_id === created.user_id);
     if (record) record.must_change_password = false;
-    return { ...created, must_change_password: false };
+    return { ...created, must_change_password: false, token: signToken(created) };
   }
 
   findAll() {
@@ -161,9 +177,11 @@ export class UsersService {
     const index = this.database.users.findIndex((item) => item.user_id === id);
     if (index === -1 || !assertTenantOwns(this.database.users[index]))
       throw new NotFoundException(`User with ID ${id} not found`);
+    this.assertMayAssignRole(putDto.role);
     this.database.users[index] = {
       user_id: id,
       ...putDto,
+      password: hashPassword(putDto.password),
       organization_id: this.database.users[index].organization_id,
       must_change_password: true,
     } as any;
@@ -173,6 +191,7 @@ export class UsersService {
     const index = this.database.users.findIndex((item) => item.user_id === id);
     if (index === -1 || !assertTenantOwns(this.database.users[index]))
       throw new NotFoundException(`User with ID ${id} not found`);
+    this.assertMayAssignRole(updateDto.role);
 
     const current = this.database.users[index];
 
@@ -192,7 +211,9 @@ export class UsersService {
       ...updateDto,
       organization_id,
       // An administrator-issued password is temporary, like at creation.
-      ...(updateDto.password ? { must_change_password: true } : {}),
+      ...(updateDto.password
+        ? { password: hashPassword(updateDto.password), must_change_password: true }
+        : {}),
     };
     return this.withoutPassword(this.database.users[index]);
   }
@@ -211,19 +232,24 @@ export class UsersService {
 
   login(email: string, password: string) {
     const user = this.database.users.find(
-      (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password,
+      (u) => u.email.toLowerCase() === email.trim().toLowerCase() && verifyPassword(password, u.password),
     );
     if (!user) {
       this.explainUnapprovedRequest(email, password);
       throw new UnauthorizedException('Invalid email or password');
     }
-    // Never send the password back to the client
+    // Never send the password back to the client. The token is what proves
+    // who they are on every later request.
     const { password: _pw, ...safeUser } = user;
-    return { ...safeUser, must_change_password: !!user.must_change_password };
+    return {
+      ...safeUser,
+      must_change_password: !!user.must_change_password,
+      token: signToken(user),
+    };
   }
 
   /**
-   * Someone who asked for an audit has no account until an auditor approves,
+   * Someone who registered an organisation has no account until a Super Admin approves,
    * so signing in would just say "Invalid email or password", which looks
    * like a mistake rather than a wait. If the email AND password match a
    * request that has not been approved, say where it stands instead.
@@ -238,16 +264,16 @@ export class UsersService {
       .find(
         (r) =>
           r.admin_email.toLowerCase() === wanted &&
-          r.admin_password === password &&
+          verifyPassword(password, r.admin_password) &&
           r.status !== AuditRequestStatus.APPROVED,
       );
     if (!request) return;
     if (request.status === AuditRequestStatus.PENDING)
       throw new ForbiddenException(
-        'Your audit request is still awaiting approval by an EnerTrack auditor. You can sign in once it is approved.',
+        'Your registration is still waiting for approval by EnerTrack. You can sign in once it is approved.',
       );
     throw new ForbiddenException(
-      `Your audit request was not approved.${request.decision_note ? ` Reason: ${request.decision_note}` : ''}`,
+      `Your registration was not approved.${request.decision_note ? ` Reason: ${request.decision_note}` : ''}`,
     );
   }
 
@@ -257,15 +283,82 @@ export class UsersService {
    */
   changePassword(email: string, currentPassword: string, newPassword: string) {
     const user = this.database.users.find(
-      (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === currentPassword,
+      (u) => u.email.toLowerCase() === email.trim().toLowerCase() && verifyPassword(currentPassword, u.password),
     );
     if (!user) throw new UnauthorizedException('Invalid email or password');
     if (newPassword === currentPassword)
       throw new BadRequestException('Choose a password different from the current one');
-    user.password = newPassword;
+    user.password = hashPassword(newPassword);
     user.must_change_password = false;
     const { password: _pw, ...safeUser } = user;
-    return { ...safeUser, must_change_password: false };
+    return { ...safeUser, must_change_password: false, token: signToken(user) };
+  }
+
+  /**
+   * Finds the account that owns this email and password, or throws 401. The
+   * self-service routes below are public, so this is how they know who is
+   * asking.
+   */
+  private authenticate(email: string, password: string) {
+    const user = this.database.users.find(
+      (u) => u.email.toLowerCase() === email.trim().toLowerCase() && verifyPassword(password, u.password),
+    );
+    if (!user) throw new UnauthorizedException('Invalid email or password');
+    return user;
+  }
+
+  /**
+   * A person changing their own name and phone. Email, role and organisation
+   * stay as they are: those decide which organisation's data they can reach.
+   */
+  updateDetails(email: string, currentPassword: string, name: string, phone?: string) {
+    const user = this.authenticate(email, currentPassword);
+
+    const newPhone = phone?.trim() || undefined;
+    if (newPhone) {
+      const taken = this.database.users.find(
+        (u) => u.phone === newPhone && u.user_id !== user.user_id,
+      );
+      if (taken) throw new ConflictException(`Duplicate phone '${newPhone}'`);
+    }
+
+    user.name = name.trim();
+    user.phone = newPhone;
+    const { password: _pw, ...safeUser } = user;
+    return { ...safeUser, must_change_password: !!user.must_change_password };
+  }
+
+  /**
+   * A person deleting their own account.
+   *
+   * Refused for the last holder of a role that something depends on: an
+   * organisation with no Organization Admin has nobody to manage it, and with
+   * no Super Admin or Certified Energy Auditor nobody can approve audit
+   * requests or manage organisations. Someone else must hold the role first.
+   */
+  deleteAccount(email: string, password: string) {
+    const user = this.authenticate(email, password);
+
+    const mustLeaveSuccessor: string[] = [
+      UserRole.ORGANIZATION_ADMIN,
+      UserRole.SUPER_ADMIN,
+      UserRole.CERTIFIED_ENERGY_AUDITOR,
+    ];
+    if (mustLeaveSuccessor.includes(user.role)) {
+      const others = this.database.users.filter(
+        (u) =>
+          u.user_id !== user.user_id &&
+          u.role === user.role &&
+          u.organization_id === user.organization_id,
+      );
+      if (others.length === 0)
+        throw new ConflictException(
+          `You are the only ${user.role}${user.organization_id ? ' of your organisation' : ''}. Give the role to someone else before deleting your account.`,
+        );
+    }
+
+    this.database.users.splice(this.database.users.indexOf(user), 1);
+    return { deleted: true };
   }
 
   /** A one-time password that always satisfies the password rule. */
@@ -309,12 +402,10 @@ export class UsersService {
    * through their eyes. Same shape as login(), so the frontend can drop the
    * result straight into the session it already understands.
    *
-   * Be honest about what this is and is not. Authorisation in this system
-   * is a client-supplied x-role header with no token, so anyone who can
-   * open devtools could already become any role by editing localStorage.
-   * This route is NOT a new security boundary — it is the same capability,
-   * made deliberate, logged, and reachable in one click, and shaped so it
-   * still makes sense once real authentication lands.
+   * The caller must hold a Super Admin token (the route is @Roles-gated and
+   * the role comes from the signed token). The response includes a token for
+   * the target, so the frontend can switch session the same way it does after
+   * a login.
    *
    * What it does add is the activity log entry below: every impersonation
    * leaves a record naming both parties, which is the part that actually
@@ -335,6 +426,6 @@ export class UsersService {
     });
 
     const { password: _pw, ...safeUser } = target;
-    return safeUser;
+    return { ...safeUser, token: signToken(target) };
   }
 }

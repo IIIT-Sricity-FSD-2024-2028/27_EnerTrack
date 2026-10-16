@@ -13,9 +13,9 @@
  *                                                               Visitor, organisation
  *                                                               found from the email
  *                                                               domain
- *   request an audit         POST /audit-requests               a new customer. Creates
+ *   register organisation    POST /audit-requests               a new customer. Creates
  *                                                               only a PENDING request:
- *                                                               a certified auditor must
+ *                                                               a Super Admin must
  *                                                               approve it before the
  *                                                               organisation and its
  *                                                               Organization Admin exist
@@ -69,7 +69,7 @@ function organisationPayload(values) {
 
 /**
  * Asks for an audit. Nothing is created and nobody is signed in: the request
- * waits for an auditor's decision. Returns a small receipt.
+ * waits for a Super Admin's decision. Returns a small receipt.
  */
 export function requestAudit(values) {
   return api.post("/audit-requests", organisationPayload(values));
@@ -81,6 +81,27 @@ export function changePassword({ email, currentPassword, newPassword }) {
     email: email.trim().toLowerCase(),
     current_password: currentPassword,
     new_password: newPassword,
+  });
+}
+
+/**
+ * Saves a person's own name and phone. The current password is how the
+ * backend knows who is asking. Returns the updated account.
+ */
+export function updateDetails({ email, currentPassword, name, phone }) {
+  return api.post("/users/update-details", {
+    email: email.trim().toLowerCase(),
+    current_password: currentPassword,
+    name: name.trim(),
+    phone: phone.trim(),
+  });
+}
+
+/** Deletes a person's own account, after confirming the password. */
+export function deleteAccount({ email, password }) {
+  return api.post("/users/delete-account", {
+    email: email.trim().toLowerCase(),
+    password,
   });
 }
 

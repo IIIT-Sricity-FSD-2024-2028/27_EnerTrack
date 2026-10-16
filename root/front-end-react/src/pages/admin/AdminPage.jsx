@@ -4,7 +4,7 @@
  * Gives each page the admin styles, the "Welcome back, {name}" heading with
  * the page's own subtitle, the "Loading from backend…" spinner, the toasts,
  * and the role rule:
- *   - Organisations, Pricing Plans, Revenue: Super Admin only
+ *   - Organisations, Registrations, Pricing Plans, Revenue: Super Admin only
  *   - EnerTrack Proposal: Organization Admin only
  * Anyone else is sent back to User Management, like adminLayout.js did.
  *

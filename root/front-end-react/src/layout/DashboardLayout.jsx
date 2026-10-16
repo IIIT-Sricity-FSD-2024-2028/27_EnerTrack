@@ -8,7 +8,7 @@
  * mounted while the child changes, the sidebar does not remount on navigation.
  */
 import { startTransition } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { PATHS, areaForRole, homeForRole, roleLabel } from "../routes";
 import Sidebar from "./Sidebar";
@@ -60,6 +60,9 @@ export default function DashboardLayout() {
                 <span>{roleLabel(role)}</span>
               </div>
             </div>
+            <Link to={PATHS.account} className="dashboard-layout__signout">
+              My account
+            </Link>
             <button
               type="button"
               className="dashboard-layout__signout"

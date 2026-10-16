@@ -15,29 +15,3 @@
   padding-right: 0;
 }
 
-/* Audit Requests: the details under each request, two columns that stack on a
-   narrow screen. */
-.request-details {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 24px;
-  margin: 14px 0 0;
-}
-
-.request-details dt {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.request-details dd {
-  margin: 2px 0 0;
-  font-size: 14px;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 640px) {
-  .request-details {
-    grid-template-columns: 1fr;
-  }
-}

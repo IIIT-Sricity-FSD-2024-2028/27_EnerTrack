@@ -1,5 +1,6 @@
 import * as crypto from "crypto";
 import { FREE_EMAIL_DOMAINS } from "../../common/patterns";
+import { hashPassword } from "../../core/auth/passwords";
 import {
   Injectable,
   NotFoundException,
@@ -142,7 +143,7 @@ export class OrganizationsService {
       name: dto.admin_name.trim(),
       email,
       phone: dto.admin_phone?.trim() || null,
-      password: dto.admin_password,
+      password: hashPassword(dto.admin_password),
       role: UserRole.ORGANIZATION_ADMIN,
       specialization: null,
       must_change_password: false,

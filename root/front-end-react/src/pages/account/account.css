@@ -1,0 +1,55 @@
+/*
+ * account.css — small additions for the My account page only.
+ *
+ * Everything sits under .account-page, so none of it can reach another page.
+ * The cards, buttons, inputs and popup come from tech_shared.css; this adds
+ * what that file does not have: the page width, two columns for the first
+ * two cards, and the error text.
+ */
+.account-page {
+  max-width: 1000px;
+
+  /* Details and password side by side. align-items: start keeps each card
+     as tall as its own content. */
+  .account-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 20px;
+    align-items: start;
+  }
+
+  .card form {
+    margin-top: 16px;
+  }
+
+  .field-error {
+    display: block;
+    margin: -6px 0 12px;
+    font-size: 12px;
+    color: var(--red);
+  }
+
+  /* The delete card: text left, button right, vertically centred. */
+  .account-delete .header-row {
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* The password box inside the delete popup, under its sentence. */
+  .modal-body .field {
+    margin-top: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .account-page .account-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .account-page .account-delete .header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

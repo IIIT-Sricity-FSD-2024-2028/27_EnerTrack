@@ -95,7 +95,12 @@
   color: rgba(17, 24, 39, 0.65);
 }
 
+/* "My account" is a link that looks like the Sign Out button beside it. */
 .dashboard-layout__signout {
+  display: block;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
   width: 100%;
   padding: 8px 12px;
   border: 1px solid rgba(28, 46, 46, 0.3);

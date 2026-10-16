@@ -1901,8 +1901,8 @@
     "/api/audit-requests": {
       "post": {
         "operationId": "AuditRequestsController_submit",
-        "summary": "Request an audit (public)",
-        "description": "An organisation asking to be taken on. Records a pending request and creates nothing else: no organisation, no account, no session. A certified auditor approves or denies it, and only approval creates the organisation and its administrator. Refused if the organisation name, the email or the mail domain is already taken, by a real record or by another pending request.",
+        "summary": "Register an organisation (public)",
+        "description": "An organisation asking to be taken on. Records a pending request and creates nothing else: no organisation, no account, no session. A Super Admin approves or rejects it, and only approval creates the organisation and its administrator. Refused if the organisation name, the email or the mail domain is already taken, by a real record or by another pending request.",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1947,7 +1947,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin",
+            "description": "Caller role for RBAC. Super Admin only",
             "required": false,
             "schema": {
               "type": "string"
@@ -1984,7 +1984,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin",
+            "description": "Caller role for RBAC. Super Admin only",
             "required": false,
             "schema": {
               "type": "string"
@@ -2037,7 +2037,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin",
+            "description": "Caller role for RBAC. Super Admin only",
             "required": false,
             "schema": {
               "type": "string"
@@ -2663,6 +2663,70 @@
           },
           "401": {
             "description": "Invalid email or current password."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/update-details": {
+      "post": {
+        "operationId": "UsersController_updateDetails",
+        "summary": "Update My Details",
+        "description": "Lets a signed-in person change their own name and phone. Public, so it proves identity with the current password (as change-password does). Role, email and organisation cannot be changed here. No x-role header required.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDetailsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Details saved. Returns the user record (without password)."
+          },
+          "401": {
+            "description": "Invalid email or current password."
+          },
+          "409": {
+            "description": "Phone number belongs to another account."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/delete-account": {
+      "post": {
+        "operationId": "UsersController_deleteAccount",
+        "summary": "Delete My Account",
+        "description": "Lets a person delete their own account after proving the password. Refused with 409 for the last Organization Admin of an organisation, the last Super Admin and the last Certified Energy Auditor. No x-role header required.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account deleted."
+          },
+          "401": {
+            "description": "Invalid email or password."
+          },
+          "409": {
+            "description": "You are the last holder of a role that must always have one."
           }
         },
         "tags": [
@@ -8271,15 +8335,11 @@
   "servers": [],
   "components": {
     "securitySchemes": {
-      "x-role": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "x-role"
-      },
-      "x-org-id": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "x-org-id"
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Token from POST /api/users/login"
       }
     },
     "schemas": {
@@ -8413,6 +8473,14 @@
         "type": "object",
         "properties": {}
       },
+      "UpdateDetailsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DeleteAccountDto": {
+        "type": "object",
+        "properties": {}
+      },
       "BulkCreateUsersDto": {
         "type": "object",
         "properties": {}
@@ -8425,7 +8493,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "Aadi@123",
+          "password": "$2b$08$ZEzFPoqpfIhcjDuSjl.Xfur.lS3isDATTHmHHI704T.QXP2FM/4g2",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -8442,7 +8510,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "Aadi@123",
+          "password": "$2b$08$ZEzFPoqpfIhcjDuSjl.Xfur.lS3isDATTHmHHI704T.QXP2FM/4g2",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -9026,5 +9094,10 @@
         }
       }
     }
-  }
+  },
+  "security": [
+    {
+      "bearer": []
+    }
+  ]
 }
