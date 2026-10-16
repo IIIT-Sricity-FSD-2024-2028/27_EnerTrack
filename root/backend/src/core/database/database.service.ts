@@ -716,6 +716,85 @@ function buildMonthlyElectricityReadings(): MeterReading[] {
   return readings;
 }
 
+/**
+ * Meters whose monthly water, gas, and food series is generated.
+ */
+const GENERATED_UTILITY_SERIES: {
+  meter_id: string;
+  code: string;
+  organization_id: string;
+  meter_type: MeterType;
+  base_value: number;
+  unit: string;
+}[] = [
+  // Water: M-007 (active, org-001) & HP-M-003 (active, org-004)
+  {
+    meter_id: "mmmm0000-0007-4000-8000-000000000000",
+    code: "M007",
+    organization_id: "org-001",
+    meter_type: MeterType.WATER,
+    base_value: 2600,
+    unit: "kL",
+  },
+  {
+    meter_id: "mmmm0000-0f06-4000-8000-000000000000",
+    code: "HPM003",
+    organization_id: "org-004",
+    meter_type: MeterType.WATER,
+    base_value: 1400,
+    unit: "kL",
+  },
+  // Gas: M-002 (active, org-001) & M-008 (active, org-001)
+  {
+    meter_id: "mmmm0000-0002-4000-8000-000000000000",
+    code: "M002",
+    organization_id: "org-001",
+    meter_type: MeterType.GAS,
+    base_value: 1600,
+    unit: "m³",
+  },
+  {
+    meter_id: "mmmm0000-0008-4000-8000-000000000000",
+    code: "M008",
+    organization_id: "org-001",
+    meter_type: MeterType.GAS,
+    base_value: 1100,
+    unit: "m³",
+  },
+  // Food: M-005 (calibrating, org-001)
+  {
+    meter_id: "mmmm0000-0005-4000-8000-000000000000",
+    code: "M005",
+    organization_id: "org-001",
+    meter_type: MeterType.FOOD,
+    base_value: 720,
+    unit: "kg",
+  },
+];
+
+/** Monthly readings for water, gas, and food meters across 2025-01..2026-08. */
+function buildMonthlyUtilityReadings(): MeterReading[] {
+  const readings: MeterReading[] = [];
+  for (const meter of GENERATED_UTILITY_SERIES) {
+    for (const { year, month, period } of eachSeriesMonth()) {
+      const improved =
+        period >= IMPROVEMENT_FROM_PERIOD && meter.organization_id === "org-001"
+          ? 0.92
+          : 1;
+
+      readings.push({
+        reading_id: `gen-${meter.code}-${period}`,
+        organization_id: meter.organization_id,
+        meter_id: meter.meter_id,
+        value: Math.round(meter.base_value * SEASONAL_FACTOR[month] * improved),
+        unit: meter.unit,
+        timestamp: new Date(Date.UTC(year, month, 0, 23, 59, 0)).toISOString(),
+      });
+    }
+  }
+  return readings;
+}
+
 @Injectable({ scope: Scope.DEFAULT })
 export class DatabaseService {
   /**
@@ -1653,7 +1732,7 @@ export class DatabaseService {
       organization_id: "org-001",
       reporter_id: "550e8400-0002-4000-8000-000000000002",
       type: WastageType.WATER,
-      status: "Forwarded to Finance",
+      status: "pending",
       details: { 
         specificData: {
           nature: "Sprinkler system leaking heavily near the pathway.", 
@@ -1676,7 +1755,7 @@ export class DatabaseService {
       organization_id: "org-001",
       reporter_id: "550e8400-0003-4000-8000-000000000003",
       type: WastageType.FOOD,
-      status: "reported",
+      status: "pending",
       details: { 
         specificData: {
           typeOfWastage: "Unserved catered buffet food.",
@@ -1700,7 +1779,7 @@ export class DatabaseService {
       organization_id: "org-001",
       reporter_id: "550e8400-0004-4000-8000-000000000004",
       type: WastageType.ENERGY,
-      status: "reported",
+      status: "pending",
       details: { 
         specificData: {
           observation: "AC left running at 18C in empty conference rooms.",
@@ -2958,5 +3037,6 @@ export class DatabaseService {
    */
   constructor() {
     this.meterReadings.push(...buildMonthlyElectricityReadings());
+    this.meterReadings.push(...buildMonthlyUtilityReadings());
   }
 }

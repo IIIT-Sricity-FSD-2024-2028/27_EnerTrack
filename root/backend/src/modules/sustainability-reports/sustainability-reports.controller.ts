@@ -2,6 +2,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
 import { Controller, Get, Post, Body, Patch, Param, Delete, Put } from "@nestjs/common";
 import { SustainabilityReportsService } from "./sustainability-reports.service";
 import { CreateSustainabilityReportDto } from "./dto/create-sustainability-report.dto";
+import { GenerateSustainabilityReportDto } from "./dto/generate-sustainability-report.dto";
 import { PutSustainabilityReportDto } from "./dto/put-sustainability-report.dto";
 import { UpdateSustainabilityReportDto } from "./dto/update-sustainability-report.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
@@ -10,6 +11,22 @@ import { Roles } from "../../core/decorators/roles.decorator";
 @Controller("sustainability-reports")
 export class SustainabilityReportsController {
   constructor(private readonly sustainabilityReportsService: SustainabilityReportsService) {}
+
+  @Post("generate")
+  @ApiOperation({
+    summary: "Generate Sustainability Report Preview",
+    description:
+      "Validates period bounds, computes metrics and deltas from real sensor data, and detects data gaps without saving.",
+  })
+  @ApiResponse({ status: 200, description: "Preview generated." })
+  @ApiResponse({ status: 400, description: "Invalid period format or bounds." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-org-id", description: "Tenant organization ID.", required: false })
+  @Roles("Sustainability Officer", "Organization Admin")
+  generate(@Body() generateDto: GenerateSustainabilityReportDto) {
+    return this.sustainabilityReportsService.generate(generateDto);
+  }
 
   @Post()
   @ApiOperation({ summary: "Create Sustainability Report", description: "Archives a new sustainability report with KPI metrics. Sustainability Officer and Organization Admin can create." })
@@ -65,12 +82,12 @@ export class SustainabilityReportsController {
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "Delete Sustainability Report", description: "Permanently removes a report. Only Organization Admin can delete." })
+  @ApiOperation({ summary: "Delete Sustainability Report", description: "Permanently removes a report. Organization Admin and Sustainability Officer can delete." })
   @ApiResponse({ status: 200, description: "Deleted successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin")
+  @Roles("Organization Admin", "Sustainability Officer")
   remove(@Param("id") id: string) {
     return this.sustainabilityReportsService.remove(id);
   }

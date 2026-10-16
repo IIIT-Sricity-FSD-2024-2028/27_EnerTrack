@@ -7,5 +7,6 @@ import { DatabaseModule } from "../../core/database/database.module";
   imports: [DatabaseModule],
   controllers: [SustainabilityMetricsController],
   providers: [SustainabilityMetricsService],
+  exports: [SustainabilityMetricsService],
 })
 export class SustainabilityMetricsModule {}

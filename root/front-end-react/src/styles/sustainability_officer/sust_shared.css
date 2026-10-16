@@ -11,17 +11,12 @@
   --s-nav-active: #0f172a;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: "Inter", sans-serif;
-  background: var(--s-bg-page);
-  color: var(--s-text-strong);
-  height: 100vh;
-  overflow: hidden;
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
 }
 
 .dashboard {

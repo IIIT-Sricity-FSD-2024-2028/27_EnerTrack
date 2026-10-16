@@ -15,7 +15,7 @@ import {
 } from "../../core/database/database.service";
 
 /** Grid emissions factor for Indian electricity, kg CO2 per kWh. */
-const GRID_CO2_KG_PER_KWH = 0.82;
+export const GRID_CO2_KG_PER_KWH = 0.82;
 import {
   scopeToTenant,
   currentOrgId,

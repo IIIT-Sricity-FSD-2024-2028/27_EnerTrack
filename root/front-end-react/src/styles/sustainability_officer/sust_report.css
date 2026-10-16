@@ -1,18 +1,12 @@
-/* ===== GLOBALS & SIDEBAR ===== */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+/* ===== SUSTAINABILITY REPORT STYLES ===== */
+@import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;600;700&display=swap");
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: "Inter", sans-serif;
-  background-color: #ededed;
-  color: #1f2937;
-  height: 100vh;
-  overflow: hidden;
+.sustainability-report-page button:focus-visible,
+.sustainability-report-page select:focus-visible,
+.sustainability-report-page input:focus-visible,
+.sustainability-report-page [tabindex]:focus-visible {
+  outline: 2px solid #2d5a43;
+  outline-offset: 2px;
 }
 
 .dashboard {
