@@ -78,7 +78,17 @@ function filterAndSort(users, filters, organizations) {
   });
 }
 
+// A Super Admin and an Organization Admin share this page as their home, so
+// "Act as" (and the way back) lands on the page that is already open. React
+// would keep it as it was: the list loaded for the previous person, with
+// their filters. A new `key` makes React build a fresh page instead, which
+// loads the list again for whoever is signed in now.
 export default function Users() {
+  const { user } = useAuth();
+  return <UsersPage key={user.user_id || user.id} />;
+}
+
+function UsersPage() {
   const { user: me, adoptSession, impersonate } = useAuth();
   const navigate = useNavigate();
 
