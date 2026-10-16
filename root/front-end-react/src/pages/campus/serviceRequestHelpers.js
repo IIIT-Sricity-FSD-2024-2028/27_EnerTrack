@@ -36,8 +36,8 @@ export const TIMELINE_STEPS = [
   },
   {
     num: 2,
-    label: "System Admin Review",
-    desc: "The Administrator triages and forwards your request.",
+    label: "Technician Admin Review",
+    desc: "The Technician Administrator triages and forwards your request.",
   },
   {
     num: 3,
@@ -87,7 +87,10 @@ export function getProgress(status, orders = []) {
     };
   }
 
-  return { step: 2, note: "Your report is with the administrator for review." };
+  return {
+    step: 2,
+    note: "Your report is with the Technician Administrator for review.",
+  };
 }
 
 // Turns a raw status ("open", "inprogress", "closed", ...) into the pill's
