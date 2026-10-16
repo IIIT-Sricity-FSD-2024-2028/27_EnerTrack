@@ -9,6 +9,10 @@
  * estimate yet. The old page offered it at every stage, so sending one for
  * an order already in Review pushed it back to Approval.
  *
+ * The estimate belongs to whoever holds the order, so the form is only
+ * offered when `canEdit` is true. The Technician Administrator's page turns
+ * it off for orders assigned to someone else; they still see the status.
+ *
  * The page renders this with key={work order id}, so picking another order
  * closes the form and clears the numbers.
  *
@@ -17,7 +21,12 @@
  */
 import { useState } from "react";
 
-export default function CostEstimateCard({ wo, busy, onSubmit }) {
+export default function CostEstimateCard({
+  wo,
+  busy,
+  onSubmit,
+  canEdit = true,
+}) {
   const [formOpen, setFormOpen] = useState(false);
   const [materials, setMaterials] = useState("");
   const [labor, setLabor] = useState("");
@@ -69,7 +78,8 @@ export default function CostEstimateCard({ wo, busy, onSubmit }) {
   // The form is offered for a first estimate (New or In Progress with none
   // yet) and for a revised one after a rejection (New with an old one).
   const canEstimate =
-    wo.status === "new" || (wo.status === "inprogress" && !estimate);
+    canEdit &&
+    (wo.status === "new" || (wo.status === "inprogress" && !estimate));
 
   // The inputs hold text; turn them into numbers to check and add them.
   const materialsCost = Number(materials);

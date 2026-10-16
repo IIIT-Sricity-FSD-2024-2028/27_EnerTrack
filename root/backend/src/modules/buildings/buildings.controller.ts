@@ -35,8 +35,10 @@ export class BuildingsController {
   @ApiOperation({ summary: "List All Buildings", description: "Retrieves all building records in the system. Any authenticated user can view the complete list of buildings across all campuses. Send a GET request with no additional parameters." })
   @ApiResponse({ status: 200, description: "Array of all building records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Technician Administrator | Sustainability Officer | Campus Visitor", required: false })
+  // Technician Administrator reads building names to label where an alert's
+  // meter is (Alerts page) — the role that dispatches repairs to them.
+  @Roles("Organization Admin", "Financial Analyst", "Technician", "Technician Administrator", "Sustainability Officer", "Campus Visitor")
   findAll() {
     return this.buildingsService.findAll();
   }

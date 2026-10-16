@@ -40,9 +40,9 @@ export default function ArchiveTable({ workOrders, users }) {
           {workOrders.map((wo) => {
             const details = wo.details || {};
 
-            // Coloured by priority, labelled by type — as before. Orders from
-            // the seed data have no type at all, so say so plainly rather
-            // than show an empty pill.
+            // Coloured by priority, labelled by type — as before. An order
+            // made through the API without details has no type, so say so
+            // plainly rather than show an empty pill.
             let typeCell;
             if (details.type) {
               typeCell = (

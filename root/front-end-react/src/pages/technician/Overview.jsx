@@ -3,7 +3,7 @@
  *
  * Ported from front-end/js/technician/overviewPage.js.
  *
- * This component owns all the data: it fetches the four lists, keeps them
+ * This component owns all the data: it fetches the lists, keeps them
  * in state, and hands them down as props. StatCard and VerifyFeed only
  * render what they are given, so after a verify there is exactly one thing
  * to refresh — loadData().
@@ -12,10 +12,8 @@
  * state, so they always match the lists they are counted from.
  */
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
-import { PATHS } from "../../routes";
 
 import StatCard from "./components/StatCard";
 import ToastStack from "./components/ToastStack";
@@ -35,20 +33,24 @@ import "../../styles/technician/tech_overview.css";
 import "./technician.css";
 
 /**
- * Gets the four lists the page needs. Only fetches — it does not touch
- * React state, so it lives outside the component.
+ * Gets the lists the page needs. Only fetches — it does not touch React
+ * state, so it lives outside the component.
  */
 async function fetchOverview() {
   const alerts = await api.get("/alerts");
   const faults = await api.get("/faults");
   const workOrders = await api.get("/work-orders");
+  // Closing a work order also closes the request it came from.
   const serviceRequests = await api.get("/service-requests");
+  // Only for the technician's name on each item awaiting verification.
+  const users = await api.get("/users");
 
   return {
     alerts: alerts || [],
     faults: faults || [],
     workOrders: workOrders || [],
     serviceRequests: serviceRequests || [],
+    users: users || [],
   };
 }
 
@@ -62,6 +64,7 @@ export default function TechnicianOverview() {
   const [faults, setFaults] = useState([]);
   const [workOrders, setWorkOrders] = useState([]);
   const [serviceRequests, setServiceRequests] = useState([]);
+  const [users, setUsers] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -82,6 +85,7 @@ export default function TechnicianOverview() {
         setFaults(result.faults);
         setWorkOrders(result.workOrders);
         setServiceRequests(result.serviceRequests);
+        setUsers(result.users);
         setLoading(false);
       })
       .catch((err) => {
@@ -99,23 +103,6 @@ export default function TechnicianOverview() {
     const timer = setInterval(loadData, 30000);
     return () => clearInterval(timer);
   }, []);
-
-  async function verifyServiceRequest(id) {
-    setBusyId(id);
-    try {
-      await api.patch(`/service-requests/${id}`, {
-        status: "Validated (Awaiting Payment)",
-      });
-      showToast(
-        "Work verified. Sent to Financial Analyst for payment.",
-        "success",
-      );
-      await loadData();
-    } catch (err) {
-      showToast(err.message, "error");
-    }
-    setBusyId(null);
-  }
 
   async function verifyWorkOrder(id) {
     const wo = workOrders.find((w) => w.work_order_id === id);
@@ -161,12 +148,9 @@ export default function TechnicianOverview() {
   }
 
   // ── Items waiting for the supervisor to check ────────
-  const srsToVerify = serviceRequests.filter(
-    (sr) => sr.status === "Work Complete (Awaiting Validation)",
-  );
-  const wosToVerify = workOrders.filter(
-    (wo) => wo.status === "review" || wo.status === "completed",
-  );
+  // A service request is never verified on its own: the work order made
+  // from it is, and closing that order closes the request too.
+  const wosToVerify = workOrders.filter((wo) => wo.status === "review");
 
   // ── Pick what goes under the header ──────────────────
   let content;
@@ -194,10 +178,9 @@ export default function TechnicianOverview() {
             </div>
           </div>
           <VerifyFeed
-            serviceRequests={srsToVerify}
             workOrders={wosToVerify}
+            users={users}
             busyId={busyId}
-            onVerifyServiceRequest={verifyServiceRequest}
             onVerifyWorkOrder={verifyWorkOrder}
           />
         </div>
@@ -251,11 +234,6 @@ export default function TechnicianOverview() {
             faults, and jump directly into technician workflows that need
             action.
           </p>
-        </div>
-        <div className="header-actions">
-          <Link to={PATHS.technician.workOrders} className="btn btn-dark">
-            Open queue →
-          </Link>
         </div>
       </div>
 

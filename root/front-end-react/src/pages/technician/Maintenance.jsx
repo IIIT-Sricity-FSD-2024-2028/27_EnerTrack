@@ -19,6 +19,7 @@
  */
 import { useEffect, useState } from "react";
 import api from "../../api/client";
+import { useAuth } from "../../auth/useAuth";
 
 import Modal from "./components/Modal";
 import ToastStack from "./components/ToastStack";
@@ -28,7 +29,7 @@ import NotesSection from "./maintenance/NotesSection";
 import SensorReadout from "./maintenance/SensorReadout";
 import Classification from "./maintenance/Classification";
 import WorkOrderModal from "./maintenance/WorkOrderModal";
-import { faultsAwaitingDiagnosis } from "./techUtils";
+import { faultsAwaitingDiagnosis, userName } from "./techUtils";
 
 import "../../styles/shared/tech_shared.css";
 import "../../styles/technician/tech_maintenance.css";
@@ -57,6 +58,7 @@ async function fetchMaintenance() {
 }
 
 export default function TechnicianMaintenance() {
+  const { user } = useAuth();
   const { toasts, showToast } = useToast();
 
   const [faults, setFaults] = useState([]);
@@ -250,7 +252,7 @@ export default function TechnicianMaintenance() {
     workspace = (
       <div className="card">
         <div className="diagnostics-header">
-          <h2>Select an alert to begin diagnostics</h2>
+          <h2>Select a fault to begin diagnostics</h2>
         </div>
         <div className="empty-state">Nothing is waiting for diagnosis.</div>
       </div>
@@ -258,15 +260,31 @@ export default function TechnicianMaintenance() {
   } else {
     const id = selected.fault_id;
     const busy = busyId === id;
+    // Whoever a fault is assigned to diagnoses it; everyone else can follow
+    // along but not change it. An unassigned fault is open to anyone, so it
+    // can still be picked up. Same rule as work orders.
+    const readOnly =
+      Boolean(selected.assigned_to_id) &&
+      selected.assigned_to_id !== user?.user_id;
 
     workspace = (
       <div className="card">
         <div className="diagnostics-header">
           <div>
-            <h2>Active Diagnostics — {selected.alert_id || id}</h2>
-            <small className="sub">{selected.asset_name || "—"}</small>
+            <h2>Active Diagnostics — {id}</h2>
+            <small className="sub">
+              {selected.asset_name || "—"}
+              {selected.alert_id ? ` · from alert ${selected.alert_id}` : ""}
+            </small>
           </div>
         </div>
+
+        {readOnly && (
+          <p className="callout stage-note mb-16">
+            Assigned to {userName(users, selected.assigned_to_id)}. You can
+            follow the diagnosis here; only they can update it.
+          </p>
+        )}
 
         <div className="main-grid">
           {/* LEFT: notes */}
@@ -279,6 +297,7 @@ export default function TechnicianMaintenance() {
               savedText={selected.prelim_notes || ""}
               saveLabel="Save Notes"
               busy={busy}
+              readOnly={readOnly}
               onSave={(text) =>
                 updateFault(
                   id,
@@ -300,6 +319,7 @@ export default function TechnicianMaintenance() {
               savedText={selected.quickfix_notes || ""}
               saveLabel="Save Quick Fix Logic"
               busy={busy}
+              readOnly={readOnly}
               onSave={(text) =>
                 updateFault(
                   id,
@@ -317,16 +337,18 @@ export default function TechnicianMaintenance() {
                 )
               }
             >
-              <div className="close-fault-bar">
-                <button
-                  type="button"
-                  className="btn btn-light btn-full"
-                  disabled={busy}
-                  onClick={() => setDialog({ kind: "close", faultId: id })}
-                >
-                  Quick Fix Successful — Close Fault
-                </button>
-              </div>
+              {!readOnly && (
+                <div className="close-fault-bar">
+                  <button
+                    type="button"
+                    className="btn btn-light btn-full"
+                    disabled={busy}
+                    onClick={() => setDialog({ kind: "close", faultId: id })}
+                  >
+                    Quick Fix Successful — Close Fault
+                  </button>
+                </div>
+              )}
             </NotesSection>
           </div>
 
@@ -342,6 +364,7 @@ export default function TechnicianMaintenance() {
             <Classification
               fault={selected}
               busy={busy}
+              readOnly={readOnly}
               onFlag={(kind) => setDialog({ kind: kind, faultId: id })}
             />
           </div>
@@ -387,8 +410,8 @@ export default function TechnicianMaintenance() {
       <div className="page-header">
         <h1>Fault Detection &amp; Diagnostics</h1>
         <p>
-          Pick an acknowledged alert, review the inspection and quick fix,
-          compare the data, then log the final outcome.
+          Work out what is wrong with each confirmed fault. Resolve it here if a
+          quick fix works, or flag it for a work order if it needs a repair.
         </p>
       </div>
 

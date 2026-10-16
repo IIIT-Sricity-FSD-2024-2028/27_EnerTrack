@@ -83,9 +83,6 @@
 .fa-page .card small {
   line-height: normal; /* tech_shared: .card small { line-height: 1.4 } */
 }
-.fa-page .sub-card {
-  margin-top: 0 !important; /* tech_maintenance: .sub-card { margin-top: 12px !important } */
-}
 .fa-page .empty-state {
   font-size: 16px; /* tech_shared: .empty-state { font-size: 13px } */
 }

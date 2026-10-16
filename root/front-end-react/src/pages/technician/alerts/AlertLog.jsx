@@ -1,6 +1,13 @@
 /**
- * AlertLog — the "Alert Log" table: alerts that have been acknowledged or
- * resolved, most severe first. Acknowledged ones get a small Resolve button.
+ * AlertLog — the "Alert Log" table, most severe first. Read-only: the
+ * record of alerts already decided.
+ *
+ *   Resolved          — a false alarm, or its fault was fixed
+ *   In diagnostics    — handed to Fault Detection & Diagnostics as a fault
+ *                       (`openFaultFor(alertId)`); fixing the fault resolves it
+ *
+ * Monitored alerts are not here: they stay in the queue until decided. The
+ * old log had a Resolve button that closed an alert with no reason given.
  *
  * Ported from renderHistoryLog() in js/technician/alertsPage.js.
  */
@@ -13,7 +20,7 @@ function rankOf(alert) {
   return SEVERITY_RANK[alert.severity] || 0;
 }
 
-export default function AlertLog({ alerts, busyId, onResolve }) {
+export default function AlertLog({ alerts, openFaultFor }) {
   // .sort() changes the array it is called on, and `alerts` belongs to the
   // page's state, so sort a copy instead of the original.
   const sorted = [...alerts];
@@ -23,7 +30,8 @@ export default function AlertLog({ alerts, busyId, onResolve }) {
     <div className="card full-width">
       <h2>Alert Log</h2>
       <small>
-        Recently acknowledged alerts and their final resolution status.
+        Alerts already decided: resolved, or handed to Fault Detection &amp;
+        Diagnostics.
       </small>
       <table className="alerts-table">
         <thead>
@@ -51,19 +59,14 @@ export default function AlertLog({ alerts, busyId, onResolve }) {
             const id = alert.alert_id;
             const severity = alert.severity || "low";
 
-            let statusCell;
-            if (alert.status === "resolved") {
-              statusCell = <span className="badge resolved">Resolved</span>;
-            } else {
+            const fault = openFaultFor(id);
+
+            let statusCell = <span className="badge resolved">Resolved</span>;
+            if (alert.status !== "resolved" && fault) {
               statusCell = (
-                <button
-                  type="button"
-                  className="btn btn-dark btn-sm"
-                  disabled={busyId === id}
-                  onClick={() => onResolve(id)}
-                >
-                  Resolve
-                </button>
+                <span className="badge inprogress">
+                  In diagnostics ({fault.fault_id})
+                </span>
               );
             }
 
