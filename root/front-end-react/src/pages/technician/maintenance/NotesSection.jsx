@@ -17,6 +17,9 @@
  * drawn at the bottom of the card — the Quick Fix card uses this for its
  * "Close Fault" button.
  *
+ * With `readOnly` (the fault is assigned to someone else) it only shows the
+ * saved text, with no Edit, Delete or Save.
+ *
  * Ported from the prelim / quickfix handlers in js/technician/maintenancePage.js.
  */
 import { useState } from "react";
@@ -30,6 +33,7 @@ export default function NotesSection({
   busy,
   onSave,
   onDelete,
+  readOnly = false,
   children,
 }) {
   const [editing, setEditing] = useState(false);
@@ -57,7 +61,13 @@ export default function NotesSection({
   const showSaved = savedText && !editing;
 
   let body;
-  if (showSaved) {
+  if (readOnly) {
+    body = (
+      <div className="callout mb-16">
+        <div className="notes-saved-text">{savedText || "No notes yet."}</div>
+      </div>
+    );
+  } else if (showSaved) {
     body = (
       <div className="callout mb-16">
         <div className="notes-saved-text">{savedText}</div>

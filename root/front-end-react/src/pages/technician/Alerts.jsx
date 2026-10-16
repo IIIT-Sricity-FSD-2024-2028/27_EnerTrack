@@ -8,9 +8,13 @@
  * AlertDetail and AlertLog only draw what they are given.
  *
  * The selected alert is worked out during render rather than kept up to
- * date by hand: it is the one the user clicked if that is still open,
- * otherwise the first open alert. So after an alert is acknowledged or
- * resolved, the next one is selected automatically.
+ * date by hand: it is the one the user clicked if that is still in the
+ * queue, otherwise the first one. So after an alert leaves the queue, the
+ * next one is selected automatically.
+ *
+ * Each alert gets one decision (see AlertDetail): real fault, monitor, or
+ * false alarm. A real fault creates a Fault linked to the alert, which is
+ * the step that hands it to Fault Detection & Diagnostics.
  *
  * The "Action Taken" text is saved as a message on the alert's thread
  * (POST /alerts/:id/messages), because the alert itself has no field for it.
@@ -19,7 +23,6 @@ import { useEffect, useState } from "react";
 import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 
-import Modal from "./components/Modal";
 import ToastStack from "./components/ToastStack";
 import { useToast } from "./components/useToast";
 import AlertQueue from "./alerts/AlertQueue";
@@ -31,19 +34,52 @@ import "../../styles/technician/tech_alerts.css";
 import "./technician.css";
 
 /**
- * Gets every alert. Only fetches — it does not touch React state, so it
- * lives outside the component.
+ * Gets every alert, the faults (to know which alerts already have one), and
+ * the meters and buildings (to say which sensor raised an alert, and where).
+ * Only fetches — it does not touch React state, so it lives outside the
+ * component.
  */
 async function fetchAlerts() {
   const alerts = await api.get("/alerts");
-  return alerts || [];
+  const faults = await api.get("/faults");
+  const meters = await api.get("/meters");
+  const buildings = await api.get("/buildings");
+  return {
+    alerts: alerts || [],
+    faults: faults || [],
+    meters: meters || [],
+    buildings: buildings || [],
+  };
+}
+
+/**
+ * Alerts and faults share low / moderate / high / critical. The alert's
+ * severity is free text, so anything else (e.g. "medium") counts as moderate.
+ */
+function faultSeverity(alertSeverity) {
+  const known = ["low", "moderate", "high", "critical"];
+  if (known.includes(alertSeverity)) {
+    return alertSeverity;
+  }
+  return "moderate";
+}
+
+/** "False alarm" + "valve was shut" → "False alarm — valve was shut". */
+function withNotes(label, notes) {
+  if (!notes) {
+    return label;
+  }
+  return label + " — " + notes;
 }
 
 export default function TechnicianAlerts() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const { toasts, showToast } = useToast();
 
   const [alerts, setAlerts] = useState([]);
+  const [faults, setFaults] = useState([]);
+  const [meters, setMeters] = useState([]);
+  const [buildings, setBuildings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -53,18 +89,16 @@ export default function TechnicianAlerts() {
   // The alert whose request is running, so its buttons are disabled.
   const [busyId, setBusyId] = useState(null);
 
-  // The alert waiting for "Are you sure?" in the popup (null = popup closed).
-  // It stores the id rather than true/false so the popup always resolves the
-  // alert it was opened for, even if a refresh changes the selection.
-  const [confirmId, setConfirmId] = useState(null);
-
   // Same lint-safe pattern as Overview.jsx: setState only inside the
   // .then / .catch callbacks.
   function loadData() {
     return fetchAlerts()
-      .then((list) => {
+      .then((result) => {
         setError("");
-        setAlerts(list);
+        setAlerts(result.alerts);
+        setFaults(result.faults);
+        setMeters(result.meters);
+        setBuildings(result.buildings);
         setLoading(false);
       })
       .catch((err) => {
@@ -80,51 +114,91 @@ export default function TechnicianAlerts() {
     return () => clearInterval(timer);
   }, []);
 
-  async function acknowledgeAlert(id, action) {
+  /** An unresolved fault already raised from this alert, if any. */
+  function openFaultFor(alertId) {
+    return faults.find(
+      (f) => f.alert_id === alertId && f.status !== "resolved",
+    );
+  }
+
+  /** Saves the decision made in AlertDetail. */
+  async function decideAlert(alert, { decision, notes, asset, faultType }) {
+    const id = alert.alert_id;
     setBusyId(id);
     try {
-      await api.patch(`/alerts/${id}`, { status: "acknowledged" });
+      let status = "acknowledged";
+      let action;
+      let message;
+
+      if (decision === "fault") {
+        let fault = openFaultFor(id);
+        // The fault first: if it is refused, the alert is left untouched.
+        if (!fault) {
+          fault = await api.post("/faults", {
+            alert_id: id,
+            asset_name: asset,
+            fault_type: faultType,
+            severity: faultSeverity(alert.severity),
+            status: "active",
+            // Whoever confirmed it is the one diagnosing it, until reassigned.
+            ...(user?.user_id ? { assigned_to_id: user.user_id } : {}),
+            // Diagnostics carries these notes on into the work order.
+            ...(notes ? { prelim_notes: notes } : {}),
+          });
+        }
+        action = withNotes(`Sent to diagnostics as ${fault.fault_id}`, notes);
+        message = `Alert ${id} acknowledged. ${fault.fault_id} is on Fault Detection & Diagnostics.`;
+      } else if (decision === "monitor") {
+        action = withNotes("Monitoring", notes);
+        message = `Alert ${id} is being monitored. It stays in the queue until you decide.`;
+      } else {
+        status = "resolved";
+        action = withNotes("False alarm", notes);
+        message = `Alert ${id} resolved as a false alarm.`;
+      }
+
+      await api.patch(`/alerts/${id}`, { status: status });
       // Record what was done, so the Alert Log can show it.
       await api.post(`/alerts/${id}/messages`, {
         sender_role: role,
         content: action,
       });
-      showToast(`Alert ${id} acknowledged. Action: ${action}`, "success");
+      showToast(message, "success");
       await loadData();
     } catch (err) {
       showToast(err.message, "error");
     }
     setBusyId(null);
-  }
-
-  async function resolveAlert(id) {
-    setBusyId(id);
-    try {
-      await api.patch(`/alerts/${id}`, { status: "resolved" });
-      showToast(`Alert ${id} resolved.`, "success");
-      await loadData();
-    } catch (err) {
-      showToast(err.message, "error");
-    }
-    setBusyId(null);
-  }
-
-  function confirmResolve() {
-    const id = confirmId;
-    setConfirmId(null); // close the popup
-    resolveAlert(id);
   }
 
   // ── Split the alerts for the two tables ──────────────
-  const openAlerts = alerts.filter((a) => a.status === "open");
-  const loggedAlerts = alerts.filter(
-    (a) => a.status === "acknowledged" || a.status === "resolved",
+  // The queue holds every alert still waiting on a decision: new ones, and
+  // acknowledged ones being monitored (no fault behind them). The log is the
+  // record of the rest: resolved, or handed to diagnostics, where fixing the
+  // fault resolves the alert. Nothing is resolved from the log itself.
+  const queueAlerts = alerts.filter(
+    (a) =>
+      a.status === "open" ||
+      (a.status === "acknowledged" && !openFaultFor(a.alert_id)),
   );
+  const loggedAlerts = alerts.filter((a) => !queueAlerts.includes(a));
 
   // ── Which alert the detail panel shows ───────────────
-  let selected = openAlerts.find((a) => a.alert_id === selectedId);
+  let selected = queueAlerts.find((a) => a.alert_id === selectedId);
   if (!selected) {
-    selected = openAlerts[0]; // undefined when no open alerts are left
+    selected = queueAlerts[0]; // undefined when the queue is empty
+  }
+
+  // The sensor that raised it, and the building that sensor is in.
+  let selectedMeter;
+  let selectedBuilding;
+  if (selected) {
+    selectedMeter = meters.find((m) => m.meter_id === selected.meter_id);
+  }
+  if (selectedMeter) {
+    selectedBuilding = buildings.find(
+      (b) => b.building_id === selectedMeter.building_id,
+    );
   }
 
   // ── Pick what goes under the header ──────────────────
@@ -149,21 +223,21 @@ export default function TechnicianAlerts() {
     content = (
       <div className="alerts-grid">
         <AlertQueue
-          alerts={openAlerts}
+          alerts={queueAlerts}
           selectedId={selectedAlertId}
           onSelect={setSelectedId}
         />
+        {/* key: another alert gets a fresh, empty form. */}
         <AlertDetail
+          key={selectedAlertId || "none"}
           alert={selected}
+          meter={selectedMeter}
+          building={selectedBuilding}
+          existingFault={selected && openFaultFor(selected.alert_id)}
           busy={selected !== undefined && busyId === selected.alert_id}
-          onAcknowledge={acknowledgeAlert}
-          onResolveClick={() => setConfirmId(selected.alert_id)}
+          onDecide={(values) => decideAlert(selected, values)}
         />
-        <AlertLog
-          alerts={loggedAlerts}
-          busyId={busyId}
-          onResolve={resolveAlert}
-        />
+        <AlertLog alerts={loggedAlerts} openFaultFor={openFaultFor} />
       </div>
     );
   }
@@ -189,19 +263,6 @@ export default function TechnicianAlerts() {
       </div>
 
       {content}
-
-      {confirmId !== null && (
-        <Modal
-          title="Resolve Alert"
-          confirmLabel="Resolve"
-          onConfirm={confirmResolve}
-          onCancel={() => setConfirmId(null)}
-        >
-          <p>
-            Are you sure you want to resolve <strong>{confirmId}</strong>?
-          </p>
-        </Modal>
-      )}
 
       <ToastStack toasts={toasts} />
     </div>

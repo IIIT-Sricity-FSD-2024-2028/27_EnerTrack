@@ -31,9 +31,9 @@ export default function JrActionPanel({
   const details = wo.details || {};
   // No estimate yet although one is required, or the last one was rejected
   // (Finance's Reject sends the order back to New but keeps the estimate).
+  const estimateRejected = wo.status === "new" && details.estimate;
   const needsEstimate =
-    (details.estimateRequired && !details.estimate) ||
-    (wo.status === "new" && details.estimate);
+    (details.estimateRequired && !details.estimate) || estimateRejected;
 
   const rejectButton = (
     <button
@@ -53,10 +53,17 @@ export default function JrActionPanel({
     title = "Work Order Assignment";
     body = (
       <div>
-        <p className="callout callout--warning stage-note mb-10">
-          This work order needs an approved cost estimate before work can
-          start. Send one with the Cost Estimate form.
-        </p>
+        {estimateRejected ? (
+          <p className="callout callout--danger stage-note mb-10">
+            The Financial Analyst rejected your cost estimate. Send a revised
+            one with the Cost Estimate form; work starts once it is approved.
+          </p>
+        ) : (
+          <p className="callout callout--warning stage-note mb-10">
+            This work order needs an approved cost estimate before work can
+            start. Send one with the Cost Estimate form.
+          </p>
+        )}
         {rejectButton}
       </div>
     );

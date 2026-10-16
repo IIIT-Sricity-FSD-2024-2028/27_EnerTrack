@@ -1,6 +1,9 @@
 /**
- * AlertQueue — the "Priority Alert Queue" table: every open alert.
- * Clicking a row tells the page which alert to show in the detail panel.
+ * AlertQueue — the "Priority Alert Queue" table: every alert still waiting
+ * on a decision. That is new ones ("Open") and ones a technician chose to
+ * monitor ("Monitoring"), which stay here until called a real fault or a
+ * false alarm. Clicking a row tells the page which alert to show in the
+ * detail panel.
  *
  * Ported from renderQueue() in js/technician/alertsPage.js.
  */
@@ -29,7 +32,7 @@ export default function AlertQueue({ alerts, selectedId, onSelect }) {
             <tr>
               <td colSpan="4">
                 <div className="empty-state">
-                  No open alerts — the queue is clear.
+                  No alerts waiting on a decision — the queue is clear.
                 </div>
               </td>
             </tr>
@@ -56,7 +59,11 @@ export default function AlertQueue({ alerts, selectedId, onSelect }) {
                 </td>
                 <td>{alertTime(alert)}</td>
                 <td>
-                  <span className="badge open">Open</span>
+                  {alert.status === "acknowledged" ? (
+                    <span className="badge review">Monitoring</span>
+                  ) : (
+                    <span className="badge open">Open</span>
+                  )}
                 </td>
               </tr>
             );

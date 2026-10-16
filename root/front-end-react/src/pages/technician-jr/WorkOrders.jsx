@@ -16,7 +16,8 @@
  *   - "estimate required" means the same as on the admin page, because both
  *     use the same CostEstimateCard
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 
@@ -57,8 +58,21 @@ export default function TechnicianJrWorkOrders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // The work order clicked on the board (null = none clicked yet).
-  const [selectedId, setSelectedId] = useState(null);
+  // The work order clicked on the board (null = none clicked yet). It is
+  // kept in the URL as ?wo=<id>, so "Up next" on the Overview can link
+  // straight to one order and a refresh keeps the same one open.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedId = searchParams.get("wo");
+
+  function selectOrder(id) {
+    // replace: clicking between cards should not fill the Back history.
+    setSearchParams({ wo: id }, { replace: true });
+  }
+
+  // Arriving from a link with ?wo= means the user wants that order's
+  // details, which sit below the board — so scroll to them once loaded.
+  const detailRef = useRef(null);
+  const linkedOnArrival = useRef(selectedId !== null);
 
   // The work order whose request is running, so its buttons are disabled.
   const [busyId, setBusyId] = useState(null);
@@ -85,6 +99,13 @@ export default function TechnicianJrWorkOrders() {
     const timer = setInterval(loadData, 30000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!loading && linkedOnArrival.current && detailRef.current) {
+      linkedOnArrival.current = false; // only on arrival, not every refresh
+      detailRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [loading]);
 
   /**
    * PATCH a work order and report the result. Returns true if it worked,
@@ -241,11 +262,11 @@ export default function TechnicianJrWorkOrders() {
             workOrders={openOrders}
             users={users}
             selectedId={selectedOrderId}
-            onSelect={setSelectedId}
+            onSelect={selectOrder}
           />
         </div>
 
-        {detail}
+        <div ref={detailRef}>{detail}</div>
 
         <ArchiveTable workOrders={closedOrders} users={users} />
       </div>

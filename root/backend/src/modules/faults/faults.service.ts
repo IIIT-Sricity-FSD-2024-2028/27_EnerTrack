@@ -38,8 +38,13 @@ export class FaultsService {
           `Target users with id '${createDto.assigned_to_id}' not found`,
         );
     }
-    const nextId = this.database.faults.length + 1;
-    const generatedId = `FLT-${nextId.toString().padStart(3, "0")}`;
+    // One past the highest FLT number in use, not length + 1: after a delete
+    // the length drops and the next fault would reuse a live id.
+    const highest = this.database.faults.reduce((max, f) => {
+      const n = Number(/^FLT-(\d+)$/.exec(f.fault_id)?.[1] ?? 0);
+      return Math.max(max, n);
+    }, 0);
+    const generatedId = `FLT-${(highest + 1).toString().padStart(3, "0")}`;
     const newRecord = { fault_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
     this.database.faults.push(newRecord as any);
     return newRecord;
