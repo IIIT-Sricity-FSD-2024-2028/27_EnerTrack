@@ -14,7 +14,7 @@ const TABS = [
   { key: "building", label: "By Building" },
   { key: "time", label: "By Time" },
 ];
-const CHART_HEIGHT = 160;
+const CHART_HEIGHT = 130; // tallest bar in px (leaves room for the value label above it)
 
 const sum = (rows, pick) => rows.reduce((total, r) => total + (Number(pick(r)) || 0), 0);
 
@@ -123,6 +123,9 @@ export default function CostBreakdown({ costs, pending, onExportCsv, onExportPdf
                   className="bar-group"
                   style={isMax ? { border: "2px solid #059669", borderRadius: 8, padding: 6, marginTop: -10, background: "rgba(5, 150, 105, 0.05)" } : undefined}
                 >
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", marginBottom: 4 }}>
+                    {formatCurrency(d.value)}
+                  </div>
                   <div
                     className="stacked-bar"
                     style={{ height, width: 44, overflow: "hidden", position: "relative", display: "flex", flexDirection: "column-reverse", borderRadius: 4 }}
