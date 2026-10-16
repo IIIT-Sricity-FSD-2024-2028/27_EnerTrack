@@ -676,37 +676,37 @@ const GENERATED_SERIES: {
   organization_id: string;
   base_kwh: number;
 }[] = [
-  {
-    meter_id: "mmmm0000-0001-4000-8000-000000000000",
-    code: "M001",
-    organization_id: "org-001",
-    base_kwh: 42000,
-  },
-  {
-    meter_id: "mmmm0000-000a-4000-8000-000000000000",
-    code: "M010",
-    organization_id: "org-001",
-    base_kwh: 28000,
-  },
-  {
-    meter_id: "mmmm0000-0f02-4000-8000-000000000000",
-    code: "CVM001",
-    organization_id: "org-002",
-    base_kwh: 55000,
-  },
-  {
-    meter_id: "mmmm0000-0f04-4000-8000-000000000000",
-    code: "HPM001",
-    organization_id: "org-004",
-    base_kwh: 31000,
-  },
-  {
-    meter_id: "mmmm0000-0f05-4000-8000-000000000000",
-    code: "HPM002",
-    organization_id: "org-004",
-    base_kwh: 19000,
-  },
-];
+    {
+      meter_id: "mmmm0000-0001-4000-8000-000000000000",
+      code: "M001",
+      organization_id: "org-001",
+      base_kwh: 42000,
+    },
+    {
+      meter_id: "mmmm0000-000a-4000-8000-000000000000",
+      code: "M010",
+      organization_id: "org-001",
+      base_kwh: 28000,
+    },
+    {
+      meter_id: "mmmm0000-0f02-4000-8000-000000000000",
+      code: "CVM001",
+      organization_id: "org-002",
+      base_kwh: 55000,
+    },
+    {
+      meter_id: "mmmm0000-0f04-4000-8000-000000000000",
+      code: "HPM001",
+      organization_id: "org-004",
+      base_kwh: 31000,
+    },
+    {
+      meter_id: "mmmm0000-0f05-4000-8000-000000000000",
+      code: "HPM002",
+      organization_id: "org-004",
+      base_kwh: 19000,
+    },
+  ];
 
 /**
  * org-001 implemented its two accepted recommendations at the end of
@@ -775,50 +775,50 @@ const GENERATED_UTILITY_SERIES: {
   base_value: number;
   unit: string;
 }[] = [
-  // Water: M-007 (active, org-001) & HP-M-003 (active, org-004)
-  {
-    meter_id: "mmmm0000-0007-4000-8000-000000000000",
-    code: "M007",
-    organization_id: "org-001",
-    meter_type: MeterType.WATER,
-    base_value: 2600,
-    unit: "kL",
-  },
-  {
-    meter_id: "mmmm0000-0f06-4000-8000-000000000000",
-    code: "HPM003",
-    organization_id: "org-004",
-    meter_type: MeterType.WATER,
-    base_value: 1400,
-    unit: "kL",
-  },
-  // Gas: M-002 (active, org-001) & M-008 (active, org-001)
-  {
-    meter_id: "mmmm0000-0002-4000-8000-000000000000",
-    code: "M002",
-    organization_id: "org-001",
-    meter_type: MeterType.GAS,
-    base_value: 1600,
-    unit: "m³",
-  },
-  {
-    meter_id: "mmmm0000-0008-4000-8000-000000000000",
-    code: "M008",
-    organization_id: "org-001",
-    meter_type: MeterType.GAS,
-    base_value: 1100,
-    unit: "m³",
-  },
-  // Food: M-005 (calibrating, org-001)
-  {
-    meter_id: "mmmm0000-0005-4000-8000-000000000000",
-    code: "M005",
-    organization_id: "org-001",
-    meter_type: MeterType.FOOD,
-    base_value: 720,
-    unit: "kg",
-  },
-];
+    // Water: M-007 (active, org-001) & HP-M-003 (active, org-004)
+    {
+      meter_id: "mmmm0000-0007-4000-8000-000000000000",
+      code: "M007",
+      organization_id: "org-001",
+      meter_type: MeterType.WATER,
+      base_value: 2600,
+      unit: "kL",
+    },
+    {
+      meter_id: "mmmm0000-0f06-4000-8000-000000000000",
+      code: "HPM003",
+      organization_id: "org-004",
+      meter_type: MeterType.WATER,
+      base_value: 1400,
+      unit: "kL",
+    },
+    // Gas: M-002 (active, org-001) & M-008 (active, org-001)
+    {
+      meter_id: "mmmm0000-0002-4000-8000-000000000000",
+      code: "M002",
+      organization_id: "org-001",
+      meter_type: MeterType.GAS,
+      base_value: 1600,
+      unit: "m³",
+    },
+    {
+      meter_id: "mmmm0000-0008-4000-8000-000000000000",
+      code: "M008",
+      organization_id: "org-001",
+      meter_type: MeterType.GAS,
+      base_value: 1100,
+      unit: "m³",
+    },
+    // Food: M-005 (calibrating, org-001)
+    {
+      meter_id: "mmmm0000-0005-4000-8000-000000000000",
+      code: "M005",
+      organization_id: "org-001",
+      meter_type: MeterType.FOOD,
+      base_value: 720,
+      unit: "kg",
+    },
+  ];
 
 /** Monthly readings for water, gas, and food meters across 2025-01..2026-08. */
 function buildMonthlyUtilityReadings(): MeterReading[] {
@@ -1783,9 +1783,9 @@ export class DatabaseService {
       reporter_id: "550e8400-0002-4000-8000-000000000002",
       type: WastageType.WATER,
       status: "pending",
-      details: { 
+      details: {
         specificData: {
-          nature: "Sprinkler system leaking heavily near the pathway.", 
+          nature: "Sprinkler system leaking heavily near the pathway.",
           location: "Main Courtyard, East Wing"
         },
         priority: "High",
@@ -1806,7 +1806,7 @@ export class DatabaseService {
       reporter_id: "550e8400-0003-4000-8000-000000000003",
       type: WastageType.FOOD,
       status: "pending",
-      details: { 
+      details: {
         specificData: {
           typeOfWastage: "Unserved catered buffet food.",
           estimatedAmount: "25",
@@ -1830,7 +1830,7 @@ export class DatabaseService {
       reporter_id: "550e8400-0004-4000-8000-000000000004",
       type: WastageType.ENERGY,
       status: "pending",
-      details: { 
+      details: {
         specificData: {
           observation: "AC left running at 18C in empty conference rooms.",
           building: "Science Block B, Floor 3"
@@ -2568,7 +2568,7 @@ export class DatabaseService {
       created_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Solar Panel Expansion (South Lot)",
       description: "Construct a 500kW solar canopy over the South Parking Lot to generate on-site renewable energy and provide shaded parking.",
-      status: InitiativeStatus.REJECTED,
+      status: InitiativeStatus.PROPOSED,
       feasible: false,
       target_reduction: "5%",
       outcomes: ["Determined cost-prohibitive due to grid interconnection upgrades required"],

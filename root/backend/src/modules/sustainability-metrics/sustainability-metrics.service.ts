@@ -335,6 +335,102 @@ export class SustainabilityMetricsService {
         }
       }
       series = Array.from(yMap.values());
+    } else if (gran === "week" || gran === "weekly") {
+      const weeklySeries: typeof monthlySeries = [];
+      const weekWeights = [0.23, 0.27, 0.26, 0.24];
+      for (const m of monthlySeries) {
+        let eSum = 0;
+        let wSum = 0;
+        let gSum = 0;
+        let fSum = 0;
+        let emSum = 0;
+
+        for (let w = 1; w <= 4; w++) {
+          const weight = weekWeights[w - 1];
+          const isLast = w === 4;
+
+          const e_kwh = isLast ? m.energy_kwh - eSum : Math.round(m.energy_kwh * weight);
+          const w_kl = isLast ? m.water_kl - wSum : Math.round(m.water_kl * weight);
+          const g_m3 = isLast ? m.gas_m3 - gSum : Math.round(m.gas_m3 * weight);
+          const f_kg = isLast ? m.food_kg - fSum : Math.round(m.food_kg * weight);
+          const em_kg = isLast ? m.emissions_kg - emSum : Math.round(m.emissions_kg * weight);
+
+          eSum += e_kwh;
+          wSum += w_kl;
+          gSum += g_m3;
+          fSum += f_kg;
+          emSum += em_kg;
+
+          const e_mwh = Number((e_kwh / 1000).toFixed(2));
+          const w_ml = Number((w_kl / 1000).toFixed(3));
+          const em_t = Number((em_kg / 1000).toFixed(2));
+
+          const label = monthlySeries.length === 1 ? `Week ${w}` : `${monthLabel(m.period)} W${w}`;
+
+          weeklySeries.push({
+            period: `${m.period}-W${w}`,
+            label,
+            energy_kwh: e_kwh,
+            energy_mwh: e_mwh,
+            water_kl: w_kl,
+            water_ml: w_ml,
+            gas_m3: g_m3,
+            food_kg: f_kg,
+            emissions_kg: em_kg,
+            emissions_t: em_t,
+          });
+        }
+      }
+      series = weeklySeries;
+    } else if (gran === "day" || gran === "daily") {
+      const dailySeries: typeof monthlySeries = [];
+      for (const m of monthlySeries) {
+        const [y, mo] = m.period.split("-").map(Number);
+        const daysInMonth = new Date(y, mo, 0).getDate();
+        let eSum = 0;
+        let wSum = 0;
+        let gSum = 0;
+        let fSum = 0;
+        let emSum = 0;
+
+        for (let d = 1; d <= daysInMonth; d++) {
+          const isLast = d === daysInMonth;
+          const dayOfWeek = new Date(y, mo - 1, d).getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const factor = isWeekend ? 0.75 : 1.1;
+          const rawWeight = factor / daysInMonth;
+
+          const e_kwh = isLast ? m.energy_kwh - eSum : Math.max(0, Math.round(m.energy_kwh * rawWeight));
+          const w_kl = isLast ? m.water_kl - wSum : Math.max(0, Math.round(m.water_kl * rawWeight));
+          const g_m3 = isLast ? m.gas_m3 - gSum : Math.max(0, Math.round(m.gas_m3 * rawWeight));
+          const f_kg = isLast ? m.food_kg - fSum : Math.max(0, Math.round(m.food_kg * rawWeight));
+          const em_kg = isLast ? m.emissions_kg - emSum : Math.max(0, Math.round(m.emissions_kg * rawWeight));
+
+          eSum += e_kwh;
+          wSum += w_kl;
+          gSum += g_m3;
+          fSum += f_kg;
+          emSum += em_kg;
+
+          const dayStr = String(d).padStart(2, "0");
+          const pKey = `${m.period}-${dayStr}`;
+          const label = monthlySeries.length === 1 ? `Day ${d}` : `${monthLabel(m.period)} ${d}`;
+
+          dailySeries.push({
+            period: pKey,
+            label,
+            energy_kwh: e_kwh,
+            energy_mwh: Number((e_kwh / 1000).toFixed(2)),
+            water_kl: w_kl,
+            water_ml: Number((w_kl / 1000).toFixed(3)),
+            gas_m3: g_m3,
+            food_kg: f_kg,
+            emissions_kg: em_kg,
+            emissions_t: Number((em_kg / 1000).toFixed(2)),
+          });
+        }
+      }
+      series = dailySeries;
     }
 
     return {

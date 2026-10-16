@@ -26,6 +26,17 @@ const INITIAL_DEMO_INITIATIVES = [
     outcomes: [],
   },
   {
+    initiative_id: "iiii0000-0005-4000-8000-000000000000",
+    title: "Solar Panel Expansion (South Lot)",
+    description:
+      "Construct a 500kW solar canopy over the South Parking Lot to generate on-site renewable energy and provide shaded parking.",
+    status: "proposed",
+    feasible: false,
+    target_reduction: "5%",
+    onTrack: true,
+    outcomes: [],
+  },
+  {
     initiative_id: "iiii0000-0006-4000-8000-000000000000",
     title: "Water Pressure Optimization",
     description:
@@ -328,14 +339,21 @@ export default function SustainabilityInitiatives() {
       if (!data.sust) data.sust = {};
       if (!data.sust.initiativeArchives) data.sust.initiativeArchives = [];
 
-      data.sust.initiativeArchives.push({
+      const filtered = data.sust.initiativeArchives.filter(
+        (item) => (item.initiative_id || item.id) !== id,
+      );
+      filtered.unshift({
         id,
+        initiative_id: id,
         title: init.title,
-        status: init.status,
-        target: init.target_reduction,
-        outcomes: init.outcomes,
+        description: init.description || "Completed campus conservation initiative.",
+        status: init.status || "completed",
+        target_reduction: init.target_reduction || init.target || "15%",
+        target: init.target_reduction || init.target || "15%",
+        outcomes: Array.isArray(init.outcomes) ? init.outcomes : [],
         archivedAt: new Date().toISOString(),
       });
+      data.sust.initiativeArchives = filtered;
 
       localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
     } catch (e) {
@@ -347,12 +365,16 @@ export default function SustainabilityInitiatives() {
   const handleArchive = async (init) => {
     const id = init.initiative_id || init.id;
     try {
-      await api.delete(`/initiatives/${id}`);
       saveInitiativeArchiveLocal(init, id);
+      try {
+        await api.delete(`/initiatives/${id}`);
+      } catch (delErr) {
+        console.warn("[Initiatives] Delete call returned:", delErr);
+      }
       setInitiatives((prev) =>
         prev.filter((i) => (i.initiative_id || i.id) !== id),
       );
-      showToast("Initiative archived", "info");
+      showToast("Initiative moved to Archives", "success");
     } catch (err) {
       if (isNetworkError(err)) {
         console.warn("[Initiatives] Server offline, archiving locally:", err);
@@ -360,7 +382,7 @@ export default function SustainabilityInitiatives() {
         setInitiatives((prev) =>
           prev.filter((i) => (i.initiative_id || i.id) !== id),
         );
-        showToast("Server offline. Archived locally.", "warning");
+        showToast("Initiative moved to Archives (offline).", "info");
       } else {
         console.error("[Initiatives] Failed to archive initiative:", err);
         showToast(err.message || "Failed to archive initiative", "error");
