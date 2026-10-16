@@ -7,10 +7,13 @@
 import { useState } from "react";
 import api from "../../../api/client";
 import Modal from "../../technician/components/Modal";
+import { formatCurrency } from "../auditorUtils";
+import { maxDepartmentBudget } from "./budgetRules";
 
 export default function DepartmentModal({
   department,
   buildings,
+  departments,
   selectedBuildingId,
   orgId,
   onSaved,
@@ -24,6 +27,14 @@ export default function DepartmentModal({
   const [budget, setBudget] = useState(department ? department.budget || 0 : 0);
   const [errors, setErrors] = useState({});
 
+  // The budget has to fit in what the chosen building has left. null when
+  // the building has no budget of its own, which sets no limit.
+  const maxBudget = maxDepartmentBudget(
+    buildings.find((b) => b.building_id === buildingId),
+    departments,
+    department ? department.department_id : undefined,
+  );
+
   function handleConfirm() {
     const newErrors = {};
     if (name.trim().length < 2) {
@@ -34,6 +45,9 @@ export default function DepartmentModal({
     }
     if (budget === "" || Number(budget) < 0) {
       newErrors.budget = "Enter a valid positive number.";
+    } else if (maxBudget !== null && Number(budget) > maxBudget) {
+      newErrors.budget =
+        "The building has only " + formatCurrency(maxBudget) + " unallocated.";
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
@@ -112,6 +126,11 @@ export default function DepartmentModal({
             value={budget}
             onChange={(e) => setBudget(e.target.value)}
           />
+          {maxBudget !== null && (
+            <span className="field-hint">
+              Up to {formatCurrency(maxBudget)}
+            </span>
+          )}
           <span className="field-error">{errors.budget}</span>
         </div>
       </div>

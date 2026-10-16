@@ -7,9 +7,12 @@
 import { useState } from "react";
 import api from "../../../api/client";
 import Modal from "../../technician/components/Modal";
+import { formatCurrency } from "../auditorUtils";
+import { minCampusBudget } from "./budgetRules";
 
 export default function CampusModal({
   campus,
+  buildings,
   orgId,
   onSaved,
   onClose,
@@ -20,6 +23,9 @@ export default function CampusModal({
   const [budget, setBudget] = useState(campus ? campus.total_budget : 0);
   const [errors, setErrors] = useState({});
 
+  // When editing, the budget cannot drop below what its buildings hold.
+  const minBudget = campus ? minCampusBudget(campus.campus_id, buildings) : 0;
+
   function handleConfirm() {
     const newErrors = {};
     if (name.trim().length < 3) {
@@ -27,6 +33,9 @@ export default function CampusModal({
     }
     if (budget === "" || Number(budget) < 0) {
       newErrors.budget = "Enter a valid positive number.";
+    } else if (Number(budget) < minBudget) {
+      newErrors.budget =
+        "Its buildings already hold " + formatCurrency(minBudget) + ".";
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
@@ -96,6 +105,11 @@ export default function CampusModal({
             value={budget}
             onChange={(e) => setBudget(e.target.value)}
           />
+          {minBudget > 0 && (
+            <span className="field-hint">
+              At least {formatCurrency(minBudget)}
+            </span>
+          )}
           <span className="field-error">{errors.budget}</span>
         </div>
       </div>
