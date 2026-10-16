@@ -253,9 +253,6 @@ export default function TechnicianOverview() {
           </p>
         </div>
         <div className="header-actions">
-          <div className="header-badge">
-            <span className="dot pulse"></span> On shift
-          </div>
           <Link to={PATHS.technician.workOrders} className="btn btn-dark">
             Open queue →
           </Link>

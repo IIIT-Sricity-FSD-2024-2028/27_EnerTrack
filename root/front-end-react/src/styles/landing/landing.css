@@ -888,6 +888,59 @@
     color: var(--text-muted);
   }
 
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.4fr;
+    gap: var(--space-5);
+    margin-bottom: var(--space-4);
+  }
+
+  .footer-brand p {
+    margin-top: var(--space-1);
+    max-width: 38ch;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .footer-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .footer-col h5 {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .footer-col a {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+
+  .footer-col a:hover {
+    color: var(--primary-green);
+  }
+
+  /* What happens after "Request an audit" */
+  .hero-steps {
+    margin-top: var(--space-3);
+    padding-left: 1.2em;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  @media (max-width: 700px) {
+    .footer-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
   /* ── Responsive ──────────────────────────────────────────────── */
   @media (max-width: 1000px) {
     .stage-grid,

@@ -15,7 +15,7 @@ import { NavLink } from "react-router-dom";
 import { NAV } from "../routes";
 import "./Sidebar.css";
 
-export default function Sidebar({ area, role, title }) {
+export default function Sidebar({ area, role, title, footer }) {
   // An unknown area gives an empty list rather than crashing on undefined.map.
   // A link with a `roles` list is only kept when the signed-in role is in it.
   const items = (NAV[area] ?? []).filter(
@@ -24,13 +24,16 @@ export default function Sidebar({ area, role, title }) {
 
   return (
     <aside className="app-sidebar">
+      {/* Same mark and wordmark as the landing page's navbar, so the brand
+          looks identical before and after signing in. */}
       <div className="app-sidebar__brand">
-        <img src="/assets/EnerTrack_text.png" alt="EnerTrack" />
+        <img src="/assets/logo3.png" alt="" />
+        <span>EnerTrack</span>
       </div>
 
       {title ? <p className="app-sidebar__title">{title}</p> : null}
 
-      <nav className="app-sidebar__nav">
+      <nav className="app-sidebar__nav" aria-label="Main">
         {items.map((item) => (
           <NavLink
             key={item.to}
@@ -43,6 +46,9 @@ export default function Sidebar({ area, role, title }) {
           </NavLink>
         ))}
       </nav>
+
+      {/* Pinned to the bottom: margin-top: auto in Sidebar.css */}
+      {footer ? <div className="app-sidebar__footer">{footer}</div> : null}
     </aside>
   );
 }

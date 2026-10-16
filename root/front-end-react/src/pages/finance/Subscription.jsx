@@ -6,7 +6,9 @@
  * Four cards: plan, usage against allowances, savings, and invoices.
  */
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../../api/client";
+import { PATHS } from "../../routes";
 import { useAuth } from "../../auth/useAuth";
 import FinanceLayout from "./components/FinanceLayout";
 import overviewCss from "../../styles/finance-analyst/finance_overview.css?inline";
@@ -320,6 +322,17 @@ export default function FinanceSubscription() {
       <div className="sub-card">
         <h2>No active subscription</h2>
         <p>{state.message}</p>
+        {/* A subscription starts when a proposal is accepted, so the way
+            forward for an organisation without one is the audit. */}
+        {user?.role === "Organization Admin" && (
+          <p style={{ marginTop: 12 }}>
+            A subscription starts when you accept your auditor's proposal.{" "}
+            <Link to={PATHS.admin.proposals}>
+              Request an audit or review your proposal
+            </Link>
+            .
+          </p>
+        )}
       </div>
     );
   } else {

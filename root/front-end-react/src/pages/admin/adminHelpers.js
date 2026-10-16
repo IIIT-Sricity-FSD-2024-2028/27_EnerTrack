@@ -127,3 +127,23 @@ export function getUserErrors(values, users, editingId, emailDomain = "") {
 
   return errors;
 }
+
+/**
+ * Does a row match what was typed in a search box?
+ *
+ * Every word typed has to appear somewhere in the row (case-insensitive), so
+ * "priya admin" finds Priya Nair, Super Admin. An empty box matches everything.
+ * `fields` are the row's searchable values; blanks and nulls are ignored.
+ */
+export function matchesSearch(query, fields) {
+  const words = String(query || "")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return true;
+  const haystack = fields
+    .filter((value) => value !== null && value !== undefined)
+    .join(" ")
+    .toLowerCase();
+  return words.every((word) => haystack.includes(word));
+}

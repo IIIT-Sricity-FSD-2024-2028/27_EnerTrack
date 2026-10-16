@@ -41,6 +41,9 @@ function PlanCard({ plan }) {
 export default function Pricing() {
   // Starts empty. The cards appear once the plans arrive from the server.
   const [plans, setPlans] = useState([]);
+  // True once the request has failed, so the visitor is told instead of
+  // seeing an empty gap where the prices should be.
+  const [failed, setFailed] = useState(false);
 
   // Side effect: ask the server for the published pricing tiers, once, when
   // the page first shows. The empty [] means "run after the first render only".
@@ -52,8 +55,9 @@ export default function Pricing() {
         const data = await api.get("/subscription-plans/public");
         if (!ignore) setPlans(data);
       } catch {
-        // Deliberately silent. A marketing page with no tiers is better than
-        // one showing prices the system would not actually charge.
+        // Never show made-up prices: a page with no tiers is better than one
+        // showing prices the system would not actually charge. Say so instead.
+        if (!ignore) setFailed(true);
       }
     }
     loadPlans();
@@ -73,6 +77,13 @@ export default function Pricing() {
         campuses and more staff means more people getting value out of it, so it
         costs more.
       </SectionHeader>
+
+      {failed && plans.length === 0 && (
+        <p className="pricing-note">
+          Our current prices could not be loaded. Register your organisation and
+          your auditor's proposal will show exactly what your plan costs.
+        </p>
+      )}
 
       {/* Hidden entirely until there is something to show. */}
       {plans.length > 0 && (

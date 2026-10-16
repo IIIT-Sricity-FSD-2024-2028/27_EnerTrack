@@ -20,7 +20,7 @@ body {
   overflow-y: auto;
 }
 
-.logo {
+.sidebar .logo {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -31,12 +31,12 @@ body {
   color: inherit;
 }
 
-.logo .logo-icon {
+.sidebar .logo .logo-icon {
   width: 24px;
   height: 24px;
 }
 
-.logo .logo-text {
+.sidebar .logo .logo-text {
   width: auto;
   height: 20px;
 }
