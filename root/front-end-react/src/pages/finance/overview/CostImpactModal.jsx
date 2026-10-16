@@ -23,7 +23,6 @@ export default function CostImpactModal({ report, onSave, onClose }) {
     estimatedLoss: existing.estimatedLoss ?? "",
     remediationCost: existing.remediationCost ?? "",
     projectedSavings: existing.projectedSavings ?? "",
-    notes: existing.notes ?? "",
   });
   const [busy, setBusy] = useState(false);
 
@@ -48,7 +47,6 @@ export default function CostImpactModal({ report, onSave, onClose }) {
       projectedSavings: savings,
       roi: remediation > 0 ? +(((savings - remediation) / remediation) * 100).toFixed(1) : 0,
       paybackPeriod: savings > 0 ? +(remediation / savings).toFixed(2) : 0,
-      notes: form.notes.trim(),
       addedBy: "Finance Analyst",
       addedAt: new Date().toISOString(),
     };
@@ -100,10 +98,6 @@ export default function CostImpactModal({ report, onSave, onClose }) {
         </div>
       </FormField>
 
-      <FormField label="Notes (optional)">
-        <textarea name="notes" rows="3" placeholder="Any additional context, assumptions, or justification..."
-          value={form.notes} onChange={handleChange} />
-      </FormField>
     </Modal>
   );
 }

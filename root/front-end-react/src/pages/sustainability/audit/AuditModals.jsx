@@ -160,7 +160,6 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
 
   const [value, setValue] = useState(String(existing.value ?? suggested ?? ""));
   const [deadline, setDeadline] = useState(existing.deadline || "");
-  const [justification, setJustification] = useState(existing.justification || "");
   const [error, setError] = useState("");
 
   function handleConfirm() {
@@ -168,7 +167,7 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
     if (!value.trim() || isNaN(num) || num <= 0) return setError("Please enter a valid positive target value.");
     if (!deadline) return setError("Please select a target deadline.");
     if (deadline < today) return setError("The deadline cannot be in the past.");
-    onSubmit({ value: num, unit, deadline, justification: justification.trim() });
+    onSubmit({ value: num, unit, deadline });
   }
 
   return (
@@ -241,17 +240,6 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
           <label style={labelStyle} htmlFor="mt-deadline">Target Deadline *</label>
           <input id="mt-deadline" type="date" min={today} value={deadline} onChange={(e) => setDeadline(e.target.value)} style={inputStyle} />
           <div style={hintStyle}>Pick a date by which this target should be met and verified in the next audit cycle.</div>
-        </div>
-        <div>
-          <label style={labelStyle} htmlFor="mt-justification">Justification (optional)</label>
-          <textarea
-            id="mt-justification"
-            rows={2}
-            value={justification}
-            onChange={(e) => setJustification(e.target.value)}
-            placeholder="Based on Finance cost-impact analysis..."
-            style={{ ...inputStyle, resize: "vertical" }}
-          />
         </div>
       </div>
       <FormError message={error} />

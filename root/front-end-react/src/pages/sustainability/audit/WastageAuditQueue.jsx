@@ -25,29 +25,10 @@ import { reportRef } from "../../finance/financeUtils";
 import { DismissModal, SendBackModal, TargetModal } from "./AuditModals";
 import ReportPreview from "./ReportPreview";
 import WastageAuditCard from "./WastageAuditCard";
-
-// The seed data and older clients store lowercase statuses ("pending",
-// "reported", "target set"); the workflow uses the capitalised ones.
-const STATUS_ALIASES = {
-  pending: "Reported",
-  reported: "Reported",
-  validated: "Validated",
-  "forwarded to finance": "Forwarded to Finance",
-  "cost impact added": "Cost Impact Added",
-  "returned to so": "Returned to SO",
-  "target set": "Target Set",
-  finalized: "Finalized",
-  dismissed: "Dismissed",
-  delivered: "Delivered",
-};
+import { normalizeStatus } from "./auditShared";
 
 // Reports waiting on Finance; everything else in the queue waits on the officer.
 const WITH_FINANCE = ["Forwarded to Finance", "Cost Impact Added"];
-
-function normalizeStatus(status) {
-  if (!status) return "Reported";
-  return STATUS_ALIASES[String(status).trim().toLowerCase()] || status;
-}
 
 /** Server rows when the backend is up; the local copies only when offline. */
 async function loadRawReports() {
@@ -69,7 +50,6 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
   const [modal, setModal] = useState(null); // { kind: 'dismiss'|'sendBack'|'target', report }
   const [localReload, setLocalReload] = useState(0);
   const [tab, setTab] = useState("action"); // 'action' | 'finance'
-
 
   const officerName = user?.name || "Sustainability Officer";
 
@@ -216,12 +196,12 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     notify(report, "forwarded");
   }
 
-  async function handleSetTarget({ value, unit, deadline, justification }) {
+  async function handleSetTarget({ value, unit, deadline }) {
     const report = modal.report;
     const now = new Date().toISOString();
     const saved = await saveReport(report, {
       status: "Target Set",
-      metricTarget: { value, unit, deadline, justification, setAt: now, setBy: officerName },
+      metricTarget: { value, unit, deadline, setAt: now, setBy: officerName },
       targetSetAt: now,
     });
     if (!saved) return;

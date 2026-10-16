@@ -227,7 +227,8 @@ export function normalizeWastageReport(r, user) {
     metricTarget: d.metricTarget || r.metricTarget || null,
     priority: d.priority || r.priority || "Low",
     comments: d.comments || r.comments || [],
-    timestamp: r.created_at || r.timestamp || new Date().toISOString(),
+    // The backend keeps the time it was reported inside details.
+    timestamp: r.created_at || r.timestamp || d.timestamp || new Date().toISOString(),
     validatedAt: d.validatedAt || r.validatedAt,
     revisionRequest: d.revisionRequest || r.revisionRequest,
     returnedAt: d.returnedAt || r.returnedAt,

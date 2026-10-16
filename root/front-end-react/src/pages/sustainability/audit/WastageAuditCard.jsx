@@ -12,10 +12,9 @@
 import { useEffect, useState } from "react";
 import api from "../../../api/client";
 import PhotoViewer from "../../../ui/PhotoViewer";
+import { ROLE_BADGES, TYPE_COLORS } from "./auditShared";
 import { formatCurrency, formatDateTime, wastageSummary } from "../../finance/financeUtils";
 
-// Same per-metric colours as the Monitoring chart legend
-const TYPE_COLORS = { Energy: "#059669", Water: "#0284c7", Emissions: "#7c3aed", Food: "#dc2626" };
 
 const TYPE_ICONS = {
   Energy: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
@@ -41,12 +40,6 @@ const STATUS_CHIPS = {
   Finalized: { label: "Finalized", tone: "ready" },
 };
 
-const ROLE_BADGES = {
-  "Sustainability Officer": { label: "SO", color: "#059669" },
-  "Finance Analyst": { label: "FA", color: "#6366f1" },
-  // POST /:id/comments records the RBAC role name
-  "Financial Analyst": { label: "FA", color: "#6366f1" },
-};
 
 // Statuses at which Finance's cost figures / the officer's target are shown
 const COST_VISIBLE = ["Returned to SO", "Target Set", "Finalized"];
@@ -108,7 +101,7 @@ function ActionButtons({ status, busy, onAction }) {
  * api.getBlobUrl() and its object URL is revoked when the row goes away.
  * Clicking a thumbnail opens it full size (see ui/PhotoViewer).
  */
-function PhotoGallery({ urls }) {
+export function PhotoGallery({ urls }) {
   const [srcs, setSrcs] = useState({});
   const key = urls.join("|");
 
@@ -157,42 +150,6 @@ function CostFigures({ ci }) {
       <div>
         Payback<strong>{payback != null ? payback.toFixed(1) + " yrs" : "—"}</strong>
       </div>
-    </div>
-  );
-}
-
-/**
- * The written notes attached to the decision: Finance's note on the cost
- * impact and the officer's comment on the target. Kept in their own section
- * (same look as a comment) rather than tacked onto the figures and target.
- */
-function ReportNotes({ report }) {
-  const ci = report.costImpact;
-  const mt = report.metricTarget;
-  const notes = [];
-  if (ci?.notes && COST_VISIBLE.includes(report.status))
-    notes.push({ role: "Finance Analyst", author: ci.addedBy || "Finance Analyst", label: "on the cost impact", text: ci.notes, at: ci.addedAt });
-  if (mt?.justification && TARGET_VISIBLE.includes(report.status))
-    notes.push({ role: "Sustainability Officer", author: mt.setBy || "Sustainability Officer", label: "on the target", text: mt.justification, at: mt.setAt });
-  if (notes.length === 0) return null;
-
-  return (
-    <div className="so-notes" aria-label="Notes">
-      {notes.map((n) => {
-        const badge = ROLE_BADGES[n.role];
-        return (
-          <div className="so-comment" key={n.role}>
-            <div className="so-comment-avatar" style={{ background: badge.color }} aria-hidden="true">
-              {badge.label}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <strong style={{ color: "#111827" }}>{n.author}</strong> <span className="so-note-label">{n.label}</span>
-              {n.at && <time dateTime={n.at}>{formatDateTime(n.at, false)}</time>}
-              <p>{n.text}</p>
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -255,8 +212,6 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
               </span>
             </p>
           )}
-
-          <ReportNotes report={report} />
 
           {report.revisionRequest && report.status === "Forwarded to Finance" && (
             <p className="so-note">
