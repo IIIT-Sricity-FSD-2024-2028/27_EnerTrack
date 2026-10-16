@@ -20,7 +20,7 @@ import api from "../../../api/client";
 import { useAuth } from "../../../auth/useAuth";
 import { notifyOnStateChange } from "../../../legacy/notifications";
 import universalDB from "../../../legacy/universalDB";
-import { isNetworkError, normalizeWastageReport, updateWastageReport } from "../../finance/financeApi";
+import { addWastageComment, isNetworkError, normalizeWastageReport, updateWastageReport } from "../../finance/financeApi";
 import { reportRef } from "../../finance/financeUtils";
 import { DismissModal, SendBackModal, TargetModal } from "./AuditModals";
 import ReportPreview from "./ReportPreview";
@@ -231,13 +231,23 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
   }
 
   async function handleAddComment(report, text) {
-    const comment = { author: officerName, role: "Sustainability Officer", text, timestamp: new Date().toISOString() };
-    await saveReport(report, { comments: [...(report.comments || []), comment] });
+    setBusyId(report.id);
+    try {
+      const updated = await addWastageComment(report, { author: officerName, role: "Sustainability Officer", text });
+      setReports((list) => list.map((r) => (r.id === updated.id ? updated : r)));
+    } catch (error) {
+      showToast?.("Could not save the comment: " + error.message, "error");
+    } finally {
+      setBusyId(null);
+    }
   }
 
-  // Not archived, not dismissed, not delivered — newest first.
+  // Not archived by the officer, not dismissed, not delivered — newest first.
+  // details.archived is the occupant's own archive (PATCH /:id/archive, allowed
+  // from Target Set onwards); it must not hide a report the officer still has
+  // to finalize and send, so only soArchived counts here.
   const visible = reports
-    .filter((r) => !r.details?.soArchived && !r.details?.archived && r.status !== "Dismissed" && r.status !== "Delivered")
+    .filter((r) => !r.details?.soArchived && r.status !== "Dismissed" && r.status !== "Delivered")
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   const withFinance = visible.filter((r) => WITH_FINANCE.includes(r.status));
   const needsAction = visible.filter((r) => !WITH_FINANCE.includes(r.status));

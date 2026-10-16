@@ -44,6 +44,8 @@ const STATUS_CHIPS = {
 const ROLE_BADGES = {
   "Sustainability Officer": { label: "SO", color: "#059669" },
   "Finance Analyst": { label: "FA", color: "#6366f1" },
+  // POST /:id/comments records the RBAC role name
+  "Financial Analyst": { label: "FA", color: "#6366f1" },
 };
 
 // Statuses at which Finance's cost figures / the officer's target are shown
@@ -297,7 +299,7 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
       {showComments && (
         <div className="so-comments">
           {comments.map((c, i) => {
-            const badge = ROLE_BADGES[c.role] || { label: "CV", color: "#6b7280" };
+            const badge = ROLE_BADGES[c.role] || { label: "OC", color: "#6b7280" };
             return (
               <div className="so-comment" key={i}>
                 <div className="so-comment-avatar" style={{ background: badge.color }} aria-hidden="true">

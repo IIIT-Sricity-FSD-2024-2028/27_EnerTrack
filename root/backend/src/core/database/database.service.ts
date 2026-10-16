@@ -249,6 +249,8 @@ export interface ServiceRequest {
   category: string;
   issue_type: string;
   status: string;
+  /** When the request was filed (ISO). Missing on seeded rows. */
+  created_at?: string;
 }
 export interface WorkOrder {
   work_order_id: string;

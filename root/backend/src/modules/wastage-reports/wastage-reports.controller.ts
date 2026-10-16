@@ -1,10 +1,11 @@
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiConsumes, ApiBody } from "@nestjs/swagger";
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseInterceptors, UploadedFiles, UseFilters, BadRequestException, Res } from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseInterceptors, UploadedFiles, UseFilters, BadRequestException, Res, Headers } from "@nestjs/common";
 import { Response } from "express";
 import { WastageReportsService } from "./wastage-reports.service";
 import { CreateWastageReportDto } from "./dto/create-wastage-report.dto";
 import { PutWastageReportDto } from "./dto/put-wastage-report.dto";
 import { UpdateWastageReportDto } from "./dto/update-wastage-report.dto";
+import { AddWastageCommentDto } from "./dto/add-wastage-comment.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
 import { assertFileSignatures } from "../../core/utils/file-signature";
 import { FilesInterceptor } from "@nestjs/platform-express";
@@ -105,6 +106,28 @@ export class WastageReportsController {
   @Roles("Organization Admin")
   put(@Param("id") id: string, @Body() putDto: PutWastageReportDto) {
     return this.wastageReportsService.put(id, putDto);
+  }
+
+  @Post(":id/comments")
+  @ApiOperation({ summary: "Add Comment", description: "Adds one comment to a wastage report. Open to the Campus Visitor too, who cannot use PATCH: this route can only append a comment, never change anything else." })
+  @ApiResponse({ status: 201, description: "Comment added; the updated report is returned." })
+  @ApiResponse({ status: 400, description: "Empty or too long comment." })
+  @ApiResponse({ status: 404, description: "Not found." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  addComment(@Param("id") id: string, @Body() dto: AddWastageCommentDto, @Headers("x-role") role?: string) {
+    return this.wastageReportsService.addComment(id, dto, role);
+  }
+
+  @Patch(":id/archive")
+  @ApiOperation({ summary: "Archive Wastage Report", description: "Moves a finished or dismissed report into the reporter's archive. Open to the Campus Visitor, who cannot use PATCH: this route only sets the archived flag." })
+  @ApiResponse({ status: 200, description: "Archived; the updated report is returned." })
+  @ApiResponse({ status: 400, description: "The report is still active." })
+  @ApiResponse({ status: 404, description: "Not found." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Campus Visitor", "Sustainability Officer", "Organization Admin")
+  archive(@Param("id") id: string) {
+    return this.wastageReportsService.archive(id);
   }
 
   @Patch(":id")

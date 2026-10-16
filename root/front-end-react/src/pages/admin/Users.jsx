@@ -31,21 +31,11 @@ import {
   USER_ROLES,
 } from "./adminHelpers";
 
-// The filter choices are remembered in the browser between visits
-const FILTERS_KEY = "admin_userFilters";
+// The page always opens with no filters: every user, sorted by name
 const DEFAULT_FILTERS = { organization_id: "", role: "", sort: "name-asc" };
 
 // Organisation filter value meaning "EnerTrack's own staff" (no organisation)
 const STAFF = "__enertrack_staff__";
-
-function loadFilters() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(FILTERS_KEY));
-    return saved ? { ...DEFAULT_FILTERS, ...saved } : DEFAULT_FILTERS;
-  } catch {
-    return DEFAULT_FILTERS;
-  }
-}
 
 // The organisation's name for an id. Staff have none.
 function orgName(id, organizations) {
@@ -88,7 +78,17 @@ function filterAndSort(users, filters, organizations) {
   });
 }
 
+// A Super Admin and an Organization Admin share this page as their home, so
+// "Act as" (and the way back) lands on the page that is already open. React
+// would keep it as it was: the list loaded for the previous person, with
+// their filters. A new `key` makes React build a fresh page instead, which
+// loads the list again for whoever is signed in now.
 export default function Users() {
+  const { user } = useAuth();
+  return <UsersPage key={user.user_id || user.id} />;
+}
+
+function UsersPage() {
   const { user: me, adoptSession, impersonate } = useAuth();
   const navigate = useNavigate();
 
@@ -96,9 +96,9 @@ export default function Users() {
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
-  const [filters, setFilters] = useState(loadFilters);
-  // What is typed in the search box. Not remembered between visits, unlike
-  // the filters: an old search would make the table look empty on return.
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  // What is typed in the search box. Like the filters, not remembered
+  // between visits: an old search would make the table look empty on return.
   const [search, setSearch] = useState("");
   // The open popup: null, or { type: "add" | "edit" | "delete" | "actAs" |
   // "import" | "credentials", user }
@@ -128,11 +128,6 @@ export default function Users() {
       })
       .finally(() => setLoading(false));
   }, []);
-
-  // Remember the filters every time they change
-  useEffect(() => {
-    localStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
-  }, [filters]);
 
   function isMe(u) {
     return me.user_id === u.user_id || me.id === u.user_id;

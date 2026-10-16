@@ -60,10 +60,24 @@ export class ServiceRequestsService {
           `Target users with id '${createDto.reporter_id}' not found`,
         );
     }
+    // A new request always starts open. Later statuses are set by the people
+    // who work on it, through PATCH.
+    if (createDto.status !== undefined && createDto.status !== "open")
+      throw new BadRequestException(
+        `A new service request must start as 'open'`,
+      );
+
     const organizationId = currentOrgId() ?? createDto.organization_id ?? null;
     this.assertValidRecipient(createDto.assigned_to_id, organizationId);
     const generatedId = crypto.randomUUID();
-    const newRecord = { service_request_id: generatedId, ...createDto, organization_id: organizationId };
+    const newRecord = {
+      service_request_id: generatedId,
+      ...createDto,
+      status: "open",
+      organization_id: organizationId,
+      // When it was filed, so the visitor's cards can show a date
+      created_at: new Date().toISOString(),
+    };
     this.database.serviceRequests.push(newRecord as any);
     return newRecord;
   }
@@ -94,6 +108,8 @@ export class ServiceRequestsService {
     this.database.serviceRequests[index] = {
       service_request_id: id,
       ...putDto,
+      // A replace still keeps the date the request was first filed
+      created_at: (this.database.serviceRequests[index] as any).created_at,
     } as any;
     return this.database.serviceRequests[index];
   }
