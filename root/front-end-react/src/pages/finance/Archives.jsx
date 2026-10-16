@@ -124,7 +124,7 @@ function ArchivedInvoiceCard({ invoice, onView }) {
               ₹{Number(invoice.amount).toLocaleString()}
             </div>
             <span style={{ color: "#059669", fontSize: 11, fontWeight: 600 }}>
-              Approved by {invoice.approvedBy || "Analyst"}
+              Paid
             </span>
           </div>
           <button style={viewButtonStyle} onClick={onView}>View</button>

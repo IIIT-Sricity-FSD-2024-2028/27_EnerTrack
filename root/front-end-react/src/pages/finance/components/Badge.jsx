@@ -2,6 +2,7 @@
 const BADGES = {
   viable: { cls: "badge-success", label: "Viable" },
   approved: { cls: "badge-success", label: "Approved" },
+  paid: { cls: "badge-success", label: "Paid" },
   "under-budget": { cls: "badge-success", label: "Under Budget" },
   "on-budget": { cls: "badge-gray", label: "On Budget" },
   marginal: { cls: "badge-warning", label: "Marginal" },

@@ -8,6 +8,7 @@
  *     <p>Are you sure?</p>
  *   </Modal>
  * Pass cancelLabel="" to hide the Cancel button (used by the "View" dialogs).
+ * Pass `wide` for content that needs room, like the PDF viewer.
  */
 export default function Modal({
   title,
@@ -16,6 +17,7 @@ export default function Modal({
   cancelLabel = "Cancel",
   danger = false,
   busy = false,
+  wide = false,
   onConfirm,
   onClose,
 }) {
@@ -26,7 +28,7 @@ export default function Modal({
 
   return (
     <div className="fa-modal-overlay" onClick={handleOverlayClick}>
-      <div className="fa-modal" role="dialog" aria-modal="true">
+      <div className={wide ? "fa-modal wide" : "fa-modal"} role="dialog" aria-modal="true">
         <h3 className="fa-modal-title">{title}</h3>
         <div className="fa-modal-body">{children}</div>
         <div className="fa-modal-actions">

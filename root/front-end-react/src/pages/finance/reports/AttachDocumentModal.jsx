@@ -9,7 +9,7 @@ import api from "../../../api/client";
 import Modal from "../components/Modal";
 import { useToast } from "../components/toastContext";
 
-export default function AttachDocumentModal({ invoice, onClose }) {
+export default function AttachDocumentModal({ invoice, onUploaded, onClose }) {
   const showToast = useToast();
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
@@ -22,8 +22,11 @@ export default function AttachDocumentModal({ invoice, onClose }) {
     }
     setBusy(true);
     try {
-      await api.upload(`/invoices/${invoice.id}/document`, "file", file);
+      // The server answers with the updated invoice (now with the file name),
+      // so the parent can show "View PDF" straight away.
+      const saved = await api.upload(`/invoices/${invoice.id}/document`, "file", file);
       showToast(`Document attached to ${invoice.invoiceNumber}.`, "success");
+      onUploaded(saved);
       onClose();
     } catch (err) {
       showToast("Failed to attach document: " + err.message, "error");
