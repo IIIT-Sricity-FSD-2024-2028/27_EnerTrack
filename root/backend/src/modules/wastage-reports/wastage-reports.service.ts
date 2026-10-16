@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from "@nestjs/common";
 import { DatabaseService } from "../../core/database/database.service";
 import {
@@ -16,6 +17,7 @@ import { CreateWastageReportDto } from "./dto/create-wastage-report.dto";
 import { PutWastageReportDto } from "./dto/put-wastage-report.dto";
 
 import { UpdateWastageReportDto } from "./dto/update-wastage-report.dto";
+import { AddWastageCommentDto } from "./dto/add-wastage-comment.dto";
 
 @Injectable()
 export class WastageReportsService {
@@ -40,8 +42,23 @@ export class WastageReportsService {
           `Target meterReadings with id '${createDto.sensor_reading_id}' not found`,
         );
     }
+    // A new report always starts as Reported. Later statuses (Validated,
+    // Delivered, ...) are set by the officer and Finance through PATCH.
+    if (
+      createDto.status !== undefined &&
+      createDto.status.toLowerCase() !== "reported"
+    )
+      throw new BadRequestException(
+        `A new wastage report must start as 'Reported'`,
+      );
+
     const generatedId = crypto.randomUUID();
-    const newRecord = { wastage_report_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
+    const newRecord = {
+      wastage_report_id: generatedId,
+      ...createDto,
+      status: "Reported",
+      organization_id: currentOrgId() ?? createDto.organization_id ?? null,
+    };
     this.database.wastageReports.push(newRecord as any);
     return newRecord;
   }
@@ -157,6 +174,72 @@ export class WastageReportsService {
     } as any;
     return this.database.wastageReports[index];
   }
+  /**
+   * Adds one comment to a report. Separate from update() so a Campus
+   * Visitor can comment without being able to change anything else (status,
+   * cost figures, ...). The comment is appended here on the server, so two
+   * people commenting at once cannot overwrite each other.
+   */
+  addComment(id: string, dto: AddWastageCommentDto, role: string | undefined) {
+    const index = this.database.wastageReports.findIndex(
+      (item) => item.wastage_report_id === id,
+    );
+    if (index === -1 || !assertTenantOwns(this.database.wastageReports[index]))
+      throw new NotFoundException(`WastageReport with ID ${id} not found`);
+
+    const existing = this.database.wastageReports[index];
+    const details = existing.details || {};
+    const comment = {
+      author: dto.author?.trim() || role || "Unknown",
+      role: role || "Unknown",
+      text: dto.text.trim(),
+      timestamp: new Date().toISOString(),
+    };
+    this.database.wastageReports[index] = {
+      ...existing,
+      details: { ...details, comments: [...(details.comments ?? []), comment] },
+    };
+    return this.withPhotoUrls(this.database.wastageReports[index]);
+  }
+
+  /** Statuses a report can be archived from: it is over, one way or another. */
+  private static readonly ARCHIVABLE = [
+    "Finalized",
+    "Target Set",
+    "Delivered",
+    "Dismissed",
+  ];
+
+  /**
+   * Archives a report the visitor is done with. Only allowed once the
+   * report is finished or dismissed, so an active report cannot be hidden
+   * from the visitor's list while it is still being worked on.
+   */
+  archive(id: string) {
+    const index = this.database.wastageReports.findIndex(
+      (item) => item.wastage_report_id === id,
+    );
+    if (index === -1 || !assertTenantOwns(this.database.wastageReports[index]))
+      throw new NotFoundException(`WastageReport with ID ${id} not found`);
+
+    const existing = this.database.wastageReports[index];
+    if (!WastageReportsService.ARCHIVABLE.includes(existing.status))
+      throw new BadRequestException(
+        `Only a finished or dismissed report can be archived (this one is '${existing.status}')`,
+      );
+
+    const details = existing.details || {};
+    this.database.wastageReports[index] = {
+      ...existing,
+      details: {
+        ...details,
+        archived: true,
+        archivedAt: details.archivedAt ?? new Date().toISOString(),
+      },
+    };
+    return this.withPhotoUrls(this.database.wastageReports[index]);
+  }
+
   update(id: string, updateDto: UpdateWastageReportDto) {
     const index = this.database.wastageReports.findIndex(
       (item) => item.wastage_report_id === id,
