@@ -6917,6 +6917,71 @@
         ]
       }
     },
+    "/api/sustainability-metrics/summary": {
+      "get": {
+        "operationId": "SustainabilityMetricsController_getSummary",
+        "summary": "Get Sustainability Metrics Summary",
+        "description": "Tenant-scoped summary of energy, water, gas, emissions, and food wastage across a period. Includes time series, totals, deltas vs previous period, and meter coverage.",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "granularity",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Tenant organization ID.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary returned."
+          },
+          "400": {
+            "description": "Invalid date range or format."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "sustainability-metrics"
+        ]
+      }
+    },
     "/api/sustainability-metrics/{id}": {
       "get": {
         "operationId": "SustainabilityMetricsController_findOne",
@@ -7571,6 +7636,57 @@
         ]
       }
     },
+    "/api/sustainability-reports/generate": {
+      "post": {
+        "operationId": "SustainabilityReportsController_generate",
+        "summary": "Generate Sustainability Report Preview",
+        "description": "Validates period bounds, computes metrics and deltas from real sensor data, and detects data gaps without saving.",
+        "parameters": [
+          {
+            "name": "x-org-id",
+            "in": "header",
+            "description": "Tenant organization ID.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateSustainabilityReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preview generated."
+          },
+          "400": {
+            "description": "Invalid period format or bounds."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      }
+    },
     "/api/sustainability-reports": {
       "post": {
         "operationId": "SustainabilityReportsController_create",
@@ -7775,7 +7891,7 @@
       "delete": {
         "operationId": "SustainabilityReportsController_remove",
         "summary": "Delete Sustainability Report",
-        "description": "Permanently removes a report. Only Organization Admin can delete.",
+        "description": "Permanently removes a report. Organization Admin and Sustainability Officer can delete.",
         "parameters": [
           {
             "name": "id",
@@ -8223,7 +8339,7 @@
           "organization_id": "org-001",
           "reporter_id": "550e8400-0002-4000-8000-000000000002",
           "type": "Water",
-          "status": "Forwarded to Finance",
+          "status": "pending",
           "details": {
             "specificData": {
               "nature": "Sprinkler system leaking heavily near the pathway.",
@@ -8253,7 +8369,7 @@
           "organization_id": "org-001",
           "reporter_id": "550e8400-0002-4000-8000-000000000002",
           "type": "Water",
-          "status": "Forwarded to Finance",
+          "status": "pending",
           "details": {
             "specificData": {
               "nature": "Sprinkler system leaking heavily near the pathway.",
@@ -8593,6 +8709,10 @@
           "title": "User logged in",
           "timestamp": "2025-01-01T10:00:00.000Z"
         }
+      },
+      "GenerateSustainabilityReportDto": {
+        "type": "object",
+        "properties": {}
       },
       "CreateSustainabilityReportDto": {
         "type": "object",

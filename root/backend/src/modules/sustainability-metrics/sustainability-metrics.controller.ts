@@ -1,5 +1,5 @@
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put } from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, Query } from "@nestjs/common";
 import { SustainabilityMetricsService } from "./sustainability-metrics.service";
 import { CreateSustainabilityMetricDto } from "./dto/create-sustainability-metric.dto";
 import { PutSustainabilityMetricDto } from "./dto/put-sustainability-metric.dto";
@@ -29,6 +29,26 @@ export class SustainabilityMetricsController {
   @Roles("Sustainability Officer", "Organization Admin")
   findAll() {
     return this.sustainabilityMetricsService.findAll();
+  }
+
+  @Get("summary")
+  @ApiOperation({
+    summary: "Get Sustainability Metrics Summary",
+    description:
+      "Tenant-scoped summary of energy, water, gas, emissions, and food wastage across a period. Includes time series, totals, deltas vs previous period, and meter coverage.",
+  })
+  @ApiResponse({ status: 200, description: "Summary returned." })
+  @ApiResponse({ status: 400, description: "Invalid date range or format." })
+  @ApiResponse({ status: 403, description: "Forbidden." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @ApiHeader({ name: "x-org-id", description: "Tenant organization ID.", required: false })
+  @Roles("Sustainability Officer", "Organization Admin")
+  getSummary(
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+    @Query("granularity") granularity?: string,
+  ) {
+    return this.sustainabilityMetricsService.getSummary({ from, to, granularity });
   }
 
   @Get(":id")

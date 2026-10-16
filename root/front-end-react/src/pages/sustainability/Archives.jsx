@@ -5,83 +5,11 @@ import overviewCss from "../../styles/sustainability_officer/sust_overview.css?i
 import sharedCss from "../../styles/sustainability_officer/sust_shared.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
 
-const DEMO_REPORTS = [
-  {
-    report_id: "sr-001",
-    title: "Q2 2026 Campus Sustainability Audit",
-    period: "Q2 2026",
-    generated_at: "2026-07-02T10:30:00.000Z",
-    metrics: {
-      energyReduction: "-12.4%",
-      wasteDiverted: "72%",
-      carbonOffset: "135 tCO₂e",
-      waterSaved: "1.8 ML",
-    },
-  },
-  {
-    report_id: "sr-002",
-    title: "Q1 2026 Energy Baseline Audit",
-    period: "Q1 2026",
-    generated_at: "2026-04-05T09:15:00.000Z",
-    metrics: {
-      energyReduction: "-4.2%",
-      wasteDiverted: "65%",
-      carbonOffset: "92 tCO₂e",
-      waterSaved: "1.2 ML",
-    },
-  },
-];
-
-const DEMO_INITIATIVES = [
-  {
-    initiative_id: "init-004",
-    title: "LED Sensor Conversion in Campus Corridors",
-    status: "completed",
-    target_reduction: "8% Building Lighting",
-    archivedAt: "2026-05-18T14:20:00.000Z",
-    outcomes: [
-      "100% LED transition complete",
-      "Achieved ₹1.8L annual utility savings",
-    ],
-  },
-];
-
-const DEMO_WASTAGE = [
-  {
-    id: "WST-108",
-    type: "Water",
-    status: "Finalized",
-    location: "Hostel Block A - Floor 2",
-    summary: "High-pressure pipe joint rupture in restroom supply riser",
-    priority: "High",
-    archivedAt: "2026-06-12T16:45:00.000Z",
-    decisionSummary:
-      "Isolation valve closed within 15 mins. Gasket replaced and ultrasonic flow check passed.",
-    baselineValue: 450,
-    currentValue: 120,
-    targetValue: 95,
-    unit: "L/hr",
-  },
-  {
-    id: "WST-104",
-    type: "Energy",
-    status: "Finalized",
-    location: "Mechanical Workshop Block",
-    summary: "Air compressor idling overnight with pressure leakage",
-    priority: "Medium",
-    archivedAt: "2026-05-22T11:10:00.000Z",
-    decisionSummary:
-      "Installed automatic solenoid power cut-off timer. Idling draw abated to 0 kWh.",
-    baselineValue: 28,
-    currentValue: 3,
-    targetValue: 0,
-    unit: "kWh/day",
-  },
-];
-
 export default function SustainabilityArchives() {
   const { user } = useAuth();
-  const canDeleteReport = user?.role === "Organization Admin";
+  const canDeleteReport =
+    user?.role === "Organization Admin" ||
+    user?.role === "Sustainability Officer";
   const canDeleteInitiative =
     user?.role === "Organization Admin" ||
     user?.role === "Sustainability Officer";
@@ -91,9 +19,9 @@ export default function SustainabilityArchives() {
 
   const [activeTab, setActiveTab] = useState("reports"); // 'reports' | 'initiatives' | 'wastage'
   const [searchQuery, setSearchQuery] = useState("");
-  const [reports, setReports] = useState(DEMO_REPORTS);
-  const [initiatives, setInitiatives] = useState(DEMO_INITIATIVES);
-  const [wastage, setWastage] = useState(DEMO_WASTAGE);
+  const [reports, setReports] = useState([]);
+  const [initiatives, setInitiatives] = useState([]);
+  const [wastage, setWastage] = useState([]);
   const [toast, setToast] = useState(null);
 
   const showToast = useCallback((msg, type = "success") => {
@@ -115,8 +43,7 @@ export default function SustainabilityArchives() {
 
         if (
           reportsRes.status === "fulfilled" &&
-          Array.isArray(reportsRes.value) &&
-          reportsRes.value.length > 0
+          Array.isArray(reportsRes.value)
         ) {
           setReports(reportsRes.value);
         }
@@ -125,7 +52,7 @@ export default function SustainabilityArchives() {
           const completed = initsRes.value.filter(
             (i) => i.status === "completed",
           );
-          if (completed.length > 0) setInitiatives(completed);
+          setInitiatives(completed);
         }
 
         if (
@@ -163,7 +90,7 @@ export default function SustainabilityArchives() {
               unit: "%",
             }));
 
-          if (archivedW.length > 0) setWastage(archivedW);
+          setWastage(archivedW);
         }
       })
       .catch((err) => {

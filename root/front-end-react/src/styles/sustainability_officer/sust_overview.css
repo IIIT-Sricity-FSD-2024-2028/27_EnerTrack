@@ -1,18 +1,10 @@
-/* ===== GLOBALS ===== */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: "Inter", sans-serif;
-  background-color: #ededed;
-  color: #1f2937;
-  height: 100vh;
-  overflow: hidden;
+/* ===== SUSTAINABILITY OVERVIEW STYLES ===== */
+.sustainability-overview-page button:focus-visible,
+.sustainability-overview-page select:focus-visible,
+.sustainability-overview-page input:focus-visible,
+.sustainability-overview-page [tabindex]:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
 }
 
 .dashboard {

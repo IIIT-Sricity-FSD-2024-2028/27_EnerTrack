@@ -1,427 +1,223 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../../api/client";
+import Toast from "./components/Toast";
+import MetricCard from "./components/MetricCard";
 import monitorCss from "../../styles/sustainability_officer/sust_monitor.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
 
-const PERIOD_DATA = {
-  "30 Days": [
-    { label: "Week 1", energy: 60, water: 42, emissions: 50, food: 36 },
-    { label: "Week 2", energy: 70, water: 46, emissions: 45, food: 40 },
-    { label: "Week 3", energy: 55, water: 39, emissions: 42, food: 35 },
-    { label: "Week 4", energy: 50, water: 35, emissions: 40, food: 33 },
-  ],
-  Quarter: [
-    { label: "Month 1", energy: 65, water: 45, emissions: 48, food: 38 },
-    { label: "Month 2", energy: 72, water: 50, emissions: 52, food: 42 },
-    { label: "Month 3", energy: 58, water: 38, emissions: 41, food: 34 },
-  ],
-  Year: [
-    { label: "Q1", energy: 68, water: 46, emissions: 50, food: 39 },
-    { label: "Q2", energy: 75, water: 52, emissions: 54, food: 44 },
-    { label: "Q3", energy: 62, water: 41, emissions: 44, food: 36 },
-    { label: "Q4", energy: 54, water: 36, emissions: 38, food: 32 },
-  ],
+const PERIOD_CONFIG = {
+  "30 Days": { from: "2026-08", to: "2026-08", granularity: "month", label: "Past 30 Days (Aug 2026)" },
+  Quarter: { from: "2026-06", to: "2026-08", granularity: "month", label: "Past Quarter (Jun–Aug 2026)" },
+  Year: { from: "2026-01", to: "2026-08", granularity: "month", label: "Year to Date (Jan–Aug 2026)" },
+};
+
+const METRIC_CONFIG = {
+  energy: { label: "Electricity Demand", unit: "MWh", field: "energy_mwh", color: "#059669" },
+  water: { label: "Water Intake", unit: "ML", field: "water_ml", color: "#0284c7" },
+  emissions: { label: "Calculated Emissions", unit: "tCO₂e", field: "emissions_t", color: "#7c3aed" },
+  gas: { label: "Natural Gas", unit: "m³", field: "gas_m3", color: "#d97706" },
+  food: { label: "Food Wastage", unit: "kg", field: "food_kg", color: "#dc2626" },
 };
 
 export default function SustainabilityMonitoring() {
-  const [metrics, setMetrics] = useState({
-    energy: "813",
-    energyUnit: "MWh",
-    water: "3.6",
-    waterUnit: "ML",
-    emissions: "217",
-    emissionsUnit: "tCO₂e",
-    food: "737",
-    foodUnit: "kg",
-  });
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [activePeriod, setActivePeriod] = useState("30 Days");
-  const [pipelineStep, setPipelineStep] = useState(0); // 0 to 5
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [activePeriod, setActivePeriod] = useState("Year");
+  const [selectedMetric, setSelectedMetric] = useState("energy");
+  const [hoveredPoint, setHoveredPoint] = useState(null);
+
+  // Refresh data pipeline states
+  const [pipelineStep, setPipelineStep] = useState(5);
+  const [pipelineMessage, setPipelineMessage] = useState("Telemetry stream live");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
   const [toast, setToast] = useState(null);
-
   const showToast = useCallback((msg, type = "success") => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
   }, []);
 
-  // Fetch metrics from backend with fallback
+  const closeToast = useCallback(() => {
+    setToast(null);
+  }, []);
+
+  // Fetch data on period change without synchronous setState inside the effect body
   useEffect(() => {
-    let active = true;
+    let ignore = false;
+    const config = PERIOD_CONFIG[activePeriod] || PERIOD_CONFIG.Year;
 
-    Promise.allSettled([
-      api.get("/sustainability-metrics"),
-      api.get("/wastage-reports"),
-    ]).then(([metricsRes, wastageRes]) => {
-      if (!active) return;
-
-      if (
-        metricsRes.status === "fulfilled" &&
-        Array.isArray(metricsRes.value) &&
-        metricsRes.value.length > 0
-      ) {
-        const sorted = [...metricsRes.value].sort((a, b) =>
-          String(b.period || "").localeCompare(String(a.period || "")),
-        );
-        const latest = sorted[0];
-        setMetrics((prev) => ({
-          ...prev,
-          energy: latest.energy_consumed
-            ? String(Math.round(Number(latest.energy_consumed)))
-            : prev.energy,
-          water: latest.water_usage
-            ? String(Number(latest.water_usage).toFixed(1))
-            : prev.water,
-          emissions: latest.emissions
-            ? String(Math.round(Number(latest.emissions)))
-            : prev.emissions,
-        }));
-      }
-
-      if (
-        wastageRes.status === "fulfilled" &&
-        Array.isArray(wastageRes.value)
-      ) {
-        let foodTotal = 0;
-        wastageRes.value.forEach((w) => {
-          if (w.type === "Food" && w.details?.specificData?.estimatedAmount) {
-            foodTotal += parseFloat(w.details.specificData.estimatedAmount) || 0;
-          }
-        });
-        if (foodTotal > 0) {
-          setMetrics((prev) => ({ ...prev, food: String(Math.round(foodTotal)) }));
+    api
+      .get(
+        `/sustainability-metrics/summary?from=${config.from}&to=${config.to}&granularity=${config.granularity}`,
+      )
+      .then((res) => {
+        if (!ignore) {
+          setData(res);
+          setLastUpdated(new Date());
+          setPipelineStep(5);
+          setPipelineMessage("Dashboard updated with verified telemetry");
+          setError(null);
         }
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  // Run Animated Pipeline Sync Sequence
-  const handleRunSync = () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
-    setPipelineStep(1);
-
-    const interval = setInterval(() => {
-      setPipelineStep((prev) => {
-        if (prev < 5) {
-          return prev + 1;
-        } else {
-          clearInterval(interval);
-          setIsSyncing(false);
-          showToast("Sync cycle complete! Upstream data feeds verified.");
-          return 5;
+      })
+      .catch((err) => {
+        if (!ignore) {
+          const msg = err.message || "Failed to fetch sustainability metrics summary";
+          setError(msg);
+          setPipelineStep(0);
+          setPipelineMessage("Data refresh paused — check connection and retry");
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
         }
       });
-    }, 600);
+
+    return () => {
+      ignore = true;
+    };
+  }, [activePeriod]);
+
+  const handlePeriodChange = (periodKey) => {
+    setActivePeriod(periodKey);
+    setLoading(true);
   };
 
-  const chartBars = PERIOD_DATA[activePeriod] || PERIOD_DATA["30 Days"];
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    setError(null);
+    const config = PERIOD_CONFIG[activePeriod] || PERIOD_CONFIG.Year;
+
+    try {
+      setPipelineStep(1);
+      setPipelineMessage("Querying upstream sensor network...");
+      await new Promise((r) => setTimeout(r, 180));
+
+      setPipelineStep(2);
+      setPipelineMessage("Aggregating readings across meters...");
+      await new Promise((r) => setTimeout(r, 180));
+
+      const res = await api.get(
+        `/sustainability-metrics/summary?from=${config.from}&to=${config.to}&granularity=${config.granularity}`,
+      );
+
+      setPipelineStep(3);
+      setPipelineMessage("Calculating emissions with 0.82 grid constant...");
+      await new Promise((r) => setTimeout(r, 150));
+
+      setPipelineStep(4);
+      setPipelineMessage("Verifying active meter coverage...");
+      await new Promise((r) => setTimeout(r, 120));
+
+      setData(res);
+      setLastUpdated(new Date());
+      setPipelineStep(5);
+      setPipelineMessage("Dashboard updated with verified telemetry");
+      showToast("Telemetry data refreshed successfully.", "success");
+    } catch (err) {
+      const msg = err.message || "Failed to fetch sustainability metrics summary";
+      setError(msg);
+      setPipelineStep(0);
+      setPipelineMessage("Data refresh paused — check connection and retry");
+      showToast(msg, "error");
+    } finally {
+      setIsRefreshing(false);
+      setLoading(false);
+    }
+  };
+
+  // SVG Chart Calculations
+  const series = data?.series || [];
+  const currentMetricCfg = METRIC_CONFIG[selectedMetric] || METRIC_CONFIG.energy;
+  const values = series.map((s) => Number(s[currentMetricCfg.field] || 0));
+  const rawMax = values.length > 0 ? Math.max(...values, 1) : 1;
+  const chartMax = Math.ceil(rawMax * 1.15); // headroom
+
+  const chartW = 760;
+  const chartH = 260;
+  const padLeft = 60;
+  const padRight = 24;
+  const padTop = 24;
+  const padBottom = 40;
+  const plotW = chartW - padLeft - padRight;
+  const plotH = chartH - padTop - padBottom;
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((pct) => ({
+    value: Number((chartMax * pct).toFixed(chartMax > 10 ? 0 : 2)),
+    y: padTop + plotH * (1 - pct),
+  }));
+
+  const colWidth = series.length > 0 ? plotW / series.length : plotW;
+  const barWidth = Math.max(16, Math.min(48, colWidth * 0.5));
 
   return (
     <div className="sustainability-monitoring-page" style={{ width: "100%" }}>
       <style>{monitorCss}</style>
       <style>{sustLayoutCss}</style>
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background: toast.type === "error" ? "#ef4444" : "#059669",
-            color: "#ffffff",
-            padding: "10px 18px",
-            borderRadius: "8px",
-            boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
-            zIndex: 9999,
-            fontWeight: "600",
-            fontSize: "13px",
-          }}
-        >
-          {toast.msg}
-        </div>
-      )}
+
+      <Toast toast={toast} onClose={closeToast} />
 
       {/* HEADER */}
-      <header className="page-header" style={{ marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#111827", margin: 0 }}>
-          Environmental Impact Monitoring
-        </h1>
-      </header>
-
-      {/* 4 TOP METRIC CARDS */}
-      <section className="metrics-row">
-        {/* 1. Energy Consumption */}
-        <div className="metric-card">
-          <div className="metric-header">
-            <div>
-              <h3>Energy Consumption</h3>
-              <p>Current electricity and gas usage across all monitors.</p>
-            </div>
-          </div>
-          <div className="metric-val">
-            <span id="metricEnergy">{metrics.energy}</span> <small>{metrics.energyUnit}</small>
-          </div>
-          <div className="metric-footer">
-            Upstream feeds completed for 24 of 24 monitored meters in current cycle.
-          </div>
-        </div>
-
-        {/* 2. Water Usage */}
-        <div className="metric-card">
-          <div className="metric-header">
-            <div>
-              <h3>Water Usage</h3>
-              <p>Aggregated water intake from facilities and process lines.</p>
-            </div>
-          </div>
-          <div className="metric-val">
-            <span id="metricWater">{metrics.water}</span> <small>{metrics.waterUnit}</small>
-          </div>
-          <div className="metric-footer">
-            Building clusters posted below-average demand after optimization changes.
-          </div>
-        </div>
-
-        {/* 3. Emissions Data */}
-        <div className="metric-card">
-          <div className="metric-header">
-            <div>
-              <h3>Emissions Data</h3>
-              <p>Calculated emissions feed using current validated factors.</p>
-            </div>
-          </div>
-          <div className="metric-val">
-            <span id="metricEmissions">{metrics.emissions}</span> <small>{metrics.emissionsUnit}</small>
-          </div>
-          <div className="metric-footer">
-            Emission factor tables were verified during the latest reporting rules sync.
-          </div>
-        </div>
-
-        {/* 4. Food Wastage */}
-        <div className="metric-card">
-          <div className="metric-header">
-            <div>
-              <h3>Food Wastage</h3>
-              <p>
-                Consolidated food discard data from kitchens, canteens, and
-                event service points.
-              </p>
-            </div>
-          </div>
-          <div className="metric-val">
-            <span id="metricFood">{metrics.food}</span> <small>{metrics.foodUnit}</small>
-          </div>
-          <div className="metric-footer">
-            Collection logs were reconciled with waste handling records for this cycle.
-          </div>
-        </div>
-      </section>
-
-      {/* DATA PIPELINE */}
-      <section className="pipeline-panel">
-        <div className="pipeline-header">
-          <h2>Data pipeline</h2>
-          <p>
-            Live visibility into the environmental monitoring workflow from raw
-            collection through dashboard refresh.
+      <header
+        className="page-header"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: "24px",
+          flexWrap: "wrap",
+          gap: "16px",
+        }}
+      >
+        <div>
+          <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#111827", margin: 0 }}>
+            Environmental Impact Monitoring
+          </h1>
+          <p style={{ margin: "6px 0 0 0", color: "#4b5563", fontSize: "14px" }}>
+            Live readings, emissions accounting, and meter reporting coverage driven directly from hardware sensors.
           </p>
         </div>
 
-        <div className="pipeline-steps" id="monitoringPipeline">
-          <div className="pipeline-progress">
-            <div className="pipeline-line" />
-            <div
-              className="pipeline-line-fill"
-              id="pipelineFill"
+        {/* Top Controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {lastUpdated && (
+            <span
               style={{
-                width:
-                  pipelineStep === 0
-                    ? "0%"
-                    : `${((pipelineStep - 1) / 4) * 100}%`,
+                fontSize: "12px",
+                color: "#6b7280",
+                fontVariantNumeric: "tabular-nums",
               }}
-            />
-          </div>
-
-          {/* Step 1: Collect */}
-          <div className={`step ${pipelineStep >= 1 ? "active" : ""}`}>
-            <div className={`step-icon ${pipelineStep >= 1 ? "active" : ""}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <ellipse cx="12" cy="5" rx="9" ry="3" />
-                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-              </svg>
-            </div>
-            <h4>Collect</h4>
-          </div>
-
-          {/* Step 2: Aggregate */}
-          <div className={`step ${pipelineStep >= 2 ? "active" : ""}`}>
-            <div className={`step-icon ${pipelineStep >= 2 ? "active" : ""}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 17 12 22 22 17" />
-                <polyline points="2 12 12 17 22 12" />
-              </svg>
-            </div>
-            <h4>Aggregate</h4>
-          </div>
-
-          {/* Step 3: Calculate Metrics */}
-          <div className={`step ${pipelineStep >= 3 ? "active" : ""}`}>
-            <div className={`step-icon ${pipelineStep >= 3 ? "active" : ""}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="4" y="2" width="16" height="20" rx="2" />
-                <line x1="8" y1="6" x2="16" y2="6" />
-                <line x1="8" y1="10" x2="16" y2="10" />
-                <line x1="8" y1="14" x2="16" y2="14" />
-                <line x1="8" y1="18" x2="12" y2="18" />
-              </svg>
-            </div>
-            <h4>Calculate Metrics</h4>
-          </div>
-
-          {/* Step 4: Trend Analysis */}
-          <div className={`step ${pipelineStep >= 4 ? "active" : ""}`}>
-            <div className={`step-icon ${pipelineStep >= 4 ? "active" : ""}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                <polyline points="17 6 23 6 23 12" />
-              </svg>
-            </div>
-            <h4>Trend Analysis</h4>
-          </div>
-
-          {/* Step 5: Update Dashboard */}
-          <div className={`step ${pipelineStep >= 5 ? "active" : ""}`}>
-            <div className={`step-icon ${pipelineStep >= 5 ? "active" : ""}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-              </svg>
-            </div>
-            <h4>Update Dashboard</h4>
-          </div>
-        </div>
-      </section>
-
-      {/* VIEW METRICS & TRENDS */}
-      <section className="dashboard-panel full-width" style={{ marginBottom: "24px" }}>
-        <h2>View Metrics & Trends</h2>
-        <p className="sub">
-          Filter chart views by date range and inspect time-based changes
-          across all core indicators.
-        </p>
-
-        {/* PILL SELECTOR */}
-        <div className="pill-nav" id="trendPeriodSelector">
-          {["30 Days", "Quarter", "Year"].map((period) => (
-            <div
-              key={period}
-              className={`pill-item ${activePeriod === period ? "active" : ""}`}
-              onClick={() => setActivePeriod(period)}
-              style={{ cursor: "pointer" }}
             >
-              {period}
-            </div>
-          ))}
-        </div>
+              Updated {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </span>
+          )}
 
-        {/* GROUPED BARS CHART */}
-        <div className="chart-container" id="trendsChart">
-          {chartBars.map((item, idx) => (
-            <div key={item.label || idx} className="chart-group">
-              <div
-                className="bar energy"
-                style={{ height: `${item.energy * 2.2}px` }}
-                title={`Energy: ${item.energy}%`}
-              />
-              <div
-                className="bar water"
-                style={{ height: `${item.water * 2.2}px` }}
-                title={`Water: ${item.water}%`}
-              />
-              <div
-                className="bar emissions"
-                style={{ height: `${item.emissions * 2.2}px` }}
-                title={`Emissions: ${item.emissions}%`}
-              />
-              <div
-                className="bar food"
-                style={{ height: `${item.food * 2.2}px` }}
-                title={`Food: ${item.food}%`}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* LABELS */}
-        <div className="chart-labels">
-          {chartBars.map((item, idx) => (
-            <span key={item.label || idx}>{item.label}</span>
-          ))}
-        </div>
-
-        {/* LEGEND */}
-        <div className="chart-legend">
-          <div className="legend-item">
-            <div className="legend-dot energy" />
-            Energy
-          </div>
-          <div className="legend-item">
-            <div className="legend-dot water" />
-            Water
-          </div>
-          <div className="legend-item">
-            <div className="legend-dot emissions" />
-            Emissions
-          </div>
-          <div className="legend-item">
-            <div className="legend-dot food" />
-            Food
-          </div>
-        </div>
-      </section>
-
-      {/* BOTTOM ACTION BAR */}
-      <section className="action-bar">
-        <div className="action-bar-text">
-          <h4>More data to be collected?</h4>
-          <p>
-            The system will automatically trigger the next collection cycle
-            when new meter or utility data is detected.
-          </p>
-        </div>
-        <div className="action-btns">
           <button
             type="button"
-            className="btn-green"
             id="btnForceRun"
-            onClick={handleRunSync}
-            disabled={isSyncing}
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            aria-label="Refresh data"
             style={{
               background: "#059669",
               color: "#ffffff",
               border: "none",
               borderRadius: "6px",
-              padding: "10px 18px",
+              padding: "9px 16px",
               fontWeight: "600",
               fontSize: "14px",
-              cursor: isSyncing ? "default" : "pointer",
+              cursor: isRefreshing ? "not-allowed" : "pointer",
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
+              opacity: isRefreshing ? 0.75 : 1,
             }}
           >
             <svg
-              width="14"
-              height="14"
+              width="15"
+              height="15"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -429,15 +225,465 @@ export default function SustainabilityMonitoring() {
               strokeLinecap="round"
               strokeLinejoin="round"
               style={{
-                animation: isSyncing ? "spin 1s linear infinite" : "none",
+                animation: isRefreshing ? "spin 1s linear infinite" : "none",
               }}
             >
               <polyline points="23 4 23 10 17 10" />
               <polyline points="1 20 1 14 7 14" />
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
             </svg>
-            {isSyncing ? "Syncing..." : "Run Sync Cycle"}
+            {isRefreshing ? "Refreshing data..." : "Refresh data"}
           </button>
+        </div>
+      </header>
+
+      {/* ERROR STATE */}
+      {error && !loading && (
+        <div
+          role="alert"
+          style={{
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: "#991b1b",
+            padding: "16px 20px",
+            borderRadius: "8px",
+            marginBottom: "24px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <strong>Unable to load telemetry:</strong> {error}
+          </div>
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            style={{
+              background: "#991b1b",
+              color: "#ffffff",
+              border: "none",
+              padding: "6px 14px",
+              borderRadius: "4px",
+              fontWeight: "600",
+              fontSize: "13px",
+              cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* TOP 4 METRIC CARDS */}
+      <section
+        className="metrics-row"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: "16px",
+          marginBottom: "24px",
+        }}
+      >
+        <MetricCard
+          id="metricEnergy"
+          title="Energy Consumption"
+          value={loading ? "..." : (data?.totals?.energy_mwh ?? 0).toLocaleString()}
+          unit="MWh"
+          delta={data?.change?.has_comparison ? data.change.energy_pct : null}
+          description="Total electricity recorded on all live meters."
+          footer={
+            data?.meter_coverage ? (
+              <span>
+                <strong>{data.meter_coverage.reporting_in_period}</strong> of{" "}
+                <strong>{data.meter_coverage.active}</strong> active meters reporting
+              </span>
+            ) : "No meter telemetry"
+          }
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+          }
+        />
+
+        <MetricCard
+          id="metricWater"
+          title="Water Usage"
+          value={loading ? "..." : (data?.totals?.water_ml ?? 0).toLocaleString()}
+          unit="ML"
+          delta={data?.change?.has_comparison ? data.change.water_pct : null}
+          description="Aggregated water intake across campus facilities."
+          footer={
+            data?.totals ? (
+              <span>Volume: {(data.totals.water_kl ?? 0).toLocaleString()} kL</span>
+            ) : "No meter telemetry"
+          }
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+            </svg>
+          }
+        />
+
+        <MetricCard
+          id="metricEmissions"
+          title="Carbon Emissions"
+          value={loading ? "..." : (data?.totals?.emissions_t ?? 0).toLocaleString()}
+          unit="tCO₂e"
+          delta={data?.change?.has_comparison ? data.change.emissions_pct : null}
+          description="Calculated using standard 0.82 kg CO₂/kWh grid factor."
+          footer={
+            data?.totals ? (
+              <span>Mass: {(data.totals.emissions_kg ?? 0).toLocaleString()} kg CO₂</span>
+            ) : "No meter telemetry"
+          }
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+            </svg>
+          }
+        />
+
+        <MetricCard
+          id="metricFood"
+          title="Food Wastage"
+          value={loading ? "..." : (data?.totals?.food_kg ?? 0).toLocaleString()}
+          unit="kg"
+          delta={data?.change?.has_comparison ? data.change.food_pct : null}
+          description="Measured bin weight telemetry and campus logs."
+          footer={
+            data?.totals?.gas_m3 ? (
+              <span>Natural gas: {data.totals.gas_m3.toLocaleString()} m³</span>
+            ) : "Direct collection telemetry"
+          }
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+          }
+        />
+      </section>
+
+      {/* REAL DATA PIPELINE STAGE STATUS */}
+      <section
+        className="pipeline-panel"
+        style={{
+          background: "#ffffff",
+          border: "1px solid #d8dde2",
+          borderRadius: "8px",
+          padding: "20px 24px",
+          marginBottom: "24px",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "16px" }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#111827" }}>
+              Telemetry Pipeline Status
+            </h2>
+            <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#6b7280" }}>
+              {pipelineMessage}
+            </p>
+          </div>
+          <span
+            style={{
+              fontSize: "12px",
+              fontWeight: "600",
+              color: pipelineStep === 5 ? "#065f46" : pipelineStep === 0 ? "#991b1b" : "#b45309",
+              background: pipelineStep === 5 ? "#ecfdf5" : pipelineStep === 0 ? "#fef2f2" : "#fef3c7",
+              padding: "4px 10px",
+              borderRadius: "4px",
+            }}
+          >
+            {pipelineStep === 5 ? "Synced & Verified" : pipelineStep === 0 ? "Error" : `Stage ${pipelineStep} of 5`}
+          </span>
+        </div>
+
+        {/* Pipeline 5 Step Indicator */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: "8px",
+          }}
+        >
+          {[
+            { step: 1, name: "1. Ingest", desc: "Sensors" },
+            { step: 2, name: "2. Aggregate", desc: "Meters" },
+            { step: 3, name: "3. Accounting", desc: "Factors" },
+            { step: 4, name: "4. Coverage", desc: "Audit" },
+            { step: 5, name: "5. Ready", desc: "Dashboard" },
+          ].map((s) => {
+            const isDone = pipelineStep >= s.step;
+            const isCurrent = pipelineStep === s.step;
+            return (
+              <div
+                key={s.step}
+                style={{
+                  borderTop: `3px solid ${isDone ? "#059669" : "#e5e7eb"}`,
+                  paddingTop: "8px",
+                  transition: "border-color 0.3s ease",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: isCurrent ? "700" : "600",
+                    color: isDone ? "#111827" : "#9ca3af",
+                  }}
+                >
+                  {s.name}
+                </div>
+                <div style={{ fontSize: "11px", color: isDone ? "#4b5563" : "#9ca3af" }}>
+                  {s.desc}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* METRICS & TRENDS REAL SVG CHART */}
+      <section
+        className="dashboard-panel full-width"
+        style={{
+          background: "#ffffff",
+          border: "1px solid #d8dde2",
+          borderRadius: "8px",
+          padding: "24px",
+          marginBottom: "24px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: "16px",
+            marginBottom: "20px",
+          }}
+        >
+          <div>
+            <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "700", color: "#111827" }}>
+              Time-Series Trends
+            </h2>
+            <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#6b7280" }}>
+              Single-unit axis plotting to accurately evaluate telemetry without mixed scales.
+            </p>
+          </div>
+
+          {/* Time range selector */}
+          <div
+            className="pill-nav"
+            id="trendPeriodSelector"
+            role="tablist"
+            aria-label="Time period selection"
+            style={{
+              display: "inline-flex",
+              background: "#f3f4f6",
+              padding: "3px",
+              borderRadius: "6px",
+            }}
+          >
+            {["30 Days", "Quarter", "Year"].map((period) => (
+              <button
+                type="button"
+                key={period}
+                role="tab"
+                aria-selected={activePeriod === period}
+                onClick={() => handlePeriodChange(period)}
+                style={{
+                  background: activePeriod === period ? "#ffffff" : "transparent",
+                  color: activePeriod === period ? "#111827" : "#6b7280",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "6px 14px",
+                  fontSize: "13px",
+                  fontWeight: activePeriod === period ? "600" : "500",
+                  cursor: "pointer",
+                  boxShadow: activePeriod === period ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                }}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Metric Selector Tabs */}
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            borderBottom: "1px solid #e5e7eb",
+            paddingBottom: "12px",
+            marginBottom: "20px",
+            flexWrap: "wrap",
+          }}
+        >
+          {Object.entries(METRIC_CONFIG).map(([key, cfg]) => {
+            const isSelected = selectedMetric === key;
+            return (
+              <button
+                type="button"
+                key={key}
+                onClick={() => setSelectedMetric(key)}
+                style={{
+                  background: isSelected ? "#f0fdf4" : "#ffffff",
+                  color: isSelected ? "#166534" : "#4b5563",
+                  border: isSelected ? "1px solid #bbf7d0" : "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: isSelected ? "600" : "500",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    background: cfg.color,
+                  }}
+                />
+                {cfg.label} ({cfg.unit})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* REAL SVG CHART */}
+        <div style={{ width: "100%", overflowX: "auto" }}>
+          {series.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "60px 20px",
+                color: "#6b7280",
+                fontSize: "14px",
+              }}
+            >
+              No telemetry recordings found for this period.
+            </div>
+          ) : (
+            <div style={{ minWidth: "500px", position: "relative" }}>
+              <svg
+                viewBox={`0 0 ${chartW} ${chartH}`}
+                style={{ width: "100%", height: "auto", display: "block" }}
+                aria-label={`Chart of ${currentMetricCfg.label} across ${activePeriod}`}
+              >
+                {/* Horizontal grid lines & Y labels */}
+                {yTicks.map((tick, i) => (
+                  <g key={i}>
+                    <line
+                      x1={padLeft}
+                      y1={tick.y}
+                      x2={chartW - padRight}
+                      y2={tick.y}
+                      stroke="#e5e7eb"
+                      strokeDasharray={i === 0 ? "none" : "3 3"}
+                    />
+                    <text
+                      x={padLeft - 8}
+                      y={tick.y + 4}
+                      fill="#6b7280"
+                      fontSize="11"
+                      textAnchor="end"
+                      fontFamily="Inter, sans-serif"
+                    >
+                      {tick.value}
+                    </text>
+                  </g>
+                ))}
+
+                {/* Y-axis Unit Label */}
+                <text
+                  x={padLeft}
+                  y={padTop - 8}
+                  fill="#6b7280"
+                  fontSize="11"
+                  fontWeight="600"
+                  fontFamily="Inter, sans-serif"
+                >
+                  {currentMetricCfg.unit}
+                </text>
+
+                {/* Bars & X Labels */}
+                {series.map((s, idx) => {
+                  const val = Number(s[currentMetricCfg.field] || 0);
+                  const barH = chartMax > 0 ? (val / chartMax) * plotH : 0;
+                  const xCenter = padLeft + idx * colWidth + colWidth / 2;
+                  const barX = xCenter - barWidth / 2;
+                  const barY = padTop + (plotH - barH);
+                  const isHovered = hoveredPoint === idx;
+
+                  return (
+                    <g key={s.period || idx}>
+                      {/* Interactive Bar */}
+                      <rect
+                        x={barX}
+                        y={barY}
+                        width={barWidth}
+                        height={Math.max(2, barH)}
+                        rx="3"
+                        fill={isHovered ? "#166534" : currentMetricCfg.color}
+                        opacity={isHovered ? 1 : 0.85}
+                        style={{ cursor: "pointer", transition: "fill 0.15s, opacity 0.15s" }}
+                        tabIndex={0}
+                        aria-label={`${s.label}: ${val} ${currentMetricCfg.unit}`}
+                        onMouseEnter={() => setHoveredPoint(idx)}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                        onFocus={() => setHoveredPoint(idx)}
+                        onBlur={() => setHoveredPoint(null)}
+                      />
+
+                      {/* X Label */}
+                      <text
+                        x={xCenter}
+                        y={chartH - 12}
+                        fill="#4b5563"
+                        fontSize="11"
+                        textAnchor="middle"
+                        fontFamily="Inter, sans-serif"
+                      >
+                        {s.label.split(" ")[0]}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {/* Tooltip Overlay */}
+              {hoveredPoint !== null && series[hoveredPoint] && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "12px",
+                    right: "24px",
+                    background: "#111827",
+                    color: "#ffffff",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    pointerEvents: "none",
+                    boxShadow: "0 4px 6px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  <strong>{series[hoveredPoint].label}</strong>:{" "}
+                  {Number(series[hoveredPoint][currentMetricCfg.field] || 0).toLocaleString()}{" "}
+                  {currentMetricCfg.unit}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
     </div>
