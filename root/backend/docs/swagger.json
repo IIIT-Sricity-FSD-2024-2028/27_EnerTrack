@@ -3680,7 +3680,7 @@
           {
             "name": "x-role",
             "in": "header",
-            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
+            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Technician Administrator | Sustainability Officer | Campus Visitor",
             "required": false,
             "schema": {
               "type": "string"
@@ -8517,7 +8517,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$akKlxt9.5Eft1.PXLDj5w.TSuxIff/bHYt.raB8FHegzZY0paQTPG",
+          "password": "$2b$08$CPSff6FvjeLZeSHE2i6xk.oq/5a4yK55onh4CA7BE6iKu5KrqdKvu",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -8534,7 +8534,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$akKlxt9.5Eft1.PXLDj5w.TSuxIff/bHYt.raB8FHegzZY0paQTPG",
+          "password": "$2b$08$CPSff6FvjeLZeSHE2i6xk.oq/5a4yK55onh4CA7BE6iKu5KrqdKvu",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -8758,16 +8758,21 @@
         "properties": {},
         "example": {
           "organization_id": "org-001",
-          "meter_id": "mmmm0000-0002-4000-8000-000000000000",
-          "triggering_reading_id": "rrrr0000-0002-4000-8000-000000000000",
+          "meter_id": "mmmm0000-0003-4000-8000-000000000000",
+          "triggering_reading_id": "rrrr0000-000c-4000-8000-000000000000",
           "title": "Abnormal Water Flow: Science Lab 4",
           "severity": "critical",
-          "status": "open",
+          "status": "acknowledged",
           "messages": [
             {
               "sender_role": "Organization Admin",
               "content": "Flow rate 40L/min detected outside operating hours.",
               "timestamp": "2026-05-05T08:00:00.000Z"
+            },
+            {
+              "sender_role": "Technician Administrator",
+              "content": "Sent to diagnostics as FLT-006 — leak traced to the Lab 4 main supply pipe",
+              "timestamp": "2026-05-05T08:40:00.000Z"
             }
           ]
         }
@@ -8781,16 +8786,21 @@
         "properties": {},
         "example": {
           "organization_id": "org-001",
-          "meter_id": "mmmm0000-0002-4000-8000-000000000000",
-          "triggering_reading_id": "rrrr0000-0002-4000-8000-000000000000",
+          "meter_id": "mmmm0000-0003-4000-8000-000000000000",
+          "triggering_reading_id": "rrrr0000-000c-4000-8000-000000000000",
           "title": "Abnormal Water Flow: Science Lab 4",
           "severity": "critical",
-          "status": "open",
+          "status": "acknowledged",
           "messages": [
             {
               "sender_role": "Organization Admin",
               "content": "Flow rate 40L/min detected outside operating hours.",
               "timestamp": "2026-05-05T08:00:00.000Z"
+            },
+            {
+              "sender_role": "Technician Administrator",
+              "content": "Sent to diagnostics as FLT-006 — leak traced to the Lab 4 main supply pipe",
+              "timestamp": "2026-05-05T08:40:00.000Z"
             }
           ]
         }
@@ -8804,12 +8814,12 @@
         "properties": {},
         "example": {
           "organization_id": "org-001",
-          "alert_id": null,
+          "alert_id": "ALT-003",
           "assigned_to_id": "550e8400-0003-4000-8000-000000000003",
-          "asset_name": "Chiller Unit C-12",
-          "fault_type": "Mechanical",
-          "severity": "moderate",
-          "status": "pending"
+          "asset_name": "Main Breaker MB-01",
+          "fault_type": "Electrical",
+          "severity": "high",
+          "status": "resolved"
         }
       },
       "PutFaultDto": {
@@ -8821,12 +8831,12 @@
         "properties": {},
         "example": {
           "organization_id": "org-001",
-          "alert_id": null,
+          "alert_id": "ALT-003",
           "assigned_to_id": "550e8400-0003-4000-8000-000000000003",
-          "asset_name": "Chiller Unit C-12",
-          "fault_type": "Mechanical",
-          "severity": "moderate",
-          "status": "pending"
+          "asset_name": "Main Breaker MB-01",
+          "fault_type": "Electrical",
+          "severity": "high",
+          "status": "resolved"
         }
       },
       "CreateServiceRequestDto": {
@@ -8851,7 +8861,18 @@
           "source_request_id": "660e8500-0002-4000-8000-000000000000",
           "title": "HVAC Filter Replacement – Block A",
           "priority": "high",
-          "status": "approval"
+          "status": "approval",
+          "details": {
+            "description": "HVAC Unit – Block A",
+            "type": "scheduled",
+            "estimateRequired": true,
+            "estimate": {
+              "materials": 18000,
+              "labor": 6500,
+              "total": 24500,
+              "type": "repair"
+            }
+          }
         }
       },
       "PutWorkOrderDto": {
@@ -8868,7 +8889,18 @@
           "source_request_id": "660e8500-0002-4000-8000-000000000000",
           "title": "HVAC Filter Replacement – Block A",
           "priority": "high",
-          "status": "approval"
+          "status": "approval",
+          "details": {
+            "description": "HVAC Unit – Block A",
+            "type": "scheduled",
+            "estimateRequired": true,
+            "estimate": {
+              "materials": 18000,
+              "labor": 6500,
+              "total": 24500,
+              "type": "repair"
+            }
+          }
         }
       },
       "CreateEnergyCostDto": {

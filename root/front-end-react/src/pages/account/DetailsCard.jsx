@@ -72,7 +72,8 @@ export default function DetailsCard({ notify }) {
         phone: values.phone,
       });
       // Keep the signed-in session in step, so the sidebar shows the new name.
-      adoptSession(account);
+      // The response has no token, so keep the one this session already has.
+      adoptSession({ ...user, ...account });
       setValues({ ...values, currentPassword: "" });
       notify("Your details were saved.", "success");
     } catch (err) {
