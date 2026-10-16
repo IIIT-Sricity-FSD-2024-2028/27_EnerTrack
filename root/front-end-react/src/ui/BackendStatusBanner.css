@@ -1,0 +1,77 @@
+/* Connection banner. Fixed to the bottom so it never covers navigation or a
+   page's own header. Class names are prefixed backend-banner so nothing else
+   restyles it, and it styles only itself. */
+
+.backend-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 100000;
+  width: min(720px, calc(100% - 32px));
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+}
+
+.backend-banner > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.backend-banner--offline {
+  background: #7a1d12;
+  color: #ffffff;
+}
+
+.backend-banner--back {
+  background: #0f3d26;
+  color: #ffffff;
+}
+
+.backend-banner button {
+  flex: none;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.backend-banner button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.backend-banner button:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.backend-banner button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.backend-banner__actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .backend-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

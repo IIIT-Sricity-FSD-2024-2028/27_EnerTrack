@@ -13,7 +13,50 @@
  * api.get/post/etc. unwrap and return the `data` field directly.
  */
 
+import { markOffline, markOnline } from "./backendStatus";
+
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000/api";
+
+/**
+ * The backend could not be reached at all (not running, wrong port, no
+ * network). Told apart from an HTTP error by its class, not its message, so
+ * rewording the message can never break the checks that depend on it.
+ */
+export class ApiNetworkError extends Error {
+  constructor(cause) {
+    super("Can't reach the backend. Check that the server is running, then try again.", {
+      cause,
+    });
+    this.name = "ApiNetworkError";
+    this.isNetworkError = true;
+  }
+}
+
+/**
+ * fetch() that reports whether the backend answered. Every request in this
+ * file goes through here, so the connection banner is always up to date.
+ */
+async function _fetch(url, init) {
+  let response;
+  try {
+    response = await fetch(url, init);
+  } catch (networkErr) {
+    markOffline();
+    throw new ApiNetworkError(networkErr);
+  }
+  markOnline();
+  return response;
+}
+
+/** Asks the backend whether it is up. Used by the banner's "Try again". */
+export async function pingBackend() {
+  try {
+    await _fetch(API_BASE, { method: "GET" });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Returns the current user's role from localStorage.
@@ -64,15 +107,7 @@ async function _apiFetch(path, options = {}) {
     if (headers[key] === undefined) delete headers[key];
   });
 
-  let response;
-  try {
-    response = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  } catch (networkErr) {
-    throw new Error(
-      "We could not reach the server. Check your connection and try again.",
-      { cause: networkErr },
-    );
-  }
+  const response = await _fetch(`${API_BASE}${path}`, { ...options, headers });
 
   // Parse body whether success or error
   const body = await response.json().catch(() => ({}));
@@ -139,7 +174,7 @@ async function _apiFetchBlobUrl(path) {
     "x-role": _getRole(),
     ...(orgId ? { "x-org-id": orgId } : {}),
   };
-  const response = await fetch(`${API_BASE}${path}`, { headers });
+  const response = await _fetch(`${API_BASE}${path}`, { headers });
   if (!response.ok) {
     throw new Error(`Could not load file (HTTP ${response.status})`);
   }
@@ -167,7 +202,7 @@ const api = {
  * Checks whether an error is due to network failure / unreachable backend.
  */
 export function isNetworkError(error) {
-  return String(error?.message || "").startsWith("Cannot reach server");
+  return Boolean(error?.isNetworkError);
 }
 
 export default api;

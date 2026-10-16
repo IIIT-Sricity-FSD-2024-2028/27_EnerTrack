@@ -85,8 +85,8 @@ export default function TechnicianOverview() {
         setLoading(false);
       })
       .catch((err) => {
-        // client.js already turns a dead backend into
-        // "Cannot reach server. Is the backend running on port 3000?"
+        // client.js already turns a dead backend into a plain
+        // "Can't reach the backend" message
         setError(err.message);
         setLoading(false);
       });
