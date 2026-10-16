@@ -121,6 +121,16 @@
   animation: faSlideUp 0.2s ease;
   user-select: text;
 }
+.fa-modal.wide {
+  width: 900px;
+}
+.fa-pdf-frame {
+  width: 100%;
+  height: 70vh;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
 .fa-modal-title {
   font-size: 17px;
   font-weight: 700;

@@ -122,7 +122,7 @@ export default function InvoiceFormModal({ invoice, departments, existingNumbers
       {isEdit ? (
         <FormField label="Status">
           <select name="status" value={form.status} onChange={handleChange}>
-            {["pending", "approved", "overdue"].map((s) => (
+            {["pending", "paid", "overdue"].map((s) => (
               <option key={s} value={s}>{capitalize(s)}</option>
             ))}
           </select>
