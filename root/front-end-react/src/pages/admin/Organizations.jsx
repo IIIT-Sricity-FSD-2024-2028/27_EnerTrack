@@ -27,18 +27,25 @@ const STATUSES = ["prospect", "audited", "active", "churned"];
 export default function Organizations() {
   const [organizations, setOrganizations] = useState([]);
   const [campuses, setCampuses] = useState([]);
+  const [users, setUsers] = useState([]); // only to count each org's users
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
   const [search, setSearch] = useState("");
   // The open popup: null, or { type: "add" | "edit" | "delete", org }
   const [modal, setModal] = useState(null);
 
-  // Load the organisations, and the campuses to count per organisation
+  // Load the organisations, plus the campuses and users to count per
+  // organisation (the users only for the delete warning)
   useEffect(() => {
-    Promise.all([api.get("/organizations"), api.get("/campus")])
-      .then(([orgList, campusList]) => {
+    Promise.all([
+      api.get("/organizations"),
+      api.get("/campus"),
+      api.get("/users").catch(() => []),
+    ])
+      .then(([orgList, campusList, userList]) => {
         setOrganizations(Array.isArray(orgList) ? orgList : []);
         setCampuses(Array.isArray(campusList) ? campusList : []);
+        setUsers(Array.isArray(userList) ? userList : []);
       })
       .catch(() => {
         addToast(setToasts, "Failed to load data from backend.", "error");
@@ -81,6 +88,9 @@ export default function Organizations() {
     try {
       await api.delete("/organizations/" + org.organization_id);
       await reloadOrganizations();
+      // The backend deleted the organisation's users with it
+      const userList = await api.get("/users").catch(() => users);
+      setUsers(Array.isArray(userList) ? userList : users);
       addToast(setToasts, "Organisation deleted.", "success");
     } catch (err) {
       // e.g. the backend refuses while the organisation still owns campuses
@@ -271,12 +281,31 @@ export default function Organizations() {
           <p>
             Delete <strong>{modal.org.name}</strong>?
           </p>
+          <DeleteWarning
+            count={
+              users.filter(
+                (u) => u.organization_id === modal.org.organization_id,
+              ).length
+            }
+          />
           <p className="muted-cell">
             An organisation that still owns campuses cannot be deleted.
           </p>
         </Modal>
       )}
     </AdminPage>
+  );
+}
+
+/* ── How many user accounts a delete will also remove ── */
+
+function DeleteWarning({ count }) {
+  if (count === 0) return null;
+  const accounts = count === 1 ? "1 user account" : `${count} user accounts`;
+  return (
+    <p style={{ color: "var(--red)", fontWeight: 600 }}>
+      This also permanently deletes its {accounts}.
+    </p>
   );
 }
 
@@ -291,7 +320,6 @@ function OrgFormModal({ org, onSave, onClose }) {
     status: org?.status || "prospect",
     floor_area_sqm: org?.floor_area_sqm ?? "",
     tariff_rate: org?.tariff_rate ?? "",
-    contract_start: org?.contract_start || "",
     email_domain: org?.email_domain || "",
   });
   const [errors, setErrors] = useState({});
@@ -328,7 +356,8 @@ function OrgFormModal({ org, onSave, onClose }) {
       tariff !== "" &&
       !(PATTERNS.area.test(tariff) && Number(tariff) <= 1000)
     ) {
-      newErrors.tariff_rate = "Enter a number from 0 to 1000 (up to 2 decimals).";
+      newErrors.tariff_rate =
+        "Enter a number from 0 to 1000 (up to 2 decimals).";
     }
     const domainError = validators.emailDomain(domain);
     if (domainError) newErrors.email_domain = domainError;
@@ -347,7 +376,6 @@ function OrgFormModal({ org, onSave, onClose }) {
       status: isEdit ? form.status : "prospect",
       floor_area_sqm: area === "" ? null : Number(area),
       tariff_rate: tariff === "" ? null : Number(tariff),
-      contract_start: form.contract_start || null,
     });
   }
 
@@ -456,18 +484,6 @@ function OrgFormModal({ org, onSave, onClose }) {
             When set, every account the organisation's administrator creates
             must use this domain.
           </p>
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="orgContract">Contract start</label>
-          <input
-            id="orgContract"
-            name="contract_start"
-            type="date"
-            value={form.contract_start}
-            onChange={handleChange}
-          />
-          <span className="field-error">{errors.contract_start}</span>
         </div>
       </form>
     </Modal>

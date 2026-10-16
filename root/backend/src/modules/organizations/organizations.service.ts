@@ -203,6 +203,15 @@ export class OrganizationsService {
         `Cannot delete organization ${id}: it still owns ${campusCount} campus record(s)`,
       );
 
+    // Its user accounts go with it: an account cannot belong to an
+    // organisation that no longer exists (it would be left orphaned, still
+    // listed and still able to sign in). Removed in place, from the end, so
+    // the shared users array keeps its identity.
+    for (let i = this.database.users.length - 1; i >= 0; i--) {
+      if (this.database.users[i].organization_id === id)
+        this.database.users.splice(i, 1);
+    }
+
     const removed = this.database.organizations.splice(index, 1);
     return removed[0];
   }
