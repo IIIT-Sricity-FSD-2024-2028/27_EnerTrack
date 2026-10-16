@@ -13,7 +13,13 @@ import { useEffect, useState } from "react";
 import api from "../../api/client";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
-import { addToast, formatCurrency, formatLabel } from "./adminHelpers";
+import SearchBox from "./SearchBox";
+import {
+  addToast,
+  formatCurrency,
+  formatLabel,
+  matchesSearch,
+} from "./adminHelpers";
 import { PATTERNS, validators } from "../auth/validators";
 
 const STATUSES = ["prospect", "audited", "active", "churned"];
@@ -23,6 +29,7 @@ export default function Organizations() {
   const [campuses, setCampuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
+  const [search, setSearch] = useState("");
   // The open popup: null, or { type: "add" | "edit" | "delete", org }
   const [modal, setModal] = useState(null);
 
@@ -85,6 +92,18 @@ export default function Organizations() {
     }
   }
 
+  // The organisations that match the search box
+  const visible = organizations.filter((org) =>
+    matchesSearch(search, [
+      org.name,
+      org.type,
+      org.location,
+      org.status,
+      org.email_domain,
+      org.organization_id,
+    ]),
+  );
+
   return (
     <AdminPage
       subtitle="Client organisations. Each one is a separate tenant with its own isolated data."
@@ -110,6 +129,38 @@ export default function Organizations() {
           </button>
         </div>
 
+        <div
+          className="table-card"
+          style={{
+            padding: "16px 20px",
+            marginBottom: "16px",
+            display: "flex",
+            gap: "16px",
+            alignItems: "flex-end",
+            flexWrap: "wrap",
+          }}
+        >
+          <SearchBox
+            id="orgSearch"
+            label="Search"
+            value={search}
+            onChange={setSearch}
+            placeholder="Name, type, location, status or email domain"
+          />
+          {search && (
+            <button
+              className="btn-outline"
+              type="button"
+              onClick={() => setSearch("")}
+            >
+              Clear search
+            </button>
+          )}
+          <span className="muted-cell" style={{ marginLeft: "auto" }}>
+            Showing {visible.length} of {organizations.length}
+          </span>
+        </div>
+
         <div className="table-card">
           <div className="table-scroll">
             <table>
@@ -126,14 +177,18 @@ export default function Organizations() {
                 </tr>
               </thead>
               <tbody>
-                {organizations.length === 0 ? (
+                {visible.length === 0 ? (
                   <tr>
                     <td colSpan="8">
-                      <div className="empty-state">No organisations found.</div>
+                      <div className="empty-state">
+                        {search
+                          ? "No organisations match your search."
+                          : "No organisations found."}
+                      </div>
                     </td>
                   </tr>
                 ) : (
-                  organizations.map((org) => {
+                  visible.map((org) => {
                     const status = org.status || "prospect";
                     // How many of the loaded campuses belong to this one
                     const campusCount = campuses.filter(

@@ -98,6 +98,12 @@ export default function App() {
             path={PATHS.admin.infrastructure}
             element={<AdminInfrastructure />}
           />
+          {/* The same page Finance uses: an Organization Admin pays the bill
+              too, so they need to see the plan without switching roles. */}
+          <Route
+            path={PATHS.admin.subscription}
+            element={<FinanceSubscription />}
+          />
         </Route>
       </Route>
 

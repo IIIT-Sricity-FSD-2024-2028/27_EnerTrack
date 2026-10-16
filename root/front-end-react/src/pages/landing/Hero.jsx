@@ -44,9 +44,11 @@ export default function Hero({ user }) {
             See how it works
           </a>
         </div>
-        <p className="hero-note">
-          Currently serving 2 client organisations across 3 campuses.
-        </p>
+        <ol className="hero-steps">
+          <li>Register your organisation. It takes a minute.</li>
+          <li>A certified auditor visits and reports where the savings are.</li>
+          <li>You get one proposal. Nothing is charged until you accept it.</li>
+        </ol>
       </div>
       <div className="hero-image">
         <img src="/assets/hero.png" alt="Modern Sustainable Campus" />

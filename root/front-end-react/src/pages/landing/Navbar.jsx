@@ -16,7 +16,7 @@ const NAV_LINKS = [
 // `scrolled` is true once the page has been scrolled; it adds the shadow.
 export default function Navbar({ user, onSignOut, scrolled }) {
   return (
-    <nav className={scrolled ? "navbar scrolled" : "navbar"}>
+    <nav className={scrolled ? "navbar scrolled" : "navbar"} aria-label="Main">
       <div className="nav-inner">
         <div className="left-nav">
           <a href="#hero" className="logo">

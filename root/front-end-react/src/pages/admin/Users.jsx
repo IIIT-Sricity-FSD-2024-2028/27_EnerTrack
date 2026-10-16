@@ -23,7 +23,13 @@ import Modal from "./Modal";
 import UserFormModal from "./UserFormModal";
 import BulkImportModal from "./BulkImportModal";
 import CredentialsModal from "./CredentialsModal";
-import { addToast, formatLabel, USER_ROLES } from "./adminHelpers";
+import SearchBox from "./SearchBox";
+import {
+  addToast,
+  formatLabel,
+  matchesSearch,
+  USER_ROLES,
+} from "./adminHelpers";
 
 // The filter choices are remembered in the browser between visits
 const FILTERS_KEY = "admin_userFilters";
@@ -91,6 +97,9 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
   const [filters, setFilters] = useState(loadFilters);
+  // What is typed in the search box. Not remembered between visits, unlike
+  // the filters: an old search would make the table look empty on return.
+  const [search, setSearch] = useState("");
   // The open popup: null, or { type: "add" | "edit" | "delete" | "actAs" |
   // "import" | "credentials", user }
   const [modal, setModal] = useState(null);
@@ -199,8 +208,17 @@ export default function Users() {
     }
   }
 
-  const rows = filterAndSort(users, filters, organizations);
-  const filtersActive = filters.organization_id || filters.role;
+  const rows = filterAndSort(users, filters, organizations).filter((u) =>
+    matchesSearch(search, [
+      u.name,
+      u.email,
+      u.phone,
+      u.role,
+      u.specialization,
+      orgName(u.organization_id, organizations),
+    ]),
+  );
+  const filtersActive = filters.organization_id || filters.role || search;
 
   return (
     <AdminPage
@@ -252,6 +270,14 @@ export default function Users() {
             flexWrap: "wrap",
           }}
         >
+          <SearchBox
+            id="userSearch"
+            label="Search"
+            value={search}
+            onChange={setSearch}
+            placeholder="Name, email, phone, role or organisation"
+          />
+
           {isSuperAdmin && (
             <div
               className="form-field"
@@ -316,9 +342,10 @@ export default function Users() {
             <button
               className="btn-outline"
               type="button"
-              onClick={() =>
-                setFilters({ ...DEFAULT_FILTERS, sort: filters.sort })
-              }
+              onClick={() => {
+                setFilters({ ...DEFAULT_FILTERS, sort: filters.sort });
+                setSearch("");
+              }}
             >
               Clear filters
             </button>

@@ -1,6 +1,7 @@
 /**
  * DashboardLayout — the frame around every signed-in page:
- * sidebar on the left, a small user bar on top, the page itself below.
+ * sidebar on the left (links on top, the signed-in person's card and Sign
+ * Out at the bottom), and the page itself on the right.
  *
  * The page arrives through <Outlet />, which is a placeholder meaning
  * "render whichever child route matched here". Because this component stays
@@ -43,8 +44,32 @@ export default function DashboardLayout() {
 
   return (
     <div className="dashboard-layout">
-      {/* Sidebar only needs to be told WHICH links to show. */}
-      <Sidebar area={areaForRole(role)} role={role} title="Navigation" />
+      {/* Sidebar is told WHICH links to show and what to put at its foot. */}
+      <Sidebar
+        area={areaForRole(role)}
+        role={role}
+        title="Navigation"
+        footer={
+          <div className="dashboard-layout__profile">
+            <div className="dashboard-layout__who">
+              <span className="dashboard-layout__avatar" aria-hidden="true">
+                {(user?.name || "?").trim().charAt(0).toUpperCase()}
+              </span>
+              <div className="dashboard-layout__who-text">
+                <strong title={user?.name}>{user?.name}</strong>
+                <span>{role}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="dashboard-layout__signout"
+              onClick={handleSignOut}
+            >
+              Sign Out
+            </button>
+          </div>
+        }
+      />
 
       <div className="dashboard-layout__body">
         {/* Only drawn while a Super Admin is acting as someone else. */}
@@ -59,19 +84,6 @@ export default function DashboardLayout() {
             </button>
           </div>
         )}
-
-        <header className="dashboard-layout__bar">
-          <span>
-            {user?.name} · {role}
-          </span>
-          <button
-            type="button"
-            className="dashboard-layout__signout"
-            onClick={handleSignOut}
-          >
-            Sign Out
-          </button>
-        </header>
 
         <main className="dashboard-layout__main">
           <Outlet />
