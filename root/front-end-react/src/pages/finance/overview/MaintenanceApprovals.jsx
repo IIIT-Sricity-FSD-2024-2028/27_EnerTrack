@@ -1,10 +1,17 @@
 /**
  * MaintenanceApprovals — "Pending Maintenance Authorizations" box.
  *
- * Three kinds of item wait for the Financial Analyst:
- *   1. Service requests whose cost estimate needs approval
- *   2. Internal work orders in "approval" status
- *   3. Finished, verified jobs waiting for payment authorization
+ * Lists the work orders in "approval" status: a technician sent a cost
+ * estimate and work cannot start until the Financial Analyst signs it off.
+ *
+ *   Approve → inprogress: the assigned technician can start the work
+ *   Reject  → new, same technician: they see "Rejected" and can send a
+ *             revised estimate (the estimate stays in details so they can
+ *             see what was turned down)
+ *
+ * The old page also listed service requests in "Awaiting Estimate Approval"
+ * and "Validated (Awaiting Payment)". Nothing sets either status any more —
+ * the estimate travels on the work order — so those rows were dropped.
  *
  * The component loads its own data with useEffect and reloads it after
  * every approve / reject, like renderFinanceWorkflow() did.
@@ -23,19 +30,10 @@ function formatWOId(id) {
   return "WO-" + id.substring(0, 4).toUpperCase();
 }
 
-/** Loads service requests and the work orders waiting for approval. */
+/** Loads the work orders waiting for approval. */
 async function fetchApprovalItems() {
-  const [srs, wos] = await Promise.all([api.get("/service-requests"), api.get("/work-orders")]);
-  return {
-    // The backend's key is service_request_id (the original page read sr.id,
-    // which was undefined, so its buttons PATCHed /service-requests/undefined).
-    serviceRequests: (Array.isArray(srs) ? srs : []).map((sr) => ({
-      ...sr,
-      id: sr.service_request_id || sr.id,
-      location: sr.location || sr.issue_type,
-    })),
-    workOrders: Array.isArray(wos) ? wos.filter((w) => w.status === "approval") : [],
-  };
+  const wos = await api.get("/work-orders");
+  return Array.isArray(wos) ? wos.filter((w) => w.status === "approval") : [];
 }
 
 /** One approval row. The parent decides what the buttons do. */
@@ -81,18 +79,17 @@ function EstimateActions({ busy, onApprove, onReject }) {
 }
 
 const ESTIMATE = { label: "Estimate to approve", tone: "action" };
-const PAYMENT = { label: "Payment to authorize", tone: "ready" };
 
 export default function MaintenanceApprovals() {
   const showToast = useToast();
-  const [items, setItems] = useState({ serviceRequests: [], workOrders: [] });
+  const [workOrders, setWorkOrders] = useState([]);
   const [busyId, setBusyId] = useState(null);
   // Bumping this number re-runs the effect below, i.e. reloads the list.
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     fetchApprovalItems()
-      .then(setItems)
+      .then(setWorkOrders)
       .catch((error) => console.error("API error fetching workflow items", error));
   }, [reloadKey]);
 
@@ -109,13 +106,7 @@ export default function MaintenanceApprovals() {
     setBusyId(null);
   }
 
-  const { serviceRequests, workOrders } = items;
-  const pendingEstimates = serviceRequests.filter((sr) => sr.status === "Awaiting Estimate Approval");
-  const validatedJobs = serviceRequests.filter((sr) => sr.status === "Validated (Awaiting Payment)");
-  const nothingPending =
-    pendingEstimates.length === 0 && validatedJobs.length === 0 && workOrders.length === 0;
-
-  const count = pendingEstimates.length + workOrders.length + validatedJobs.length;
+  const count = workOrders.length;
   const est = (e) => e || { materials: 0, labor: 0, total: 0 };
 
   return (
@@ -123,49 +114,23 @@ export default function MaintenanceApprovals() {
       <div className="fo-panel-head">
         <div>
           <h2 id="approvalsTitle">Maintenance approvals</h2>
-          <p>Cost estimates waiting for sign-off, and finished jobs waiting for payment.</p>
+          <p>Cost estimates from technicians waiting for sign-off.</p>
         </div>
         <span className={count ? "fo-count has-items" : "fo-count"}>{count} pending</span>
       </div>
 
-      {nothingPending && <div className="fo-empty">Nothing to approve. New estimates from technicians will appear here.</div>}
-
-      {pendingEstimates.map((sr) => {
-        const e = est(sr.costProposal);
-        return (
-          <ApprovalRow
-            key={sr.id}
-            title={`${sr.location} - ${sr.category}`}
-            typeLabel={sr.costProposal?.type || "Service request"}
-            kind={ESTIMATE}
-            figures={[["Materials", e.materials], ["Labour", e.labor]]}
-            totalLabel="Total estimate"
-            total={e.total}
-            actions={
-              <EstimateActions
-                busy={busyId === sr.id}
-                onApprove={() =>
-                  update("/service-requests", sr.id, { status: "Approved (Executing)" },
-                    "Estimate approved. Technician can proceed.", "success")
-                }
-                onReject={() =>
-                  update("/service-requests", sr.id, { status: "Accepted" },
-                    "Estimate rejected. Sent back to technician.", "warning")
-                }
-              />
-            }
-          />
-        );
-      })}
+      {count === 0 && <div className="fo-empty">Nothing to approve. New estimates from technicians will appear here.</div>}
 
       {workOrders.map((wo) => {
         const woId = wo.work_order_id || wo.id || "";
-        const e = est(wo.estimate || wo.details?.estimate);
+        const e = est(wo.details?.estimate);
+        // The type lives in details, like every other extra field.
+        const type = wo.details?.type;
         return (
           <ApprovalRow
             key={woId}
             title={`${formatWOId(woId)} - ${wo.title}`}
-            typeLabel={wo.type ? wo.type.charAt(0).toUpperCase() + wo.type.slice(1) : "Maintenance"}
+            typeLabel={type ? type.charAt(0).toUpperCase() + type.slice(1) : "Maintenance"}
             kind={ESTIMATE}
             figures={[["Materials", e.materials], ["Labour", e.labor]]}
             totalLabel="Total estimate"
@@ -177,40 +142,18 @@ export default function MaintenanceApprovals() {
                   update("/work-orders", woId, { status: "inprogress" },
                     "Internal Work Order estimate approved.", "success")
                 }
+                // Keeps the technician: they revise the estimate. Clearing
+                // assigned_to_id took the order off their board and hid the
+                // "estimate rejected" step on both technician pages.
                 onReject={() =>
-                  update("/work-orders", woId, { status: "new", assigned_to_id: null },
-                    "Internal Work Order estimate rejected. Tech notified.", "warning")
+                  update("/work-orders", woId, { status: "new" },
+                    "Estimate rejected. Sent back to the technician to revise.", "warning")
                 }
               />
             }
           />
         );
       })}
-
-      {validatedJobs.map((sr) => (
-        <ApprovalRow
-          key={sr.id}
-          title={`${sr.location} - ${sr.category}`}
-          typeLabel="Job complete and verified"
-          kind={PAYMENT}
-          figures={[]}
-          totalLabel="Final invoice"
-          total={sr.costProposal ? sr.costProposal.total : null}
-          actions={
-            <button
-              type="button"
-              className="fo-btn positive"
-              disabled={busyId === sr.id}
-              onClick={() =>
-                update("/service-requests", sr.id, { status: "Closed" },
-                  "Payment authorized. Job closed successfully.", "success")
-              }
-            >
-              Authorize payment and close job
-            </button>
-          }
-        />
-      ))}
     </section>
   );
 }

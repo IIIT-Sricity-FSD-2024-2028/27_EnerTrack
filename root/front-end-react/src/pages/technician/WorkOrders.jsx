@@ -282,6 +282,9 @@ export default function TechnicianWorkOrders() {
   } else {
     const id = selected.work_order_id;
     const busy = busyId === id;
+    // An order assigned to someone else is theirs to run until Review; the
+    // admin only watches. See OperationalCheck for the same rule.
+    const mine = selected.assigned_to_id === user?.user_id;
 
     detail = (
       <div className="card">
@@ -293,6 +296,7 @@ export default function TechnicianWorkOrders() {
             key={"cost-" + id}
             wo={selected}
             busy={busy}
+            canEdit={mine}
             onSubmit={(materials, labor) =>
               submitEstimate(selected, materials, labor)
             }

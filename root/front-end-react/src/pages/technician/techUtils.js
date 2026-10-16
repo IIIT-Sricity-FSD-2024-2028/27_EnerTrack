@@ -166,14 +166,26 @@ export function assignableUsers(users) {
 /**
  * Where a work order's cost estimate stands, for the board cards.
  * The estimate and the "is one needed" flag both live inside wo.details.
+ * An estimate that was actually sent wins over the flag: an order created
+ * as "not required" can still get one later from the Cost Estimate card.
+ *
+ * Where a sent estimate stands follows from the status, the same rules as
+ * CostEstimateCard: Approval = waiting for Finance, back in New = Finance
+ * rejected it, anything later = Finance approved it.
  */
 export function estimateLabel(wo) {
   const details = wo.details || {};
+  if (details.estimate) {
+    if (wo.status === "approval") {
+      return "Pending approval";
+    }
+    if (wo.status === "new") {
+      return "Rejected";
+    }
+    return "Approved";
+  }
   if (!details.estimateRequired) {
     return "Not required";
-  }
-  if (details.estimate) {
-    return "Submitted";
   }
   return "Needed";
 }

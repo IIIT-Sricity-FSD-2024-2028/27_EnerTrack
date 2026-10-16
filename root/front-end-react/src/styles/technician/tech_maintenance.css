@@ -261,12 +261,21 @@
   margin-top: 12px;
 }
 
-.sub-card {
-  margin-top: 12px !important;
+/* The two repair options. Same box for both, no outer margin (the grid gap
+   spaces them), and the button pushed to the bottom so the two line up even
+   when one description wraps onto more lines than the other. */
+.repair-selector .repair-option {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.sub-card .btn {
-  margin-top: 8px;
+.repair-selector .repair-option .note-small {
+  margin-bottom: 12px;
+}
+
+.repair-selector .repair-option .btn {
+  margin-top: auto;
 }
 
 .result-box {

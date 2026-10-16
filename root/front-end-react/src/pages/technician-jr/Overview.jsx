@@ -156,7 +156,7 @@ export default function TechnicianJrOverview() {
           {topSix.map((wo) => (
             <Link
               key={wo.work_order_id}
-              to={PATHS.technicianJr.workOrders}
+              to={`${PATHS.technicianJr.workOrders}?wo=${wo.work_order_id}`}
               className="up-next-item"
             >
               <span className="up-next-id">

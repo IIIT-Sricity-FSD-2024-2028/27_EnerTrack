@@ -132,54 +132,27 @@
   flex-shrink: 0;
 }
 
-.action-boxes {
+/* "What did you find?" — three .option cards (tech_shared.css), one picked. */
+.decision-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.action-box {
-  border: 1px solid var(--border);
-  border-top-width: 3px;
-  border-radius: var(--radius);
-  padding: 20px;
-  background: var(--card);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: border-color 0.15s;
-}
-.action-box:hover {
-  border-color: #9ca3af;
-}
-
-.action-box.emergency-box {
-  border-top-color: var(--red);
-}
-
-.action-box.routine-box {
-  border-top-color: var(--green);
-}
-
-.action-box h4 {
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: var(--dark);
-}
-.action-box p {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 20px;
-  line-height: 1.55;
-  flex: 1;
+/* They are <button>s for the keyboard; undo the button defaults. */
+.decision-option {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
 }
 
 .footer-action {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   padding-top: 20px;
   border-top: 1px solid var(--border);
   margin-top: 4px;
@@ -198,7 +171,7 @@
   .full-width {
     grid-column: span 1;
   }
-  .action-boxes {
+  .decision-options {
     grid-template-columns: 1fr;
   }
 }

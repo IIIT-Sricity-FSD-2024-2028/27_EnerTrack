@@ -1,18 +1,29 @@
 /**
  * OperationalCheck — the Technician Administrator's action panel for the
  * selected work order. It only offers the action that belongs to the
- * order's current stage:
+ * order's current stage, and only to the person who holds the order.
  *
- *   new, nobody assigned         → re-assign it (a junior or Finance
- *                                  rejected it)
- *   new, estimate was rejected   → "submit a revised estimate"
- *   new, estimate still needed   → "submit a cost estimate first"
- *   new, assigned to you         → Start Work (→ inprogress)
- *   new, assigned to someone else→ waiting for them to accept
- *   approval                     → waiting for the Financial Analyst
- *   inprogress                   → resolution notes + Submit for Review
- *   review                       → the notes + Close & Archive
- *   closed                       → the notes
+ * Whoever an order is assigned to runs it until Review: the estimate, the
+ * work and the notes are theirs. For an order assigned to someone else the
+ * admin sees where it is in the flow but has nothing to press, until it
+ * comes back to them — unassigned (to re-assign) or in Review (to close).
+ *
+ *   new, nobody assigned           → re-assign it (the junior rejected it)
+ *   review                         → the notes + Close & Archive
+ *   closed                         → the notes
+ *   approval                       → waiting for the Financial Analyst
+ *
+ *   assigned to you:
+ *     new, estimate was rejected   → "submit a revised estimate"
+ *     new, estimate still needed   → "submit a cost estimate first"
+ *     new                          → Start Work (→ inprogress)
+ *     inprogress                   → resolution notes + Submit for Review
+ *
+ *   assigned to someone else (read-only):
+ *     new, estimate was rejected   → waiting for their revised estimate
+ *     new, estimate still needed   → waiting for their estimate
+ *     new                          → waiting for them to accept
+ *     inprogress                   → they are working on it
  *
  * The old page offered Submit for Review and Close at every stage, so an
  * order could skip the estimate, the approval and the work itself.
@@ -43,6 +54,8 @@ export default function OperationalCheck({
   // Back in New but still holding an estimate = Finance rejected it (an
   // approved estimate moves the order on to In Progress instead).
   const estimateRejected = wo.status === "new" && details.estimate;
+  const mine = wo.assigned_to_id === currentUserId;
+  const assignee = userName(users, wo.assigned_to_id);
 
   async function handleReassign() {
     const ok = await onReassign(reassignId);
@@ -85,21 +98,41 @@ export default function OperationalCheck({
         </button>
       </div>
     );
-  } else if (wo.status === "new" && estimateRejected) {
+  } else if (wo.status === "approval") {
+    body = (
+      <p className="callout stage-note">
+        Waiting for the Financial Analyst to approve the cost estimate.
+      </p>
+    );
+  } else if (wo.status === "new" && estimateRejected && mine) {
     body = (
       <p className="callout callout--danger stage-note">
         The Financial Analyst rejected the last cost estimate. Submit a revised
         one with the Cost Estimate form; work starts once it is approved.
       </p>
     );
+  } else if (wo.status === "new" && estimateRejected) {
+    body = (
+      <p className="callout callout--danger stage-note">
+        The Financial Analyst rejected {assignee}&apos;s cost estimate. Waiting
+        for them to send a revised one.
+      </p>
+    );
+  } else if (wo.status === "new" && estimateMissing && mine) {
+    body = (
+      <p className="callout callout--warning stage-note">
+        This work order needs a cost estimate first. Use the Cost Estimate form;
+        work starts once the Financial Analyst approves it.
+      </p>
+    );
   } else if (wo.status === "new" && estimateMissing) {
     body = (
       <p className="callout callout--warning stage-note">
-        This work order needs a cost estimate first. Use the Cost Estimate
-        form; work starts once the Financial Analyst approves it.
+        Waiting for {assignee} to send a cost estimate. Work starts once the
+        Financial Analyst approves it.
       </p>
     );
-  } else if (wo.status === "new" && wo.assigned_to_id === currentUserId) {
+  } else if (wo.status === "new" && mine) {
     body = (
       <div>
         <p className="sub mb-10">This work order is assigned to you.</p>
@@ -116,14 +149,14 @@ export default function OperationalCheck({
   } else if (wo.status === "new") {
     body = (
       <p className="callout stage-note">
-        Waiting for {userName(users, wo.assigned_to_id)} to accept this work
-        order.
+        Waiting for {assignee} to accept this work order.
       </p>
     );
-  } else if (wo.status === "approval") {
+  } else if (wo.status === "inprogress" && !mine) {
     body = (
       <p className="callout stage-note">
-        Waiting for the Financial Analyst to approve the cost estimate.
+        {assignee} is working on this. You can check and close it once they
+        submit it for review.
       </p>
     );
   } else if (wo.status === "inprogress") {
