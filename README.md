@@ -676,7 +676,6 @@ Figma Designs/         UI mockups per role
 | `root/backend/MIDDLEWARE.md` | Middleware reference, log files, verification steps |
 | `root/front-end-react/CONTRIBUTING.md` | How the React port is organised |
 | `root/front-end/FROZEN.md` | Why the vanilla front end is frozen |
-| `PROJECT_OVERVIEW.md` | Architecture analysis written earlier (some parts predate the React port and signed tokens) |
 | `DomainExpertInteraction.md` | Notes from the domain expert interview |
 | `Database/dbschema.sql` | SQL schema |
 | `SRS.pdf` | Software requirements specification |
