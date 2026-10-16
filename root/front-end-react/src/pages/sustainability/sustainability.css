@@ -1,12 +1,41 @@
 /*
  * sustainability.css — layout fixes for sustainability pages inside DashboardLayout.
- * Overrides body overflow locks from legacy sust_*.css while the page is mounted.
+ * Ensures the sidebar extends down the entire page height without being cut off.
  */
 
 html,
-body {
+body,
+#root {
+  min-height: 100vh !important;
   height: auto !important;
+  overflow-x: hidden;
+}
+
+/* Ensure the layout frame stretches and the sidebar column background extends all the way down */
+.dashboard-layout {
+  min-height: 100vh !important;
+  display: flex !important;
+  background-color: #b8cdb7 !important; /* Sidebar pastel green covers the left column all the way to the bottom */
+}
+
+.dashboard-layout__body {
+  flex: 1 !important;
+  min-width: 0 !important;
+  min-height: 100vh !important;
+  background-color: #ffffff !important; /* Main content area remains clean white */
+}
+
+/* Keep the sidebar pinned to the viewport on the left at all times */
+.app-sidebar {
+  position: sticky !important;
+  top: 0 !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  align-self: flex-start !important;
   overflow-y: auto !important;
+  background-color: #b8cdb7 !important;
+  border-right: 1px solid rgba(28, 46, 46, 0.16) !important;
+  z-index: 10 !important;
 }
 
 .sustainability-overview-page,

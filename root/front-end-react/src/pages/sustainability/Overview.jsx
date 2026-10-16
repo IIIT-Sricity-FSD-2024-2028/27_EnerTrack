@@ -102,6 +102,41 @@ export default function SustainabilityOverview() {
     loadData();
   };
 
+  const [processingId, setProcessingId] = useState(null);
+
+  const handleWastageAction = async (reportId, action) => {
+    const isAccept = action === "accept";
+    const newStatus = isAccept ? "investigating" : "Dismissed";
+    setProcessingId(reportId);
+    try {
+      await api.patch(`/wastage-reports/${reportId}`, {
+        status: newStatus,
+        details: {
+          auditDecision: isAccept ? "Accepted / Forwarded for investigation" : "Dismissed by Sustainability Officer",
+          auditedAt: new Date().toISOString(),
+          archived: !isAccept,
+          soArchived: !isAccept,
+          dismissedAt: !isAccept ? new Date().toISOString() : undefined,
+        },
+      });
+
+      setWastageReports((prev) =>
+        prev.filter((r) => (r.wastage_report_id || r.id) !== reportId),
+      );
+
+      showToast(
+        isAccept
+          ? "Wastage observation accepted and forwarded for investigation."
+          : "Wastage observation dismissed and moved to archives.",
+        "success",
+      );
+    } catch (err) {
+      showToast(err.message || "Failed to update wastage report", "error");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const displayName = user?.name || "Sustainability Officer";
 
   // Real totals and units from summary endpoint
@@ -224,12 +259,12 @@ export default function SustainabilityOverview() {
         </div>
       )}
 
-      {/* TOP METRICS (5 Cards) */}
+      {/* TOP METRICS (5 Cards side-by-side in order) */}
       <section
         className="top-metrics-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
           gap: "16px",
           marginBottom: "28px",
         }}
@@ -524,19 +559,66 @@ export default function SustainabilityOverview() {
                       </span>
                     </div>
 
-                    <span
-                      style={{
-                        background: "#fef3c7",
-                        color: "#92400e",
-                        padding: "4px 10px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        flexShrink: 0,
-                      }}
-                    >
-                      Pending Review
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                      <span
+                        style={{
+                          background: "#fef3c7",
+                          color: "#92400e",
+                          padding: "5px 10px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                        }}
+                      >
+                        Pending Review
+                      </span>
+                      <button
+                        type="button"
+                        disabled={processingId === reportId}
+                        onClick={() => handleWastageAction(reportId, "accept")}
+                        aria-label={`Accept wastage report ${reportId}`}
+                        style={{
+                          background: "#059669",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: "6px",
+                          padding: "6px 14px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          cursor: processingId === reportId ? "default" : "pointer",
+                          opacity: processingId === reportId ? 0.6 : 1,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          transition: "background 0.15s ease",
+                        }}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        disabled={processingId === reportId}
+                        onClick={() => handleWastageAction(reportId, "reject")}
+                        aria-label={`Reject wastage report ${reportId}`}
+                        style={{
+                          background: "#ffffff",
+                          color: "#dc2626",
+                          border: "1px solid #fca5a5",
+                          borderRadius: "6px",
+                          padding: "5px 14px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          cursor: processingId === reportId ? "default" : "pointer",
+                          opacity: processingId === reportId ? 0.6 : 1,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          transition: "background 0.15s ease",
+                        }}
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </div>
                 );
               })}
