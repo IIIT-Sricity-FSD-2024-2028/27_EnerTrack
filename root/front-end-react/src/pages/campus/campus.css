@@ -688,3 +688,10 @@ body {
 .trail-label strong {
   color: #111827;
 }
+
+/* Greyed out while a report is being sent (Report an Issue and Report Wastage) */
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
