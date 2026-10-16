@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import api from "../../api/client";
+import api, { isNetworkError } from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 import initiativesCss from "../../styles/sustainability_officer/sust_initiatives.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
@@ -168,36 +168,67 @@ export default function SustainabilityInitiatives() {
   }, []);
 
   // Toggle onTrack / offtrack
-  const handleToggleTrack = (id, isOn) => {
+  const handleToggleTrack = async (id, isOn) => {
+    const prevInit = initiatives.find((i) => (i.initiative_id || i.id) === id);
     setInitiatives((prev) =>
       prev.map((i) =>
         (i.initiative_id || i.id) === id ? { ...i, onTrack: isOn } : i,
       ),
     );
 
-    api.patch(`/initiatives/${id}`, { onTrack: isOn }).catch((err) => {
-      console.warn("[Initiatives] Track patch failed:", err);
-    });
-
-    showToast(
-      isOn ? "Marked 'On Track'" : "Marked 'Off Track'",
-      isOn ? "success" : "warning",
-    );
+    try {
+      await api.patch(`/initiatives/${id}`, { onTrack: isOn });
+      showToast(
+        isOn ? "Marked 'On Track'" : "Marked 'Off Track'",
+        isOn ? "success" : "warning",
+      );
+    } catch (err) {
+      if (isNetworkError(err)) {
+        console.warn("[Initiatives] Track patch offline:", err);
+        showToast(
+          isOn ? "Marked 'On Track' (offline)" : "Marked 'Off Track' (offline)",
+          isOn ? "success" : "warning",
+        );
+      } else {
+        if (prevInit) {
+          setInitiatives((prev) =>
+            prev.map((i) =>
+              (i.initiative_id || i.id) === id ? prevInit : i,
+            ),
+          );
+        }
+        showToast(err.message || "Failed to update track status", "error");
+      }
+    }
   };
 
   // State advancement
-  const handleMoveState = (id, nextState) => {
+  const handleMoveState = async (id, nextState) => {
+    const prevInit = initiatives.find((i) => (i.initiative_id || i.id) === id);
     setInitiatives((prev) =>
       prev.map((i) =>
         (i.initiative_id || i.id) === id ? { ...i, status: nextState } : i,
       ),
     );
 
-    api.patch(`/initiatives/${id}`, { status: nextState }).catch((err) => {
-      console.warn("[Initiatives] Status patch failed:", err);
-    });
-
-    showToast(`Moved to ${formatStatus(nextState)}`, "success");
+    try {
+      await api.patch(`/initiatives/${id}`, { status: nextState });
+      showToast(`Moved to ${formatStatus(nextState)}`, "success");
+    } catch (err) {
+      if (isNetworkError(err)) {
+        console.warn("[Initiatives] Status patch offline:", err);
+        showToast(`Moved to ${formatStatus(nextState)} (offline)`, "success");
+      } else {
+        if (prevInit) {
+          setInitiatives((prev) =>
+            prev.map((i) =>
+              (i.initiative_id || i.id) === id ? prevInit : i,
+            ),
+          );
+        }
+        showToast(err.message || "Failed to move initiative", "error");
+      }
+    }
   };
 
   // Propose new initiative from top bar
@@ -243,38 +274,56 @@ export default function SustainabilityInitiatives() {
           : { ...payload, initiative_id: `iiii-${Date.now()}` };
         setInitiatives((prev) => [created, ...prev]);
         showToast("Initiative proposed successfully!", "success");
+        // Reset inputs on success
+        setNewTitle("");
+        setNewDesc("");
+        setNewTarget("");
+        setNewCost("");
+        setNewTimeline("3 weeks");
       })
       .catch((err) => {
-        console.warn("[Initiatives] Propose error, saving locally:", err);
-        const fallback = { ...payload, initiative_id: `iiii-${Date.now()}` };
-        setInitiatives((prev) => [fallback, ...prev]);
-        showToast("Initiative proposed successfully!", "success");
+        if (isNetworkError(err)) {
+          console.warn("[Initiatives] Propose error, saving locally:", err);
+          const fallback = { ...payload, initiative_id: `iiii-${Date.now()}` };
+          setInitiatives((prev) => [fallback, ...prev]);
+          showToast("Server offline. Initiative saved locally.", "warning");
+          // Reset inputs when saved locally
+          setNewTitle("");
+          setNewDesc("");
+          setNewTarget("");
+          setNewCost("");
+          setNewTimeline("3 weeks");
+        } else {
+          console.error("[Initiatives] Propose failed:", err);
+          showToast(err.message || "Failed to propose initiative", "error");
+        }
       });
-
-    // Reset inputs
-    setNewTitle("");
-    setNewDesc("");
-    setNewTarget("");
-    setNewCost("");
-    setNewTimeline("3 weeks");
   };
 
   // Delete initiative
-  const handleDelete = (id) => {
-    setInitiatives((prev) =>
-      prev.filter((i) => (i.initiative_id || i.id) !== id),
-    );
-
-    api.delete(`/initiatives/${id}`).catch((err) => {
-      console.warn("[Initiatives] Delete failed:", err);
-    });
-
-    showToast("Initiative removed.", "success");
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/initiatives/${id}`);
+      setInitiatives((prev) =>
+        prev.filter((i) => (i.initiative_id || i.id) !== id),
+      );
+      showToast("Initiative removed.", "success");
+    } catch (err) {
+      if (isNetworkError(err)) {
+        console.warn("[Initiatives] Server offline, removing locally:", err);
+        setInitiatives((prev) =>
+          prev.filter((i) => (i.initiative_id || i.id) !== id),
+        );
+        showToast("Server offline. Removed locally.", "warning");
+      } else {
+        console.error("[Initiatives] Delete failed:", err);
+        showToast(err.message || "Failed to remove initiative", "error");
+      }
+    }
   };
 
-  // Archive completed initiative
-  const handleArchive = (init) => {
-    const id = init.initiative_id || init.id;
+  // Helper to save archived initiative to local universalDB / localStorage
+  const saveInitiativeArchiveLocal = (init, id) => {
     try {
       const raw = localStorage.getItem("enertrack_universal_v1");
       const data = raw ? JSON.parse(raw) : { sust: { initiativeArchives: [] } };
@@ -294,20 +343,35 @@ export default function SustainabilityInitiatives() {
     } catch (e) {
       console.warn("[Initiatives] Failed to archive locally:", e);
     }
+  };
 
-    setInitiatives((prev) =>
-      prev.filter((i) => (i.initiative_id || i.id) !== id),
-    );
-
-    api.delete(`/initiatives/${id}`).catch((err) => {
-      console.warn("[Initiatives] Server archive delete fallback:", err);
-    });
-
-    showToast("Initiative archived", "info");
+  // Archive completed initiative
+  const handleArchive = async (init) => {
+    const id = init.initiative_id || init.id;
+    try {
+      await api.delete(`/initiatives/${id}`);
+      saveInitiativeArchiveLocal(init, id);
+      setInitiatives((prev) =>
+        prev.filter((i) => (i.initiative_id || i.id) !== id),
+      );
+      showToast("Initiative archived", "info");
+    } catch (err) {
+      if (isNetworkError(err)) {
+        console.warn("[Initiatives] Server offline, archiving locally:", err);
+        saveInitiativeArchiveLocal(init, id);
+        setInitiatives((prev) =>
+          prev.filter((i) => (i.initiative_id || i.id) !== id),
+        );
+        showToast("Server offline. Archived locally.", "warning");
+      } else {
+        console.error("[Initiatives] Failed to archive initiative:", err);
+        showToast(err.message || "Failed to archive initiative", "error");
+      }
+    }
   };
 
   // Save changes from Edit Modal
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingInit) return;
     const title = editingInit.title?.trim();
     if (!title) {
@@ -324,16 +388,26 @@ export default function SustainabilityInitiatives() {
       feasible: editingInit.feasible,
     };
 
-    setInitiatives((prev) =>
-      prev.map((i) => ((i.initiative_id || i.id) === id ? { ...i, ...patch } : i)),
-    );
-
-    api.patch(`/initiatives/${id}`, patch).catch((err) => {
-      console.warn("[Initiatives] Edit patch failed:", err);
-    });
-
-    setEditingInit(null);
-    showToast("Initiative updated", "success");
+    try {
+      await api.patch(`/initiatives/${id}`, patch);
+      setInitiatives((prev) =>
+        prev.map((i) => ((i.initiative_id || i.id) === id ? { ...i, ...patch } : i)),
+      );
+      setEditingInit(null);
+      showToast("Initiative updated", "success");
+    } catch (err) {
+      if (isNetworkError(err)) {
+        console.warn("[Initiatives] Server offline, updating locally:", err);
+        setInitiatives((prev) =>
+          prev.map((i) => ((i.initiative_id || i.id) === id ? { ...i, ...patch } : i)),
+        );
+        setEditingInit(null);
+        showToast("Server offline. Updated locally.", "warning");
+      } else {
+        console.error("[Initiatives] Edit patch failed:", err);
+        showToast(err.message || "Failed to update initiative", "error");
+      }
+    }
   };
 
   return (
@@ -575,7 +649,7 @@ export default function SustainabilityInitiatives() {
                             init.outcomes.length > 0 && (
                               <div className="kanban-outcomes">
                                 {init.outcomes.map((o, idx) => (
-                                  <div key={idx} className="outcome-pill">
+                                  <div key={typeof o === "string" ? `${o}-${idx}` : idx} className="outcome-pill">
                                     {o}
                                   </div>
                                 ))}
