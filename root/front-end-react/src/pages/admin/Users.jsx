@@ -315,7 +315,7 @@ export default function Users() {
               <option value="">All roles</option>
               {USER_ROLES.map((role) => (
                 <option key={role} value={role}>
-                  {role}
+                  {formatLabel(role)}
                 </option>
               ))}
             </select>

@@ -13,9 +13,12 @@
  *                                                               Visitor, organisation
  *                                                               found from the email
  *                                                               domain
- *   register organisation    POST /organizations/register       a new customer; the
- *                                                               person becomes its
- *                                                               Organization Admin
+ *   request an audit         POST /audit-requests               a new customer. Creates
+ *                                                               only a PENDING request:
+ *                                                               a certified auditor must
+ *                                                               approve it before the
+ *                                                               organisation and its
+ *                                                               Organization Admin exist
  *   change password          POST /users/change-password        first sign-in with an
  *                                                               admin-issued password
  *
@@ -47,7 +50,7 @@ export function signUpCampus(values) {
   });
 }
 
-/** Builds the payload for a new organisation; optional fields only when filled. */
+/** Builds the payload for an audit request; optional fields only when filled. */
 function organisationPayload(values) {
   const payload = {
     name: values.orgName.trim(),
@@ -64,9 +67,12 @@ function organisationPayload(values) {
   return payload;
 }
 
-/** Registers an organisation and its administrator. Returns { organization, admin }. */
-export function registerOrganisation(values) {
-  return api.post("/organizations/register", organisationPayload(values));
+/**
+ * Asks for an audit. Nothing is created and nobody is signed in: the request
+ * waits for an auditor's decision. Returns a small receipt.
+ */
+export function requestAudit(values) {
+  return api.post("/audit-requests", organisationPayload(values));
 }
 
 /** Replaces a password. Returns the updated account. */

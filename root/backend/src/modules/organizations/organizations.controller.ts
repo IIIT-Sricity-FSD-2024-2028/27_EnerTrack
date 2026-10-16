@@ -20,7 +20,6 @@ import { OrganizationsService } from "./organizations.service";
 import { CreateOrganizationDto } from "./dto/create-organization.dto";
 import { PutOrganizationDto } from "./dto/put-organization.dto";
 import { UpdateOrganizationDto } from "./dto/update-organization.dto";
-import { RegisterOrganizationDto } from "./dto/register-organization.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
 
 const ROLE_HEADER = {
@@ -62,23 +61,6 @@ export class OrganizationsController {
   @Roles("Super Admin", "Organization Admin", "Certified Energy Auditor")
   findAll() {
     return this.organizationsService.findAll();
-  }
-
-  /**
-   * Public on purpose: it carries no @Roles, so RolesGuard lets it through
-   * unauthenticated, because the caller has no account yet. It sits BEFORE
-   * @Get(":id") so route order can never swallow it.
-   */
-  @Post("register")
-  @ApiOperation({
-    summary: "Register an Organization (public)",
-    description:
-      "An organisation signing itself up. This is where an engagement starts: it creates the organisation as a prospect and its first user as an Organization Admin, together, because either alone is a dead record. No authorization headers required — the person doing this has no account yet. The returned admin has the same shape as a login response, so the sign-up page can start a session immediately. Refused if the organisation name or the email is already taken.",
-  })
-  @ApiResponse({ status: 201, description: "Organization and its admin created." })
-  @ApiResponse({ status: 409, description: "Organisation name or email already registered." })
-  registerSelfServe(@Body() dto: RegisterOrganizationDto) {
-    return this.organizationsService.registerSelfServe(dto);
   }
 
   @Get(":id")

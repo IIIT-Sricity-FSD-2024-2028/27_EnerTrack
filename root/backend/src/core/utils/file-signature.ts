@@ -67,31 +67,15 @@ function discard(filePath: string): void {
  * Throws BadRequestException (and deletes the file) unless its leading bytes
  * match the expected kind.
  *
- * @param kind  'pdf' | 'image' | 'csv'
+ * @param kind  'pdf' | 'image'
  */
 export function assertFileSignature(
   file: { path: string; originalname: string },
-  kind: "pdf" | "image" | "csv",
+  kind: "pdf" | "image",
 ): void {
   if (!file?.path || !fs.existsSync(file.path)) return;
 
-  // CSV needs a wider sample than a magic number does: there is no signature
-  // to match at offset 0, so the check scans a block of the file for evidence
-  // of binary content instead.
-  const header = readHeader(file.path, kind === "csv" ? 512 : 16);
-
-  // CSV is plain text and has no signature to match, so the check is
-  // inverted: reject anything that looks binary. A NUL byte is the clearest
-  // tell — text files do not contain them, executables and images routinely do.
-  if (kind === "csv") {
-    if (header.includes(0x00)) {
-      discard(file.path);
-      throw new BadRequestException(
-        `'${file.originalname}' is not a text CSV file — it contains binary data`,
-      );
-    }
-    return;
-  }
+  const header = readHeader(file.path, 16);
 
   const expected = SIGNATURES[kind];
   const matches = expected.magic.some((magic) =>
@@ -110,7 +94,7 @@ export function assertFileSignature(
 /** Convenience wrapper for endpoints that accept several files at once. */
 export function assertFileSignatures(
   files: { path: string; originalname: string }[],
-  kind: "pdf" | "image" | "csv",
+  kind: "pdf" | "image",
 ): void {
   for (const file of files) assertFileSignature(file, kind);
 }

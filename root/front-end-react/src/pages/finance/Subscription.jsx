@@ -139,8 +139,8 @@ function UsageCard({ subscription, staffCount, campusCount, visitorCount }) {
       </table>
 
       <p className="claim-note">
-        Your {visitorCount} Campus Visitor account{visitorCount === 1 ? "" : "s"}{" "}
-        {visitorCount === 1 ? "does" : "do"} not count towards a seat. Anyone on campus can report a
+        Your {visitorCount} Occupant account{visitorCount === 1 ? "" : "s"}{" "}
+        {visitorCount === 1 ? "does" : "do"} not count towards a seat. Anyone in your buildings can report a
         fault without adding to your bill — the people who spot problems first should never be a cost.
       </p>
     </div>

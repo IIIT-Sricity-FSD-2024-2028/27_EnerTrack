@@ -1,0 +1,181 @@
+/* ReportResult — outcome of a finished wastage report. Shown on the
+   occupant's card and in the officer's preview, so it is loaded globally;
+   every class is prefixed rr- so nothing else restyles it. Same tokens as
+   the redesigned overview pages.
+   Every selector is scoped under .rr (and .rr itself doubled) so it beats
+   page resets such as campus.css's ".campus-page * { margin: 0; padding: 0 }",
+   which has the same specificity and is injected later. */
+
+.rr.rr {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #eef0f2;
+}
+
+.rr .rr-heading {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.rr .rr-summary {
+  margin: 0;
+  max-width: 75ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.rr .rr-summary strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.rr .rr-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.rr .rr-figures strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.rr .rr-figures .loss {
+  color: #b91c1c;
+}
+
+.rr .rr-figures .gain {
+  color: #065f46;
+}
+
+/* Readings: one scale for baseline, measured and target */
+.rr .rr-readings {
+  margin-top: 16px;
+}
+
+.rr .rr-readings-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rr .rr-readings-head span {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.rr .rr-reading {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 84px;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.rr .rr-track {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  overflow: hidden;
+}
+
+.rr .rr-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.rr .rr-fill.base {
+  background: #9ca3af;
+}
+
+.rr .rr-fill.high {
+  background: #dc2626;
+}
+
+.rr .rr-fill.goal {
+  background: #059669;
+}
+
+.rr .rr-reading-value {
+  text-align: right;
+  font-weight: 600;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The officer's comment on the target */
+.rr .rr-comment {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 1px solid #eef0f2;
+  border-radius: 6px;
+}
+
+.rr .rr-avatar {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #059669;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.rr .rr-comment-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.rr .rr-comment-head strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+.rr .rr-comment-head time {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.rr .rr-comment p {
+  margin: 2px 0 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+@media (max-width: 560px) {
+  .rr .rr-reading {
+    grid-template-columns: 64px minmax(0, 1fr) 72px;
+    gap: 8px;
+  }
+}

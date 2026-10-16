@@ -216,6 +216,7 @@ export function normalizeWastageReport(r, user) {
     id: r.wastage_report_id || r.id,
     type: r.type,
     status: r.status,
+    reporterId: r.reporter_id,
     reporterName: isMine ? user.name : r.reporterName || "Unknown",
     specificData: d.specificData || r.specificData || {},
     systemData: d.systemData || r.systemData || {},

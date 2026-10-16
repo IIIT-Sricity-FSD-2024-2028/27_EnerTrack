@@ -1,0 +1,521 @@
+/*
+ * overview.css — Sustainability Officer overview (/sustainability/overview).
+ * Same tokens as the Monitoring and Initiatives pages: white panels with a
+ * #d8dde2 hairline, 8px radius, one green accent (#059669), grey ink scale.
+ * Everything is prefixed so-* so it cannot collide with the legacy sust_*.css.
+ */
+
+.sustainability-overview-page :is(button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
+}
+
+/* ── Header ───────────────────────────────────────── */
+
+.so-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.so-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.so-header p {
+  margin: 6px 0 0 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.so-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.so-updated {
+  font-size: 12px;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Metrics row ──────────────────────────────────── */
+
+.so-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1280px) {
+  .so-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+/* ── Panel ────────────────────────────────────────── */
+
+.so-panel {
+  background: #ffffff;
+  border: 1px solid #d8dde2;
+  border-radius: 8px;
+  padding: 20px 24px 8px;
+  margin-bottom: 24px;
+}
+
+.so-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.so-panel-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.so-panel-head p {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Segmented control — same as the period selector on Monitoring */
+.so-tabs {
+  display: inline-flex;
+  background: #f3f4f6;
+  padding: 3px;
+  border-radius: 6px;
+}
+
+.so-tabs button {
+  background: transparent;
+  color: #6b7280;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.so-tabs button[aria-selected="true"] {
+  background: #ffffff;
+  color: #111827;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.so-empty {
+  padding: 32px 0 40px;
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ── Report row ───────────────────────────────────── */
+
+.so-report {
+  padding: 18px 0;
+  border-top: 1px solid #eef0f2;
+}
+
+.so-report-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.so-report-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  color: #111827;
+}
+
+.so-report-title strong {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.so-report-title span {
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.so-type-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* Desktop: sensor column on the right, spanning the text and the buttons.
+   Narrow: text, then sensor, then buttons last. */
+.so-report-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  grid-template-areas:
+    "main sensor"
+    "actions sensor";
+  column-gap: 24px;
+}
+
+.so-report-main {
+  grid-area: main;
+  min-width: 0;
+}
+
+.so-report-body .so-sensor {
+  grid-area: sensor;
+  align-self: start;
+}
+
+.so-report-body .so-actions {
+  grid-area: actions;
+}
+
+@media (max-width: 760px) {
+  .so-report-body {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "main"
+      "sensor"
+      "actions";
+  }
+
+  .so-report-body .so-sensor {
+    margin-top: 12px;
+  }
+}
+
+.so-observation {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+  max-width: 70ch;
+}
+
+.so-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.so-meta .high {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+/* Sensor reading column */
+.so-sensor {
+  border-left: 1px solid #eef0f2;
+  padding-left: 20px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+@media (max-width: 760px) {
+  .so-sensor {
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
+.so-sensor-value {
+  margin: 2px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.so-sensor-value small {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.so-sensor .anomaly {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.so-sensor .normal {
+  color: #065f46;
+  font-weight: 600;
+}
+
+/* Status chip — same shape as "Synced & Verified" on Monitoring */
+.so-status {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.so-status.action {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.so-status.finance {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.so-status.ready {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+/* Finance figures + target, once they exist */
+.so-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.so-figures div strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.so-note {
+  margin: 10px 0 0 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.so-note strong {
+  color: #374151;
+}
+
+/* Target line */
+.so-target {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.so-target strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e40af;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Notes on the decision (Finance's and the officer's), set apart from the
+   figures and the target */
+.so-notes {
+  margin-top: 12px;
+  padding: 2px 14px;
+  border: 1px solid #eef0f2;
+  border-radius: 6px;
+}
+
+.so-notes .so-comment + .so-comment {
+  border-top: 1px solid #f3f4f6;
+}
+
+.so-note-label {
+  color: #6b7280;
+}
+
+/* Actions row */
+.so-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.so-actions .so-link {
+  margin-left: 8px;
+}
+
+.so-btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.so-btn:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.so-btn.primary {
+  border-color: #059669;
+  background: #059669;
+  color: #ffffff;
+}
+
+.so-btn.primary:hover:not(:disabled) {
+  background: #047857;
+}
+
+.so-btn.danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.so-btn.danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.so-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.so-btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  font-size: 14px;
+}
+
+.so-waiting {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.so-link {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #059669;
+  cursor: pointer;
+}
+
+/* Comment thread */
+.so-comments {
+  margin-top: 12px;
+  padding-top: 4px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.so-comment {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 12px;
+}
+
+.so-comment-avatar {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.so-comment p {
+  margin: 2px 0 0 0;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.so-comment time {
+  margin-left: 8px;
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.so-comment-form {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0 4px;
+}
+
+.so-comment-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1f2937;
+  font-family: inherit;
+}
+
+/* Narrow screens: let row titles wrap and drop the chip under them,
+   instead of truncating the location to a few letters. */
+@media (max-width: 560px) {
+  .so-report-top {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .so-report-title {
+    flex-wrap: wrap;
+  }
+
+  .so-report-title span {
+    white-space: normal;
+  }
+}
+
+@keyframes so-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sustainability-overview-page * {
+    animation: none !important;
+  }
+}

@@ -30,40 +30,42 @@
 
 .card-title-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 4px;
+  gap: 4px 8px;
+  margin-bottom: 6px;
 }
 
 .card-id {
   font-size: 14px;
-  color: var(--dark);
+  font-weight: 600;
+  color: #111827;
 }
 
-/* Green "Energy Wastage" tag next to the id */
-.type-tag {
-  background: #059669;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  margin-left: 8px;
+.card-location {
+  font-size: 13px;
+  color: #6b7280;
 }
 
 .card-summary {
-  font-size: 13px;
+  font-size: 14px;
   color: #374151;
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
   line-height: 1.5;
+  max-width: 70ch;
 }
 
 .card-meta-row {
-  margin-top: 6px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
+  gap: 4px 16px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.card-meta.high {
+  color: #b91c1c;
+  font-weight: 600;
 }
 
 .card-side {
@@ -79,6 +81,12 @@
   text-align: right;
 }
 
+/* The card is a column; stretch its sections to the full width instead of
+   shrink-wrapping each one to its content (campus.css sets flex-start). */
+.ticket-card {
+  align-items: stretch;
+}
+
 /* Cards can be clicked; the selected one gets a green border */
 .ticket-card.selectable {
   cursor: pointer;
@@ -89,58 +97,19 @@
   box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
 }
 
-/* Row of figures inside an .exp-box */
-.exp-row {
-  display: flex;
-  gap: 12px;
-}
-
-.exp-row.wrap {
-  flex-wrap: wrap;
-}
-
-/* ── Green "Decision Summary" box ── */
-.decision-summary {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
-  padding: 14px;
-  margin-top: 12px;
-}
-
-.decision-summary h5 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: #065f46;
-  margin: 0 0 8px 0;
-}
-
-.decision-text {
-  font-size: 12px;
-  color: #374151;
-  line-height: 1.7;
-}
-
-.decision-text p {
-  margin: 0 0 6px 0;
-}
-
 /* ── Grey "Dismissal Notice" box ── */
 .dismissal-notice {
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 14px;
-  margin-top: 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-top: 14px;
 }
 
 .dismissal-notice h5 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: #475569;
-  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 6px 0;
 }
 
 .dismissal-text {
@@ -159,121 +128,47 @@
   color: #9ca3af;
 }
 
-/* ── Before / after comparison bars ── */
-.compare-box {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 14px;
-  margin-top: 12px;
-}
-
-.compare-box h5 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: #374151;
-  margin: 0 0 10px 0;
-}
-
-.compare-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.compare-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.compare-label {
-  font-size: 11px;
-  color: #6b7280;
-  width: 60px;
-}
-
-.compare-track {
-  flex: 1;
-  border-radius: 4px;
-  height: 18px;
-  overflow: hidden;
-}
-
-.compare-fill {
-  height: 100%;
-  border-radius: 4px;
-}
-
-.compare-value {
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 60px;
-  text-align: right;
-}
-
-/* ── Archive button and photo thumbnails ── */
-.archive-btn {
-  margin-top: 10px;
-  padding: 6px 14px;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  background: #f9fafb;
-  color: #374151;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-/* The original changed the colour on hover too */
-.archive-btn:hover {
-  background: #f3f4f6;
-}
-
-.photo-gallery {
-  margin-top: 10px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.photo-gallery img {
-  width: 72px;
-  height: 72px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  background: #f3f4f6;
-}
-
-/* ── Comment thread at the bottom of a card ── */
-.comments {
-  margin-top: 12px;
-  border-top: 1px solid #e5e7eb;
-  padding-top: 10px;
-}
-
-.comments-header {
+/* ── Footer: comments toggle (left), Archive (right) ── */
+.card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eef0f2;
+}
+
+.card-link {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #059669;
   cursor: pointer;
 }
 
-.comments-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: #6b7280;
+.archive-btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13px;
   font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
 }
 
-.comments-toggle {
-  font-size: 11px;
-  color: #059669;
-  font-weight: 600;
+.archive-btn:hover {
+  background: #f9fafb;
+}
+
+/* ── Comment thread under the footer ── */
+.comments {
+  margin-top: 8px;
 }
 
 .comments-empty {
@@ -295,6 +190,11 @@
   border-radius: 6px;
   font-size: 12px;
   color: #1f2937;
+}
+
+.comment-form button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .comment-form button {

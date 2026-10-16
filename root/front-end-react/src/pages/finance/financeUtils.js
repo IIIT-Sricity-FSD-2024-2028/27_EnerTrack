@@ -44,6 +44,13 @@ export function latestPeriod(costs) {
   return periods[0];
 }
 
+/** "2025-03" → "Mar 2025"; anything else (e.g. "2025-Q1") is shown as is. */
+export function periodLabel(period) {
+  const m = /^(\d{4})-(\d{2})$/.exec(period || "");
+  if (!m) return period || "";
+  return new Date(Number(m[1]), Number(m[2]) - 1, 1).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
+
 /** Budget minus total decides the status badge of a cost record. */
 export function statusFromVariance(variance) {
   if (variance > 0) return "under-budget";
@@ -60,6 +67,19 @@ export function statusFromRoi(roi) {
 }
 
 /* ── WASTAGE REPORT HELPERS ───────────────────────── */
+
+/**
+ * Short, readable reference for a wastage report ("WR-3N2A8Z"), the same on
+ * every role's screen. The seed ids share their first and last segments
+ * ("wwww0000-0001-…-000000000000"), so slicing the uuid would give several
+ * reports the same label; a small hash of the whole id does not.
+ */
+export function reportRef(id) {
+  if (!id) return "UNKNOWN";
+  let h = 0;
+  for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h.toString(36).toUpperCase().padStart(6, "0").slice(-6);
+}
 
 /** The user's own words and location, which live in different fields per type. */
 export function wastageSummary(report) {

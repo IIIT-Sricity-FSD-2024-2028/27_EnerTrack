@@ -5,7 +5,9 @@
  *   sign in (default)       everyone: staff, admins, auditors, campus visitors
  *   campus                  a student or faculty member creating their own
  *                           Campus Visitor account
- *   register                a new customer, who becomes its Organization Admin
+ *   register                a new customer asking for an audit. This only files a
+ *                           request: a certified auditor must approve it before the
+ *                           organisation and its Organization Admin exist
  *
  * Nobody picks a role or an organisation here. What the person is doing
  * selects the endpoint (see authFlow.js) and the role in the response selects
@@ -20,7 +22,7 @@ import { PATHS } from "../../routes";
 import FormField from "../../ui/FormField";
 import {
   destinationAfterAuth,
-  registerOrganisation,
+  requestAudit,
   signIn,
   signUpCampus,
 } from "./authFlow";
@@ -101,6 +103,10 @@ export default function AuthPage() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // Set once an audit request is filed: { name, email }. The page then shows
+  // a confirmation instead of the form, because nobody is signed in yet.
+  const [requestSent, setRequestSent] = useState(null);
+  const showConfirmation = isRegister && requestSent !== null;
 
   // Already signed in: there is nothing to do here.
   if (user) {
@@ -127,6 +133,7 @@ export default function AuthPage() {
     // Each mode starts clean: errors from the other mode mean nothing here.
     setErrors({});
     setFormError("");
+    setRequestSent(null);
     setSearchParams(next === MODES.signIn ? {} : { mode: next }, {
       replace: true,
     });
@@ -177,9 +184,15 @@ export default function AuthPage() {
     setSubmitting(true);
     try {
       if (isRegister) {
-        const result = await registerOrganisation(registerValues);
-        adoptSession(result.admin);
-        navigate(destinationAfterAuth(result.admin), { replace: true });
+        // Files a pending request. Nothing is created and nobody is signed in
+        // until a certified auditor approves it.
+        await requestAudit(registerValues);
+        setRequestSent({
+          name: registerValues.orgName.trim(),
+          email: registerValues.adminEmail.trim().toLowerCase(),
+        });
+        setRegisterValues(EMPTY_REGISTER);
+        setSubmitting(false);
       } else if (isCampus) {
         const account = await signUpCampus(campusValues);
         adoptSession(account);
@@ -196,7 +209,7 @@ export default function AuthPage() {
       const message =
         err.message ||
         (isRegister || isCampus
-          ? "Could not register. Please try again."
+          ? "Could not submit. Please try again."
           : "Invalid email or password.");
       let field = "loginPassword";
       if (isRegister) field = fieldForServerMessage(message);
@@ -275,13 +288,35 @@ export default function AuthPage() {
             </button>
           </div>
 
-          {isRegister ? (
+          {showConfirmation ? (
             <>
-              <h1>Register your organisation</h1>
+              <h1>Request received</h1>
               <p className="sub">
-                This creates your organisation and makes you its administrator.
-                You then create the accounts for your team and campus, and can
-                request a site audit. Nothing is charged until you accept a
+                Thank you. <strong>{requestSent.name}</strong> is now waiting
+                for an EnerTrack auditor to review it. Nothing has been created
+                yet, and there is nothing more to do right now.
+              </p>
+              <p className="sub">
+                Once it is approved, sign in with{" "}
+                <strong>{requestSent.email}</strong> and the password you chose.
+                If you try to sign in before then, the page will tell you where
+                your request stands.
+              </p>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => switchMode(MODES.signIn)}
+              >
+                Go to sign in
+              </button>
+            </>
+          ) : isRegister ? (
+            <>
+              <h1>Request an audit</h1>
+              <p className="sub">
+                Tell us about your organisation. An EnerTrack auditor reviews
+                every request before an account is created, so you can sign in
+                once it is approved. Nothing is charged until you accept a
                 proposal.
               </p>
             </>
@@ -289,9 +324,9 @@ export default function AuthPage() {
             <>
               <h1>Create your campus account</h1>
               <p className="sub">
-                For students and faculty. Sign up with your campus email
-                address and we will place you in your organisation. Staff
-                accounts are created by your administrator instead.
+                For students and faculty. Sign up with your campus email address
+                and we will place you in your organisation. Staff accounts are
+                created by your administrator instead.
               </p>
             </>
           ) : (
@@ -304,265 +339,269 @@ export default function AuthPage() {
             </>
           )}
 
-          <form onSubmit={handleSubmit} noValidate>
-            {isRegister ? (
-              <>
-                <FormField
-                  label="Organisation name"
-                  name="orgName"
-                  value={registerValues.orgName}
-                  onChange={handleChange}
-                  error={errors.orgName}
-                  placeholder="Deccan School of Engineering"
-                  autoComplete="organization"
-                  maxLength={100}
-                />
-                <FormField
-                  label="Type"
-                  name="orgType"
-                  value={registerValues.orgType}
-                  onChange={handleChange}
-                  error={errors.orgType}
-                  placeholder="Select a type"
-                  options={ORG_TYPE_OPTIONS}
-                />
-                <FormField
-                  label="Location"
-                  name="orgLocation"
-                  value={registerValues.orgLocation}
-                  onChange={handleChange}
-                  error={errors.orgLocation}
-                  placeholder="Pune, Maharashtra"
-                  maxLength={120}
-                />
-                <FormField
-                  label="Approximate floor area in m² (optional)"
-                  name="orgArea"
-                  value={registerValues.orgArea}
-                  onChange={handleChange}
-                  error={errors.orgArea}
-                  placeholder="18000"
-                  maxLength={12}
-                />
-                <FormField
-                  label="Email domain for your people (optional)"
-                  name="emailDomain"
-                  value={registerValues.emailDomain}
-                  onChange={handleChange}
-                  error={errors.emailDomain}
-                  placeholder="deccan.edu"
-                  autoComplete="off"
-                  maxLength={120}
-                />
-                <p className="field-hint">
-                  If set, every account you create must use it, for example
-                  name@deccan.edu.
-                </p>
+          {!showConfirmation && (
+            <form onSubmit={handleSubmit} noValidate>
+              {isRegister ? (
+                <>
+                  <FormField
+                    label="Organisation name"
+                    name="orgName"
+                    value={registerValues.orgName}
+                    onChange={handleChange}
+                    error={errors.orgName}
+                    placeholder="Deccan School of Engineering"
+                    autoComplete="organization"
+                    maxLength={100}
+                  />
+                  <FormField
+                    label="Type"
+                    name="orgType"
+                    value={registerValues.orgType}
+                    onChange={handleChange}
+                    error={errors.orgType}
+                    placeholder="Select a type"
+                    options={ORG_TYPE_OPTIONS}
+                  />
+                  <FormField
+                    label="Location"
+                    name="orgLocation"
+                    value={registerValues.orgLocation}
+                    onChange={handleChange}
+                    error={errors.orgLocation}
+                    placeholder="Pune, Maharashtra"
+                    maxLength={120}
+                  />
+                  <FormField
+                    label="Approximate floor area in m² (optional)"
+                    name="orgArea"
+                    value={registerValues.orgArea}
+                    onChange={handleChange}
+                    error={errors.orgArea}
+                    placeholder="18000"
+                    maxLength={12}
+                  />
+                  <FormField
+                    label="Email domain for your people (optional)"
+                    name="emailDomain"
+                    value={registerValues.emailDomain}
+                    onChange={handleChange}
+                    error={errors.emailDomain}
+                    placeholder="deccan.edu"
+                    autoComplete="off"
+                    maxLength={120}
+                  />
+                  <p className="field-hint">
+                    If set, every account you create must use it, for example
+                    name@deccan.edu.
+                  </p>
 
-                <hr className="form-divider" />
-                <p className="sub">
-                  You will be the organisation's administrator: the account
-                  that creates everyone else's and approves EnerTrack's
-                  proposal.
-                </p>
+                  <hr className="form-divider" />
+                  <p className="sub">
+                    You will be the organisation's administrator: the account
+                    that creates everyone else's and approves EnerTrack's
+                    proposal.
+                  </p>
 
-                <FormField
-                  label="Your full name"
-                  name="adminName"
-                  value={registerValues.adminName}
-                  onChange={handleChange}
-                  error={errors.adminName}
-                  placeholder="Rohit Kale"
-                  autoComplete="name"
-                  maxLength={50}
-                />
-                <FormField
-                  label="Work email"
-                  name="adminEmail"
-                  type="email"
-                  value={registerValues.adminEmail}
-                  onChange={handleChange}
-                  error={errors.adminEmail}
-                  placeholder="rohit@deccan.edu"
-                  autoComplete="email"
-                  maxLength={254}
-                />
-                <FormField
-                  label="Phone (optional)"
-                  name="adminPhone"
-                  type="tel"
-                  value={registerValues.adminPhone}
-                  onChange={handleChange}
-                  error={errors.adminPhone}
-                  placeholder="9876543210"
-                  autoComplete="tel"
-                  maxLength={10}
-                />
-                <FormField
-                  label="Password"
-                  name="adminPassword"
-                  type={passwordType}
-                  value={registerValues.adminPassword}
-                  onChange={handleChange}
-                  error={errors.adminPassword}
-                  placeholder="e.g. Str0ng@Pass!"
-                  autoComplete="new-password"
-                  maxLength={32}
-                  adornment={passwordEye}
-                />
-                <FormField
-                  label="Confirm password"
-                  name="confirmAdminPassword"
-                  type={passwordType}
-                  value={registerValues.confirmAdminPassword}
-                  onChange={handleChange}
-                  error={errors.confirmAdminPassword}
-                  placeholder="Re-enter your password"
-                  autoComplete="new-password"
-                  maxLength={32}
-                  adornment={passwordEye}
-                />
-              </>
-            ) : isCampus ? (
-              <>
-                <FormField
-                  label="Full name"
-                  name="name"
-                  value={campusValues.name}
-                  onChange={handleChange}
-                  error={errors.name}
-                  placeholder="e.g. Asha Rao"
-                  autoComplete="name"
-                  maxLength={50}
-                  autoFocus
-                />
-                <FormField
-                  label="Campus email address"
-                  name="email"
-                  type="email"
-                  value={campusValues.email}
-                  onChange={handleChange}
-                  error={errors.email}
-                  placeholder="you@yourcampus.edu"
-                  autoComplete="email"
-                  maxLength={254}
-                />
-                <FormField
-                  label="Phone number"
-                  name="phone"
-                  type="tel"
-                  value={campusValues.phone}
-                  onChange={handleChange}
-                  error={errors.phone}
-                  placeholder="e.g. 9876543210"
-                  autoComplete="tel"
-                  maxLength={10}
-                />
-                <FormField
-                  label="Password"
-                  name="password"
-                  type={passwordType}
-                  value={campusValues.password}
-                  onChange={handleChange}
-                  error={errors.password}
-                  placeholder="e.g. Str0ng@Pass!"
-                  autoComplete="new-password"
-                  maxLength={32}
-                  adornment={passwordEye}
-                />
-                <FormField
-                  label="Confirm password"
-                  name="confirmPassword"
-                  type={passwordType}
-                  value={campusValues.confirmPassword}
-                  onChange={handleChange}
-                  error={errors.confirmPassword}
-                  placeholder="Re-enter your password"
-                  autoComplete="new-password"
-                  maxLength={32}
-                  adornment={passwordEye}
-                />
-              </>
-            ) : (
-              <>
-                <FormField
-                  label="Email address"
-                  name="loginEmail"
-                  type="email"
-                  value={signInValues.loginEmail}
-                  onChange={handleChange}
-                  error={errors.loginEmail}
-                  placeholder="you@yourorganisation.edu"
-                  autoComplete="username"
-                  maxLength={254}
-                  autoFocus
-                />
-                <FormField
-                  label="Password"
-                  name="loginPassword"
-                  type={passwordType}
-                  value={signInValues.loginPassword}
-                  onChange={handleChange}
-                  error={errors.loginPassword}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  maxLength={128}
-                  adornment={passwordEye}
-                />
-              </>
-            )}
+                  <FormField
+                    label="Your full name"
+                    name="adminName"
+                    value={registerValues.adminName}
+                    onChange={handleChange}
+                    error={errors.adminName}
+                    placeholder="Rohit Kale"
+                    autoComplete="name"
+                    maxLength={50}
+                  />
+                  <FormField
+                    label="Work email"
+                    name="adminEmail"
+                    type="email"
+                    value={registerValues.adminEmail}
+                    onChange={handleChange}
+                    error={errors.adminEmail}
+                    placeholder="rohit@deccan.edu"
+                    autoComplete="email"
+                    maxLength={254}
+                  />
+                  <FormField
+                    label="Phone (optional)"
+                    name="adminPhone"
+                    type="tel"
+                    value={registerValues.adminPhone}
+                    onChange={handleChange}
+                    error={errors.adminPhone}
+                    placeholder="9876543210"
+                    autoComplete="tel"
+                    maxLength={10}
+                  />
+                  <FormField
+                    label="Password"
+                    name="adminPassword"
+                    type={passwordType}
+                    value={registerValues.adminPassword}
+                    onChange={handleChange}
+                    error={errors.adminPassword}
+                    placeholder="e.g. Str0ng@Pass!"
+                    autoComplete="new-password"
+                    maxLength={32}
+                    adornment={passwordEye}
+                  />
+                  <FormField
+                    label="Confirm password"
+                    name="confirmAdminPassword"
+                    type={passwordType}
+                    value={registerValues.confirmAdminPassword}
+                    onChange={handleChange}
+                    error={errors.confirmAdminPassword}
+                    placeholder="Re-enter your password"
+                    autoComplete="new-password"
+                    maxLength={32}
+                    adornment={passwordEye}
+                  />
+                </>
+              ) : isCampus ? (
+                <>
+                  <FormField
+                    label="Full name"
+                    name="name"
+                    value={campusValues.name}
+                    onChange={handleChange}
+                    error={errors.name}
+                    placeholder="e.g. Asha Rao"
+                    autoComplete="name"
+                    maxLength={50}
+                    autoFocus
+                  />
+                  <FormField
+                    label="Campus email address"
+                    name="email"
+                    type="email"
+                    value={campusValues.email}
+                    onChange={handleChange}
+                    error={errors.email}
+                    placeholder="you@yourcampus.edu"
+                    autoComplete="email"
+                    maxLength={254}
+                  />
+                  <FormField
+                    label="Phone number"
+                    name="phone"
+                    type="tel"
+                    value={campusValues.phone}
+                    onChange={handleChange}
+                    error={errors.phone}
+                    placeholder="e.g. 9876543210"
+                    autoComplete="tel"
+                    maxLength={10}
+                  />
+                  <FormField
+                    label="Password"
+                    name="password"
+                    type={passwordType}
+                    value={campusValues.password}
+                    onChange={handleChange}
+                    error={errors.password}
+                    placeholder="e.g. Str0ng@Pass!"
+                    autoComplete="new-password"
+                    maxLength={32}
+                    adornment={passwordEye}
+                  />
+                  <FormField
+                    label="Confirm password"
+                    name="confirmPassword"
+                    type={passwordType}
+                    value={campusValues.confirmPassword}
+                    onChange={handleChange}
+                    error={errors.confirmPassword}
+                    placeholder="Re-enter your password"
+                    autoComplete="new-password"
+                    maxLength={32}
+                    adornment={passwordEye}
+                  />
+                </>
+              ) : (
+                <>
+                  <FormField
+                    label="Email address"
+                    name="loginEmail"
+                    type="email"
+                    value={signInValues.loginEmail}
+                    onChange={handleChange}
+                    error={errors.loginEmail}
+                    placeholder="you@yourorganisation.edu"
+                    autoComplete="username"
+                    maxLength={254}
+                    autoFocus
+                  />
+                  <FormField
+                    label="Password"
+                    name="loginPassword"
+                    type={passwordType}
+                    value={signInValues.loginPassword}
+                    onChange={handleChange}
+                    error={errors.loginPassword}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    maxLength={128}
+                    adornment={passwordEye}
+                  />
+                </>
+              )}
 
-            {formError && (
-              <span
-                className="field-error"
-                role="alert"
-                style={{ display: "block", marginBottom: 12 }}
-              >
-                {formError}
-              </span>
-            )}
+              {formError && (
+                <span
+                  className="field-error"
+                  role="alert"
+                  style={{ display: "block", marginBottom: 12 }}
+                >
+                  {formError}
+                </span>
+              )}
 
-            <button type="submit" className="btn" disabled={submitting}>
-              {isRegister
-                ? submitting
-                  ? "Registering…"
-                  : "Register organisation"
-                : isCampus
+              <button type="submit" className="btn" disabled={submitting}>
+                {isRegister
                   ? submitting
-                    ? "Creating account…"
-                    : "Create account"
-                  : submitting
-                    ? "Signing in…"
-                    : "Sign In"}
-            </button>
-          </form>
+                    ? "Submitting…"
+                    : "Submit request"
+                  : isCampus
+                    ? submitting
+                      ? "Creating account…"
+                      : "Create account"
+                    : submitting
+                      ? "Signing in…"
+                      : "Sign In"}
+              </button>
+            </form>
+          )}
 
-          <div className="footer">
-            {isRegister ? (
-              <p>
-                Already part of an organisation? Sign in with the credentials
-                your administrator gave you.
-              </p>
-            ) : isCampus ? (
-              <p>Already have an account?</p>
-            ) : (
-              <p>
-                Staff accounts come from your organisation's administrator.
-                Student or faculty?
-              </p>
-            )}
-            <button
-              type="button"
-              className="register-link link-button"
-              onClick={() =>
-                switchMode(
-                  isRegister || isCampus ? MODES.signIn : MODES.campus,
-                )
-              }
-            >
-              {isRegister || isCampus ? "Sign in" : "Create a campus account"}
-            </button>
-          </div>
+          {!showConfirmation && (
+            <div className="footer">
+              {isRegister ? (
+                <p>
+                  Already part of an organisation? Sign in with the credentials
+                  your administrator gave you.
+                </p>
+              ) : isCampus ? (
+                <p>Already have an account?</p>
+              ) : (
+                <p>
+                  Staff accounts come from your organisation's administrator.
+                  Student or faculty?
+                </p>
+              )}
+              <button
+                type="button"
+                className="register-link link-button"
+                onClick={() =>
+                  switchMode(
+                    isRegister || isCampus ? MODES.signIn : MODES.campus,
+                  )
+                }
+              >
+                {isRegister || isCampus ? "Sign in" : "Create a campus account"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

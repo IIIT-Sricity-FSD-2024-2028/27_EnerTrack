@@ -19,6 +19,7 @@ import { OrganizationsModule } from "./modules/organizations/organizations.modul
 import { SubscriptionPlansModule } from "./modules/subscription-plans/subscription-plans.module";
 import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
 import { EnergyAuditsModule } from "./modules/energy-audits/energy-audits.module";
+import { AuditRequestsModule } from "./modules/audit-requests/audit-requests.module";
 import { PlatformInvoicesModule } from "./modules/platform-invoices/platform-invoices.module";
 import { UsersModule } from "./modules/users/users.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
@@ -47,6 +48,7 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
     SubscriptionPlansModule,
     SubscriptionsModule,
     EnergyAuditsModule,
+    AuditRequestsModule,
     PlatformInvoicesModule,
     UsersModule,
     NotificationsModule,
@@ -93,7 +95,7 @@ export class AppModule implements NestModule {
    *    /api/docs pulls several static assets, and writing an 80-column
    *    block to disk for each of them buries the real API traffic.
    *
-   * ── TIER 3: three specific routes (ROUTER-LEVEL) ────────────────────
+   * ── TIER 3: two specific routes (ROUTER-LEVEL) ────────────────────
    *  UploadAuditMiddleware — bound to individual path + method pairs
    *    rather than a wildcard, so it fires on the file-upload endpoints
    *    and provably nowhere else.
@@ -125,11 +127,10 @@ export class AppModule implements NestModule {
       .exclude("api/docs", "api/docs/(.*)")
       .forRoutes("*");
 
-    // Tier 3 — router-level: the three file-upload routes only
+    // Tier 3 — router-level: the two file-upload routes only
     consumer
       .apply(UploadAuditMiddleware)
       .forRoutes(
-        { path: "meter-readings/upload", method: RequestMethod.POST },
         { path: "invoices/:id/document", method: RequestMethod.POST },
         { path: "wastage-reports/:id/photos", method: RequestMethod.POST },
       );

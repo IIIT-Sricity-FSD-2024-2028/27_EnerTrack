@@ -14,10 +14,9 @@ import { logWriter } from '../utils/log-writer';
  * That is application-level behaviour: they cannot tell you anything about
  * WHICH route was hit, because the answer is always "all of them".
  *
- * This middleware is bound in AppModule.configure() to three specific
+ * This middleware is bound in AppModule.configure() to two specific
  * path + method pairs:
  *
- *   POST /api/meter-readings/upload
  *   POST /api/invoices/:id/document
  *   POST /api/wastage-reports/:id/photos
  *

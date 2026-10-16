@@ -18,12 +18,14 @@ import SummaryCards from "./overview/SummaryCards";
 import WastageReviewQueue from "./overview/WastageReviewQueue";
 import overviewCss from "../../styles/finance-analyst/finance_overview.css?inline";
 import sharedCss from "../../styles/finance-analyst/finance_shared.css?inline";
+import pageCss from "./overview/overview.css?inline";
 
 function OverviewContent() {
   const { user } = useAuth();
   const showToast = useToast();
   const [costs, setCosts] = useState([]);
   const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -33,6 +35,8 @@ function OverviewContent() {
         setReports(reportResult.reports);
       } catch (error) {
         showToast(error.message, "error");
+      } finally {
+        setLoading(false);
       }
     }
     loadData();
@@ -41,16 +45,16 @@ function OverviewContent() {
   const firstName = (user.name || "").split(" ")[0];
 
   return (
-    <FinanceLayout styles={[overviewCss, sharedCss]}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+    <FinanceLayout styles={[overviewCss, sharedCss, pageCss]}>
+      <header className="fo-header">
         <div>
-          <h1 className="welcome">Welcome back, {firstName}</h1>
-          <div className="sub">Track key financial metrics and access main tools.</div>
+          <h1 className="welcome">{firstName ? `Welcome back, ${firstName}` : "Overview"}</h1>
+          <p>Energy spend for the latest period, and the approvals and cost reviews waiting on you.</p>
         </div>
         <NotificationBell email={user.email} />
-      </div>
+      </header>
 
-      <SummaryCards costs={costs} reports={reports} />
+      <SummaryCards costs={costs} reports={reports} loading={loading} />
       <MaintenanceApprovals />
       <WastageReviewQueue />
       <DepartmentCostBars costs={costs} />

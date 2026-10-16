@@ -34,7 +34,8 @@ const LABELS = {
   sustainabilityOfficer: "Sustainability Officer",
   technicianAdministrator: "Technician Administrator",
   technician: "Technician",
-  campusVisitor: "Campus Visitor",
+  campusVisitor: "Occupant",
+  "Campus Visitor": "Occupant", // stored role value; shown as Occupant
   active: "Active",
   inactive: "Inactive",
 };

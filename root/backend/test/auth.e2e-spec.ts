@@ -56,7 +56,9 @@ describe('Auth & onboarding (e2e)', () => {
     });
   });
 
-  describe('organisation registration', () => {
+  describe('organisation registration (request, then approval)', () => {
+    const asAuditor = { 'x-role': 'Certified Energy Auditor' };
+    let requestId: string;
     const payload = () => ({
       name: `Campus ${stamp} College`,
       type: 'University',
@@ -77,36 +79,78 @@ describe('Auth & onboarding (e2e)', () => {
       ['admin_password', { admin_password: 'weakpass' }],
       ['admin_phone', { admin_phone: '12345' }],
     ])('rejects an invalid %s', async (_field, override) => {
-      const res = await http().post('/api/organizations/register').send({ ...payload(), ...override });
+      const res = await http().post('/api/audit-requests').send({ ...payload(), ...override });
       expect(res.status).toBe(400);
     });
 
     it('rejects a public mailbox provider as the organisation domain', async () => {
       const res = await http()
-        .post('/api/organizations/register')
+        .post('/api/audit-requests')
         .send({ ...payload(), email_domain: 'gmail.com', admin_email: 'x@gmail.com' });
       expect(res.status).toBe(400);
     });
 
     it("requires the admin's email to use the organisation domain", async () => {
       const res = await http()
-        .post('/api/organizations/register')
+        .post('/api/audit-requests')
         .send({ ...payload(), admin_email: 'head@other.edu' });
       expect(res.status).toBe(400);
     });
 
-    it('creates the organisation and its admin', async () => {
-      const res = await http().post('/api/organizations/register').send(payload());
+    it('only records a request: no organisation and no account yet', async () => {
+      const res = await http().post('/api/audit-requests').send(payload());
       expect(res.status).toBe(201);
       const data = body(res);
+      requestId = data.request_id;
+      expect(data.status).toBe('pending');
+      expect(data.admin_password).toBeUndefined();
+
+      const orgs = await http().get('/api/organizations').set({ 'x-role': 'Super Admin' });
+      expect(JSON.stringify(body(orgs))).not.toContain(`Campus ${stamp} College`);
+    });
+
+    it('tells the requester their sign-in is waiting on approval', async () => {
+      const res = await http()
+        .post('/api/users/login')
+        .send({ email: adminEmail, password: adminPassword });
+      expect(res.status).toBe(403);
+      expect(res.body.message).toContain('awaiting approval');
+    });
+
+    it('does not reveal a pending request to a wrong password', async () => {
+      const res = await http()
+        .post('/api/users/login')
+        .send({ email: adminEmail, password: 'Wr0ng@Guess!' });
+      expect(res.status).toBe(401);
+    });
+
+    it('lets only an auditor see and decide requests', async () => {
+      expect((await http().get('/api/audit-requests')).status).toBe(403);
+      expect((await http().get('/api/audit-requests').set({ 'x-role': 'Organization Admin' })).status).toBe(403);
+      expect(
+        (await http().patch(`/api/audit-requests/${requestId}/approve`).set({ 'x-role': 'Campus Visitor' }).send({})).status,
+      ).toBe(403);
+      const list = await http().get('/api/audit-requests?status=pending').set(asAuditor);
+      expect(list.status).toBe(200);
+      const mine = body(list).find((r: any) => r.request_id === requestId);
+      expect(mine).toBeDefined();
+      expect(mine.admin_password).toBeUndefined();
+    });
+
+    it('creates the organisation and its admin on approval', async () => {
+      const res = await http().patch(`/api/audit-requests/${requestId}/approve`).set(asAuditor).send({});
+      expect(res.status).toBe(200);
+      const data = body(res);
       orgId = data.organization.organization_id;
+      expect(data.request.status).toBe('approved');
+      expect(data.request.organization_id).toBe(orgId);
       expect(data.admin.role).toBe('Organization Admin');
       expect(data.admin.password).toBeUndefined();
     });
 
     it('refuses a second organisation on the same domain', async () => {
       const res = await http()
-        .post('/api/organizations/register')
+        .post('/api/audit-requests')
         .send({ ...payload(), name: `Another ${stamp} College`, admin_email: `x@${domain}` });
       expect(res.status).toBe(409);
     });

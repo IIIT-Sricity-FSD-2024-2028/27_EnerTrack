@@ -20,7 +20,7 @@ import { useRef, useState } from "react";
 import api from "../../api/client";
 import { emailOnDomain, validators } from "../auth/validators";
 import Modal from "./Modal";
-import { PLATFORM_SIDE_ROLES, TECHNICIAN_ROLES, USER_ROLES } from "./adminHelpers";
+import { PLATFORM_SIDE_ROLES, TECHNICIAN_ROLES, USER_ROLES, formatLabel } from "./adminHelpers";
 
 // Roles that need no per-person detail. Technicians need a specialization,
 // which the single "Add User" form asks for.
@@ -90,7 +90,10 @@ function checkRows(rows, emailDomain, existingEmails) {
       ...raw,
       email: raw.email.trim().toLowerCase(),
       role:
-        BULK_ROLES.find((r) => r.toLowerCase() === raw.role.trim().toLowerCase()) ??
+        // A role can be typed as stored ("Campus Visitor") or as shown ("Occupant")
+        BULK_ROLES.find((r) =>
+          [r, formatLabel(r)].some((name) => name.toLowerCase() === raw.role.trim().toLowerCase()),
+        ) ??
         (raw.role.trim() === "" ? DEFAULT_ROLE : raw.role.trim()),
     };
     const errors = [];
@@ -271,7 +274,7 @@ export default function BulkImportModal({
                   <td>{row.name || "-"}</td>
                   <td>{row.email || "-"}</td>
                   <td>{row.phone || "-"}</td>
-                  <td>{row.role}</td>
+                  <td>{formatLabel(row.role)}</td>
                   <td style={{ color: row.errors.length ? "#b42318" : "#067647" }}>
                     {row.errors.length ? row.errors.join(" ") : "Ready"}
                   </td>
@@ -294,8 +297,8 @@ export default function BulkImportModal({
     >
       <p>
         One person per line: <strong>name, email, phone, role</strong>. Phone is
-        optional and role defaults to {DEFAULT_ROLE}. Allowed roles:{" "}
-        {BULK_ROLES.join(", ")}. Add technicians one at a time (they need a
+        optional and role defaults to {formatLabel(DEFAULT_ROLE)}. Allowed roles:{" "}
+        {BULK_ROLES.map(formatLabel).join(", ")}. Add technicians one at a time (they need a
         specialization).
       </p>
       {emailDomain && (
@@ -309,7 +312,7 @@ export default function BulkImportModal({
           id="bulkText"
           rows={9}
           spellCheck={false}
-          placeholder={`name,email,phone,role\nAsha Rao,asha.rao@${emailDomain || "example.edu"},9876543210,Campus Visitor`}
+          placeholder={`name,email,phone,role\nAsha Rao,asha.rao@${emailDomain || "example.edu"},9876543210,Occupant`}
           value={text}
           onChange={(e) => setText(e.target.value)}
           style={{ fontFamily: "ui-monospace, Consolas, monospace", fontSize: "13px" }}
@@ -348,7 +351,7 @@ function ResultTable({ results }) {
               <td>{r.row}</td>
               <td>{r.name}</td>
               <td>{r.email}</td>
-              <td>{r.role}</td>
+              <td>{formatLabel(r.role)}</td>
               <td style={{ fontFamily: "ui-monospace, Consolas, monospace" }}>
                 {r.ok ? r.password : "-"}
               </td>

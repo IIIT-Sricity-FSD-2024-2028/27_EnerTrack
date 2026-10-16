@@ -38,43 +38,50 @@ async function fetchApprovalItems() {
   };
 }
 
-/** One approval card. The parent decides what the buttons do. */
-function ApprovalCard({ title, typeLabel, estimate, onApprove, onReject, busy }) {
-  const c = estimate || { materials: 0, labor: 0, total: 0 };
+/** One approval row. The parent decides what the buttons do. */
+function ApprovalRow({ title, kind, typeLabel, figures, total, totalLabel, actions }) {
   return (
-    <div className="fa-approval">
-      <div className="fa-approval-head">
-        <div>
-          <h4>{title}</h4>
-          <div className="fa-approval-kind">Cost Estimate Approval</div>
+    <article className="fo-row">
+      <div className="fo-row-top">
+        <div className="fo-row-title">
+          <strong title={title}>{title}</strong>
+          {typeLabel && <span>{typeLabel}</span>}
         </div>
-        <span className="fa-approval-type">{typeLabel}</span>
+        <span className={`fo-chip ${kind.tone}`}>{kind.label}</span>
       </div>
-      <div className="fa-estimate">
-        <div className="fa-estimate-row">
-          <span>Materials</span>
-          <span>{formatCurrency(c.materials)}</span>
-        </div>
-        <div className="fa-estimate-row">
-          <span>Labor</span>
-          <span>{formatCurrency(c.labor)}</span>
-        </div>
-        <div className="fa-estimate-total dashed">
-          <span>Total Estimated</span>
-          <span>{formatCurrency(c.total)}</span>
+      <div className="fo-figures">
+        {figures.map(([label, value]) => (
+          <div key={label}>
+            {label}
+            <strong>{formatCurrency(value)}</strong>
+          </div>
+        ))}
+        <div className="total">
+          {totalLabel}
+          <strong>{total == null ? "—" : formatCurrency(total)}</strong>
         </div>
       </div>
-      <div className="fa-btn-row">
-        <button className="fa-btn-dark" onClick={onApprove} disabled={busy}>
-          Approve Estimate
-        </button>
-        <button className="fa-btn-light" onClick={onReject} disabled={busy}>
-          Reject
-        </button>
-      </div>
-    </div>
+      <div className="fo-actions">{actions}</div>
+    </article>
   );
 }
+
+/** Approve / reject buttons for a cost estimate. */
+function EstimateActions({ busy, onApprove, onReject }) {
+  return (
+    <>
+      <button type="button" className="fo-btn primary" onClick={onApprove} disabled={busy}>
+        Approve estimate
+      </button>
+      <button type="button" className="fo-btn" onClick={onReject} disabled={busy}>
+        Reject
+      </button>
+    </>
+  );
+}
+
+const ESTIMATE = { label: "Estimate to approve", tone: "action" };
+const PAYMENT = { label: "Payment to authorize", tone: "ready" };
 
 export default function MaintenanceApprovals() {
   const showToast = useToast();
@@ -108,81 +115,102 @@ export default function MaintenanceApprovals() {
   const nothingPending =
     pendingEstimates.length === 0 && validatedJobs.length === 0 && workOrders.length === 0;
 
+  const count = pendingEstimates.length + workOrders.length + validatedJobs.length;
+  const est = (e) => e || { materials: 0, labor: 0, total: 0 };
+
   return (
-    <div className="box">
-      <div className="section-title">Pending Maintenance Authorizations</div>
+    <section className="fo-panel" aria-labelledby="approvalsTitle">
+      <div className="fo-panel-head">
+        <div>
+          <h2 id="approvalsTitle">Maintenance approvals</h2>
+          <p>Cost estimates waiting for sign-off, and finished jobs waiting for payment.</p>
+        </div>
+        <span className={count ? "fo-count has-items" : "fo-count"}>{count} pending</span>
+      </div>
 
-      {nothingPending && (
-        <div className="fa-empty">No pending maintenance or payment authorizations.</div>
-      )}
+      {nothingPending && <div className="fo-empty">Nothing to approve. New estimates from technicians will appear here.</div>}
 
-      {pendingEstimates.map((sr) => (
-        <ApprovalCard
-          key={sr.id}
-          title={`${sr.location} - ${sr.category}`}
-          typeLabel={sr.costProposal?.type || "Service"}
-          estimate={sr.costProposal}
-          busy={busyId === sr.id}
-          onApprove={() =>
-            update("/service-requests", sr.id, { status: "Approved (Executing)" },
-              "Estimate approved. Technician can proceed.", "success")
-          }
-          onReject={() =>
-            update("/service-requests", sr.id, { status: "Accepted" },
-              "Estimate rejected. Sent back to technician.", "warning")
-          }
-        />
-      ))}
+      {pendingEstimates.map((sr) => {
+        const e = est(sr.costProposal);
+        return (
+          <ApprovalRow
+            key={sr.id}
+            title={`${sr.location} - ${sr.category}`}
+            typeLabel={sr.costProposal?.type || "Service request"}
+            kind={ESTIMATE}
+            figures={[["Materials", e.materials], ["Labour", e.labor]]}
+            totalLabel="Total estimate"
+            total={e.total}
+            actions={
+              <EstimateActions
+                busy={busyId === sr.id}
+                onApprove={() =>
+                  update("/service-requests", sr.id, { status: "Approved (Executing)" },
+                    "Estimate approved. Technician can proceed.", "success")
+                }
+                onReject={() =>
+                  update("/service-requests", sr.id, { status: "Accepted" },
+                    "Estimate rejected. Sent back to technician.", "warning")
+                }
+              />
+            }
+          />
+        );
+      })}
 
       {workOrders.map((wo) => {
         const woId = wo.work_order_id || wo.id || "";
+        const e = est(wo.estimate || wo.details?.estimate);
         return (
-          <ApprovalCard
+          <ApprovalRow
             key={woId}
             title={`${formatWOId(woId)} - ${wo.title}`}
-            typeLabel={wo.type || "Maintenance"}
-            estimate={wo.estimate || wo.details?.estimate}
-            busy={busyId === woId}
-            onApprove={() =>
-              update("/work-orders", woId, { status: "inprogress" },
-                "Internal Work Order estimate approved.", "success")
-            }
-            onReject={() =>
-              update("/work-orders", woId, { status: "new", assigned_to_id: null },
-                "Internal Work Order estimate rejected. Tech notified.", "warning")
+            typeLabel={wo.type ? wo.type.charAt(0).toUpperCase() + wo.type.slice(1) : "Maintenance"}
+            kind={ESTIMATE}
+            figures={[["Materials", e.materials], ["Labour", e.labor]]}
+            totalLabel="Total estimate"
+            total={e.total}
+            actions={
+              <EstimateActions
+                busy={busyId === woId}
+                onApprove={() =>
+                  update("/work-orders", woId, { status: "inprogress" },
+                    "Internal Work Order estimate approved.", "success")
+                }
+                onReject={() =>
+                  update("/work-orders", woId, { status: "new", assigned_to_id: null },
+                    "Internal Work Order estimate rejected. Tech notified.", "warning")
+                }
+              />
             }
           />
         );
       })}
 
       {validatedJobs.map((sr) => (
-        <div className="fa-approval" key={sr.id}>
-          <div className="fa-approval-head">
-            <div>
-              <h4>{`${sr.location} - ${sr.category}`}</h4>
-              <div className="fa-approval-kind paid">Payment Authorization (Job Complete &amp; Verified)</div>
-            </div>
-          </div>
-          <div className="fa-estimate">
-            <div className="fa-estimate-total">
-              <span>Final Invoice Total</span>
-              <span>{sr.costProposal ? formatCurrency(sr.costProposal.total) : "—"}</span>
-            </div>
-          </div>
-          <div className="fa-btn-row">
+        <ApprovalRow
+          key={sr.id}
+          title={`${sr.location} - ${sr.category}`}
+          typeLabel="Job complete and verified"
+          kind={PAYMENT}
+          figures={[]}
+          totalLabel="Final invoice"
+          total={sr.costProposal ? sr.costProposal.total : null}
+          actions={
             <button
-              className="fa-btn-green"
+              type="button"
+              className="fo-btn positive"
               disabled={busyId === sr.id}
               onClick={() =>
                 update("/service-requests", sr.id, { status: "Closed" },
                   "Payment authorized. Job closed successfully.", "success")
               }
             >
-              Authorize Payment / Close Job
+              Authorize payment and close job
             </button>
-          </div>
-        </div>
+          }
+        />
       ))}
-    </div>
+    </section>
   );
 }

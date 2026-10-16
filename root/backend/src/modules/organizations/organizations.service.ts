@@ -67,27 +67,33 @@ export class OrganizationsService {
   }
 
   /**
-   * An organisation signing itself up. This is where the engagement starts.
+   * Creates an organisation and its first user, together. Called when an
+   * auditor APPROVES an audit request (AuditRequestsService.approve); it is
+   * deliberately not a public route any more.
    *
-   * Public, because the person doing it has no account yet. It creates the
-   * organisation as a
-   * PROSPECT and its first user as an Organization Admin, together, because
-   * either one alone is a dead record: an organisation with nobody in it
-   * cannot request an audit, and a user with no organisation belongs to no
-   * tenant and would see nothing.
+   * It used to be one: anyone could post to /organizations/register and get a
+   * live organisation, an administrator account and a signed-in session with
+   * no check at all, which made the database writable by every visitor. The
+   * request-and-approve step in front of this method is what stops that.
+   *
+   * It creates the organisation as a PROSPECT and its first user as an
+   * Organization Admin, together, because either one alone is a dead record:
+   * an organisation with nobody in it cannot request an audit, and a user
+   * with no organisation belongs to no tenant and would see nothing.
    *
    * That first user being an Organization Admin is deliberate, and it is the
    * one case where self-appointing as account owner is correct. Every other
-   * account is created by that admin (UsersService.create / bulkCreate), and
-   * nobody can join an existing organisation on their own.
+   * account is created by that admin (UsersService.create / bulkCreate).
    *
-   * Honest limitation: this is an unauthenticated write, so it is spammable.
-   * What limits the damage is that the record does nothing on its own — a
-   * prospect has no subscription, no data and no dashboards worth the name
-   * until an auditor engages with it — and duplicate names are refused
-   * outright.
+   * It re-checks that the name, email and domain are still free, because
+   * time has passed since the request was made.
    */
-  registerSelfServe(dto: RegisterOrganizationDto) {
+  /**
+   * Throws unless this name, administrator email and mail domain are still
+   * free. Run when a request is submitted (so the person hears about a clash
+   * at once) and again on approval (because time has passed).
+   */
+  assertCanRegister(dto: RegisterOrganizationDto) {
     const nameTaken = this.database.organizations.find(
       (o) => o.name.toLowerCase() === dto.name.trim().toLowerCase(),
     );
@@ -110,6 +116,12 @@ export class OrganizationsService {
       throw new ConflictException(
         `An account already exists for ${dto.admin_email}`,
       );
+  }
+
+  createWithAdmin(dto: RegisterOrganizationDto) {
+    this.assertCanRegister(dto);
+    const email = dto.admin_email.trim().toLowerCase();
+    const emailDomain = dto.email_domain?.trim().toLowerCase() || null;
 
     const organization = {
       organization_id: crypto.randomUUID(),
@@ -137,8 +149,7 @@ export class OrganizationsService {
     };
     this.database.users.push(admin as any);
 
-    // Same shape as login, so the sign-up page can drop the caller straight
-    // into a session rather than making them type their password again.
+    // Same shape as login, minus the password.
     const { password: _pw, ...safeAdmin } = admin;
     return { organization, admin: safeAdmin };
   }

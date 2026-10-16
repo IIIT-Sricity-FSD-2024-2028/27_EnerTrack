@@ -80,8 +80,8 @@ export default function Pricing() {
 
       {failed && plans.length === 0 && (
         <p className="pricing-note">
-          Our current prices could not be loaded. Register your organisation and
-          your auditor's proposal will show exactly what your plan costs.
+          Our current prices could not be loaded. Request an audit and your
+          auditor's proposal will show exactly what your plan costs.
         </p>
       )}
 
@@ -95,7 +95,7 @@ export default function Pricing() {
       )}
 
       <p className="pricing-note">
-        A Campus Visitor account is always free. Anyone on campus can report a
+        An Occupant account is always free. Anyone in your buildings can report a
         fault or a leak without adding to your bill — the people who spot
         problems first should never be a line item.
       </p>

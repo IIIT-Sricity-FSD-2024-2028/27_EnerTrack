@@ -27,6 +27,7 @@ import {
   PLATFORM_SIDE_ROLES,
   TECHNICIAN_ROLES,
   USER_ROLES,
+  formatLabel,
 } from "./adminHelpers";
 
 export default function UserFormModal({
@@ -238,7 +239,7 @@ export default function UserFormModal({
           >
             {USER_ROLES.map((role) => (
               <option key={role} value={role}>
-                {role}
+                {formatLabel(role)}
               </option>
             ))}
           </select>

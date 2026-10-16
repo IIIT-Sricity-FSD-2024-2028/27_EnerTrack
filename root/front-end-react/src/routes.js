@@ -53,6 +53,7 @@ export const PATHS = {
   },
   auditor: {
     overview: "/auditor/overview",
+    requests: "/auditor/requests",
     audits: "/auditor/audits",
   },
   campus: {
@@ -126,6 +127,21 @@ export const ROLE_AREA = {
   "Department Head": "campus",
 };
 
+/**
+ * What a role is called on screen, where that differs from the stored value.
+ * The backend and the database still use "Campus Visitor" (it is the RBAC
+ * key); only the name people see changed, because the organisation can be a
+ * campus, a university or a corporate office.
+ */
+export const ROLE_LABELS = {
+  "Campus Visitor": "Occupant",
+};
+
+/** The on-screen name for a stored role value. */
+export function roleLabel(role) {
+  return ROLE_LABELS[role] ?? role;
+}
+
 /** The nav area for a role, or null for a role with no dashboard. */
 export function areaForRole(role) {
   return ROLE_AREA[role] ?? null;
@@ -194,6 +210,7 @@ export const NAV = {
   ],
   auditor: [
     { label: "Overview", to: PATHS.auditor.overview },
+    { label: "Audit Requests", to: PATHS.auditor.requests },
     { label: "Audits & Recommendations", to: PATHS.auditor.audits },
   ],
   campus: [

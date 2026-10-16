@@ -81,35 +81,6 @@
         ]
       }
     },
-    "/api/organizations/register": {
-      "post": {
-        "operationId": "OrganizationsController_registerSelfServe",
-        "summary": "Register an Organization (public)",
-        "description": "An organisation signing itself up. This is where an engagement starts: it creates the organisation as a prospect and its first user as an Organization Admin, together, because either alone is a dead record. No authorization headers required — the person doing this has no account yet. The returned admin has the same shape as a login response, so the sign-up page can start a session immediately. Refused if the organisation name or the email is already taken.",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterOrganizationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Organization and its admin created."
-          },
-          "409": {
-            "description": "Organisation name or email already registered."
-          }
-        },
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
     "/api/organizations/{id}": {
       "get": {
         "operationId": "OrganizationsController_findOne",
@@ -1924,6 +1895,181 @@
         },
         "tags": [
           "energy-audits"
+        ]
+      }
+    },
+    "/api/audit-requests": {
+      "post": {
+        "operationId": "AuditRequestsController_submit",
+        "summary": "Request an audit (public)",
+        "description": "An organisation asking to be taken on. Records a pending request and creates nothing else: no organisation, no account, no session. A certified auditor approves or denies it, and only approval creates the organisation and its administrator. Refused if the organisation name, the email or the mail domain is already taken, by a real record or by another pending request.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOrganizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Request recorded and awaiting approval."
+          },
+          "409": {
+            "description": "Name, email or domain already taken or already awaiting approval."
+          }
+        },
+        "tags": [
+          "audit-requests"
+        ]
+      },
+      "get": {
+        "operationId": "AuditRequestsController_findAll",
+        "summary": "List audit requests",
+        "description": "Every request, newest first. Filter with ?status=pending|approved|denied. The requester's password is never included.",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pending",
+                "approved",
+                "denied"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of audit requests."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "audit-requests"
+        ]
+      }
+    },
+    "/api/audit-requests/{id}/approve": {
+      "patch": {
+        "operationId": "AuditRequestsController_approve",
+        "summary": "Approve an audit request",
+        "description": "Creates the organisation (as a prospect) and its first user as Organization Admin, using the details and password from the request, and marks the request approved. From then on the person can sign in.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideAuditRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Organisation and administrator created."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Request not found."
+          },
+          "409": {
+            "description": "Already decided, or the name, email or domain was taken in the meantime."
+          }
+        },
+        "tags": [
+          "audit-requests"
+        ]
+      }
+    },
+    "/api/audit-requests/{id}/deny": {
+      "patch": {
+        "operationId": "AuditRequestsController_deny",
+        "summary": "Deny an audit request",
+        "description": "Marks the request denied and creates nothing. The optional note is what the person sees if they try to sign in.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Caller role for RBAC. Certified Energy Auditor | Super Admin",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideAuditRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request denied."
+          },
+          "403": {
+            "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "Request not found."
+          },
+          "409": {
+            "description": "Already decided."
+          }
+        },
+        "tags": [
+          "audit-requests"
         ]
       }
     },
@@ -4364,54 +4510,6 @@
           },
           "403": {
             "description": "Forbidden (RBAC)"
-          }
-        },
-        "tags": [
-          "meter-readings"
-        ]
-      }
-    },
-    "/api/meter-readings/upload": {
-      "post": {
-        "operationId": "MeterReadingsController_uploadSpreadsheet",
-        "summary": "Bulk Upload Meter Readings",
-        "description": "Uploads a CSV file of meter readings for sites without automatic sensors. The Organization Admin and Technician can submit a batch of readings via file. Send a multipart/form-data POST request with the CSV file under the 'file' field.",
-        "parameters": [
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Meter readings imported successfully from CSV."
-          },
-          "400": {
-            "description": "File missing, wrong type, or over the size limit."
-          },
-          "403": {
-            "description": "Forbidden – caller role is not Organization Admin or Technician."
           }
         },
         "tags": [
@@ -8109,10 +8207,6 @@
           "email_domain": null
         }
       },
-      "RegisterOrganizationDto": {
-        "type": "object",
-        "properties": {}
-      },
       "PutOrganizationDto": {
         "type": "object",
         "properties": {}
@@ -8176,6 +8270,14 @@
         "properties": {}
       },
       "UpdateEnergyAuditDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RegisterOrganizationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DecideAuditRequestDto": {
         "type": "object",
         "properties": {}
       },
