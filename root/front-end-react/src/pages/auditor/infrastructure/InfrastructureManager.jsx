@@ -11,13 +11,15 @@
  * With an orgId it only shows that one client's records, and everything it
  * creates belongs to that client — a Certified Energy Auditor has no
  * organisation of their own for the backend to scope by. Without one it
- * shows whatever the backend returns, plus an Organisation filter.
+ * shows whatever the backend returns, plus an Organisation filter for a
+ * Super Admin (an Organization Admin only ever sees their own organisation).
  *
  * `onChange` (optional) is called after every save or delete, so the page
  * around it can refresh anything that depends on buildings or meters.
  */
 import { useEffect, useState } from "react";
 import api from "../../../api/client";
+import { useAuth } from "../../../auth/useAuth";
 import Modal from "../../technician/components/Modal";
 import ToastStack from "../../technician/components/ToastStack";
 import { useToast } from "../../technician/components/useToast";
@@ -77,6 +79,12 @@ async function fetchInfrastructure(orgId) {
 
 export default function InfrastructureManager({ orgId, onChange }) {
   const { toasts, showToast } = useToast();
+  const { role } = useAuth();
+  // Only EnerTrack staff see more than one organisation, so only they need
+  // to filter by it. Gating the filter itself (not just the dropdown) also
+  // stops a value saved during a Super Admin session hiding an Org Admin's
+  // campuses after "Act as".
+  const canFilterOrgs = !orgId && role === "Super Admin";
 
   const [campuses, setCampuses] = useState([]);
   const [buildings, setBuildings] = useState([]);
@@ -217,10 +225,10 @@ export default function InfrastructureManager({ orgId, onChange }) {
   }
 
   // ── What is selected ─────────────────────────────────
-  // Only the admin page filters by organisation; the auditor page is
-  // already limited to one.
+  // Only a Super Admin on the admin page filters by organisation; the
+  // auditor page is already limited to one.
   let visibleCampuses = campuses;
-  if (!orgId && orgFilter) {
+  if (canFilterOrgs && orgFilter) {
     visibleCampuses = campuses.filter((c) => c.organization_id === orgFilter);
   }
 
@@ -275,7 +283,7 @@ export default function InfrastructureManager({ orgId, onChange }) {
         onEdit={(kind, item) => setPopup({ kind: kind, item: item })}
         onDelete={(type, item) => setPopup({ kind: "delete", type, item })}
         orgName={orgName}
-        showOrgFilter={!orgId}
+        showOrgFilter={canFilterOrgs}
         orgs={orgs}
         orgFilter={orgFilter}
         onOrgFilterChange={handleOrgFilterChange}
@@ -306,6 +314,7 @@ export default function InfrastructureManager({ orgId, onChange }) {
       {popup && popup.kind === "campus" && (
         <CampusModal
           campus={popup.item}
+          buildings={buildings}
           orgId={orgId}
           onSaved={(saved) => {
             // Select a newly added campus so its panels show straight away.
@@ -323,6 +332,8 @@ export default function InfrastructureManager({ orgId, onChange }) {
         <BuildingModal
           building={popup.item}
           campuses={visibleCampuses}
+          buildings={buildings}
+          departments={departments}
           selectedCampusId={campus ? campus.campus_id : null}
           orgId={orgId}
           onSaved={(saved) => {
@@ -340,6 +351,7 @@ export default function InfrastructureManager({ orgId, onChange }) {
         <DepartmentModal
           department={popup.item}
           buildings={campusBuildings}
+          departments={departments}
           selectedBuildingId={building ? building.building_id : null}
           orgId={orgId}
           onSaved={afterChange}
