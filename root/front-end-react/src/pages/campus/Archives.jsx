@@ -75,6 +75,7 @@ async function fetchArchives(user) {
             location: parts.location,
             issueType: sr.issue_type || parts.issueType,
             priority: sr.priority || "medium",
+            timestamp: sr.created_at, // when it was filed (none on seeded rows)
           };
         })
         // The backend lists oldest first, so reverse it: newest on top
@@ -271,10 +272,10 @@ function ServiceRequestCard({ request }) {
             <span className={`ticket-priority p-${priority}`}>
               {priority} Priority
             </span>
-            {/* Only local items carry a date; the backend sends none */}
+            {/* When the request was filed. Seeded requests have no date. */}
             {request.timestamp && (
               <span style={{ fontSize: "11px", color: "#9ca3af" }}>
-                Archived{" "}
+                Reported{" "}
                 {new Date(request.timestamp).toLocaleDateString("en-GB", {
                   day: "numeric",
                   month: "short",

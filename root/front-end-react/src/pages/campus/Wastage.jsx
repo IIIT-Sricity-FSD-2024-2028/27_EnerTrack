@@ -24,10 +24,7 @@ import {
   getMetricCategory,
   getMetricUnit,
 } from "../../legacy/sensorSimulator";
-import {
-  notifyOnStateChange,
-  renderBellIcon,
-} from "../../legacy/notifications";
+import { notifyOnStateChange } from "../../legacy/notifications";
 import AuditTimeline from "./AuditTimeline";
 import WastageCard from "./WastageCard";
 import WastageForm from "./WastageForm";
@@ -90,20 +87,14 @@ async function fetchMyReports(user) {
     .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
 }
 
-// Changes one report: on the backend if it came from there, otherwise in the
-// browser's store. `changes` is merged into the report's details.
-async function updateReport(report, changes) {
-  if (report.fromBackend) {
-    await api.patch(`/wastage-reports/${report.id}`, {
-      details: { ...report.details, ...changes },
-    });
-  } else {
-    const local = universalDB.data.workflow.wastageReports.find(
-      (r) => r.id === report.id,
-    );
-    Object.assign(local, changes);
-    universalDB.save();
-  }
+// Changes a report saved in the browser's store (made while the backend was
+// down). `changes` is merged into the report.
+function updateLocalReport(report, changes) {
+  const local = universalDB.data.workflow.wastageReports.find(
+    (r) => r.id === report.id,
+  );
+  Object.assign(local, changes);
+  universalDB.save();
 }
 
 export default function Wastage() {
@@ -120,12 +111,6 @@ export default function Wastage() {
   useEffect(() => {
     fetchMyReports(user).then(setReports);
   }, [user]);
-
-  // The notification bell is drawn by an old helper straight into the
-  // empty <div id="notif-container"> below
-  useEffect(() => {
-    renderBellIcon("notif-container", user.email);
-  }, [user.email]);
 
   function showToast() {
     setErrorText("");
@@ -209,7 +194,6 @@ export default function Wastage() {
     }
     setReports(await fetchMyReports(user));
     notifyOnStateChange(report, "submitted", user.name); // tell the officers
-    renderBellIcon("notif-container", user.email);
     return true;
   }
 
@@ -221,10 +205,15 @@ export default function Wastage() {
 
   async function handleArchive(report) {
     try {
-      await updateReport(report, {
-        archived: true,
-        archivedAt: new Date().toISOString(),
-      });
+      if (report.fromBackend) {
+        // Its own route: a visitor may archive, but not edit, a report
+        await api.patch(`/wastage-reports/${report.id}/archive`);
+      } else {
+        updateLocalReport(report, {
+          archived: true,
+          archivedAt: new Date().toISOString(),
+        });
+      }
     } catch (err) {
       showError("Could not archive this report: " + err.message);
       return;
@@ -234,22 +223,33 @@ export default function Wastage() {
     showToast();
   }
 
+  // Returns true when the comment was saved, so the card knows whether to
+  // clear the text box (on failure the visitor keeps what they typed).
   async function handleAddComment(report, text) {
-    const comment = {
-      author: user.name,
-      role: "Campus Visitor",
-      text: text,
-      timestamp: new Date().toISOString(),
-    };
     try {
-      await updateReport(report, {
-        comments: [...(report.comments || []), comment],
-      });
+      if (report.fromBackend) {
+        // Its own route: the server adds the comment to the list itself
+        await api.post(`/wastage-reports/${report.id}/comments`, {
+          text: text,
+          author: user.name,
+        });
+      } else {
+        const comment = {
+          author: user.name,
+          role: "Campus Visitor",
+          text: text,
+          timestamp: new Date().toISOString(),
+        };
+        updateLocalReport(report, {
+          comments: [...(report.comments || []), comment],
+        });
+      }
     } catch (err) {
       showError("Could not save your comment: " + err.message);
-      return;
+      return false;
     }
     setReports(await fetchMyReports(user));
+    return true;
   }
 
   return (
@@ -265,7 +265,6 @@ export default function Wastage() {
             energy, water, emissions or food wastage.
           </p>
         </div>
-        <div id="notif-container" className="notif-container"></div>
       </div>
 
       <div className="eu-grid">
