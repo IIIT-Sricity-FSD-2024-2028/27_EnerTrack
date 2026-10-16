@@ -11,6 +11,8 @@ export const PATHS = {
   signIn: "/auth",
   registerOrganisation: "/auth?mode=register",
   changePassword: "/change-password",
+  // Every signed-in role has one, inside its own dashboard's layout.
+  account: "/account",
   // Old addresses. They still work (bookmarks, emailed links) by redirecting.
   legacy: {
     signIn: "/sign-in",

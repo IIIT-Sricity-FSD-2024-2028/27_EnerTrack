@@ -24,6 +24,7 @@ import DashboardLayout from "./layout/DashboardLayout";
 import Landing from "./pages/landing/Landing";
 import AuthPage from "./pages/auth/AuthPage";
 import ChangePassword from "./pages/auth/ChangePassword";
+import Account from "./pages/account/Account";
 
 import AdminUsers from "./pages/admin/Users";
 import AdminOrganizations from "./pages/admin/Organizations";
@@ -85,6 +86,14 @@ export default function App() {
 
       {/* Signed-in pages. The inner element is the same DashboardLayout for
           every group; only the area passed to RequireRole differs. */}
+
+      {/* No area: every signed-in role may open My account. */}
+      <Route element={<RequireRole />}>
+        <Route element={<DashboardLayout />}>
+          <Route path={PATHS.account} element={<Account />} />
+        </Route>
+      </Route>
+
       <Route element={<RequireRole area="admin" />}>
         <Route element={<DashboardLayout />}>
           <Route path={PATHS.admin.users} element={<AdminUsers />} />

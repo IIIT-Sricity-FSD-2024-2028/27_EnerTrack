@@ -2670,6 +2670,70 @@
         ]
       }
     },
+    "/api/users/update-details": {
+      "post": {
+        "operationId": "UsersController_updateDetails",
+        "summary": "Update My Details",
+        "description": "Lets a signed-in person change their own name and phone. Public, so it proves identity with the current password (as change-password does). Role, email and organisation cannot be changed here. No x-role header required.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDetailsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Details saved. Returns the user record (without password)."
+          },
+          "401": {
+            "description": "Invalid email or current password."
+          },
+          "409": {
+            "description": "Phone number belongs to another account."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/delete-account": {
+      "post": {
+        "operationId": "UsersController_deleteAccount",
+        "summary": "Delete My Account",
+        "description": "Lets a person delete their own account after proving the password. Refused with 409 for the last Organization Admin of an organisation, the last Super Admin and the last Certified Energy Auditor. No x-role header required.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account deleted."
+          },
+          "401": {
+            "description": "Invalid email or password."
+          },
+          "409": {
+            "description": "You are the last holder of a role that must always have one."
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/users/bulk": {
       "post": {
         "operationId": "UsersController_bulkCreate",
@@ -8410,6 +8474,14 @@
         "properties": {}
       },
       "ChangePasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateDetailsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DeleteAccountDto": {
         "type": "object",
         "properties": {}
       },

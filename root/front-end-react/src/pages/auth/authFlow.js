@@ -85,6 +85,27 @@ export function changePassword({ email, currentPassword, newPassword }) {
 }
 
 /**
+ * Saves a person's own name and phone. The current password is how the
+ * backend knows who is asking. Returns the updated account.
+ */
+export function updateDetails({ email, currentPassword, name, phone }) {
+  return api.post("/users/update-details", {
+    email: email.trim().toLowerCase(),
+    current_password: currentPassword,
+    name: name.trim(),
+    phone: phone.trim(),
+  });
+}
+
+/** Deletes a person's own account, after confirming the password. */
+export function deleteAccount({ email, password }) {
+  return api.post("/users/delete-account", {
+    email: email.trim().toLowerCase(),
+    password,
+  });
+}
+
+/**
  * Where a freshly authenticated account goes. An account whose password was
  * issued by an administrator must replace it before anything else.
  */

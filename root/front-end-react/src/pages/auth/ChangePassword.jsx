@@ -3,8 +3,8 @@
  *
  * An account an administrator created starts with a password the
  * administrator chose, so the first sign-in has to replace it before the
- * person can use anything else (RequireRole sends them here). Anyone signed in
- * can also open it later to change their password.
+ * person can use anything else (RequireRole sends them here). Changing a
+ * password later is done on the My account page (pages/account).
  */
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";

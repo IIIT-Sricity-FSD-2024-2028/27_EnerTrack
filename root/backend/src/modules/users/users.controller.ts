@@ -15,6 +15,8 @@ import { PutUserDto } from "./dto/put-user.dto";
 import { LoginDto } from "./dto/login.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { SignupDto } from "./dto/signup.dto";
+import { UpdateDetailsDto } from "./dto/update-details.dto";
+import { DeleteAccountDto } from "./dto/delete-account.dto";
 import { BulkCreateUsersDto } from "./dto/bulk-create-users.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
@@ -78,6 +80,32 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Invalid email or current password.' })
   changePassword(@Body() dto: ChangePasswordDto) {
     return this.usersService.changePassword(dto.email, dto.current_password, dto.new_password);
+  }
+
+  @Post('update-details')
+  @ApiOperation({
+    summary: 'Update My Details',
+    description:
+      'Lets a signed-in person change their own name and phone. Public, so it proves identity with the current password (as change-password does). Role, email and organisation cannot be changed here. No x-role header required.',
+  })
+  @ApiResponse({ status: 201, description: 'Details saved. Returns the user record (without password).' })
+  @ApiResponse({ status: 401, description: 'Invalid email or current password.' })
+  @ApiResponse({ status: 409, description: 'Phone number belongs to another account.' })
+  updateDetails(@Body() dto: UpdateDetailsDto) {
+    return this.usersService.updateDetails(dto.email, dto.current_password, dto.name, dto.phone);
+  }
+
+  @Post('delete-account')
+  @ApiOperation({
+    summary: 'Delete My Account',
+    description:
+      'Lets a person delete their own account after proving the password. Refused with 409 for the last Organization Admin of an organisation, the last Super Admin and the last Certified Energy Auditor. No x-role header required.',
+  })
+  @ApiResponse({ status: 201, description: 'Account deleted.' })
+  @ApiResponse({ status: 401, description: 'Invalid email or password.' })
+  @ApiResponse({ status: 409, description: 'You are the last holder of a role that must always have one.' })
+  deleteAccount(@Body() dto: DeleteAccountDto) {
+    return this.usersService.deleteAccount(dto.email, dto.password);
   }
 
   @Post('bulk')
