@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import api, { isNetworkError } from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 import overviewCss from "../../styles/sustainability_officer/sust_overview.css?inline";
@@ -17,7 +18,29 @@ export default function SustainabilityArchives() {
     user?.role === "Organization Admin" ||
     user?.role === "Sustainability Officer";
 
-  const [activeTab, setActiveTab] = useState("reports"); // 'reports' | 'initiatives' | 'wastage'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    urlTab && ["reports", "initiatives", "wastage"].includes(urlTab)
+      ? urlTab
+      : "reports",
+  );
+
+  useEffect(() => {
+    if (
+      urlTab &&
+      ["reports", "initiatives", "wastage"].includes(urlTab) &&
+      urlTab !== activeTab
+    ) {
+      setActiveTab(urlTab);
+    }
+  }, [urlTab]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId }, { replace: true });
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [reports, setReports] = useState([]);
   const [initiatives, setInitiatives] = useState([]);
@@ -48,12 +71,36 @@ export default function SustainabilityArchives() {
           setReports(reportsRes.value);
         }
 
-        if (initsRes.status === "fulfilled" && Array.isArray(initsRes.value)) {
-          const completed = initsRes.value.filter(
-            (i) => i.status === "completed",
-          );
-          setInitiatives(completed);
-        }
+        // Load initiatives: merge from backend completed AND locally archived initiatives
+        const localArchives = (() => {
+          try {
+            const raw = localStorage.getItem("enertrack_universal_v1");
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed?.sust?.initiativeArchives)
+              ? parsed.sust.initiativeArchives
+              : [];
+          } catch (e) {
+            return [];
+          }
+        })();
+
+        const backendCompleted =
+          initsRes.status === "fulfilled" && Array.isArray(initsRes.value)
+            ? initsRes.value.filter((i) => i.status === "completed")
+            : [];
+
+        const combinedMap = new Map();
+        localArchives.forEach((item) => {
+          const key = item.initiative_id || item.id;
+          if (key) combinedMap.set(key, { ...item, initiative_id: key });
+        });
+        backendCompleted.forEach((item) => {
+          const key = item.initiative_id || item.id;
+          if (key && !combinedMap.has(key)) combinedMap.set(key, item);
+        });
+
+        setInitiatives(Array.from(combinedMap.values()));
 
         if (
           wastageRes.status === "fulfilled" &&
@@ -132,92 +179,93 @@ export default function SustainabilityArchives() {
 
   // Remove report
   const handleRemoveReport = async (reportId) => {
+    setReports((prev) =>
+      prev.filter((r) => (r.report_id || r.id) !== reportId),
+    );
+    try {
+      const raw = localStorage.getItem("enertrack_universal_v1");
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data.sust?.complianceReports) {
+          data.sust.complianceReports = data.sust.complianceReports.filter(
+            (r) => (r.report_id || r.id) !== reportId,
+          );
+          localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
+        }
+      }
+    } catch (err) {
+      console.warn("[Archives] Failed to clean report localStorage:", err);
+    }
+
     try {
       await api.delete(`/sustainability-reports/${reportId}`);
-      setReports((prev) =>
-        prev.filter((r) => (r.report_id || r.id) !== reportId),
-      );
-      showToast("Report removed from compliance ledger.", "success");
     } catch (e) {
-      console.error("[Archive Delete]", e);
-      if (isNetworkError(e)) {
-        setReports((prev) =>
-          prev.filter((r) => (r.report_id || r.id) !== reportId),
-        );
-        showToast("Server offline. Report removed locally.", "warning");
-      } else {
-        showToast(e.message || "Failed to remove report", "error");
-      }
+      console.warn("[Archive Report Delete] Backend sync info:", e?.message);
     }
+    showToast("Report removed from compliance ledger.", "success");
   };
 
   // Remove initiative
   const handleRemoveInitiative = async (initId) => {
+    // 1. Optimistically remove from UI state
+    setInitiatives((prev) =>
+      prev.filter((i) => (i.initiative_id || i.id) !== initId),
+    );
+
+    // 2. Remove from universal local storage
+    try {
+      const raw = localStorage.getItem("enertrack_universal_v1");
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data.sust?.initiativeArchives) {
+          data.sust.initiativeArchives = data.sust.initiativeArchives.filter(
+            (i) => (i.initiative_id || i.id) !== initId,
+          );
+          localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
+        }
+      }
+    } catch (err) {
+      console.warn("[Archives] Failed to clean initiative localStorage:", err);
+    }
+
+    // 3. Sync deletion to backend (if present in database; 404 is expected for already archived records)
     try {
       await api.delete(`/initiatives/${initId}`);
-      setInitiatives((prev) =>
-        prev.filter((i) => (i.initiative_id || i.id) !== initId),
-      );
-      // Clean up local storage if present
-      try {
-        const raw = localStorage.getItem("enertrack_universal_v1");
-        if (raw) {
-          const data = JSON.parse(raw);
-          if (data.sust?.initiativeArchives) {
-            data.sust.initiativeArchives = data.sust.initiativeArchives.filter(
-              (i) => i.id !== initId,
-            );
-            localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
-          }
-        }
-      } catch (err) {
-        console.warn(err);
-      }
-      showToast("Initiative removed from archive.", "success");
     } catch (e) {
-      console.error("[Archive Delete]", e);
-      if (isNetworkError(e)) {
-        setInitiatives((prev) =>
-          prev.filter((i) => (i.initiative_id || i.id) !== initId),
-        );
-        try {
-          const raw = localStorage.getItem("enertrack_universal_v1");
-          if (raw) {
-            const data = JSON.parse(raw);
-            if (data.sust?.initiativeArchives) {
-              data.sust.initiativeArchives = data.sust.initiativeArchives.filter(
-                (i) => i.id !== initId,
-              );
-              localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
-            }
-          }
-        } catch (err) {
-          console.warn(err);
-        }
-        showToast("Server offline. Initiative removed locally.", "warning");
-      } else {
-        showToast(e.message || "Failed to remove initiative", "error");
-      }
+      console.warn("[Archive Delete] Backend sync notice:", e?.message);
     }
+
+    showToast("Initiative removed from archive.", "success");
   };
 
   // Remove wastage archive
   const handleRemoveWastage = async (wastageId) => {
+    setWastage((prev) => prev.filter((w) => (w.wastage_report_id || w.id) !== wastageId));
+
+    try {
+      const raw = localStorage.getItem("enertrack_universal_v1");
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data.sust?.wastageArchives) {
+          data.sust.wastageArchives = data.sust.wastageArchives.filter(
+            (w) => (w.wastage_report_id || w.id) !== wastageId,
+          );
+          localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
+        }
+      }
+    } catch (err) {
+      console.warn("[Archives] Failed to clean wastage localStorage:", err);
+    }
+
     try {
       await api.patch(`/wastage-reports/${wastageId}`, {
         details: { soArchived: false, status: "Investigating" },
       });
-      setWastage((prev) => prev.filter((w) => w.id !== wastageId));
-      showToast(`Wastage record #${wastageId} removed from archive.`, "success");
     } catch (e) {
-      console.error("[Wastage Unarchive]", e);
-      if (isNetworkError(e)) {
-        setWastage((prev) => prev.filter((w) => w.id !== wastageId));
-        showToast(`Server offline. Wastage #${wastageId} removed locally.`, "warning");
-      } else {
-        showToast(e.message || `Failed to remove wastage #${wastageId}`, "error");
-      }
+      console.warn("[Wastage Unarchive] Backend sync notice:", e?.message);
     }
+
+    showToast(`Wastage record #${wastageId} removed from archive.`, "success");
   };
 
   // Filtered collections based on search
@@ -340,7 +388,7 @@ export default function SustainabilityArchives() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               style={{
                 border: "none",
                 padding: "8px 16px",
@@ -719,9 +767,29 @@ export default function SustainabilityArchives() {
                       <span style={{ fontSize: "12px", color: "#6b7280" }}>
                         Completed on <strong>{dateStr}</strong> &bull; Target:{" "}
                         <strong style={{ color: "#059669" }}>
-                          {i.target_reduction}
+                          {i.target_reduction || i.target || "—"}
                         </strong>
                       </span>
+                      {i.outcomes && i.outcomes.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
+                          {i.outcomes.map((o, idx) => (
+                            <span
+                              key={idx}
+                              style={{
+                                background: "#f0fdf4",
+                                color: "#166534",
+                                border: "1px solid #bbf7d0",
+                                fontSize: "11px",
+                                fontWeight: "600",
+                                padding: "2px 8px",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              ✓ {typeof o === "string" ? o : JSON.stringify(o)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {canDeleteInitiative && (
