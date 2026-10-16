@@ -308,6 +308,36 @@ describe('Subscription model (e2e)', () => {
       expect(res.body.data.saved_amount).toBeGreaterThan(0);
     });
 
+    it('skips months with no readings yet instead of counting them as saved', async () => {
+      // Readings end at 2026-08. September 2025 has readings, September 2026
+      // does not; counting it would turn missing data into a 100% saving.
+      const full = await request(server())
+        .get('/api/organizations/org-001/savings?from=2026-03&to=2026-08')
+        .set('x-role', 'Super Admin')
+        .expect(200);
+      const past = await request(server())
+        .get('/api/organizations/org-001/savings?from=2026-03&to=2026-10')
+        .set('x-role', 'Super Admin')
+        .expect(200);
+
+      expect(past.body.data.months).toHaveLength(8);
+      expect(past.body.data.months_compared).toBe(6);
+      expect(past.body.data.compared_from).toBe('2026-03');
+      expect(past.body.data.compared_to).toBe('2026-08');
+      expect(past.body.data.saved_kwh).toBe(full.body.data.saved_kwh);
+    });
+
+    it('reports no comparison when no month has readings on both sides', async () => {
+      const res = await request(server())
+        .get('/api/organizations/org-001/savings?from=2026-09&to=2026-10')
+        .set('x-role', 'Super Admin')
+        .expect(200);
+
+      expect(res.body.data.has_comparison).toBe(false);
+      expect(res.body.data.saved_kwh).toBe(0);
+      expect(res.body.data.compared_from).toBeNull();
+    });
+
     it('rejects a request with neither a period nor a range', async () => {
       await request(server())
         .get('/api/organizations/org-001/savings')
