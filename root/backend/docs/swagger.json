@@ -5041,6 +5041,96 @@
         ]
       }
     },
+    "/api/wastage-reports/{id}/comments": {
+      "post": {
+        "operationId": "WastageReportsController_addComment",
+        "summary": "Add Comment",
+        "description": "Adds one comment to a wastage report. Open to the Campus Visitor too, who cannot use PATCH: this route can only append a comment, never change anything else.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": false,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddWastageCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comment added; the updated report is returned."
+          },
+          "400": {
+            "description": "Empty or too long comment."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
+    "/api/wastage-reports/{id}/archive": {
+      "patch": {
+        "operationId": "WastageReportsController_archive",
+        "summary": "Archive Wastage Report",
+        "description": "Moves a finished or dismissed report into the reporter's archive. Open to the Campus Visitor, who cannot use PATCH: this route only sets the archived flag.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archived; the updated report is returned."
+          },
+          "400": {
+            "description": "The report is still active."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
     "/api/alerts": {
       "post": {
         "operationId": "AlertsController_create",
@@ -8538,6 +8628,10 @@
         }
       },
       "PutWastageReportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AddWastageCommentDto": {
         "type": "object",
         "properties": {}
       },

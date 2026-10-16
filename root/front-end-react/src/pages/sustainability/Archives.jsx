@@ -64,31 +64,56 @@ export default function SustainabilityArchives() {
               (r) =>
                 r.status === "Finalized" ||
                 r.status === "Dismissed" ||
+                r.status === "Delivered" ||
+                r.status === "Target Set" ||
+                r.status === "rejected" ||
                 r.details?.soArchived ||
                 r.details?.archived,
             )
-            .map((r) => ({
-              id: r.wastage_report_id || r.id,
-              type: r.type || "Resource",
-              status: r.status || "Finalized",
-              location: r.details?.location || "Campus Grounds",
-              summary:
+            .map((r) => {
+              const spec = r.details?.specificData || {};
+              const sys = r.details?.systemData || {};
+              const location =
+                spec.location ||
+                spec.building ||
+                spec.cafeteria ||
+                r.details?.location ||
+                "Campus Grounds";
+              const summary =
+                spec.observation ||
+                spec.nature ||
+                (spec.typeOfWastage
+                  ? `${spec.typeOfWastage}${spec.estimatedAmount ? ` (~${spec.estimatedAmount}kg)` : ""}`
+                  : null) ||
                 r.details?.summary ||
                 r.details?.description ||
-                "Wastage incident resolved.",
-              priority: r.details?.priority || "Medium",
-              archivedAt:
-                r.details?.auditedAt ||
-                r.created_at ||
-                new Date().toISOString(),
-              decisionSummary:
-                r.details?.auditNotes ||
-                "Remedial measures inspected and finalized.",
-              baselineValue: 100,
-              currentValue: 30,
-              targetValue: Number(r.details?.targetReductionPct) || 15,
-              unit: "%",
-            }));
+                "Wastage incident resolved.";
+
+              return {
+                id: r.wastage_report_id || r.id,
+                type: r.type || "Resource",
+                status: r.status || "Finalized",
+                location,
+                summary,
+                priority: r.details?.priority || "Medium",
+                archivedAt:
+                  r.details?.dismissedAt ||
+                  r.details?.soArchivedAt ||
+                  r.details?.auditedAt ||
+                  r.created_at ||
+                  new Date().toISOString(),
+                decisionSummary:
+                  r.details?.auditDecision ||
+                  r.details?.auditNotes ||
+                  (r.status === "Dismissed" || r.status === "rejected"
+                    ? "Dismissed as false alarm or resolved."
+                    : "Remedial measures inspected and finalized."),
+                baselineValue: sys.baselineValue || 100,
+                currentValue: sys.readingValue || 30,
+                targetValue: Number(r.details?.targetReductionPct) || 15,
+                unit: sys.readingUnit || "%",
+              };
+            });
 
           setWastage(archivedW);
         }

@@ -263,3 +263,23 @@ export async function updateWastageReport(report, changes) {
   }
   return updated;
 }
+
+/**
+ * Adds one comment to a wastage report through POST /wastage-reports/:id/comments.
+ * The server appends it to the list itself, so a comment someone else posted
+ * in the meantime (e.g. the occupant) is never overwritten, which re-sending
+ * the whole list in a PATCH could do. The server records the role from the
+ * x-role header. Offline, the comment is kept locally instead.
+ * Returns the report with its new comment list; throws if the server refuses.
+ */
+export async function addWastageComment(report, { author, role, text }) {
+  try {
+    const saved = await api.post(`/wastage-reports/${report.id}/comments`, { author, text });
+    const details = saved?.details || report.details;
+    return { ...report, details, comments: details.comments || [] };
+  } catch (error) {
+    if (!isNetworkError(error)) throw error;
+    const comment = { author, role, text, timestamp: new Date().toISOString() };
+    return updateWastageReport(report, { comments: [...(report.comments || []), comment] });
+  }
+}

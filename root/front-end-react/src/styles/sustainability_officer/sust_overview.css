@@ -177,9 +177,9 @@
 /* TOP METRICS ROW */
 .top-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
 }
 
 .metric-card {
@@ -188,53 +188,21 @@
   padding: 20px;
   border: 1px solid #d8dde2;
   box-shadow: none;
-  grid-column: span 2;
-}
-
-.metric-header {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
 }
 
-.metric-header h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: #7b8590;
+@media (max-width: 1200px) {
+  .top-metrics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
-.metric-icon {
-  width: 20px;
-  height: 20px;
-  opacity: 0.5;
-}
-
-.metric-value {
-  font-size: 42px;
-  line-height: 1.05;
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 10px;
-}
-
-.metric-value small {
-  font-size: 34px;
-  font-weight: 600;
-}
-
-.metric-desc {
-  font-size: 14px;
-  color: #8a95a2;
-  line-height: 1.4;
-}
-
-.top-metrics-grid .metric-card:nth-child(4) {
-  grid-column: 2 / span 2;
-}
-
-.top-metrics-grid .metric-card:nth-child(5) {
-  grid-column: 4 / span 2;
+@media (max-width: 768px) {
+  .top-metrics-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* MIDDLE ROW */

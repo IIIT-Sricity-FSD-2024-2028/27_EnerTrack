@@ -75,7 +75,7 @@ async function fetchMyTickets(user) {
               ? sr.priority.charAt(0).toUpperCase() + sr.priority.slice(1)
               : "Medium",
             status: status,
-            timestamp: sr.created_at, // the backend sends none, so no date
+            timestamp: sr.created_at, // when it was filed (none on seeded rows)
             issueType: sr.issue_type || parts.issueType,
             step: progress.step,
             stepNote: progress.note,

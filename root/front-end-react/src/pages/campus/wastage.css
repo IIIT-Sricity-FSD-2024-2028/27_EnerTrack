@@ -7,13 +7,6 @@
  * naming them here keeps the components short. The values are unchanged.
  */
 
-/* ── Header: the notification bell's box ── */
-.notif-container {
-  position: relative;
-  flex-shrink: 0;
-  margin-top: 8px;
-}
-
 /* ── A report card's top row: details left, status right ── */
 .card-row {
   display: flex;

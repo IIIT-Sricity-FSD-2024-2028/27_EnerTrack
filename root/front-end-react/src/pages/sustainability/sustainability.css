@@ -1,6 +1,6 @@
 /*
  * sustainability.css — layout fixes for sustainability pages inside DashboardLayout.
- * Overrides body overflow locks from legacy sust_*.css while the page is mounted.
+ * Ensures the sidebar extends down the entire page height without being cut off.
  */
 
 /* `overflow: visible`, not `auto`. Any value other than visible turns <body>
@@ -8,7 +8,9 @@
    window does), so the sidebar's `position: sticky` sticks to a box that never
    moves and scrolls away with the page. */
 html,
-body {
+body,
+#root {
+  min-height: 100vh !important;
   height: auto !important;
   overflow: visible !important;
 }

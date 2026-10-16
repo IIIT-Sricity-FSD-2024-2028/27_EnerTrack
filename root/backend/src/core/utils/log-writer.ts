@@ -198,10 +198,20 @@ class LogWriter {
     // up immediately rather than waiting an hour.
     this.sweepOldLogs();
 
-    const flushAndForget = () => this.flushAll();
-    process.on("beforeExit", flushAndForget);
-    process.on("SIGINT", flushAndForget);
-    process.on("SIGTERM", flushAndForget);
+    process.on("beforeExit", () => this.flushAll());
+
+    // Listening for SIGINT/SIGTERM switches off Node's default "stop on this
+    // signal", so a plain listener left the server running after Ctrl+C or a
+    // kill — and `nest start --watch` could never restart it after a code
+    // change. So: flush, then hand the signal back. `once` has already
+    // removed this listener, so if nothing else is listening Node's default
+    // applies and the process stops.
+    const flushThenStop = (signal: NodeJS.Signals) => {
+      this.flushAll();
+      if (process.listenerCount(signal) === 0) process.kill(process.pid, signal);
+    };
+    process.once("SIGINT", flushThenStop);
+    process.once("SIGTERM", flushThenStop);
   }
 
   /** Stops the timers. Used by tests; not needed in normal operation. */

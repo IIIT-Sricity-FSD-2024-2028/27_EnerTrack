@@ -28,6 +28,8 @@ const TYPE_ICONS = {
 const ROLE_BADGES = {
   "Sustainability Officer": { label: "SO", color: "#059669" },
   "Finance Analyst": { label: "FA", color: "#6366f1" },
+  // POST /:id/comments records the RBAC role name
+  "Financial Analyst": { label: "FA", color: "#6366f1" },
 };
 
 /** "+127% over baseline" — from the stored deviation, or worked out. */
@@ -157,7 +159,7 @@ export default function WastageReportCard({ report, onEditCostImpact, onReturn, 
       {showComments && (
         <div className="fo-comments">
           {comments.map((c, i) => {
-            const badge = ROLE_BADGES[c.role] || { label: "CV", color: "#6b7280" };
+            const badge = ROLE_BADGES[c.role] || { label: "OC", color: "#6b7280" };
             return (
               <div className="fo-comment" key={i}>
                 <div className="fo-comment-avatar" style={{ background: badge.color }} aria-hidden="true">

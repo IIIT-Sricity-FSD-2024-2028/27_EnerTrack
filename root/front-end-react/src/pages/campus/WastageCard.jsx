@@ -13,7 +13,8 @@
  *   isSelected    true if this is the report open in the form (green border)
  *   onSelect      called with the report when the card is clicked
  *   onArchive     called with the report when Archive is clicked
- *   onAddComment  called with (report, text) when a comment is sent
+ *   onAddComment  called with (report, text) when a comment is sent;
+ *                 resolves to true when it was saved
  *
  * The card does not save anything itself: the parent (Wastage.jsx) does.
  * Styles: campus.css + wastage.css (+ ReportResult.css). Replaces the card
@@ -73,11 +74,11 @@ export default function WastageCard({
   const canArchive = ARCHIVABLE.includes(report.status);
   const comments = report.comments || [];
 
-  function handleSend() {
+  async function handleSend() {
     const text = commentText.trim();
     if (!text) return;
-    onAddComment(report, text);
-    setCommentText("");
+    const saved = await onAddComment(report, text);
+    if (saved) setCommentText(""); // keep the text if saving failed
   }
 
   return (
@@ -214,7 +215,7 @@ function Comment({ comment }) {
   if (comment.role === "Sustainability Officer") {
     badge = "SO";
     color = "#059669";
-  } else if (comment.role === "Finance Analyst") {
+  } else if (comment.role === "Finance Analyst" || comment.role === "Financial Analyst") {
     badge = "FA";
     color = "#6366f1";
   }
