@@ -226,6 +226,41 @@ export function getLocationKey(type, data) {
 }
 
 // 12000 -> "₹12,000"
+// The one field in each category that describes the wastage. Two reports of
+// the same category may not share the same description.
+export const DESCRIPTION_FIELD = {
+  Energy: "observation",
+  Water: "nature",
+  Emissions: "observation",
+  Food: "typeOfWastage",
+};
+
+// Lower case, trimmed, punctuation dropped, spaces collapsed, so "Lights  on!"
+// and "lights on" count as the same description.
+export function normalizeText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// The earlier report (if any) of the same category with the same description.
+// Dismissed reports do not count: they were rejected, so it may be re-filed.
+export function findSameDescription(reports, type, data) {
+  const wanted = normalizeText(data[DESCRIPTION_FIELD[type]]);
+  if (!wanted) return null;
+  return (
+    reports.find(
+      (r) =>
+        r.type === type &&
+        !r.archived &&
+        r.status !== "Dismissed" &&
+        normalizeText((r.specificData || {})[DESCRIPTION_FIELD[type]]) ===
+          wanted,
+    ) || null
+  );
+}
 export function formatCurrency(value) {
   return "₹" + Number(value).toLocaleString("en-IN");
 }

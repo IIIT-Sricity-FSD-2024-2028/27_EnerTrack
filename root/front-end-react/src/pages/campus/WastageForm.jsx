@@ -22,7 +22,9 @@ import { useEffect, useRef, useState } from "react";
 import { getBaselineRange } from "../../legacy/sensorSimulator";
 import DuplicateModal from "./DuplicateModal";
 import {
+  DESCRIPTION_FIELD,
   ESTIMATE_FIELDS,
+  findSameDescription,
   getLocationKey,
   getStatusInfo,
   TYPE_FIELDS,
@@ -176,6 +178,15 @@ export default function WastageForm({
     }
     specificData.reportedValue = reported;
     specificData.reportedUnit = baseline.unit;
+
+    const same = findSameDescription(reports, type, specificData);
+    if (same) {
+      setErrors({ [`${type}-${DESCRIPTION_FIELD[type]}`]: true });
+      setMessage(
+        `A ${type} wastage report (#${same.id}) with this same description already exists. Please describe a different issue instead of submitting a duplicate.`,
+      );
+      return;
+    }
 
     const values = { type, priority, specificData, photos };
 
