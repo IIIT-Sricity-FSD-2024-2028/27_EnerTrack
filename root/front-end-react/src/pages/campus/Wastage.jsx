@@ -28,7 +28,7 @@ import { notifyOnStateChange } from "../../legacy/notifications";
 import AuditTimeline from "./AuditTimeline";
 import WastageCard from "./WastageCard";
 import WastageForm from "./WastageForm";
-import { getLocationKey } from "./wastageHelpers";
+import { findSameDescription, getLocationKey } from "./wastageHelpers";
 import campusCss from "./campus.css?inline";
 import wastageCss from "./wastage.css?inline";
 
@@ -127,6 +127,18 @@ export default function Wastage() {
 
   // Called by <WastageForm> with { type, priority, specificData, photos }
   async function handleSubmit({ type, priority, specificData, photos }) {
+        // Safety net: re-check against fresh data, in case the list on screen is
+    // out of date (another tab, a double submit). Never save the same
+    // description twice.
+    const current = await fetchMyReports(user);
+    const same = findSameDescription(current, type, specificData);
+    if (same) {
+      setReports(current);
+      showError(
+        `A ${type} wastage report (#${same.id}) with the same description already exists.`,
+      );
+      return false; // keeps what the visitor typed
+    }
     const report = {
       id: "WR-" + Date.now().toString(36).toUpperCase(),
       source: "User-Reported",
