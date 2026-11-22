@@ -27,31 +27,14 @@
  * who follows the organisation's own email format and hands over the
  * credentials.
  *
- * Plain functions, no React: the page adopts the returned session itself.
+ * The calls themselves are thunks in store/slices/authSlice.js (signIn,
+ * signUpCampus, requestAudit, changePassword, ...). This file keeps the pure
+ * helpers: the audit-request payload and where to go after signing in.
  */
-import api from "../../api/client";
 import { PATHS, homeForRole } from "../../routes";
 
-/** Signs anyone in. Returns the account (without password). */
-export function signIn({ email, password }) {
-  return api.post("/users/login", {
-    email: email.trim().toLowerCase(),
-    password,
-  });
-}
-
-/** A student or faculty member's own account. Returns the account. */
-export function signUpCampus(values) {
-  return api.post("/users/signup", {
-    name: values.name.trim(),
-    email: values.email.trim().toLowerCase(),
-    phone: values.phone.trim(),
-    password: values.password,
-  });
-}
-
 /** Builds the payload for an audit request; optional fields only when filled. */
-function organisationPayload(values) {
+export function organisationPayload(values) {
   const payload = {
     name: values.orgName.trim(),
     type: values.orgType,
@@ -65,44 +48,6 @@ function organisationPayload(values) {
     payload.email_domain = values.emailDomain.trim().toLowerCase();
   if (values.adminPhone.trim()) payload.admin_phone = values.adminPhone.trim();
   return payload;
-}
-
-/**
- * Asks for an audit. Nothing is created and nobody is signed in: the request
- * waits for a Super Admin's decision. Returns a small receipt.
- */
-export function requestAudit(values) {
-  return api.post("/audit-requests", organisationPayload(values));
-}
-
-/** Replaces a password. Returns the updated account. */
-export function changePassword({ email, currentPassword, newPassword }) {
-  return api.post("/users/change-password", {
-    email: email.trim().toLowerCase(),
-    current_password: currentPassword,
-    new_password: newPassword,
-  });
-}
-
-/**
- * Saves a person's own name and phone. The current password is how the
- * backend knows who is asking. Returns the updated account.
- */
-export function updateDetails({ email, currentPassword, name, phone }) {
-  return api.post("/users/update-details", {
-    email: email.trim().toLowerCase(),
-    current_password: currentPassword,
-    name: name.trim(),
-    phone: phone.trim(),
-  });
-}
-
-/** Deletes a person's own account, after confirming the password. */
-export function deleteAccount({ email, password }) {
-  return api.post("/users/delete-account", {
-    email: email.trim().toLowerCase(),
-    password,
-  });
 }
 
 /**

@@ -16,16 +16,17 @@
  * so there is no "sign up as ..." form.
  */
 import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { PATHS } from "../../routes";
 import FormField from "../../ui/FormField";
+import { destinationAfterAuth, organisationPayload } from "./authFlow";
 import {
-  destinationAfterAuth,
   requestAudit,
   signIn,
   signUpCampus,
-} from "./authFlow";
+} from "../../store/slices/authSlice";
 import { ORG_TYPES, validateFields, validators } from "./validators";
 import "../../styles/sign_in/sign_in.css";
 import "../../styles/sign_up/sign_up.css";
@@ -94,6 +95,7 @@ export default function AuthPage() {
   const isCampus = mode === MODES.campus;
 
   const { user, adoptSession } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const [signInValues, setSignInValues] = useState(EMPTY_SIGN_IN);
@@ -186,7 +188,7 @@ export default function AuthPage() {
       if (isRegister) {
         // Files a pending request. Nothing is created and nobody is signed in
         // until a Super Admin approves it.
-        await requestAudit(registerValues);
+        await dispatch(requestAudit(organisationPayload(registerValues))).unwrap();
         setRequestSent({
           name: registerValues.orgName.trim(),
           email: registerValues.adminEmail.trim().toLowerCase(),
@@ -194,14 +196,16 @@ export default function AuthPage() {
         setRegisterValues(EMPTY_REGISTER);
         setSubmitting(false);
       } else if (isCampus) {
-        const account = await signUpCampus(campusValues);
+        const account = await dispatch(signUpCampus(campusValues)).unwrap();
         adoptSession(account);
         navigate(destinationAfterAuth(account), { replace: true });
       } else {
-        const account = await signIn({
-          email: signInValues.loginEmail,
-          password: signInValues.loginPassword,
-        });
+        const account = await dispatch(
+          signIn({
+            email: signInValues.loginEmail,
+            password: signInValues.loginPassword,
+          }),
+        ).unwrap();
         adoptSession(account);
         navigate(destinationAfterAuth(account), { replace: true });
       }

@@ -1,46 +1,37 @@
 /**
- * backendStatus.js — whether the backend can be reached right now.
+ * backendStatus.js: the API client's line into the store for "is the backend
+ * reachable?".
  *
- * api/client.js reports into this on every request: a failed network call
- * marks the backend offline, and any HTTP answer at all (even a 404 or 403)
- * proves it is running and marks it online again. The banner in
- * ui/BackendStatusBanner.jsx shows it, so every page tells the person what is
- * wrong instead of quietly showing empty tables and zeros.
+ * api/client.js calls markOffline() when a request cannot connect and
+ * markOnline() on any HTTP answer (even a 404 or 403 proves the server is
+ * up). The state itself lives in the `ui` slice (store/slices/uiSlice.js),
+ * and ui/BackendStatusBanner.jsx reads it from there.
  *
- * Plain module state with subscribers (read it in React with
- * useSyncExternalStore), so the API client does not have to import React.
+ * The store hands us its dispatch at start-up (bindBackendStatus, called in
+ * store/index.js) so this file, and the API client, never import the store.
+ * That import would be circular: the store's slices import the API client.
  */
+import { backendOffline, backendOnline } from "../store/slices/uiSlice";
 
-let state = { offline: false, recovered: false };
-const listeners = new Set();
+let dispatch = null;
+// Mirror of ui.backend.offline, so a normal successful request does not
+// dispatch anything at all.
+let offline = false;
 
-function set(next) {
-  if (next.offline === state.offline && next.recovered === state.recovered)
-    return;
-  state = next;
-  listeners.forEach((listener) => listener());
-}
-
-export function subscribe(listener) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-export function getSnapshot() {
-  return state;
+export function bindBackendStatus(storeDispatch) {
+  dispatch = storeDispatch;
 }
 
 /** A request could not reach the server at all. */
 export function markOffline() {
-  set({ offline: true, recovered: false });
+  if (!dispatch || offline) return;
+  offline = true;
+  dispatch(backendOffline());
 }
 
-/** The server answered. If we had been offline, say it is back. */
+/** The server answered. If we had been offline, the banner says it is back. */
 export function markOnline() {
-  if (state.offline) set({ offline: false, recovered: true });
-}
-
-/** Hide the "connected again" message. */
-export function dismissRecovered() {
-  set({ offline: false, recovered: false });
+  if (!dispatch || !offline) return;
+  offline = false;
+  dispatch(backendOnline());
 }

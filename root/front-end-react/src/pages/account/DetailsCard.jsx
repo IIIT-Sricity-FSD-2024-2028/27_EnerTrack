@@ -9,9 +9,10 @@
  *   <DetailsCard notify={showToast} />
  */
 import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { useAuth } from "../../auth/useAuth";
 import { roleLabel } from "../../routes";
-import { updateDetails } from "../auth/authFlow";
+import { updateDetails } from "../../store/slices/authSlice";
 import { validators } from "../auth/validators";
 import Field from "./Field";
 
@@ -34,6 +35,7 @@ function findErrors(values) {
 
 export default function DetailsCard({ notify }) {
   const { user, adoptSession } = useAuth();
+  const dispatch = useDispatch();
 
   const [values, setValues] = useState({
     name: user.name || "",
@@ -65,12 +67,14 @@ export default function DetailsCard({ notify }) {
 
     setSaving(true);
     try {
-      const account = await updateDetails({
-        email: user.email,
-        currentPassword: values.currentPassword,
-        name: values.name,
-        phone: values.phone,
-      });
+      const account = await dispatch(
+        updateDetails({
+          email: user.email,
+          currentPassword: values.currentPassword,
+          name: values.name,
+          phone: values.phone,
+        }),
+      ).unwrap();
       // Keep the signed-in session in step, so the sidebar shows the new name.
       // The response has no token, so keep the one this session already has.
       adoptSession({ ...user, ...account });

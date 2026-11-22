@@ -7,19 +7,20 @@
  * request fails to connect, keeps checking every few seconds, and offers a
  * Reload once the server answers again.
  */
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { pingBackend } from "../api/client";
 import {
-  dismissRecovered,
-  getSnapshot,
-  subscribe,
-} from "../api/backendStatus";
+  backendRecoveredDismissed,
+  selectBackendStatus,
+} from "../store/slices/uiSlice";
 import "./BackendStatusBanner.css";
 
 const RECHECK_MS = 5000;
 
 export default function BackendStatusBanner() {
-  const { offline, recovered } = useSyncExternalStore(subscribe, getSnapshot);
+  const dispatch = useDispatch();
+  const { offline, recovered } = useSelector(selectBackendStatus);
   const [checking, setChecking] = useState(false);
 
   // While offline, keep asking quietly so the banner clears by itself.
@@ -67,7 +68,7 @@ export default function BackendStatusBanner() {
         <button type="button" onClick={() => window.history.go(0)}>
           Reload
         </button>
-        <button type="button" onClick={dismissRecovered}>
+        <button type="button" onClick={() => dispatch(backendRecoveredDismissed())}>
           Dismiss
         </button>
       </div>
