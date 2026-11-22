@@ -6,18 +6,22 @@ import overviewCss from "../../styles/sustainability_officer/sust_overview.css?i
 import sharedCss from "../../styles/sustainability_officer/sust_shared.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
 import WastageArchive from "./archives/WastageArchive";
+import ReportDocument from "./components/ReportDocument";
+import { periodName } from "./periods";
+import Toast from "./components/Toast";
+import "./archives.css";
 import { normalizeStatus } from "./audit/auditShared";
 import { normalizeWastageReport } from "../finance/financeApi";
 import { reportRef, wastageSummary } from "../finance/financeUtils";
 
 export default function SustainabilityArchives() {
   const { user } = useAuth();
-  const canDeleteReport =
+  // The server lets the Sustainability Officer delete only what never ran
+  // (a rejected initiative); completed work can only be removed by the
+  // Organization Admin.
+  const canDeleteInitiative = (init) =>
     user?.role === "Organization Admin" ||
-    user?.role === "Sustainability Officer";
-  const canDeleteInitiative =
-    user?.role === "Organization Admin" ||
-    user?.role === "Sustainability Officer";
+    (user?.role === "Sustainability Officer" && init.status === "rejected");
   // The backend lets only the Organization Admin delete a wastage report.
   const canDeleteWastage = user?.role === "Organization Admin";
 
@@ -37,10 +41,10 @@ export default function SustainabilityArchives() {
   const [initiatives, setInitiatives] = useState([]);
   const [wastage, setWastage] = useState([]);
   const [toast, setToast] = useState(null);
+  const [loadErrors, setLoadErrors] = useState([]);
 
   const showToast = useCallback((msg, type = "success") => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
   }, []);
 
   // Fetch archives from backend on mount
@@ -56,43 +60,31 @@ export default function SustainabilityArchives() {
       .then(([reportsRes, initsRes, wastageRes, usersRes]) => {
         if (!active) return;
 
+        // Say which sections failed to load rather than showing them as empty.
+        const failed = [];
+        if (reportsRes.status !== "fulfilled") failed.push("reports");
+        if (initsRes.status !== "fulfilled") failed.push("initiatives");
+        if (wastageRes.status !== "fulfilled") failed.push("wastage reports");
+        setLoadErrors(failed);
+
         if (
           reportsRes.status === "fulfilled" &&
           Array.isArray(reportsRes.value)
         ) {
-          setReports(reportsRes.value);
+          setReports(
+            [...reportsRes.value].sort((x, y) => String(y.generated_at).localeCompare(String(x.generated_at))),
+          );
         }
 
-        // Load initiatives: merge from backend completed AND locally archived initiatives
-        const localArchives = (() => {
-          try {
-            const raw = localStorage.getItem("enertrack_universal_v1");
-            if (!raw) return [];
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed?.sust?.initiativeArchives)
-              ? parsed.sust.initiativeArchives
-              : [];
-          } catch {
-            return [];
-          }
-        })();
-
-        const backendCompleted =
-          initsRes.status === "fulfilled" && Array.isArray(initsRes.value)
-            ? initsRes.value.filter((i) => i.status === "completed")
-            : [];
-
-        const combinedMap = new Map();
-        localArchives.forEach((item) => {
-          const key = item.initiative_id || item.id;
-          if (key) combinedMap.set(key, { ...item, initiative_id: key });
-        });
-        backendCompleted.forEach((item) => {
-          const key = item.initiative_id || item.id;
-          if (key && !combinedMap.has(key)) combinedMap.set(key, item);
-        });
-
-        setInitiatives(Array.from(combinedMap.values()));
+        // Archived initiatives only; the rest are still on the board. The
+        // server is the only record of what was archived.
+        if (initsRes.status === "fulfilled" && Array.isArray(initsRes.value)) {
+          setInitiatives(
+            initsRes.value
+              .filter((i) => i.archived_at)
+              .sort((x, y) => String(y.archived_at).localeCompare(String(x.archived_at))),
+          );
+        }
 
         if (
           wastageRes.status === "fulfilled" &&
@@ -135,10 +127,8 @@ export default function SustainabilityArchives() {
         }
       })
       .catch((err) => {
-        console.warn(
-          "[Archives] Backend fetch error, running with cached data:",
-          err,
-        );
+        console.warn("[Archives] Failed to load archives:", err);
+        if (active) setLoadErrors(["archives"]);
       });
 
     return () => {
@@ -146,65 +136,59 @@ export default function SustainabilityArchives() {
     };
   }, [user]);
 
-  // Remove report
-  const handleRemoveReport = async (reportId) => {
-    setReports((prev) =>
-      prev.filter((r) => (r.report_id || r.id) !== reportId),
-    );
-    try {
-      const raw = localStorage.getItem("enertrack_universal_v1");
-      if (raw) {
-        const data = JSON.parse(raw);
-        if (data.sust?.complianceReports) {
-          data.sust.complianceReports = data.sust.complianceReports.filter(
-            (r) => (r.report_id || r.id) !== reportId,
-          );
-          localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
-        }
-      }
-    } catch (err) {
-      console.warn("[Archives] Failed to clean report localStorage:", err);
-    }
-
+  // Delete a saved report. Removed from the list only once the server
+  // has deleted it.
+  const handleRemoveReport = async (report) => {
+    const reportId = report.report_id || report.id;
+    if (!window.confirm(`Delete "${report.title}" permanently? This cannot be undone.`)) return;
     try {
       await api.delete(`/sustainability-reports/${reportId}`);
-    } catch (e) {
-      console.warn("[Archive Report Delete] Backend sync info:", e?.message);
+      setReports((prev) => prev.filter((r) => (r.report_id || r.id) !== reportId));
+      showToast("Report deleted.", "success");
+    } catch (err) {
+      showToast(err.message || "Could not delete the report.", "error");
     }
-    showToast("Report removed from compliance ledger.", "success");
   };
 
-  // Remove initiative
-  const handleRemoveInitiative = async (initId) => {
-    // 1. Optimistically remove from UI state
-    setInitiatives((prev) =>
-      prev.filter((i) => (i.initiative_id || i.id) !== initId),
-    );
+  const reportTitles = Object.fromEntries(reports.map((r) => [r.report_id, r.title]));
 
-    // 2. Remove from universal local storage
+  // Send a draft to the Organization Admin for approval.
+  const handleSubmitReport = async (report) => {
     try {
-      const raw = localStorage.getItem("enertrack_universal_v1");
-      if (raw) {
-        const data = JSON.parse(raw);
-        if (data.sust?.initiativeArchives) {
-          data.sust.initiativeArchives = data.sust.initiativeArchives.filter(
-            (i) => (i.initiative_id || i.id) !== initId,
-          );
-          localStorage.setItem("enertrack_universal_v1", JSON.stringify(data));
-        }
-      }
+      const updated = await api.patch(`/sustainability-reports/${report.report_id}/status`, { status: "submitted" });
+      setReports((prev) => prev.map((r) => (r.report_id === report.report_id ? { ...r, ...updated } : r)));
+      showToast("Sent to the Organization Admin for approval.", "success");
     } catch (err) {
-      console.warn("[Archives] Failed to clean initiative localStorage:", err);
+      showToast(err.message || "Could not submit the report.", "error");
     }
+  };
 
-    // 3. Sync deletion to backend (if present in database; 404 is expected for already archived records)
+  // Correct a published report: a new draft, linked to it; the original stays.
+  const handleRestate = async (report) => {
+    if (!window.confirm(`Start a corrected version of "${report.title}"? The published report stays as it is.`)) return;
+    try {
+      const fresh = await api.post(`/sustainability-reports/${report.report_id}/restate`);
+      setReports((prev) => [
+        fresh,
+        ...prev.map((r) => (r.report_id === report.report_id ? { ...r, superseded_by: fresh.report_id } : r)),
+      ]);
+      showToast("A corrected draft was created from today's readings.", "success");
+    } catch (err) {
+      showToast(err.message || "Could not restate the report.", "error");
+    }
+  };
+
+  // Delete an archived initiative for good.
+  const handleRemoveInitiative = async (init) => {
+    const initId = init.initiative_id;
+    if (!window.confirm(`Delete "${init.title}" permanently? This cannot be undone.`)) return;
     try {
       await api.delete(`/initiatives/${initId}`);
-    } catch (e) {
-      console.warn("[Archive Delete] Backend sync notice:", e?.message);
+      setInitiatives((prev) => prev.filter((i) => i.initiative_id !== initId));
+      showToast("Initiative deleted.", "success");
+    } catch (err) {
+      showToast(err.message || "Could not delete the initiative.", "error");
     }
-
-    showToast("Initiative removed from archive.", "success");
   };
 
   // Delete a closed wastage report for good (Organization Admin only).
@@ -258,532 +242,150 @@ export default function SustainabilityArchives() {
       <style>{overviewCss}</style>
       <style>{sharedCss}</style>
       <style>{sustLayoutCss}</style>
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background: toast.type === "error" ? "#ef4444" : "#059669",
-            color: "#ffffff",
-            padding: "12px 20px",
-            borderRadius: "8px",
-            boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
-            zIndex: 9999,
-            fontWeight: "600",
-            fontSize: "14px",
-          }}
-        >
-          {toast.msg}
-        </div>
-      )}
+      <Toast toast={toast} onClose={() => setToast(null)} />
 
       {/* Header */}
-      <div className="page-header" style={{ marginBottom: "24px" }}>
-        <h1
-          style={{
-            margin: "0 0 6px 0",
-            fontSize: "28px",
-            fontWeight: "700",
-            color: "#111827",
-          }}
-        >
-          Sustainability & Environmental Archives
-        </h1>
-        <p style={{ margin: 0, color: "#6b7280", fontSize: "15px" }}>
-          Permanent repository storing certified audit disclosures, completed
-          conservation projects, and resolved wastage logs.
-        </p>
-      </div>
+      <header className="arc-head">
+        <h1>Archives</h1>
+        <p>Saved reports, archived initiatives and closed wastage reports.</p>
+      </header>
 
-      {/* Filter and Tab Controls */}
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: "12px",
-          padding: "16px 20px",
-          border: "1px solid #e5e7eb",
-          marginBottom: "24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "16px",
-        }}
-      >
-        {/* Category Tabs */}
-        <div style={{ display: "flex", gap: "10px" }}>
+      {/* Tabs and search */}
+      <div className="arc-bar">
+        <div className="arc-tabs" role="tablist" aria-label="Archive sections">
           {[
-            {
-              id: "reports",
-              label: "Compliance Reports",
-              count: reports.length,
-              badgeBg: "#ecfdf5",
-              textCol: "#065f46",
-            },
-            {
-              id: "initiatives",
-              label: "Conservation Initiatives",
-              count: initiatives.length,
-              badgeBg: "#dbeafe",
-              textCol: "#1e40af",
-            },
-            {
-              id: "wastage",
-              label: "Wastage Resolutions",
-              count: wastage.length,
-              badgeBg: "#faf5ff",
-              textCol: "#6b21a8",
-            },
+            { id: "reports", label: "Reports", count: reports.length },
+            { id: "initiatives", label: "Initiatives", count: initiatives.length },
+            { id: "wastage", label: "Wastage reports", count: wastage.length },
           ].map((tab) => (
             <button
               key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={`arc-tab${activeTab === tab.id ? " is-active" : ""}`}
               onClick={() => handleTabChange(tab.id)}
-              style={{
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: "8px",
-                fontSize: "13px",
-                fontWeight: activeTab === tab.id ? "700" : "500",
-                background: activeTab === tab.id ? "#0f172a" : "#f3f4f6",
-                color: activeTab === tab.id ? "#ffffff" : "#4b5563",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                transition: "all 0.15s ease",
-              }}
             >
               {tab.label}
-              <span
-                style={{
-                  background: activeTab === tab.id ? "#334155" : tab.badgeBg,
-                  color: activeTab === tab.id ? "#ffffff" : tab.textCol,
-                  padding: "2px 7px",
-                  borderRadius: "99px",
-                  fontSize: "11px",
-                  fontWeight: "700",
-                }}
-              >
-                {tab.count}
-              </span>
+              <span className="arc-tab__count">{tab.count}</span>
             </button>
           ))}
         </div>
 
-        {/* Search Input */}
-        <div style={{ position: "relative", minWidth: "260px" }}>
-          <input
-            type="text"
-            placeholder="Search archives by keyword..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px 12px 8px 32px",
-              borderRadius: "6px",
-              border: "1px solid #d1d5db",
-              fontSize: "13px",
-            }}
-          />
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#9ca3af"
-            strokeWidth="2.5"
-            style={{ position: "absolute", left: "10px", top: "11px" }}
-          >
+        <label className="arc-search">
+          <span className="visually-hidden">Search archives</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-        </div>
+          <input
+            type="search"
+            placeholder="Search by title or period"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </label>
       </div>
 
-      {/* TAB 1: Compliance Reports */}
-      {activeTab === "reports" && (
+      {loadErrors.length > 0 && (
         <div
+          role="alert"
           style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "16px",
-            marginBottom: "40px",
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: "#991b1b",
+            padding: "12px 16px",
+            borderRadius: "8px",
+            marginBottom: "16px",
+            fontSize: "14px",
           }}
         >
+          <strong>Some archives could not be loaded:</strong> {loadErrors.join(", ")}. Those
+          sections may look empty; reload the page to try again.
+        </div>
+      )}
+
+      {/* Reports */}
+      {activeTab === "reports" && (
+        <div className="arc-list">
           {filteredReports.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "48px",
-                background: "#ffffff",
-                borderRadius: "12px",
-                border: "1px solid #e5e7eb",
-                color: "#9ca3af",
-              }}
-            >
-              No compliance reports found in archive.
+            <div className="arc-empty">
+              {searchQuery ? "No reports match your search." : "No saved reports yet. Build one on the Reports page and save it."}
             </div>
           ) : (
-            filteredReports.map((r) => {
-              const rId = r.report_id || r.id;
-              const dateStr = r.generated_at
-                ? new Date(r.generated_at).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })
-                : "N/A";
-              const metrics = r.metrics || {};
-
-              return (
-                <div
-                  key={rId}
-                  style={{
-                    background: "#ffffff",
-                    borderRadius: "12px",
-                    border: "1px solid #e5e7eb",
-                    padding: "20px 24px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: "14px",
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "10px",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        <h3
-                          style={{
-                            margin: 0,
-                            fontSize: "16px",
-                            fontWeight: "700",
-                            color: "#111827",
-                          }}
-                        >
-                          {r.title}
-                        </h3>
-                        <span
-                          style={{
-                            background: "#ecfdf5",
-                            color: "#065f46",
-                            fontSize: "11px",
-                            fontWeight: "700",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                          }}
-                        >
-                          {r.period}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: "12px", color: "#6b7280" }}>
-                        Archived on <strong>{dateStr}</strong> &bull; Record ID:{" "}
-                        <code>{rId}</code>
-                      </span>
-                    </div>
-
-                    {canDeleteReport && (
-                      <button
-                        onClick={() => handleRemoveReport(rId)}
-                        style={{
-                          background: "none",
-                          border: "1px solid #ef4444",
-                          color: "#ef4444",
-                          padding: "5px 10px",
-                          borderRadius: "6px",
-                          fontSize: "12px",
-                          fontWeight: "600",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Delete Archive
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Impact Grid */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      gap: "12px",
-                      background: "#f9fafb",
-                      padding: "14px",
-                      borderRadius: "8px",
-                      border: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <div>
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "#6b7280",
-                          textTransform: "uppercase",
-                          fontWeight: "600",
-                        }}
-                      >
-                        Energy Abatement
-                      </span>
-                      <div
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: "700",
-                          color: "#15803d",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {metrics.energyReduction || "-"}
-                      </div>
-                    </div>
-                    <div>
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "#6b7280",
-                          textTransform: "uppercase",
-                          fontWeight: "600",
-                        }}
-                      >
-                        Waste Diverted
-                      </span>
-                      <div
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: "700",
-                          color: "#1d4ed8",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {metrics.wasteDiverted || "-"}
-                      </div>
-                    </div>
-                    <div>
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "#6b7280",
-                          textTransform: "uppercase",
-                          fontWeight: "600",
-                        }}
-                      >
-                        Carbon Avoidance
-                      </span>
-                      <div
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: "700",
-                          color: "#7e22ce",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {metrics.carbonOffset || "-"}
-                      </div>
-                    </div>
-                    <div>
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "#6b7280",
-                          textTransform: "uppercase",
-                          fontWeight: "600",
-                        }}
-                      >
-                        Water Conserved
-                      </span>
-                      <div
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: "700",
-                          color: "#0f766e",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {metrics.waterSaved || "-"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+            filteredReports.map((r) => (
+              <ReportCard
+                key={r.report_id || r.id}
+                report={r}
+                titles={reportTitles}
+                canDelete={(r.status ?? "draft") === "draft" && (user?.role === "Organization Admin" || r.generated_by_id === user?.user_id)}
+                onDelete={() => handleRemoveReport(r)}
+                onSubmit={() => handleSubmitReport(r)}
+                onRestate={() => handleRestate(r)}
+              />
+            ))
           )}
         </div>
       )}
 
-      {/* TAB 2: Conservation Initiatives */}
+      {/* Initiatives */}
       {activeTab === "initiatives" && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "16px",
-            marginBottom: "40px",
-          }}
-        >
+        <div className="arc-list">
           {filteredInitiatives.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "48px",
-                background: "#ffffff",
-                borderRadius: "12px",
-                border: "1px solid #e5e7eb",
-                color: "#9ca3af",
-              }}
-            >
-              No completed initiatives in archive.
+            <div className="arc-empty">
+              {searchQuery
+                ? "No initiatives match your search."
+                : "No archived initiatives. Archive a completed or rejected initiative from the Initiatives board."}
             </div>
           ) : (
             filteredInitiatives.map((i) => {
-              const iId = i.initiative_id || i.id;
-              const dateStr = i.archivedAt
-                ? new Date(i.archivedAt).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })
-                : "May 2026";
-
+              const archivedOn = new Date(i.archived_at).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              });
+              const isRejected = i.status === "rejected";
               return (
-                <div
-                  key={iId}
-                  style={{
-                    background: "#ffffff",
-                    borderRadius: "12px",
-                    border: "1px solid #e5e7eb",
-                    padding: "20px 24px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        <h3
-                          style={{
-                            margin: 0,
-                            fontSize: "16px",
-                            fontWeight: "700",
-                            color: "#111827",
-                          }}
-                        >
-                          {i.title}
-                        </h3>
-                        <span
-                          style={{
-                            background: "#dcfce7",
-                            color: "#15803d",
-                            fontSize: "11px",
-                            fontWeight: "700",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                          }}
-                        >
-                          Completed
-                        </span>
-                      </div>
-                      <p
-                        style={{
-                          margin: "4px 0",
-                          fontSize: "13px",
-                          color: "#4b5563",
-                        }}
-                      >
-                        {i.description}
+                <article key={i.initiative_id} className="arc-card">
+                  <div className="arc-card__head">
+                    <div className="arc-card__titles">
+                      <h3>{i.title}</h3>
+                      <p className="arc-card__meta">
+                        <span className="arc-chip">{isRejected ? "Rejected" : "Completed"}</span>
+                        <span>Archived on {archivedOn}</span>
+                        {i.target_reduction && <span>Target {i.target_reduction}</span>}
+                        {typeof i.capex === "number" && <span>Cost {i.capex.toLocaleString("en-GB")}</span>}
+                        {i.verified_saving != null && (
+                          <span>
+                            Verified saving {Number(i.verified_saving).toLocaleString("en-GB")} {i.performance?.unit || ""}
+                          </span>
+                        )}
                       </p>
-                      <span style={{ fontSize: "12px", color: "#6b7280" }}>
-                        Completed on <strong>{dateStr}</strong> &bull; Target:{" "}
-                        <strong style={{ color: "#059669" }}>
-                          {i.target_reduction || i.target || "—"}
-                        </strong>
-                      </span>
-                      {i.outcomes && i.outcomes.length > 0 && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
-                          {i.outcomes.map((o, idx) => (
-                            <span
-                              key={idx}
-                              style={{
-                                background: "#f0fdf4",
-                                color: "#166534",
-                                border: "1px solid #bbf7d0",
-                                fontSize: "11px",
-                                fontWeight: "600",
-                                padding: "2px 8px",
-                                borderRadius: "4px",
-                              }}
-                            >
-                              ✓ {typeof o === "string" ? o : JSON.stringify(o)}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
-
-                    {canDeleteInitiative && (
-                      <button
-                        onClick={() => handleRemoveInitiative(iId)}
-                        style={{
-                          background: "none",
-                          border: "1px solid #ef4444",
-                          color: "#ef4444",
-                          padding: "5px 10px",
-                          borderRadius: "6px",
-                          fontSize: "12px",
-                          fontWeight: "600",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Delete Archive
-                      </button>
+                    {canDeleteInitiative(i) && (
+                      <div className="arc-card__actions">
+                        <button type="button" className="arc-btn arc-btn--danger" onClick={() => handleRemoveInitiative(i)}>
+                          Delete initiative
+                        </button>
+                      </div>
                     )}
                   </div>
-
+                  {i.description && <p className="arc-card__desc">{i.description}</p>}
                   {Array.isArray(i.outcomes) && i.outcomes.length > 0 && (
-                    <div
-                      style={{
-                        background: "#f0fdf4",
-                        padding: "10px 14px",
-                        borderRadius: "8px",
-                        border: "1px solid #bbf7d0",
-                        fontSize: "12px",
-                        color: "#166534",
-                      }}
-                    >
-                      <strong>Verified Deliverables:</strong>{" "}
-                      {i.outcomes.join(" • ")}
-                    </div>
+                    <ul className="arc-card__outcomes">
+                      {i.outcomes.map((o, idx) => (
+                        <li key={idx}>{typeof o === "string" ? o : JSON.stringify(o)}</li>
+                      ))}
+                    </ul>
                   )}
-                </div>
+                </article>
               );
             })
           )}
         </div>
       )}
 
-      {/* TAB 3: Wastage Resolutions */}
+      {/* Wastage reports */}
       {activeTab === "wastage" && (
         <WastageArchive
           reports={filteredWastage}
@@ -793,5 +395,116 @@ export default function SustainabilityArchives() {
         />
       )}
     </div>
+  );
+}
+
+const STATUS_LABEL = {
+  draft: "Draft",
+  submitted: "Waiting for approval",
+  approved: "Approved",
+  published: "Published",
+};
+
+/** One saved report: its key figures, and the full report on request. */
+function ReportCard({ report: r, titles, canDelete, onDelete, onSubmit, onRestate }) {
+  const [open, setOpen] = useState(false);
+  const metrics = r.metrics || {};
+  // Older reports stored only summary figures; newer ones keep the whole
+  // snapshot (totals, previous period, data gaps) and can be opened in full.
+  const hasSnapshot = !!r.totals;
+  // Reports saved before the rename carry carbonOffset; it meant the same.
+  const avoided = metrics.avoidedEmissions ?? metrics.carbonOffset;
+  const shown = (v) => (v === null ? "Not measured" : v || "—");
+  const saved = r.generated_at
+    ? new Date(r.generated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : null;
+  const gaps = Array.isArray(r.data_gaps) ? r.data_gaps.length : 0;
+  const docId = `report-${r.report_id}`;
+
+  return (
+    <article className="arc-card">
+      <div className="arc-card__head">
+        <div className="arc-card__titles">
+          <h3>{r.title}</h3>
+          <p className="arc-card__meta">
+            <span>{r.from ? periodName(r.from, r.to) : r.period}</span>
+            {saved && <span>Saved {saved}</span>}
+            {r.status && <span className="arc-chip">{STATUS_LABEL[r.status] || r.status}</span>}
+            {hasSnapshot && (
+              <span>{gaps === 0 ? "No data gaps" : `${gaps} data gap${gaps === 1 ? "" : "s"}`}</span>
+            )}
+          </p>
+        </div>
+        <div className="arc-card__actions">
+          {hasSnapshot && (
+            <button
+              type="button"
+              className="arc-btn"
+              aria-expanded={open}
+              aria-controls={docId}
+              onClick={() => setOpen((v) => !v)}
+            >
+              {open ? "Hide report" : "View report"}
+            </button>
+          )}
+          {(r.status ?? "draft") === "draft" && r.totals && (
+            <button type="button" className="arc-btn arc-btn--primary" onClick={onSubmit}>
+              Submit for approval
+            </button>
+          )}
+          {r.status === "published" && !r.superseded_by && r.totals && (
+            <button type="button" className="arc-btn" onClick={onRestate}>
+              Restate
+            </button>
+          )}
+          {canDelete && (
+            <button type="button" className="arc-btn arc-btn--danger" onClick={onDelete}>
+              Delete draft
+            </button>
+          )}
+        </div>
+      </div>
+
+      {(r.status ?? "draft") === "draft" && r.review_note && (
+        <p className="arc-card__notice">Sent back by the Organization Admin: {r.review_note}</p>
+      )}
+      {r.status === "submitted" && <p className="arc-card__note">With the Organization Admin for approval.</p>}
+      {r.status === "approved" && <p className="arc-card__note">Approved; the Organization Admin will publish it.</p>}
+      {r.supersedes && (
+        <p className="arc-card__note">Corrects “{titles[r.supersedes] || "an earlier report"}”.</p>
+      )}
+      {r.superseded_by && (
+        <p className="arc-card__note">Replaced by a corrected version: “{titles[r.superseded_by] || "restated report"}”.</p>
+      )}
+
+      <dl className="arc-figs">
+        <div>
+          <dt>Energy change</dt>
+          <dd>{shown(metrics.energyReduction)}</dd>
+        </div>
+        <div>
+          <dt>Energy used</dt>
+          <dd>{shown(metrics.energyConsumed)}</dd>
+        </div>
+        <div>
+          <dt>Avoided emissions</dt>
+          <dd>{shown(avoided)}</dd>
+        </div>
+        <div>
+          <dt>Water saved</dt>
+          <dd>{shown(metrics.waterSaved)}</dd>
+        </div>
+      </dl>
+
+      {!hasSnapshot && (
+        <p className="arc-card__note">Saved before full reports were kept, so only these figures are available.</p>
+      )}
+
+      {open && hasSnapshot && (
+        <div className="arc-card__doc" id={docId}>
+          <ReportDocument report={r} />
+        </div>
+      )}
+    </article>
   );
 }

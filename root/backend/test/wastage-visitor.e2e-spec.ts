@@ -31,23 +31,24 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
     return body(res).wastage_report_id as string;
   };
 
-  /** The steps the officer takes to reach a status (the server only allows real moves). */
+  /**
+   * Moves a report to a status the way the Sustainability Officer does: one
+   * legal step at a time, since the server refuses skipped steps.
+   */
   const PATH: Record<string, string[]> = {
+    Reported: [],
     Validated: ['Validated'],
-    Dismissed: ['Dismissed'],
-    'Target Set': ['Validated', 'Target Set'],
-    Finalized: ['Validated', 'Finalized'],
-    Delivered: ['Validated', 'Finalized', 'Delivered'],
     'Forwarded to Finance': ['Validated', 'Forwarded to Finance'],
+    'Target Set': ['Validated', 'Target Set'],
+    Finalized: ['Validated', 'Target Set', 'Finalized'],
+    Delivered: ['Validated', 'Target Set', 'Finalized', 'Delivered'],
+    Dismissed: ['Dismissed'],
   };
-
-  /** Moves a report to a status the way the Sustainability Officer does, step by step. */
   const setStatus = async (id: string, status: string) => {
-    let res: request.Response | undefined;
-    for (const step of PATH[status] ?? [status]) {
-      res = await http().patch(`/api/wastage-reports/${id}`).set(asOfficer).send({ status: step });
+    for (const step of PATH[status]) {
+      const res = await http().patch(`/api/wastage-reports/${id}`).set(asOfficer).send({ status: step });
+      expect(res.status).toBe(200);
     }
-    return res!;
   };
 
   beforeAll(async () => {

@@ -27,7 +27,7 @@ import { reportRef } from "../finance/financeUtils";
 import ReportResult from "./ReportResult";
 import { formatDate, getStatusInfo, getSummaryAndLocation } from "./wastageHelpers";
 
-const FINISHED = ["Finalized", "Target Set", "Delivered"];
+const FINISHED = ["Finalized", "Target Set", "Verify Target", "Target Met", "Target Missed", "Delivered"];
 
 // A report can be archived once it is over: finished, or dismissed by the
 // officer. A dismissed report has no results, so it is not "finished".

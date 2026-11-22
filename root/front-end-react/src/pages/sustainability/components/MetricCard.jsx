@@ -53,14 +53,15 @@ export default function MetricCard({
           style={{
             display: "flex",
             alignItems: "baseline",
-            gap: "8px",
+            flexWrap: "wrap",
+            gap: "4px 8px",
             margin: "8px 0 6px 0",
           }}
         >
           <span
             id={id}
             style={{
-              fontSize: "28px",
+              fontSize: "clamp(22px, 5vw, 28px)",
               fontWeight: "700",
               color: "#111827",
               fontVariantNumeric: "tabular-nums",
@@ -81,6 +82,12 @@ export default function MetricCard({
           )}
           {delta !== undefined && delta !== null && (
             <span
+              title="Change against the previous period of the same length"
+              aria-label={
+                typeof delta === "number"
+                  ? `${delta > 0 ? "Up" : delta < 0 ? "Down" : "No change"} ${Math.abs(delta)}% on the previous period`
+                  : undefined
+              }
               style={{
                 marginLeft: "auto",
                 fontSize: "12px",
@@ -105,7 +112,7 @@ export default function MetricCard({
                 borderRadius: "4px",
               }}
             >
-              {typeof delta === "number" ? `${delta > 0 ? "+" : ""}${delta}%` : delta}
+              {typeof delta === "number" ? `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta)}%` : delta}
             </span>
           )}
         </div>

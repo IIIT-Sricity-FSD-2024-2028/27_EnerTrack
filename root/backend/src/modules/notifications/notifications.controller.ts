@@ -9,7 +9,9 @@ import {
   Delete,
   Put,
   Headers,
+  UnauthorizedException,
 } from "@nestjs/common";
+import { UserRole } from "../../core/database/database.service";
 import { NotificationsService } from "./notifications.service";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
 import { PutNotificationDto } from "./dto/put-notification.dto";
@@ -32,8 +34,29 @@ export class NotificationsController {
     return this.notificationsService.create(createDto);
   }
 
+  /** Declared before ":id" routes so "mine" is not read as an id. */
+  @Get("mine")
+  @ApiOperation({ summary: "My Notifications", description: "The signed-in user's own notifications, newest first. This is what the notification bell shows. Any signed-in role." })
+  @ApiResponse({ status: 200, description: "The caller's notifications." })
+  @ApiResponse({ status: 401, description: "Not signed in." })
+  @Roles(...Object.values(UserRole))
+  findMine(@Headers("x-user-id") userId?: string) {
+    if (!userId) throw new UnauthorizedException("Sign in to see your notifications.");
+    return this.notificationsService.findMine(userId);
+  }
+
+  @Patch("mine/read")
+  @ApiOperation({ summary: "Mark My Notifications Read", description: "Marks all of the signed-in user's notifications as read. Returns how many changed." })
+  @ApiResponse({ status: 200, description: "{ updated: number }" })
+  @ApiResponse({ status: 401, description: "Not signed in." })
+  @Roles(...Object.values(UserRole))
+  markAllMine(@Headers("x-user-id") userId?: string) {
+    if (!userId) throw new UnauthorizedException("Sign in to update your notifications.");
+    return this.notificationsService.markAllMine(userId);
+  }
+
   @Get()
-  @ApiOperation({ summary: "List All Notifications", description: "Retrieves all notification records across the system. Any authenticated user can access this endpoint to view all notifications. Send a GET request with no additional parameters." })
+  @ApiOperation({ summary: "List All Notifications", description: "Every notification in the organisation, for administration. Only the Organization Admin; other users read their own through GET /notifications/mine." })
   @ApiResponse({ status: 200, description: "Array of all notification records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })

@@ -119,4 +119,16 @@ export class NotificationsService {
     }
     return { updated: changed };
   }
+
+  /** The signed-in user's own notifications, newest first (what the bell shows). */
+  findMine(userId: string) {
+    return scopeToTenant(this.database.notifications)
+      .filter((n) => n.user_id === userId)
+      .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")));
+  }
+
+  /** Same as markAllRead, for PATCH /notifications/mine/read. */
+  markAllMine(userId: string) {
+    return this.markAllRead(userId);
+  }
 }

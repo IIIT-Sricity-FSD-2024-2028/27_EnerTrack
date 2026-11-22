@@ -37,13 +37,27 @@ const STATUS_CHIPS = {
   "Cost Impact Added": { label: "Finance reviewing", tone: "finance" },
   "Returned to SO": { label: "Cost data returned", tone: "action" },
   "Target Set": { label: "Target set", tone: "ready" },
+  "Verify Target": { label: "Check target", tone: "action" },
+  "Target Met": { label: "Target met", tone: "ready" },
+  "Target Missed": { label: "Target missed", tone: "action" },
   Finalized: { label: "Finalized", tone: "ready" },
 };
 
+// Reports still waiting on the officer's first look get an age badge.
+const AGE_TRACKED = ["Reported", "Validated"];
+
+function ageBadge(report) {
+  if (!AGE_TRACKED.includes(report.status) || !report.timestamp) return null;
+  const days = Math.floor((Date.now() - new Date(report.timestamp).getTime()) / 86_400_000);
+  if (days < 1) return null;
+  const tone = days >= 14 ? "old" : days >= 7 ? "aging" : "fresh";
+  return { days, tone };
+}
+
 
 // Statuses at which Finance's cost figures / the officer's target are shown
-const COST_VISIBLE = ["Returned to SO", "Target Set", "Finalized"];
-const TARGET_VISIBLE = ["Target Set", "Finalized"];
+const COST_VISIBLE = ["Returned to SO", "Target Set", "Verify Target", "Target Met", "Target Missed", "Finalized"];
+const TARGET_VISIBLE = ["Target Set", "Verify Target", "Target Met", "Target Missed", "Finalized"];
 
 /** "+128% above baseline" — from the stored deviation, or worked out. */
 function deviationText(sd) {
@@ -71,7 +85,13 @@ function ActionButtons({ status, busy, onAction }) {
         <button {...props("dismiss")} className="so-btn danger">Dismiss</button>
       </>
     );
-  if (status === "Validated") return <button {...props("forward")} className="so-btn primary">Forward to Finance</button>;
+  if (status === "Validated")
+    return (
+      <>
+        <button {...props("forward")} className="so-btn primary">Forward to Finance</button>
+        <button {...props("target")} className="so-btn">Set target</button>
+      </>
+    );
   if (status === "Returned to SO")
     return (
       <>
@@ -82,8 +102,17 @@ function ActionButtons({ status, busy, onAction }) {
   if (status === "Target Set")
     return (
       <>
-        <button {...props("finalize")} className="so-btn primary">Finalize report</button>
+        <button {...props("checkNow")} className="so-btn">Check target now</button>
         <button {...props("target")} className="so-btn">Edit target</button>
+      </>
+    );
+  if (status === "Verify Target") return <button {...props("verify")} className="so-btn primary">Check the result</button>;
+  if (status === "Target Met") return <button {...props("deliver")} className="so-btn primary">Send outcome to occupant</button>;
+  if (status === "Target Missed")
+    return (
+      <>
+        <button {...props("deliver")} className="so-btn primary">Send outcome to occupant</button>
+        <button {...props("target")} className="so-btn">Set a new target</button>
       </>
     );
   if (status === "Finalized")
@@ -177,6 +206,8 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
     setCommentText("");
   }
 
+  const age = ageBadge(report);
+
   return (
     <article className="so-report" aria-label={`${report.type} wastage report ${report.shortId}`}>
       <div className="so-report-top">
@@ -189,7 +220,14 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
           <strong>{report.type} wastage</strong>
           {location && <span title={location}>{location}</span>}
         </div>
-        <span className={`so-status ${chip.tone}`}>{chip.label}</span>
+        <span className="so-report-chips">
+          {age && (
+            <span className={`so-age so-age--${age.tone}`} title="Days since the report was filed">
+              {age.days} day{age.days === 1 ? "" : "s"} old
+            </span>
+          )}
+          <span className={`so-status ${chip.tone}`}>{chip.label}</span>
+        </span>
       </div>
 
       <div className="so-report-body">

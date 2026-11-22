@@ -15,6 +15,9 @@
 const STATUS_MAP = {
   Finalized: { label: "Resolved", cssClass: "status-finalized" },
   "Target Set": { label: "Target Set", cssClass: "status-target-set" },
+  "Verify Target": { label: "Checking the Result", cssClass: "status-target-set" },
+  "Target Met": { label: "Target Met", cssClass: "status-finalized" },
+  "Target Missed": { label: "Target Not Met", cssClass: "status-target-set" },
   Delivered: { label: "Report Delivered", cssClass: "status-finalized" },
   Dismissed: { label: "Dismissed", cssClass: "status-dismissed" },
 };

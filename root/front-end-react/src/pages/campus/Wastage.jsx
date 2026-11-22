@@ -24,7 +24,6 @@ import {
   getMetricCategory,
   getMetricUnit,
 } from "../../legacy/sensorSimulator";
-import { notifyOnStateChange } from "../../legacy/notifications";
 import AuditTimeline from "./AuditTimeline";
 import WastageCard from "./WastageCard";
 import WastageForm from "./WastageForm";
@@ -193,7 +192,6 @@ export default function Wastage() {
       showToast();
     }
     setReports(await fetchMyReports(user));
-    notifyOnStateChange(report, "submitted", user.name); // tell the officers
     return true;
   }
 

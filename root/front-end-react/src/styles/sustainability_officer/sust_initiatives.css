@@ -782,3 +782,109 @@
     transform: translateY(0);
   }
 }
+
+/* ── Measured performance (replaces the manual on/off-track toggle) ── */
+.perf {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.perf__chip {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.perf--green {
+  background: #ecfdf3;
+  color: #14532d;
+}
+
+.perf--green .perf__chip {
+  background: #bbf7d0;
+}
+
+.perf--amber {
+  background: #fffbeb;
+  color: #78350f;
+}
+
+.perf--amber .perf__chip {
+  background: #fde68a;
+}
+
+.perf--red {
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+.perf--red .perf__chip {
+  background: #fecaca;
+}
+
+.perf--done {
+  background: #eef4f0;
+  color: #1b3a2b;
+}
+
+.init-source {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #1e3a8a;
+}
+
+.init-buildings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+  font-size: 13px;
+}
+
+.init-buildings legend {
+  width: 100%;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.init-buildings label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* Overrides the narrow form-label style these would otherwise inherit. */
+  width: auto;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 400;
+  color: #1f2937;
+}
+
+.init-buildings input {
+  width: auto;
+  margin: 0;
+}
+
+.init-target {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 520px;
+  margin-top: 12px;
+}
+
+.init-target label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}

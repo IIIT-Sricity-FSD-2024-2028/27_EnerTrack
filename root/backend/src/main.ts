@@ -231,7 +231,6 @@ async function bootstrap() {
     CreateEnergyCostDto: db.energyCosts[0], UpdateEnergyCostDto: db.energyCosts[0],
     CreateInvoiceDto: db.invoices[0], UpdateInvoiceDto: db.invoices[0],
     CreateFinancialReportDto: db.financialReports[0], UpdateFinancialReportDto: db.financialReports[0],
-    CreateSustainabilityMetricDto: db.sustainabilityMetrics[0], UpdateSustainabilityMetricDto: db.sustainabilityMetrics[0],
     CreateInitiativeDto: db.initiatives[0], UpdateInitiativeDto: db.initiatives[0],
     CreateActivityLogDto: db.activityLogs[0], UpdateActivityLogDto: db.activityLogs[0],
     CreateSustainabilityReportDto: db.sustainabilityReports[0], UpdateSustainabilityReportDto: db.sustainabilityReports[0]

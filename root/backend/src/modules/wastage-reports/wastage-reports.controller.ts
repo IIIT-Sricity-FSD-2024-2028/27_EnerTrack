@@ -86,6 +86,18 @@ export class WastageReportsController {
     return this.wastageReportsService.findAll(userId, role);
   }
 
+  @Get(":id/target-check")
+  @ApiOperation({
+    summary: "Evidence for a wastage target",
+    description:
+      "For a report with a target: the linked meter (sensor_reading_id → reading → meter), the cut the target needs (1 − target ÷ triggering reading), the meter's measured change (each full month since the target was set against the same month a year earlier), and a suggested Target Met / Target Missed. suggested is null, with a reason, when it cannot be measured (no linked meter, no full month yet).",
+  })
+  @ApiResponse({ status: 400, description: "The report has no target." })
+  @Roles("Sustainability Officer", "Organization Admin")
+  targetCheck(@Param("id") id: string) {
+    return this.wastageReportsService.targetCheck(id);
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "Get Wastage Report by ID", description: "Retrieves a single wastage report by UUID. Any authenticated user can look up reports." })
   @ApiResponse({ status: 200, description: "Wastage report record returned." })
@@ -104,8 +116,12 @@ export class WastageReportsController {
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin")
-  put(@Param("id") id: string, @Body() putDto: PutWastageReportDto) {
-    return this.wastageReportsService.put(id, putDto);
+  put(
+    @Param("id") id: string,
+    @Body() putDto: PutWastageReportDto,
+    @Headers("x-role") role?: string,
+  ) {
+    return this.wastageReportsService.put(id, putDto, role);
   }
 
   @Post(":id/comments")
@@ -141,7 +157,7 @@ export class WastageReportsController {
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update Wastage Report", description: "Partially updates a wastage report (e.g., status). The Sustainability Officer and Organization Admin can update reports." })
+  @ApiOperation({ summary: "Update Wastage Report", description: "Partially updates a wastage report. A status change must follow the workflow: Sustainability Officer (and Organization Admin) Reported→Validated|Dismissed, Validated→Forwarded to Finance|Target Set|Dismissed, Returned to SO→Target Set|Forwarded to Finance, Target Set→Finalized, Finalized→Delivered; Financial Analyst (and Organization Admin) Forwarded to Finance→Cost Impact Added, Cost Impact Added→Returned to SO. Any other move returns 403. Saving the same status with other changes is allowed. Each move notifies the people concerned." })
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })

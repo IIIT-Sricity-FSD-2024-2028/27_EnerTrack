@@ -74,6 +74,7 @@ export default function Modal({
           >
             {cancelLabel}
           </button>
+          {onConfirm && (
           <button
             type="button"
             onClick={onConfirm}
@@ -92,6 +93,7 @@ export default function Modal({
           >
             {busy ? "Saving…" : confirmLabel}
           </button>
+          )}
         </div>
       </div>
     </div>

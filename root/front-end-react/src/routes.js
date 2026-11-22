@@ -29,6 +29,7 @@ export const PATHS = {
     proposals: "/admin/proposals",
     registrations: "/admin/registrations",
     infrastructure: "/admin/infrastructure",
+    sustainabilityApprovals: "/admin/sustainability-approvals",
   },
   finance: {
     overview: "/finance/overview",
@@ -40,6 +41,7 @@ export const PATHS = {
   sustainability: {
     overview: "/sustainability/overview",
     monitoring: "/sustainability/monitoring",
+    targets: "/sustainability/targets",
     report: "/sustainability/report",
     initiatives: "/sustainability/initiatives",
     archives: "/sustainability/archives",
@@ -179,6 +181,11 @@ export const NAV = {
     },
     { label: "Infrastructure", to: PATHS.admin.infrastructure },
     {
+      label: "Sustainability approvals",
+      to: PATHS.admin.sustainabilityApprovals,
+      roles: ["Organization Admin"],
+    },
+    {
       label: "Your Plan",
       to: PATHS.admin.subscription,
       roles: ["Organization Admin"],
@@ -193,13 +200,11 @@ export const NAV = {
   ],
   sustainability: [
     { label: "Overview", to: PATHS.sustainability.overview },
+    { label: "Monitoring", to: PATHS.sustainability.monitoring },
+    { label: "Targets", to: PATHS.sustainability.targets },
+    { label: "Reports", to: PATHS.sustainability.report },
     {
-      label: "Environmental Impact Monitoring",
-      to: PATHS.sustainability.monitoring,
-    },
-    { label: "Sustainability Reporting", to: PATHS.sustainability.report },
-    {
-      label: "Sustainable Conservation Initiatives",
+      label: "Initiatives",
       to: PATHS.sustainability.initiatives,
     },
     { label: "Archives", to: PATHS.sustainability.archives },

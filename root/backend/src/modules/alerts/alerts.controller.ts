@@ -18,7 +18,7 @@ export class AlertsController {
   @ApiResponse({ status: 201, description: "Alert created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin", "Operations Coordinator", "Technician")
+  @Roles("Organization Admin", "Operations Coordinator", "Technician", "Sustainability Officer")
   create(@Body() createDto: CreateAlertDto) {
     return this.alertsService.create(createDto);
   }

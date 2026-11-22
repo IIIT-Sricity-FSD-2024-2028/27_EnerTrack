@@ -1,5 +1,6 @@
 import { hashPassword } from "../auth/passwords";
 import { Injectable, Scope } from "@nestjs/common";
+import { lastFullMonth } from "../utils/period";
 
 export enum UserRole {
   // ── Legacy roles (still fully supported) ─────────────────
@@ -61,6 +62,25 @@ export enum NotificationTargetType {
   ALERT = "alert",
   REQUEST = "request",
   PROPOSAL = "proposal",
+  TARGET = "target",
+  INITIATIVE = "initiative",
+  REPORT = "report",
+}
+
+export enum TargetStatus {
+  PROPOSED = "proposed",
+  ACTIVE = "active",
+  MET = "met",
+  MISSED = "missed",
+  REJECTED = "rejected",
+}
+
+/** What a sustainability target measures. */
+export enum TargetMetric {
+  ENERGY_KWH = "energy_kwh",
+  WATER_KL = "water_kl",
+  GAS_M3 = "gas_m3",
+  EMISSIONS_KG = "emissions_kg",
 }
 
 export enum MeterType {
@@ -464,6 +484,43 @@ export interface Initiative {
   onTrack?: boolean;
   target_reduction: string;
   outcomes: string[];
+  /** Up-front capital cost, in the organisation's currency. */
+  capex?: number | null;
+  /** YYYY-MM-DD. When work starts (or started). */
+  start_date?: string | null;
+  /** YYYY-MM-DD. When the initiative is meant to be finished. */
+  target_date?: string | null;
+  /**
+   * When the initiative was archived (ISO). Archiving hides a finished or
+   * rejected initiative from the board without deleting it; it then lives
+   * in Archives. Set only through PATCH /initiatives/:id/archive.
+   */
+  archived_at?: string | null;
+  /** The Organization Admin's approval or rejection. */
+  decided_by_id?: string | null;
+  decided_at?: string | null;
+  decision_note?: string | null;
+
+  // ── Measurement (what the initiative should save, and what it did) ──
+  /** What it saves. Without a metric and a start date it cannot be measured. */
+  metric?: TargetMetric | null;
+  /** Buildings it covers; [] or missing means the whole organisation. */
+  building_ids?: string[];
+  /** Specific meters, when narrower than whole buildings. */
+  meter_ids?: string[];
+  /** Expected saving per year, in the metric's unit (kWh, kL, m³, kg CO₂e). */
+  expected_saving?: number | null;
+  /** Expected saving per year in money, when it came from an audit finding. */
+  expected_saving_amount?: number | null;
+  /** The target it contributes to, if any. */
+  target_id?: string | null;
+  /** When it moved to completed (ISO). */
+  completed_at?: string | null;
+  /** Measured saving up to completion, stored when it was completed. */
+  verified_saving?: number | null;
+  verified_at?: string | null;
+  /** "<audit_id>:<finding_id>" when created from an accepted audit finding. */
+  source_finding?: string | null;
 }
 export interface ActivityLog {
   activity_log_id: string;
@@ -473,6 +530,38 @@ export interface ActivityLog {
   title: string;
   timestamp: string;
 }
+/**
+ * "Cut <metric> by <reduction_pct>% against <baseline period> by <deadline>",
+ * for the whole organisation or a set of buildings. Proposed by the
+ * Sustainability Officer (or Org Admin), approved by the Org Admin, then
+ * closed as met or missed once the deadline has passed.
+ */
+export interface SustainabilityTarget {
+  target_id: string;
+  organization_id: string;
+  created_by_id: string | null;
+  metric: TargetMetric;
+  /** "YYYY-MM": the period the reduction is measured against. */
+  baseline_from: string;
+  baseline_to: string;
+  /** 10 means 10% below the baseline. */
+  reduction_pct: number;
+  /** "YYYY-MM": the last month that counts. */
+  deadline: string;
+  /** [] means the whole organisation. */
+  building_ids: string[];
+  status: TargetStatus;
+  note?: string | null;
+  created_at: string;
+  approved_by_id?: string | null;
+  approved_at?: string | null;
+  /** Why the Org Admin rejected it, if they did. */
+  decision_note?: string | null;
+  closed_at?: string | null;
+  /** Achieved reduction (%) when it was closed as met or missed. */
+  final_reduction_pct?: number | null;
+}
+
 export interface SustainabilityReport {
   report_id: string;
   organization_id: string;
@@ -481,6 +570,33 @@ export interface SustainabilityReport {
   period: string;
   metrics: Record<string, any>;
   generated_at: string;
+  /**
+   * Fields below are the server-generated snapshot saved since reports
+   * stopped being built in the browser. Older (seeded) reports only have
+   * `metrics`.
+   */
+  status?: string;
+  from?: string;
+  to?: string;
+  totals?: Record<string, number>;
+  deltas?: Record<string, number | null>;
+  meter_coverage?: Record<string, number>;
+  emission_factors?: Record<string, number>;
+  data_gaps?: string[];
+  // ── Sign-off (draft → submitted → approved → published) ──
+  submitted_at?: string | null;
+  approved_by_id?: string | null;
+  approved_at?: string | null;
+  published_at?: string | null;
+  /** The Organization Admin's note when sending a report back. */
+  review_note?: string | null;
+  /** A restatement points at the published report it corrects, and back. */
+  supersedes?: string | null;
+  superseded_by?: string | null;
+  /** Sections added when the data exists. */
+  targets?: any[];
+  initiatives?: any[];
+  buildings?: any[];
 }
 export interface Notification {
   notification_id: string;
@@ -490,6 +606,8 @@ export interface Notification {
   target_id: string;
   message: string;
   is_read: boolean;
+  /** When it was sent (ISO). Missing on older seeded rows. */
+  created_at?: string;
 }
 
 
@@ -788,9 +906,24 @@ const SEASONAL_FACTOR: Record<number, number> = {
   7: 1.30, 8: 1.24, 9: 1.18, 10: 1.0, 11: 0.88, 12: 0.76,
 };
 
-/** Inclusive bounds of the generated monthly series. */
+/**
+ * Inclusive bounds of the generated monthly series.
+ *
+ * The series ends at the last full month before today, so the demo always
+ * has data for "last month", "last 3 months" and "year to date" without
+ * anyone editing the seed. It starts in January 2025 so there is always a
+ * full baseline year to compare against, and never ends before 2026-08 (the
+ * original fixed end) so a machine with a wrong clock still gets the data
+ * every existing test expects.
+ */
 const SERIES_FROM = { year: 2025, month: 1 };
-const SERIES_TO = { year: 2026, month: 8 };
+const SERIES_MIN_END = "2026-08";
+export const SERIES_END_PERIOD =
+  lastFullMonth() > SERIES_MIN_END ? lastFullMonth() : SERIES_MIN_END;
+const SERIES_TO = {
+  year: Number(SERIES_END_PERIOD.slice(0, 4)),
+  month: Number(SERIES_END_PERIOD.slice(5, 7)),
+};
 
 /**
  * Meters whose monthly electricity series is generated, and the demand
@@ -950,7 +1083,7 @@ const GENERATED_UTILITY_SERIES: {
     },
   ];
 
-/** Monthly readings for water, gas, and food meters across 2025-01..2026-08. */
+/** Monthly readings for water, gas, and food meters across SERIES_FROM..SERIES_TO. */
 function buildMonthlyUtilityReadings(): MeterReading[] {
   const readings: MeterReading[] = [];
   for (const meter of GENERATED_UTILITY_SERIES) {
@@ -1400,96 +1533,40 @@ export class DatabaseService {
       specialization: null,
     },
   ];
+  /**
+   * One "new report" notification to the Sustainability Officer per seeded
+   * wastage report, worded exactly as WastageReportsService sends them.
+   */
   public notifications: Notification[] = [
     {
       notification_id: "660e8400-0001-4000-8000-000000000000",
       organization_id: "org-001",
-      user_id: "550e8400-0002-4000-8000-000000000002",
-      target_type: NotificationTargetType.ALERT,
-      target_id: "target1",
-      message: "Notif 1",
-      is_read: false,
+      user_id: "550e8400-0005-4000-8000-000000000005",
+      target_type: NotificationTargetType.WASTAGE,
+      target_id: "wwww0000-0001-4000-8000-000000000000",
+      message: "New water wastage report WR-3N2A8Z at Main Courtyard, East Wing.",
+      is_read: true,
+      created_at: "2026-11-12T09:15:00.000Z",
     },
     {
       notification_id: "660e8400-0002-4000-8000-000000000000",
       organization_id: "org-001",
-      user_id: "550e8400-0003-4000-8000-000000000003",
-      target_type: NotificationTargetType.REQUEST,
-      target_id: "target2",
-      message: "Notif 2",
+      user_id: "550e8400-0005-4000-8000-000000000005",
+      target_type: NotificationTargetType.WASTAGE,
+      target_id: "wwww0000-0002-4000-8000-000000000000",
+      message: "New food wastage report WR-2J63IA.",
       is_read: false,
+      created_at: "2026-11-18T13:40:00.000Z",
     },
     {
       notification_id: "660e8400-0003-4000-8000-000000000000",
       organization_id: "org-001",
-      user_id: "550e8400-0004-4000-8000-000000000004",
-      target_type: NotificationTargetType.WASTAGE,
-      target_id: "target3",
-      message: "Notif 3",
-      is_read: false,
-    },
-    {
-      notification_id: "660e8400-0004-4000-8000-000000000000",
-      organization_id: "org-001",
       user_id: "550e8400-0005-4000-8000-000000000005",
-      target_type: NotificationTargetType.ALERT,
-      target_id: "target4",
-      message: "Notif 4",
-      is_read: false,
-    },
-    {
-      notification_id: "660e8400-0005-4000-8000-000000000000",
-      organization_id: "org-001",
-      user_id: "550e8400-0006-4000-8000-000000000006",
-      target_type: NotificationTargetType.REQUEST,
-      target_id: "target5",
-      message: "Notif 5",
-      is_read: false,
-    },
-    {
-      notification_id: "660e8400-0006-4000-8000-000000000000",
-      organization_id: "org-001",
-      user_id: "550e8400-0007-4000-8000-000000000007",
       target_type: NotificationTargetType.WASTAGE,
-      target_id: "target6",
-      message: "Notif 6",
+      target_id: "wwww0000-0003-4000-8000-000000000000",
+      message: "New energy wastage report WR-1F9WRL.",
       is_read: false,
-    },
-    {
-      notification_id: "660e8400-0007-4000-8000-000000000000",
-      organization_id: "org-001",
-      user_id: "550e8400-0008-4000-8000-000000000008",
-      target_type: NotificationTargetType.ALERT,
-      target_id: "target7",
-      message: "Notif 7",
-      is_read: false,
-    },
-    {
-      notification_id: "660e8400-0008-4000-8000-000000000000",
-      organization_id: "org-001",
-      user_id: "550e8400-0001-4000-8000-000000000001",
-      target_type: NotificationTargetType.REQUEST,
-      target_id: "target8",
-      message: "Notif 8",
-      is_read: false,
-    },
-    {
-      notification_id: "660e8400-0009-4000-8000-000000000000",
-      organization_id: "org-001",
-      user_id: "550e8400-0002-4000-8000-000000000002",
-      target_type: NotificationTargetType.WASTAGE,
-      target_id: "target9",
-      message: "Notif 9",
-      is_read: false,
-    },
-    {
-      notification_id: "660e8400-000a-4000-8000-000000000000",
-      organization_id: "org-001",
-      user_id: "550e8400-0003-4000-8000-000000000003",
-      target_type: NotificationTargetType.ALERT,
-      target_id: "target10",
-      message: "Notif 10",
-      is_read: false,
+      created_at: "2026-11-20T08:05:00.000Z",
     },
   ];
   public campus: Campus[] = [
@@ -1933,6 +2010,7 @@ export class DatabaseService {
   public wastageReports: WastageReport[] = [
     {
       wastage_report_id: "wwww0000-0001-4000-8000-000000000000",
+      created_at: "2026-11-12T09:15:00.000Z",
       organization_id: "org-001",
       reporter_id: "550e8400-0002-4000-8000-000000000002",
       type: WastageType.WATER,
@@ -1956,6 +2034,7 @@ export class DatabaseService {
     },
     {
       wastage_report_id: "wwww0000-0002-4000-8000-000000000000",
+      created_at: "2026-11-18T13:40:00.000Z",
       organization_id: "org-001",
       reporter_id: "550e8400-0003-4000-8000-000000000003",
       type: WastageType.FOOD,
@@ -1980,6 +2059,7 @@ export class DatabaseService {
     },
     {
       wastage_report_id: "wwww0000-0003-4000-8000-000000000000",
+      created_at: "2026-11-20T08:05:00.000Z",
       organization_id: "org-001",
       reporter_id: "550e8400-0004-4000-8000-000000000004",
       type: WastageType.ENERGY,
@@ -2672,6 +2752,41 @@ export class DatabaseService {
       emissions: 910.0,
     },
   ];
+  public targets: SustainabilityTarget[] = [
+    {
+      // Approved in January: cut electricity by 10% on 2025 by the end of 2026.
+      target_id: "tgt00000-0001-4000-8000-000000000000",
+      organization_id: "org-001",
+      created_by_id: "550e8400-0005-4000-8000-000000000005",
+      metric: TargetMetric.ENERGY_KWH,
+      baseline_from: "2025-01",
+      baseline_to: "2025-12",
+      reduction_pct: 10,
+      deadline: "2026-12",
+      building_ids: [],
+      status: TargetStatus.ACTIVE,
+      note: "Campus-wide electricity, after the LED and HVAC work.",
+      created_at: "2026-01-08T09:30:00.000Z",
+      approved_by_id: "550e8400-0001-4000-8000-000000000001",
+      approved_at: "2026-01-15T10:00:00.000Z",
+    },
+    {
+      // Waiting for the Org Admin's decision.
+      target_id: "tgt00000-0002-4000-8000-000000000000",
+      organization_id: "org-001",
+      created_by_id: "550e8400-0005-4000-8000-000000000005",
+      metric: TargetMetric.WATER_KL,
+      baseline_from: "2025-01",
+      baseline_to: "2025-12",
+      reduction_pct: 5,
+      deadline: "2027-06",
+      building_ids: [],
+      status: TargetStatus.PROPOSED,
+      note: "Water use, mainly through leak repairs and pressure control.",
+      created_at: "2026-11-15T11:20:00.000Z",
+    },
+  ];
+
   public initiatives: Initiative[] = [
     {
       initiative_id: "iiii0000-0001-4000-8000-000000000000",
@@ -2689,6 +2804,14 @@ export class DatabaseService {
       organization_id: "org-001",
       created_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Smart HVAC Automation",
+      // Measured: Building 2's electricity, which the seed cuts by 12% from
+      // March 2026 (see IMPROVEMENT_FROM_PERIOD).
+      metric: TargetMetric.ENERGY_KWH,
+      building_ids: ["660e8800-0002-4000-8000-000000000000"],
+      start_date: "2026-03-01",
+      expected_saving: 60000,
+      capex: 1200000,
+      target_id: "tgt00000-0001-4000-8000-000000000000",
       description: "Implement occupancy-based smart thermostats and automated scheduling for the campus HVAC system to prevent heating/cooling in unoccupied zones.",
       status: InitiativeStatus.IN_PROGRESS,
       feasible: true,
@@ -2711,6 +2834,8 @@ export class DatabaseService {
       organization_id: "org-001",
       created_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Greywater Harvesting System",
+      metric: TargetMetric.WATER_KL,
+      expected_saving: 1500,
       description: "Install greywater collection and filtration systems in the dormitories to reuse water for landscaping and non-potable campus needs.",
       status: InitiativeStatus.PROPOSED,
       feasible: true,
@@ -2738,6 +2863,56 @@ export class DatabaseService {
       feasible: true,
       target_reduction: "8%",
       outcomes: [],
+    },
+    {
+      // Created when the auditor's rooftop solar finding was accepted (T13);
+      // waiting for the Organization Admin.
+      initiative_id: "iiii0000-0009-4000-8000-000000000000",
+      organization_id: "org-001",
+      created_by_id: null as unknown as string,
+      title: "Rooftop solar, 180 kWp across Buildings 3 and 5",
+      description: "Generation measure from the energy audit of 12 Sep 2025.",
+      status: InitiativeStatus.PROPOSED,
+      feasible: true,
+      target_reduction: "",
+      outcomes: [],
+      metric: TargetMetric.ENERGY_KWH,
+      building_ids: ["660e8800-0003-4000-8000-000000000000", "660e8800-0005-4000-8000-000000000000"],
+      expected_saving: 170588,
+      expected_saving_amount: 1450000,
+      capex: 9200000,
+      source_finding: "audit-001:find-003",
+      archived_at: null,
+    },
+    {
+      // Rejected but not yet archived: shows in the board's Rejected section.
+      initiative_id: "iiii0000-0007-4000-8000-000000000000",
+      organization_id: "org-001",
+      created_by_id: "550e8400-0005-4000-8000-000000000005",
+      title: "Rooftop Wind Turbine Pilot",
+      description: "Pilot two small rooftop wind turbines on the library block.",
+      status: InitiativeStatus.REJECTED,
+      feasible: false,
+      target_reduction: "2%",
+      outcomes: ["Rejected: wind survey showed average speeds too low for a useful yield"],
+      capex: 1800000,
+      archived_at: null,
+    },
+    {
+      // Completed and archived: lives in Archives, not on the board.
+      initiative_id: "iiii0000-0008-4000-8000-000000000000",
+      organization_id: "org-001",
+      created_by_id: "550e8400-0005-4000-8000-000000000005",
+      title: "Occupancy Sensors in Lecture Halls",
+      description: "Fit occupancy sensors so lecture hall lighting switches off when rooms are empty.",
+      status: InitiativeStatus.COMPLETED,
+      feasible: true,
+      target_reduction: "6%",
+      outcomes: ["Sensors installed in all 14 lecture halls"],
+      capex: 420000,
+      start_date: "2025-06-01",
+      target_date: "2025-09-30",
+      archived_at: "2025-10-15T09:00:00.000Z",
     },
   ];
   public activityLogs: ActivityLog[] = [
@@ -2852,6 +3027,9 @@ export class DatabaseService {
         waterSaved: "1.2 ML"
       },
       generated_at: "2025-04-01T10:00:00.000Z",
+      // Issued before reports had sign-off; treated as published.
+      status: "published",
+      published_at: "2025-04-01T10:00:00.000Z",
     },
     {
       report_id: "tttt0000-0002-4000-8000-000000000000",
@@ -2866,6 +3044,9 @@ export class DatabaseService {
         waterSaved: "0.9 ML"
       },
       generated_at: "2025-01-05T14:30:00.000Z",
+      // Issued before reports had sign-off; treated as published.
+      status: "published",
+      published_at: "2025-01-05T14:30:00.000Z",
     },
     {
       report_id: "tttt0000-0003-4000-8000-000000000000",
@@ -2880,6 +3061,9 @@ export class DatabaseService {
         waterSaved: "4.5 ML"
       },
       generated_at: "2024-12-10T09:15:00.000Z",
+      // Issued before reports had sign-off; treated as published.
+      status: "published",
+      published_at: "2024-12-10T09:15:00.000Z",
     }
   ];
 

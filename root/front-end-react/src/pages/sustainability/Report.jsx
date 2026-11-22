@@ -1,948 +1,306 @@
-import { useState, useCallback } from "react";
+import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import api from "../../api/client";
-import { useAuth } from "../../auth/useAuth";
-import Toast from "./components/Toast";
-import reportCss from "../../styles/sustainability_officer/sust_report.css?inline";
+import { PATHS } from "../../routes";
+import ReportDocument from "./components/ReportDocument";
+import { lastFullMonth, periodName } from "./periods";
 import sustLayoutCss from "./sustainability.css?inline";
+import "./report.css";
 
-const MONTH_NAMES = [
-  { value: "01", label: "January" },
-  { value: "02", label: "February" },
-  { value: "03", label: "March" },
-  { value: "04", label: "April" },
-  { value: "05", label: "May" },
-  { value: "06", label: "June" },
-  { value: "07", label: "July" },
-  { value: "08", label: "August" },
-  { value: "09", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 const QUARTERS = [
-  { value: "Q1", label: "Q1 (Jan–Mar)" },
-  { value: "Q2", label: "Q2 (Apr–Jun)" },
-  { value: "Q3", label: "Q3 (Jul–Sep)" },
-  { value: "Q4", label: "Q4 (Oct–Dec)" },
+  { value: "Q1", label: "Q1 (January to March)" },
+  { value: "Q2", label: "Q2 (April to June)" },
+  { value: "Q3", label: "Q3 (July to September)" },
+  { value: "Q4", label: "Q4 (October to December)" },
 ];
 
+/**
+ * Defaults from today's date: the last full month; the last complete quarter;
+ * year to date for a custom range. The year list is the last full month's
+ * year and the two before it.
+ */
+function periodDefaults(now = new Date()) {
+  const last = lastFullMonth(now);
+  const year = Number(last.slice(0, 4));
+  const month = Number(last.slice(5, 7));
+  // A quarter is complete once its last month is; otherwise use the one before.
+  let q = month % 3 === 0 ? month / 3 : Math.floor(month / 3);
+  let qYear = year;
+  if (q === 0) {
+    q = 4;
+    qYear = year - 1;
+  }
+  return {
+    last,
+    year: String(year),
+    month: last.slice(5, 7),
+    quarter: `Q${q}`,
+    quarterYear: String(qYear),
+    customFrom: `${year}-01`,
+    customTo: last,
+    years: [0, 1, 2].map((back) => String(year - back)),
+  };
+}
+
+/** The months a choice covers, as { from, to } in "YYYY-MM". */
+function rangeFor(type, { year, month, quarter, customFrom, customTo }) {
+  if (type === "monthly") return { from: `${year}-${month}`, to: `${year}-${month}` };
+  if (type === "quarterly") {
+    const q = Number(quarter.slice(1));
+    const pad = (n) => String(n).padStart(2, "0");
+    return { from: `${year}-${pad(q * 3 - 2)}`, to: `${year}-${pad(q * 3)}` };
+  }
+  if (type === "yearly") return { from: `${year}-01`, to: `${year}-12` };
+  return { from: customFrom, to: customTo };
+}
+
 export default function SustainabilityReport() {
-  const { user } = useAuth();
+  const [defaults] = useState(periodDefaults);
+  const [type, setType] = useState("monthly");
+  const [year, setYear] = useState(defaults.year);
+  const [month, setMonth] = useState(defaults.month);
+  const [quarter, setQuarter] = useState(defaults.quarter);
+  const [customFrom, setCustomFrom] = useState(defaults.customFrom);
+  const [customTo, setCustomTo] = useState(defaults.customTo);
 
-  // Period panel selections
-  const [reportType, setReportType] = useState("monthly"); // "monthly" | "quarterly" | "yearly" | "custom"
-  const [year, setYear] = useState("2026");
-  const [month, setMonth] = useState("08");
-  const [quarter, setQuarter] = useState("Q2");
-  const [customFrom, setCustomFrom] = useState("2026-01");
-  const [customTo, setCustomTo] = useState("2026-08");
-
-  // State for generation, preview, archiving
-  const [isCompiling, setIsCompiling] = useState(false);
-  const [isArchiving, setIsArchiving] = useState(false);
   const [preview, setPreview] = useState(null);
-  const [validationError, setValidationError] = useState(null);
-  const [toast, setToast] = useState(null);
+  const [isBuilding, setIsBuilding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [saved, setSaved] = useState(null);
+  const sheetRef = useRef(null);
 
-  const showToast = useCallback((msg, type = "success") => {
-    setToast({ msg, type });
-  }, []);
+  // Any change to the period discards the current preview, so the sheet (and
+  // what would be saved) always matches the selection on the left.
+  const change = (setter) => (e) => {
+    setter(e.target.value);
+    setPreview(null);
+    setError(null);
+    setSaved(null);
+  };
 
-  const closeToast = useCallback(() => {
-    setToast(null);
-  }, []);
+  const changeType = (e) => {
+    const next = e.target.value;
+    setType(next);
+    // A quarter defaults to the last complete one, which can be last year's.
+    if (next === "quarterly") setYear(defaults.quarterYear);
+    setPreview(null);
+    setError(null);
+    setSaved(null);
+  };
 
-  // Compute period string & bounds for API request
-  const getPeriodPayload = useCallback(() => {
-    if (reportType === "monthly") {
-      const monthObj = MONTH_NAMES.find((m) => m.value === month);
-      const label = monthObj ? `${monthObj.label} ${year}` : `${year}-${month}`;
-      const periodStr = `${year}-${month}`;
-      return { period: label, from: periodStr, to: periodStr };
-    }
-    if (reportType === "quarterly") {
-      const qNum = Number(quarter.replace("Q", ""));
-      const startMo = String((qNum - 1) * 3 + 1).padStart(2, "0");
-      const endMo = String(qNum * 3).padStart(2, "0");
-      return {
-        period: `${quarter} ${year}`,
-        from: `${year}-${startMo}`,
-        to: `${year}-${endMo}`,
-      };
-    }
-    if (reportType === "yearly") {
-      return {
-        period: `FY ${year}`,
-        from: `${year}-01`,
-        to: `${year}-12`,
-      };
-    }
-    // Custom
-    return {
-      period: `${customFrom} to ${customTo}`,
-      from: customFrom,
-      to: customTo,
-    };
-  }, [reportType, year, month, quarter, customFrom, customTo]);
+  const range = rangeFor(type, { year, month, quarter, customFrom, customTo });
+  const label = type === "quarterly" ? `${quarter} ${year}` : periodName(range.from, range.to);
+  const incomplete = range.to > defaults.last;
 
-  // Compile report preview via backend generate endpoint
-  const handleCompile = async (e) => {
-    if (e) e.preventDefault();
-    setValidationError(null);
-
-    const payload = getPeriodPayload();
-
-    if (reportType === "custom" && payload.from > payload.to) {
-      setValidationError("The start date cannot be after the end date. Please select an earlier start date.");
+  const handleBuild = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSaved(null);
+    if (type === "custom" && (!customFrom || !customTo)) {
+      setError("Choose both a start and an end month.");
       return;
     }
-
-    setIsCompiling(true);
+    if (range.from > range.to) {
+      setError("The start month must be before the end month.");
+      return;
+    }
+    setIsBuilding(true);
     try {
       const res = await api.post("/sustainability-reports/generate", {
-        period: payload.period,
-        from: payload.from,
-        to: payload.to,
-        title: `${payload.period} Sustainability Performance Report`,
+        period: label,
+        from: range.from,
+        to: range.to,
+        title: `Sustainability report: ${label}`,
       });
       setPreview(res);
-      showToast("Report compiled. Review details before archiving.", "info");
+      // On small screens the report is below the form; bring it into view.
+      if (window.matchMedia("(max-width: 900px)").matches) {
+        requestAnimationFrame(() => sheetRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      }
     } catch (err) {
-      const msg = err.message || "Failed to compile sustainability report preview";
-      setValidationError(`${msg}. Please check the selected period bounds and retry.`);
-      showToast(msg, "error");
+      setError(err.message || "The report could not be built. Try again.");
     } finally {
-      setIsCompiling(false);
+      setIsBuilding(false);
     }
   };
 
-  // Archive report to backend records
-  const handleSaveReport = async () => {
+  // Only the period is sent: the server rebuilds the report from the same
+  // readings and records who saved it, so the saved copy matches this one.
+  const handleSave = async () => {
     if (!preview) return;
-
-    if (!user?.user_id) {
-      showToast("Cannot archive report: user session is missing.", "error");
-      return;
-    }
-
-    setIsArchiving(true);
+    setIsSaving(true);
+    setError(null);
     try {
-      const reportPayload = {
+      const res = await api.post("/sustainability-reports", {
         title: preview.title,
         period: preview.period,
-        metrics: {
-          energyReduction: preview.metrics.energyReduction,
-          wasteDiverted: preview.metrics.wasteDiverted,
-          carbonOffset: preview.metrics.carbonOffset,
-          waterSaved: preview.metrics.waterSaved,
-          energyConsumed: `${preview.totals?.energy_mwh ?? 0} MWh`,
-          waterIntake: `${preview.totals?.water_ml ?? 0} ML`,
-          emissionsTons: `${preview.totals?.emissions_t ?? 0} tCO₂e`,
-        },
-        generated_by_id: user.user_id,
-        generated_at: new Date().toISOString(),
-      };
-
-      await api.post("/sustainability-reports", reportPayload);
-      showToast("Report saved to Archives compliance records.", "success");
+        from: preview.from,
+        to: preview.to,
+      });
+      setSaved(res || { title: preview.title });
       setPreview(null);
     } catch (err) {
-      const msg = err.message || "Failed to save report to backend";
-      showToast(`Save failed: ${msg}. Try saving again.`, "error");
+      setError(`Not saved: ${err.message || "the server did not respond"}. Try again.`);
     } finally {
-      setIsArchiving(false);
+      setIsSaving(false);
     }
   };
 
+  const handlePrint = () => {
+    const original = document.title;
+    document.title = `Sustainability report - ${label}`;
+    window.print();
+    document.title = original;
+  };
 
-
-  // Export report to PDF via styled print engine
-  const handleExportPdf = () => {
-    if (!preview) return;
-
-    const originalTitle = document.title;
-    const cleanPeriod = (preview.period || "Report").replace(/[^a-zA-Z0-9_-]/g, "_");
-    document.title = `Sustainability_Report_${cleanPeriod}`;
-
-    showToast("Opening print dialog. Select 'Save as PDF' to save.", "info");
-
-    setTimeout(() => {
-      window.print();
-      document.title = originalTitle;
-    }, 250);
+  const startOver = () => {
+    setPreview(null);
+    setSaved(null);
+    setError(null);
   };
 
   return (
-    <div className="sustainability-report-page" style={{ width: "100%" }}>
-      <style>{reportCss}</style>
+    <div className="sustainability-report-page rpt">
       <style>{sustLayoutCss}</style>
-      <style>{`
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 12mm 15mm;
-          }
-          body, html {
-            background: #ffffff !important;
-            color: #111827 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          header.page-header,
-          aside,
-          nav,
-          .app-sidebar,
-          .app-header,
-          .shell-header,
-          .no-print,
-          button,
-          .toast-container {
-            display: none !important;
-          }
-          .sustainability-report-page {
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .sustainability-report-page > div {
-            display: block !important;
-          }
-          #reportSheet {
-            display: block !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          section, table, tr {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-        }
-      `}</style>
 
-      <Toast toast={toast} onClose={closeToast} />
-
-      {/* PAGE HEADER */}
-      <header className="page-header" style={{ marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#111827", margin: "0 0 6px 0" }}>
-          Sustainability Reporting
-        </h1>
-        <p style={{ margin: 0, color: "#4b5563", fontSize: "14px" }}>
-          Compile verified compliance audits, inspect data gaps honestly, and archive executive performance sheets.
-        </p>
+      <header className="rpt__head">
+        <h1>Reports</h1>
+        <p>Build a report for any period from meter readings, check it, then save it to Archives.</p>
       </header>
 
-      {/* TWO COLUMN WORKSPACE: Narrow Period Panel (Left) & Live Report Sheet (Right) */}
-      <div
-        style={{
-          display: "flex",
-          gap: "28px",
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-        }}
-      >
-        {/* LEFT: NARROW PERIOD PANEL */}
-        <aside
-          style={{
-            width: "300px",
-            flexShrink: 0,
-            background: "#ffffff",
-            border: "1px solid #d8dde2",
-            borderRadius: "8px",
-            padding: "24px",
-          }}
-          aria-label="Report configuration"
-        >
-          <h2 style={{ margin: "0 0 16px 0", fontSize: "16px", fontWeight: "700", color: "#111827" }}>
-            Period parameters
-          </h2>
+      <div className="rpt__grid">
+        <form className="rpt__panel" onSubmit={handleBuild} noValidate>
+          <h2>Period</h2>
 
-          <form onSubmit={handleCompile}>
-            {/* Report Granularity Type */}
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                htmlFor="selectReportType"
-                style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}
-              >
-                Cadence
-              </label>
-              <select
-                id="selectReportType"
-                value={reportType}
-                onChange={(e) => setReportType(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: "6px",
-                  border: "1px solid #d1d5db",
-                  background: "#ffffff",
-                  fontSize: "14px",
-                  color: "#111827",
-                }}
-              >
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
-                <option value="custom">Custom date range</option>
+          <div className="rpt__field">
+            <label htmlFor="selectReportType">Report covers</label>
+            <select id="selectReportType" value={type} onChange={changeType}>
+              <option value="monthly">One month</option>
+              <option value="quarterly">A quarter</option>
+              <option value="yearly">A calendar year</option>
+              <option value="custom">A range of months</option>
+            </select>
+          </div>
+
+          {type !== "custom" && (
+            <div className="rpt__field">
+              <label htmlFor="selectYear">Year</label>
+              <select id="selectYear" value={year} onChange={change(setYear)}>
+                {defaults.years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
               </select>
             </div>
+          )}
 
-            {/* Year selection */}
-            {reportType !== "custom" && (
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  htmlFor="selectYear"
-                  style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}
-                >
-                  Year
-                </label>
-                <select
-                  id="selectYear"
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "1px solid #d1d5db",
-                    background: "#ffffff",
-                    fontSize: "14px",
-                    color: "#111827",
-                  }}
-                >
-                  <option value="2026">2026</option>
-                  <option value="2025">2025</option>
-                  <option value="2024">2024</option>
-                </select>
-              </div>
-            )}
-
-            {/* Month selection */}
-            {reportType === "monthly" && (
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  htmlFor="selectMonth"
-                  style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}
-                >
-                  Month
-                </label>
-                <select
-                  id="selectMonth"
-                  value={month}
-                  onChange={(e) => setMonth(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "1px solid #d1d5db",
-                    background: "#ffffff",
-                    fontSize: "14px",
-                    color: "#111827",
-                  }}
-                >
-                  {MONTH_NAMES.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
+          {type === "monthly" && (
+            <div className="rpt__field">
+              <label htmlFor="selectMonth">Month</label>
+              <select id="selectMonth" value={month} onChange={change(setMonth)}>
+                {MONTHS.map((name, i) => {
+                  const value = String(i + 1).padStart(2, "0");
+                  const future = `${year}-${value}` > defaults.last;
+                  return (
+                    <option key={value} value={value} disabled={future}>
+                      {name}
+                      {future ? " (not finished)" : ""}
                     </option>
-                  ))}
-                </select>
-              </div>
-            )}
+                  );
+                })}
+              </select>
+            </div>
+          )}
 
-            {/* Quarter selection */}
-            {reportType === "quarterly" && (
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  htmlFor="selectQuarter"
-                  style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}
-                >
-                  Quarter
-                </label>
-                <select
-                  id="selectQuarter"
-                  value={quarter}
-                  onChange={(e) => setQuarter(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "1px solid #d1d5db",
-                    background: "#ffffff",
-                    fontSize: "14px",
-                    color: "#111827",
-                  }}
-                >
-                  {QUARTERS.map((q) => (
-                    <option key={q.value} value={q.value}>
-                      {q.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+          {type === "quarterly" && (
+            <div className="rpt__field">
+              <label htmlFor="selectQuarter">Quarter</label>
+              <select id="selectQuarter" value={quarter} onChange={change(setQuarter)}>
+                {QUARTERS.map((q) => (
+                  <option key={q.value} value={q.value}>
+                    {q.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-            {/* Custom From / To */}
-            {reportType === "custom" && (
-              <div style={{ marginBottom: "16px" }}>
-                <div style={{ marginBottom: "12px" }}>
-                  <label
-                    htmlFor="inputFromDate"
-                    style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}
-                  >
-                    Start Month (YYYY-MM)
-                  </label>
-                  <input
-                    id="inputFromDate"
-                    type="month"
-                    value={customFrom}
-                    onChange={(e) => setCustomFrom(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      border: "1px solid #d1d5db",
-                      fontSize: "14px",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="inputToDate"
-                    style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}
-                  >
-                    End Month (YYYY-MM)
-                  </label>
-                  <input
-                    id="inputToDate"
-                    type="month"
-                    value={customTo}
-                    onChange={(e) => setCustomTo(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      border: "1px solid #d1d5db",
-                      fontSize: "14px",
-                    }}
-                  />
-                </div>
+          {type === "custom" && (
+            <div className="rpt__pair">
+              <div className="rpt__field">
+                <label htmlFor="inputFromDate">From</label>
+                <input id="inputFromDate" type="month" value={customFrom} max={defaults.last} onChange={change(setCustomFrom)} />
               </div>
-            )}
-
-            {/* Validation Error Message with guidance */}
-            {validationError && (
-              <div
-                role="alert"
-                style={{
-                  background: "#fef2f2",
-                  border: "1px solid #fecaca",
-                  color: "#991b1b",
-                  padding: "10px 12px",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  lineHeight: 1.4,
-                  marginBottom: "16px",
-                }}
-              >
-                {validationError}
+              <div className="rpt__field">
+                <label htmlFor="inputToDate">To</label>
+                <input id="inputToDate" type="month" value={customTo} max={defaults.last} onChange={change(setCustomTo)} />
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Action Buttons */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}>
-              {!preview && (
-                <button
-                  type="submit"
-                  id="btnCompileReport"
-                  disabled={isCompiling}
-                  style={{
-                    background: "#2d5a43",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "10px 16px",
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    cursor: isCompiling ? "default" : "pointer",
-                    display: "inline-flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: "8px",
-                    opacity: isCompiling ? 0.75 : 1,
-                  }}
-                >
-                  {isCompiling ? "Compiling telemetry..." : "Compile report"}
+          {incomplete && !error && (
+            <p className="rpt__hint">
+              This period includes months that have not finished, so its totals will be partial.
+            </p>
+          )}
+
+          {error && (
+            <p className="rpt__error" role="alert">
+              {error}
+            </p>
+          )}
+
+          <div className="rpt__actions">
+            {!preview ? (
+              <button type="submit" id="btnCompileReport" className="rpt__btn rpt__btn--primary" disabled={isBuilding}>
+                {isBuilding ? "Building…" : "Build report"}
+              </button>
+            ) : (
+              <>
+                <button type="button" id="btnSaveReport" className="rpt__btn rpt__btn--primary" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? "Saving…" : "Save to Archives"}
                 </button>
-              )}
+                <button type="button" id="btnExportPdf" className="rpt__btn" onClick={handlePrint}>
+                  Print or save as PDF
+                </button>
+                <button type="button" className="rpt__btn rpt__btn--link" onClick={startOver}>
+                  Start over
+                </button>
+              </>
+            )}
+          </div>
 
-              {preview && (
+          {saved && (
+            <p className="rpt__saved" role="status">
+              Saved to Archives as a draft. Submit it for approval there.{" "}
+              <Link to={`${PATHS.sustainability.archives}?tab=reports`}>Open Archives</Link>
+            </p>
+          )}
+        </form>
+
+        <div id="reportSheet" className="rpt__sheet" ref={sheetRef} aria-live="polite" aria-busy={isBuilding}>
+          {preview ? (
+            <ReportDocument report={preview} status="preview" />
+          ) : (
+            <div className="rpt__empty">
+              {isBuilding ? (
+                <p>Building the report for {label}…</p>
+              ) : (
                 <>
-                  <button
-                    type="button"
-                    id="btnSaveReport"
-                    onClick={handleSaveReport}
-                    disabled={isArchiving}
-                    style={{
-                      background: "#ffffff",
-                      color: "#2d5a43",
-                      border: "1px solid #2d5a43",
-                      borderRadius: "6px",
-                      padding: "10px 16px",
-                      fontWeight: "600",
-                      fontSize: "14px",
-                      cursor: isArchiving ? "default" : "pointer",
-                      display: "inline-flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    {isArchiving ? "Archiving report..." : "Archive Report"}
-                  </button>
-
-                  <button
-                    type="button"
-                    id="btnExportPdf"
-                    onClick={handleExportPdf}
-                    style={{
-                      background: "#2d5a43",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "6px",
-                      padding: "10px 16px",
-                      fontWeight: "600",
-                      fontSize: "14px",
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <svg
-                      width="15"
-                      height="15"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <polyline points="10 9 9 9 8 9" />
-                    </svg>
-                    Export PDF
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPreview(null)}
-                    style={{
-                      background: "transparent",
-                      color: "#6b7280",
-                      border: "none",
-                      padding: "6px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Clear preview
-                  </button>
+                  <p className="rpt__empty-title">No report yet</p>
+                  <p>Choose a period and select Build report. You can check the report before saving it.</p>
                 </>
               )}
             </div>
-          </form>
-        </aside>
-
-        {/* RIGHT: LIVE REPORT SHEET */}
-        <main
-          id="reportSheet"
-          style={{
-            flex: 1,
-            minWidth: "320px",
-            background: "#ffffff",
-            border: "1px solid #d8dde2",
-            borderRadius: "8px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-            padding: "36px 40px",
-            position: "relative",
-          }}
-          aria-live="polite"
-        >
-          {!preview ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "80px 20px",
-                color: "#6b7280",
-              }}
-            >
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#9ca3af"
-                strokeWidth="1.5"
-                style={{ margin: "0 auto 16px auto", display: "block" }}
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
-              <h3 style={{ margin: "0 0 6px 0", fontSize: "16px", color: "#111827", fontWeight: "600" }}>
-                No active report preview
-              </h3>
-              <p style={{ margin: 0, fontSize: "14px", maxWidth: "420px", marginLeft: "auto", marginRight: "auto" }}>
-                Select period parameters on the left and click <strong>Compile report</strong> to generate a verified compliance sheet.
-              </p>
-            </div>
-          ) : (
-            <div>
-              {/* Executive Header */}
-              <div
-                style={{
-                  borderBottom: "2px solid #2d5a43",
-                  paddingBottom: "18px",
-                  marginBottom: "28px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                  flexWrap: "wrap",
-                  gap: "12px",
-                }}
-              >
-                <div>
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      color: "#2d5a43",
-                      fontWeight: "700",
-                      letterSpacing: "0.5px",
-                    }}
-                  >
-                    EnerTrack Sustainability Audit
-                  </span>
-                  <h2
-                    style={{
-                      fontFamily: "'Source Serif 4', Georgia, serif",
-                      fontSize: "26px",
-                      fontWeight: "700",
-                      color: "#111827",
-                      margin: "4px 0 0 0",
-                    }}
-                  >
-                    {preview.title}
-                  </h2>
-                </div>
-
-                <div style={{ textAlign: "right", fontSize: "12px", color: "#6b7280" }}>
-                  <div>
-                    Period: <strong style={{ color: "#111827" }}>{preview.period}</strong>
-                  </div>
-                  <div style={{ marginTop: "2px", fontVariantNumeric: "tabular-nums" }}>
-                    Compiled on {new Date(preview.generated_at).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })}
-                  </div>
-                </div>
-              </div>
-
-              {/* EXECUTIVE ABATEMENT LEDGER (No identical stat cards, real ledger table) */}
-              <section style={{ marginBottom: "32px" }}>
-                <h3
-                  style={{
-                    fontFamily: "'Source Serif 4', Georgia, serif",
-                    fontSize: "18px",
-                    fontWeight: "600",
-                    color: "#111827",
-                    marginBottom: "14px",
-                  }}
-                >
-                  Executive performance summary
-                </h3>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: "16px",
-                    background: "#f9fafb",
-                    padding: "18px 22px",
-                    borderRadius: "6px",
-                    border: "1px solid #e5e7eb",
-                  }}
-                >
-                  <div>
-                    <span style={{ fontSize: "12px", color: "#6b7280" }}>Energy Abatement</span>
-                    <div
-                      style={{
-                        fontSize: "22px",
-                        fontWeight: "700",
-                        color: "#166534",
-                        fontVariantNumeric: "tabular-nums",
-                        marginTop: "4px",
-                      }}
-                    >
-                      {preview.metrics?.energyReduction || "-"}
-                    </div>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: "12px", color: "#6b7280" }}>Waste Diverted</span>
-                    <div
-                      style={{
-                        fontSize: "22px",
-                        fontWeight: "700",
-                        color: "#1e40af",
-                        fontVariantNumeric: "tabular-nums",
-                        marginTop: "4px",
-                      }}
-                    >
-                      {preview.metrics?.wasteDiverted || "-"}
-                    </div>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: "12px", color: "#6b7280" }}>Carbon Avoidance</span>
-                    <div
-                      style={{
-                        fontSize: "22px",
-                        fontWeight: "700",
-                        color: "#6b21a8",
-                        fontVariantNumeric: "tabular-nums",
-                        marginTop: "4px",
-                      }}
-                    >
-                      {preview.metrics?.carbonOffset || "-"}
-                    </div>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: "12px", color: "#6b7280" }}>Water Conserved</span>
-                    <div
-                      style={{
-                        fontSize: "22px",
-                        fontWeight: "700",
-                        color: "#0f766e",
-                        fontVariantNumeric: "tabular-nums",
-                        marginTop: "4px",
-                      }}
-                    >
-                      {preview.metrics?.waterSaved || "-"}
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* DETAILED RESOURCE INVENTORY TABLE */}
-              <section style={{ marginBottom: "32px" }}>
-                <h3
-                  style={{
-                    fontFamily: "'Source Serif 4', Georgia, serif",
-                    fontSize: "18px",
-                    fontWeight: "600",
-                    color: "#111827",
-                    marginBottom: "12px",
-                  }}
-                >
-                  Resource accounting breakdown
-                </h3>
-
-                <div style={{ overflowX: "auto" }}>
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                      fontSize: "13px",
-                      textAlign: "left",
-                    }}
-                  >
-                    <thead>
-                      <tr style={{ borderBottom: "2px solid #e5e7eb", color: "#374151" }}>
-                        <th style={{ padding: "10px 12px", fontWeight: "600" }}>Indicator Category</th>
-                        <th style={{ padding: "10px 12px", fontWeight: "600", textAlign: "right" }}>Measured Value</th>
-                        <th style={{ padding: "10px 12px", fontWeight: "600", textAlign: "right" }}>Unit</th>
-                        <th style={{ padding: "10px 12px", fontWeight: "600", textAlign: "right" }}>Period Delta</th>
-                        <th style={{ padding: "10px 12px", fontWeight: "600" }}>Validation Source</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
-                        <td style={{ padding: "12px", fontWeight: "600", color: "#111827" }}>Electricity Intake</td>
-                        <td style={{ padding: "12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                          {(preview.totals?.energy_mwh ?? 0).toLocaleString()}
-                        </td>
-                        <td style={{ padding: "12px", textAlign: "right", color: "#6b7280" }}>MWh</td>
-                        <td
-                          style={{
-                            padding: "12px",
-                            textAlign: "right",
-                            fontVariantNumeric: "tabular-nums",
-                            color: (preview.deltas?.energy_pct ?? 0) <= 0 ? "#166534" : "#991b1b",
-                            fontWeight: "600",
-                          }}
-                        >
-                          {(preview.deltas?.energy_pct ?? 0) > 0 ? "+" : ""}
-                          {preview.deltas?.energy_pct ?? 0}%
-                        </td>
-                        <td style={{ padding: "12px", color: "#4b5563" }}>Electricity meter readings</td>
-                      </tr>
-
-                      <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
-                        <td style={{ padding: "12px", fontWeight: "600", color: "#111827" }}>Potable & Utility Water</td>
-                        <td style={{ padding: "12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                          {(preview.totals?.water_ml ?? 0).toLocaleString()}
-                        </td>
-                        <td style={{ padding: "12px", textAlign: "right", color: "#6b7280" }}>ML</td>
-                        <td
-                          style={{
-                            padding: "12px",
-                            textAlign: "right",
-                            fontVariantNumeric: "tabular-nums",
-                            color: (preview.deltas?.water_pct ?? 0) <= 0 ? "#166534" : "#991b1b",
-                            fontWeight: "600",
-                          }}
-                        >
-                          {(preview.deltas?.water_pct ?? 0) > 0 ? "+" : ""}
-                          {preview.deltas?.water_pct ?? 0}%
-                        </td>
-                        <td style={{ padding: "12px", color: "#4b5563" }}>Water meter readings</td>
-                      </tr>
-
-                      <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
-                        <td style={{ padding: "12px", fontWeight: "600", color: "#111827" }}>Natural Gas</td>
-                        <td style={{ padding: "12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                          {(preview.totals?.gas_m3 ?? 0).toLocaleString()}
-                        </td>
-                        <td style={{ padding: "12px", textAlign: "right", color: "#6b7280" }}>m³</td>
-                        <td
-                          style={{
-                            padding: "12px",
-                            textAlign: "right",
-                            fontVariantNumeric: "tabular-nums",
-                            color: (preview.deltas?.gas_pct ?? 0) <= 0 ? "#166534" : "#991b1b",
-                            fontWeight: "600",
-                          }}
-                        >
-                          {(preview.deltas?.gas_pct ?? 0) > 0 ? "+" : ""}
-                          {preview.deltas?.gas_pct ?? 0}%
-                        </td>
-                        <td style={{ padding: "12px", color: "#4b5563" }}>Gas meter readings</td>
-                      </tr>
-
-                      <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
-                        <td style={{ padding: "12px", fontWeight: "600", color: "#111827" }}>Organic Food Wastage</td>
-                        <td style={{ padding: "12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                          {(preview.totals?.food_kg ?? 0).toLocaleString()}
-                        </td>
-                        <td style={{ padding: "12px", textAlign: "right", color: "#6b7280" }}>kg</td>
-                        <td
-                          style={{
-                            padding: "12px",
-                            textAlign: "right",
-                            fontVariantNumeric: "tabular-nums",
-                            color: (preview.deltas?.food_pct ?? 0) <= 0 ? "#166534" : "#991b1b",
-                            fontWeight: "600",
-                          }}
-                        >
-                          {(preview.deltas?.food_pct ?? 0) > 0 ? "+" : ""}
-                          {preview.deltas?.food_pct ?? 0}%
-                        </td>
-                        <td style={{ padding: "12px", color: "#4b5563" }}>Food wastage reports</td>
-                      </tr>
-
-                      <tr style={{ background: "#f9fafb" }}>
-                        <td style={{ padding: "12px", fontWeight: "700", color: "#111827" }}>Operational Emissions</td>
-                        <td style={{ padding: "12px", textAlign: "right", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>
-                          {(preview.totals?.emissions_t ?? 0).toLocaleString()}
-                        </td>
-                        <td style={{ padding: "12px", textAlign: "right", fontWeight: "600", color: "#374151" }}>tCO₂e</td>
-                        <td
-                          style={{
-                            padding: "12px",
-                            textAlign: "right",
-                            fontVariantNumeric: "tabular-nums",
-                            color: (preview.deltas?.emissions_pct ?? 0) <= 0 ? "#166534" : "#991b1b",
-                            fontWeight: "700",
-                          }}
-                        >
-                          {(preview.deltas?.emissions_pct ?? 0) > 0 ? "+" : ""}
-                          {preview.deltas?.emissions_pct ?? 0}%
-                        </td>
-                        <td style={{ padding: "12px", color: "#4b5563" }}>Grid factor (0.82 kg/kWh)</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
-              {/* DATA GAPS SECTION (Amber only for data gaps) */}
-              {preview.data_gaps && preview.data_gaps.length > 0 && (
-                <section
-                  style={{
-                    background: "#fffbeb",
-                    border: "1px solid #fde68a",
-                    borderRadius: "6px",
-                    padding: "16px 20px",
-                    marginBottom: "28px",
-                  }}
-                  aria-label="Identified data gaps"
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2">
-                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                      <line x1="12" y1="9" x2="12" y2="13" />
-                      <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "700", color: "#92400e" }}>
-                      Measurement gaps and observation notes
-                    </h4>
-                  </div>
-                  <ul style={{ margin: "4px 0 0 0", paddingLeft: "24px", color: "#78350f", fontSize: "13px", lineHeight: 1.5 }}>
-                    {preview.data_gaps.map((gap, i) => (
-                      <li key={i}>{gap}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              {/* METER COVERAGE FOOTER */}
-              <footer
-                style={{
-                  borderTop: "1px solid #e5e7eb",
-                  paddingTop: "14px",
-                  fontSize: "12px",
-                  color: "#6b7280",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  gap: "10px",
-                }}
-              >
-                <div>
-                  Active hardware coverage:{" "}
-                  <strong style={{ color: "#111827" }}>
-                    {preview.meter_coverage?.reporting_in_period ?? 0} of {preview.meter_coverage?.active ?? 0}
-                  </strong>{" "}
-                  active meters reported telemetry.
-                </div>
-                <div>
-                  Audit status: <span style={{ color: "#065f46", fontWeight: "600" }}>Verified by Officer</span>
-                </div>
-              </footer>
-            </div>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );

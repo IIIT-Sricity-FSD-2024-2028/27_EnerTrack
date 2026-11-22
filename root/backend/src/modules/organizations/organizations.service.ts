@@ -1,5 +1,6 @@
 import * as crypto from "crypto";
 import { FREE_EMAIL_DOMAINS } from "../../common/patterns";
+import { compareYoY, meterSum } from "../../core/utils/period-compare";
 import { hashPassword } from "../../core/auth/passwords";
 import {
   Injectable,
@@ -17,6 +18,13 @@ import {
 
 /** Grid emissions factor for Indian electricity, kg CO2 per kWh. */
 export const GRID_CO2_KG_PER_KWH = 0.82;
+
+/**
+ * Natural gas combustion factor, kg CO2 per m³ burned on site (Scope 1).
+ * IPCC 2006 Guidelines default of 56.1 t CO2/TJ for natural gas, at a net
+ * calorific value of about 34 MJ/m³: 56.1 kg/GJ × 0.034 GJ/m³ ≈ 1.9.
+ */
+export const GAS_CO2_KG_PER_M3 = 1.9;
 import {
   scopeToTenant,
   currentOrgId,
@@ -273,24 +281,22 @@ export class OrganizationsService {
       .map((m) => m.meter_id);
 
     const tariff = org.tariff_rate ?? 0;
-    const months = periods.map((period) => {
-      const now = this.kwhIn(meterIds, period);
-      const before = this.kwhIn(meterIds, this.oneYearEarlier(period));
-      return {
-        period,
-        kwh: now,
-        kwh_year_ago: before,
-        saved_kwh: before - now,
-        // Only a month with readings on both sides is a comparison. A month
-        // not yet reported this year would otherwise read as a 100% saving,
-        // the same trap as a decommissioned meter's silence.
-        compared: now > 0 && before > 0,
-      };
-    });
+    // Shared like-for-like comparison (core/utils/period-compare.ts): only a
+    // month with readings on both sides counts. A month not yet reported this
+    // year would otherwise read as a 100% saving, the same trap as a
+    // decommissioned meter's silence.
+    const cmp = compareYoY(meterSum(this.database, meterIds), periods);
+    const months = cmp.months.map((m) => ({
+      period: m.period,
+      kwh: m.current,
+      kwh_year_ago: m.baseline,
+      saved_kwh: m.baseline - m.current,
+      compared: m.compared,
+    }));
     const compared = months.filter((m) => m.compared);
 
-    const kwh = compared.reduce((sum, m) => sum + m.kwh, 0);
-    const kwhYearAgo = compared.reduce((sum, m) => sum + m.kwh_year_ago, 0);
+    const kwh = cmp.current;
+    const kwhYearAgo = cmp.baseline;
     const savedKwh = kwhYearAgo - kwh;
 
     return {
@@ -317,26 +323,6 @@ export class OrganizationsService {
       has_comparison: kwhYearAgo > 0,
       months,
     };
-  }
-
-  /** Total kWh recorded on a set of meters during one "YYYY-MM". */
-  private kwhIn(meterIds: string[], period: string): number {
-    if (meterIds.length === 0) return 0;
-    return Math.round(
-      this.database.meterReadings
-        .filter(
-          (r) =>
-            meterIds.includes(r.meter_id) &&
-            typeof r.timestamp === "string" &&
-            r.timestamp.slice(0, 7) === period,
-        )
-        .reduce((sum, r) => sum + Number(r.value || 0), 0),
-    );
-  }
-
-  private oneYearEarlier(period: string): string {
-    const [year, month] = period.split("-");
-    return `${Number(year) - 1}-${month}`;
   }
 
   /** Normalises the period/from/to arguments into a list of "YYYY-MM". */

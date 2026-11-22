@@ -1,95 +1,129 @@
 /**
- * NotificationBell — the signed-in person's own messages from the backend,
- * with an unread count. It sits in the top bar of every dashboard page.
+ * NotificationBell — the signed-in user's notifications, from the server.
  *
- * It owns its list: it loads once, then every 30 seconds, and opening the
- * dropdown marks everything as read on the server (so the count is the same
- * on every device). Sustainability and Finance still have a second,
- * browser-only list for the wastage hand-offs; that is separate.
+ * Reads GET /notifications/mine, so a notification sent from someone else's
+ * browser (a report forwarded to Finance, a report validated for its
+ * reporter) shows up here on any device. It re-checks every minute, when the
+ * window regains focus, and when opened.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import api from "../api/client";
+import "./NotificationBell.css";
+
+const POLL_MS = 60_000;
+
+function timeAgo(iso) {
+  if (!iso) return "";
+  const then = new Date(iso);
+  const mins = Math.round((Date.now() - then.getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} h ago`;
+  return then.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
 
 export default function NotificationBell() {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
-  // Which messages were new when the dropdown opened, to highlight them.
-  const [fresh, setFresh] = useState([]);
-  const box = useRef(null);
+  const [error, setError] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+  const panelId = useId();
+  const wrapRef = useRef(null);
 
-  const load = useCallback(
-    () =>
-      api
-        .get("/notifications")
-        .then((list) => setItems(Array.isArray(list) ? [...list].reverse() : []))
-        .catch(() => {}),
-    [],
-  );
+  const load = useCallback(async () => {
+    try {
+      const res = await api.get("/notifications/mine");
+      setItems(Array.isArray(res) ? res : []);
+      setError(null);
+    } catch (err) {
+      setError(err.message || "Notifications could not be loaded.");
+    } finally {
+      setLoaded(true);
+    }
+  }, []);
 
   useEffect(() => {
-    load();
-    const timer = setInterval(load, 30000);
-    return () => clearInterval(timer);
+    const first = setTimeout(load, 0);
+    const timer = setInterval(load, POLL_MS);
+    window.addEventListener("focus", load);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+      window.removeEventListener("focus", load);
+    };
   }, [load]);
 
-  // Click anywhere else, or press Escape, to close.
+  // Close on Escape or a click outside.
   useEffect(() => {
     if (!open) return undefined;
-    const onClick = (e) => {
-      if (box.current && !box.current.contains(e.target)) setOpen(false);
-    };
     const onKey = (e) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", onClick);
+    const onClick = (e) => wrapRef.current && !wrapRef.current.contains(e.target) && setOpen(false);
     document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
     return () => {
-      document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
     };
   }, [open]);
 
   const unread = items.filter((n) => !n.is_read).length;
 
-  async function toggle() {
-    if (open) return setOpen(false);
-    setFresh(items.filter((n) => !n.is_read).map((n) => n.notification_id));
-    setOpen(true);
-    if (unread > 0) {
-      try {
-        await api.patch("/notifications/read-all", {});
-        setItems((list) => list.map((n) => ({ ...n, is_read: true })));
-      } catch {
-        // Leave the count as it is; it will be tried again next time.
-      }
+  const toggle = () => {
+    setOpen((v) => !v);
+    if (!open) load();
+  };
+
+  const markAllRead = async () => {
+    const before = items;
+    setItems((list) => list.map((n) => ({ ...n, is_read: true })));
+    try {
+      await api.patch("/notifications/mine/read");
+    } catch (err) {
+      setItems(before);
+      setError(err.message || "Could not mark notifications as read.");
     }
-  }
+  };
 
   return (
-    <div className="bell" ref={box}>
+    <div className="nbell" ref={wrapRef}>
       <button
         type="button"
-        className="bell-btn"
-        onClick={toggle}
-        aria-haspopup="true"
+        className="nbell__button"
         aria-expanded={open}
-        aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
+        aria-controls={panelId}
+        aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
+        onClick={toggle}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
-        {unread > 0 && <span className="bell-badge">{unread > 9 ? "9+" : unread}</span>}
+        {unread > 0 && <span className="nbell__count">{unread > 9 ? "9+" : unread}</span>}
       </button>
 
       {open && (
-        <div className="bell-menu" role="region" aria-label="Notifications">
-          <div className="bell-head">Notifications</div>
-          {items.length === 0 ? (
-            <p className="bell-empty">Nothing yet. Updates about your jobs and reports show up here.</p>
-          ) : (
-            <ul>
-              {items.slice(0, 15).map((n) => (
-                <li key={n.notification_id} className={fresh.includes(n.notification_id) ? "bell-item new" : "bell-item"}>
-                  {n.message}
+        <div className="nbell__panel" id={panelId} role="dialog" aria-label="Notifications">
+          <div className="nbell__head">
+            <h2>Notifications</h2>
+            {unread > 0 && (
+              <button type="button" className="nbell__link" onClick={markAllRead}>
+                Mark all as read
+              </button>
+            )}
+          </div>
+
+          {error && <p className="nbell__error" role="alert">{error}</p>}
+
+          {!error && loaded && items.length === 0 && <p className="nbell__empty">No notifications yet.</p>}
+
+          {items.length > 0 && (
+            <ul className="nbell__list">
+              {items.slice(0, 30).map((n) => (
+                <li key={n.notification_id} className={n.is_read ? "" : "is-unread"}>
+                  {/* Non-breaking hyphen so "WR-3N2A8Z" never splits over two lines. */}
+                  <p>{String(n.message).replace(/\bWR-(\w+)/g, "WR\u2011$1")}</p>
+                  {n.created_at && <time dateTime={n.created_at}>{timeAgo(n.created_at)}</time>}
                 </li>
               ))}
             </ul>

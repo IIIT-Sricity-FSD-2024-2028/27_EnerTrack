@@ -6,7 +6,8 @@ import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/core/filters/all-exceptions.filter';
 import { TransformInterceptor } from '../src/core/interceptors/transform.interceptor';
 import { RolesGuard } from '../src/core/guards/roles.guard';
-import { BillingCycle, SubscriptionStatus } from '../src/core/database/database.service';
+import { BillingCycle, SubscriptionStatus, SERIES_END_PERIOD } from '../src/core/database/database.service';
+import { addMonths, periodsBetween } from '../src/core/utils/period';
 import {
   buildInvoice,
   seatOverageLine,
@@ -309,27 +310,32 @@ describe('Subscription model (e2e)', () => {
     });
 
     it('skips months with no readings yet instead of counting them as saved', async () => {
-      // Readings end at 2026-08. September 2025 has readings, September 2026
-      // does not; counting it would turn missing data into a 100% saving.
+      // Readings end at SERIES_END_PERIOD (the last full month). The same
+      // months a year earlier have readings, the two after it do not;
+      // counting them would turn missing data into a 100% saving.
+      const end = SERIES_END_PERIOD;
       const full = await request(server())
-        .get('/api/organizations/org-001/savings?from=2026-03&to=2026-08')
+        .get(`/api/organizations/org-001/savings?from=2026-03&to=${end}`)
         .set('x-role', 'Super Admin')
         .expect(200);
       const past = await request(server())
-        .get('/api/organizations/org-001/savings?from=2026-03&to=2026-10')
+        .get(`/api/organizations/org-001/savings?from=2026-03&to=${addMonths(end, 2)}`)
         .set('x-role', 'Super Admin')
         .expect(200);
 
-      expect(past.body.data.months).toHaveLength(8);
-      expect(past.body.data.months_compared).toBe(6);
+      const measured = periodsBetween('2026-03', end).length;
+      expect(past.body.data.months).toHaveLength(measured + 2);
+      expect(past.body.data.months_compared).toBe(measured);
       expect(past.body.data.compared_from).toBe('2026-03');
-      expect(past.body.data.compared_to).toBe('2026-08');
+      expect(past.body.data.compared_to).toBe(end);
       expect(past.body.data.saved_kwh).toBe(full.body.data.saved_kwh);
     });
 
     it('reports no comparison when no month has readings on both sides', async () => {
       const res = await request(server())
-        .get('/api/organizations/org-001/savings?from=2026-09&to=2026-10')
+        .get(
+          `/api/organizations/org-001/savings?from=${addMonths(SERIES_END_PERIOD, 1)}&to=${addMonths(SERIES_END_PERIOD, 2)}`,
+        )
         .set('x-role', 'Super Admin')
         .expect(200);
 

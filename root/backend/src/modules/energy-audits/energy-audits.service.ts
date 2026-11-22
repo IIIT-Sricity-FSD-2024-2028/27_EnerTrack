@@ -13,11 +13,15 @@ import {
   DatabaseService,
   EnergyAudit,
   FindingStatus,
+  Initiative,
+  InitiativeStatus,
   NotificationTargetType,
   OrganizationStatus,
   SubscriptionStatus,
+  TargetMetric,
   UserRole,
 } from "../../core/database/database.service";
+import { pushNotifications, usersWithRole } from "../../core/utils/notify";
 import { buildInvoice } from "../billing/pricing";
 import { DispatchService } from "../dispatch/dispatch.service";
 import {
@@ -219,6 +223,14 @@ export class EnergyAuditsService {
       finding.implemented_on = null;
     }
 
+    // An accepted (or implemented) finding becomes a tracked initiative, so
+    // its promised saving is measured rather than forgotten.
+    if (finding.status === FindingStatus.ACCEPTED || finding.status === FindingStatus.IMPLEMENTED) {
+      const initiative = this.initiativeFor(audit, finding);
+      if (finding.status === FindingStatus.IMPLEMENTED && finding.implemented_on && !initiative.start_date)
+        initiative.start_date = finding.implemented_on;
+    }
+
     return finding;
   }
 
@@ -232,6 +244,58 @@ export class EnergyAuditsService {
           `Building ${buildingId} belongs to a different organisation than this audit`,
         );
     }
+  }
+
+  /**
+   * The initiative for an accepted finding, created the first time (never a
+   * second one: it is matched on source_finding). It starts as proposed, so
+   * the Organization Admin still approves it like any other initiative.
+   * The finding's saving is in money; it is converted to kWh with the
+   * organisation's tariff so it can be measured against the meters.
+   */
+  private initiativeFor(audit: EnergyAudit, finding: AuditFinding): Initiative {
+    const source = `${audit.audit_id}:${finding.finding_id}`;
+    const existing = this.database.initiatives.find((i) => i.source_finding === source);
+    if (existing) return existing;
+
+    const org = this.database.organizations.find((o) => o.organization_id === audit.organization_id);
+    const tariff = org?.tariff_rate ?? null;
+    const when = audit.conducted_on ?? audit.scheduled_on;
+    // "12 Sep 2025", formatted by hand: locales disagree on "Sep"/"Sept".
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const date = when
+      ? `${Number(when.slice(8, 10))} ${MONTHS[Number(when.slice(5, 7)) - 1]} ${when.slice(0, 4)}`
+      : null;
+    const initiative: Initiative = {
+      initiative_id: crypto.randomUUID(),
+      organization_id: audit.organization_id,
+      created_by_id: null as unknown as string,
+      title: finding.title,
+      description: `${finding.category} measure from the energy audit${date ? ` of ${date}` : ""}.`,
+      status: InitiativeStatus.PROPOSED,
+      feasible: true,
+      target_reduction: "",
+      outcomes: [],
+      capex: finding.capex,
+      metric: TargetMetric.ENERGY_KWH,
+      building_ids: [...(finding.building_ids ?? [])],
+      expected_saving: tariff ? Math.round(finding.est_annual_saving / tariff) : null,
+      expected_saving_amount: finding.est_annual_saving,
+      source_finding: source,
+      archived_at: null,
+    };
+    this.database.initiatives.push(initiative);
+    pushNotifications(this.database, {
+      organizationId: audit.organization_id,
+      userIds: usersWithRole(this.database, audit.organization_id, [
+        UserRole.SUSTAINABILITY_OFFICER,
+        UserRole.ORGANIZATION_ADMIN,
+      ]),
+      targetType: NotificationTargetType.INITIATIVE,
+      targetId: initiative.initiative_id,
+      message: `The audit finding "${finding.title}" is now an initiative waiting for approval.`,
+    });
+    return initiative;
   }
 
   removeFinding(id: string, findingId: string) {

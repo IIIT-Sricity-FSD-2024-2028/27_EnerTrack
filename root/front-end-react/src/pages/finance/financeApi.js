@@ -254,18 +254,13 @@ export async function updateWastageReport(report, changes) {
   const details = { ...report.details, ...detailChanges };
   const updated = { ...report, ...changes, details };
 
-  try {
-    await api.patch(`/wastage-reports/${report.id}`, {
-      status: status || report.status,
-      details,
-    });
-  } catch (error) {
-    if (!isNetworkError(error)) throw error;
-    // Backend not running → keep the change locally (offline demo mode).
-    const others = localWastageReports().filter((r) => r.id !== report.id);
-    universalDB.data.workflow.wastageReports = [...others, updated];
-    universalDB.save();
-  }
+  // The server decides whether the move is allowed (403 otherwise) and is the
+  // only record; if it cannot be reached the error goes to the caller rather
+  // than the change being kept in this browser and shown as saved.
+  await api.patch(`/wastage-reports/${report.id}`, {
+    status: status || report.status,
+    details,
+  });
   return updated;
 }
 
@@ -274,17 +269,11 @@ export async function updateWastageReport(report, changes) {
  * The server appends it to the list itself, so a comment someone else posted
  * in the meantime (e.g. the occupant) is never overwritten, which re-sending
  * the whole list in a PATCH could do. The server records the role from the
- * signed-in token. Offline, the comment is kept locally instead.
- * Returns the report with its new comment list; throws if the server refuses.
+ * signed-in token. Returns the report with its new comment list; throws if
+ * the server refuses or cannot be reached (nothing is kept locally).
  */
-export async function addWastageComment(report, { author, role, text }) {
-  try {
-    const saved = await api.post(`/wastage-reports/${report.id}/comments`, { author, text });
-    const details = saved?.details || report.details;
-    return { ...report, details, comments: details.comments || [] };
-  } catch (error) {
-    if (!isNetworkError(error)) throw error;
-    const comment = { author, role, text, timestamp: new Date().toISOString() };
-    return updateWastageReport(report, { comments: [...(report.comments || []), comment] });
-  }
+export async function addWastageComment(report, { author, text }) {
+  const saved = await api.post(`/wastage-reports/${report.id}/comments`, { author, text });
+  const details = saved?.details || report.details;
+  return { ...report, details, comments: details.comments || [] };
 }

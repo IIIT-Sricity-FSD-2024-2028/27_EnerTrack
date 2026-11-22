@@ -40,6 +40,7 @@ import { InvoicesModule } from "./modules/invoices/invoices.module";
 import { FinancialReportsModule } from "./modules/financial-reports/financial-reports.module";
 import { SustainabilityMetricsModule } from "./modules/sustainability-metrics/sustainability-metrics.module";
 import { InitiativesModule } from "./modules/initiatives/initiatives.module";
+import { TargetsModule } from "./modules/targets/targets.module";
 import { ActivityLogsModule } from "./modules/activity-logs/activity-logs.module";
 import { SustainabilityReportsModule } from "./modules/sustainability-reports/sustainability-reports.module";
 
@@ -70,6 +71,7 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
     FinancialReportsModule,
     SustainabilityMetricsModule,
     InitiativesModule,
+    TargetsModule,
     ActivityLogsModule,
     SustainabilityReportsModule,
   ],

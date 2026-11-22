@@ -1,0 +1,171 @@
+.bldg {
+  background: #ffffff;
+  border: 1px solid #d8dde2;
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  color: #1f2937;
+}
+
+.bldg h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.bldg__sub {
+  margin: 4px 0 14px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.bldg__scroll {
+  /* relative: keeps the visually hidden "Actions" header inside the scroll
+     box, instead of positioned against the page where it widened it. */
+  position: relative;
+  overflow-x: auto;
+}
+
+.bldg__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bldg__table th,
+.bldg__table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #eef0f2;
+  text-align: left;
+  vertical-align: top;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.bldg__table thead th {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom-color: #d1d5db;
+  white-space: nowrap;
+}
+
+.bldg__table thead th button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bldg__table thead th button:hover {
+  color: #111827;
+}
+
+.bldg__table thead th button:focus-visible,
+.bldg__alert:focus-visible,
+.bldg__actions a:focus-visible {
+  outline: 2px solid #2d5a43;
+  outline-offset: 2px;
+}
+
+.bldg__table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bldg__unit {
+  color: #9ca3af;
+}
+
+.bldg__arrow {
+  display: inline-block;
+  width: 1em;
+  font-size: 10px;
+}
+
+/* First column stays visible while the table scrolls on narrow screens. */
+.bldg__name {
+  position: sticky;
+  left: 0;
+  background: #ffffff;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+tbody .bldg__name {
+  color: #111827;
+}
+
+.bldg__up {
+  color: #991b1b;
+}
+
+.bldg__meters {
+  min-width: 170px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.bldg__meters > span {
+  display: block;
+}
+
+.bldg__problem {
+  margin-top: 4px;
+  color: #92400e;
+}
+
+.bldg__alert {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  background: #fffbeb;
+  color: #78350f;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bldg__alert:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.bldg__actions {
+  white-space: nowrap;
+}
+
+.bldg__actions a {
+  color: #2d5a43;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .bldg {
+    padding: 16px;
+  }
+}
+
+.bldg .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.bldg__alert-open {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}

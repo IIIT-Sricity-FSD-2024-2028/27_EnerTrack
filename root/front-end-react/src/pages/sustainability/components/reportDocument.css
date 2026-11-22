@@ -1,0 +1,207 @@
+/* ReportDocument: a plain, printable report. One typeface, neutral colours,
+   numbers right-aligned in tabular figures. */
+
+.rdoc {
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rdoc__head {
+  padding-bottom: 16px;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.rdoc__kind {
+  margin: 0 0 2px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.rdoc__title {
+  margin: 0 0 16px;
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.25;
+  color: #111827;
+}
+
+.rdoc__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px 24px;
+  margin: 0;
+}
+
+.rdoc__meta dt {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.rdoc__meta dd {
+  margin: 2px 0 0;
+  color: #111827;
+  font-weight: 500;
+}
+
+.rdoc__status {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.rdoc__status--preview {
+  background: #fef3c7;
+  color: #78350f;
+}
+
+.rdoc__section {
+  padding-top: 20px;
+}
+
+.rdoc__section h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 650;
+  color: #111827;
+}
+
+.rdoc__section p {
+  margin: 0;
+}
+
+.rdoc__scroll {
+  overflow-x: auto;
+}
+
+.rdoc__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.rdoc__table th,
+.rdoc__table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.rdoc__table th:first-child,
+.rdoc__table td:first-child {
+  padding-left: 0;
+}
+
+.rdoc__table th:last-child,
+.rdoc__table td:last-child {
+  padding-right: 0;
+}
+
+/* Scoped under .rdoc so global table styles (upper-case headers, row
+   hover colours) elsewhere in the app do not leak into the report. */
+.rdoc .rdoc__table th,
+.rdoc .rdoc__table td {
+  text-transform: none;
+  letter-spacing: normal;
+  background: transparent;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.rdoc .rdoc__table tr,
+.rdoc .rdoc__table tr:hover,
+.rdoc .rdoc__table tr:nth-child(even) {
+  background: transparent;
+}
+
+.rdoc .rdoc__table thead th {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom-color: #d1d5db;
+}
+
+.rdoc .rdoc__table tbody th {
+  font-weight: 500;
+}
+
+.rdoc__short {
+  display: none;
+}
+
+.rdoc__table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rdoc .rdoc__table tr.is-total th,
+.rdoc .rdoc__table tr.is-total td {
+  font-weight: 650;
+  border-bottom: 0;
+  border-top: 1px solid #9ca3af;
+}
+
+.rdoc .rdoc__unit {
+  color: #6b7280;
+  font-weight: 400;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.rdoc__note {
+  margin-top: 8px !important;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.rdoc__gaps {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.rdoc__gaps li + li {
+  margin-top: 4px;
+}
+
+.rdoc__foot {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+@media (max-width: 520px) {
+  .rdoc__title {
+    font-size: 19px;
+  }
+
+  .rdoc .rdoc__table th,
+  .rdoc .rdoc__table td {
+    padding: 8px 5px;
+    font-size: 13px;
+  }
+
+  /* Short column headings and the unit under the measure, so four columns
+     fit a phone without scrolling. */
+  .rdoc__long {
+    display: none;
+  }
+
+  .rdoc__short {
+    display: inline;
+  }
+
+  .rdoc .rdoc__unit {
+    display: block;
+    font-size: 12px;
+  }
+
+  .rdoc__meta {
+    grid-template-columns: 1fr 1fr;
+  }
+}

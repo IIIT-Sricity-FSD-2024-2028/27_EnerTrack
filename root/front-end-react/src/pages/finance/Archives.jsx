@@ -19,11 +19,15 @@ import overviewCss from "../../styles/finance-analyst/finance_overview.css?inlin
 import sharedCss from "../../styles/finance-analyst/finance_shared.css?inline";
 import archivesCss from "../../styles/finance-analyst/finance_archives.css?inline";
 
-const DONE_STATUSES = ["Returned to SO", "Target Set", "Finalized", "Delivered"];
+// Everything that has left Finance, including the target follow-up steps.
+const DONE_STATUSES = ["Returned to SO", "Target Set", "Verify Target", "Target Met", "Target Missed", "Finalized", "Delivered"];
 
 const STATUS_MAP = {
   "Returned to SO": { label: "Returned to SO", cssClass: "status-target-set" },
   "Target Set": { label: "Target Set by SO", cssClass: "status-target-set" },
+  "Verify Target": { label: "Target being checked", cssClass: "status-target-set" },
+  "Target Met": { label: "Target met", cssClass: "status-finalized" },
+  "Target Missed": { label: "Target missed", cssClass: "status-target-set" },
   Finalized: { label: "Finalized", cssClass: "status-finalized" },
   Delivered: { label: "Delivered to occupant", cssClass: "status-finalized" },
   Dismissed: { label: "Dismissed", cssClass: "status-dismissed" },

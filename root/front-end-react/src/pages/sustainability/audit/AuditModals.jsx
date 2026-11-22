@@ -7,7 +7,8 @@
  * Each one only checks its own fields and hands the values to onSubmit;
  * the parent (WastageAuditQueue) does the saving.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import api from "../../../api/client";
 import Modal from "../components/Modal";
 
 const DISMISS_REASONS = ["False Alarm", "Insufficient Evidence", "Already Addressed", "Out of Scope", "Other"];
@@ -243,6 +244,84 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
         </div>
       </div>
       <FormError message={error} />
+    </Modal>
+  );
+}
+
+/**
+ * "Check the result" — after a target's deadline (or early), the evidence
+ * from the report's meter and the officer's decision: met or missed.
+ * The server suggests an outcome when it can measure one; the officer
+ * decides either way.
+ */
+export function VerifyTargetModal({ report, busy, onSubmit, onClose }) {
+  const [check, setCheck] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let live = true;
+    api
+      .get(`/wastage-reports/${report.id}/target-check`)
+      .then((res) => live && setCheck(res))
+      .catch((err) => live && setError(err.message || "The readings could not be loaded."));
+    return () => {
+      live = false;
+    };
+  }, [report.id]);
+
+  const t = check?.target || report.metricTarget || {};
+  const pct = (n) => (n === null || n === undefined ? "—" : `${n}%`);
+  const decide = (status) =>
+    onSubmit({
+      status,
+      outcome: {
+        result: status === "Target Met" ? "met" : "missed",
+        suggested: check?.suggested ?? null,
+        achieved_reduction_pct: check?.achieved_reduction_pct ?? null,
+        required_reduction_pct: check?.required_reduction_pct ?? null,
+      },
+    });
+
+  return (
+    <Modal title="Was the target met?" busy={busy} onClose={onClose} cancelLabel="Close" width={560}>
+      <div className="so-check">
+        <dl>
+          <div>
+            <dt>Target</dt>
+            <dd>
+              {t.value ?? "—"} {t.unit || ""} by {t.deadline || "—"}
+            </dd>
+          </div>
+          <div>
+            <dt>Meter</dt>
+            <dd>{check ? (check.meter ? check.meter.meter_code : "Not linked") : "…"}</dd>
+          </div>
+          <div>
+            <dt>Cut the target needs</dt>
+            <dd>{check ? pct(check.required_reduction_pct) : "…"}</dd>
+          </div>
+          <div>
+            <dt>Cut measured (vs same months last year)</dt>
+            <dd>{check ? pct(check.achieved_reduction_pct) : "…"}</dd>
+          </div>
+        </dl>
+        {error && <p className="so-check__reason" role="alert">{error}</p>}
+        {check && <p className="so-check__reason">{check.reason}</p>}
+        <div className="so-check__actions">
+          {["Target Met", "Target Missed"].map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`so-btn ${s === "Target Met" ? "primary" : "danger"}${check?.suggested === s ? " is-suggested" : ""}`}
+              disabled={busy || !check}
+              onClick={() => decide(s)}
+            >
+              {s === "Target Met" ? "Target met" : "Target missed"}
+              {check?.suggested === s ? " (suggested)" : ""}
+            </button>
+          ))}
+        </div>
+      </div>
     </Modal>
   );
 }

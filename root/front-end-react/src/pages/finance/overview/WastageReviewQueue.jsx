@@ -9,7 +9,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../api/client";
 import { useAuth } from "../../../auth/useAuth";
-import { notifyOnStateChange } from "../../../legacy/notifications";
 import { useToast } from "../components/toastContext";
 import { addWastageComment, loadWastageReports, updateWastageReport } from "../financeApi";
 import CostImpactModal from "./CostImpactModal";
@@ -73,7 +72,6 @@ export default function WastageReviewQueue() {
   async function handleSaveCostImpact(costImpact) {
     if (!(await saveReport(editing, { status: "Cost Impact Added", costImpact }))) return;
     showToast("Cost impact saved. Review and return to SO when ready.", "success");
-    notifyOnStateChange({ id: editing.id }, "cost_added", "Finance Analyst");
     setEditing(null);
   }
 
@@ -85,7 +83,6 @@ export default function WastageReviewQueue() {
     const saved = await saveReport(report, { status: "Returned to SO", returnedAt: new Date().toISOString() });
     if (!saved) return;
     showToast("Report sent back to Sustainability Officer with cost figures.", "success");
-    notifyOnStateChange(report, "returned_to_so", "Finance Analyst");
   }
 
   async function handleAddComment(report, text) {

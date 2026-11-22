@@ -23,12 +23,23 @@ export class AlertsService {
 
   create(createDto: CreateAlertDto) {
     if (createDto.meter_id) {
-      const exists = this.database.meters.find(
-        (x) => x.meter_id === createDto.meter_id,
+      // The meter must belong to the caller's organisation; another tenant's
+      // meter reads as "not found", like any other id outside the tenant.
+      const exists = assertTenantOwns(
+        this.database.meters.find((x) => x.meter_id === createDto.meter_id),
       );
       if (!exists)
         throw new NotFoundException(
           `Target meters with id '${createDto.meter_id}' not found`,
+        );
+      // One open alert per meter, so pressing "Raise alert" twice does not
+      // send the technicians the same job twice.
+      const open = this.database.alerts.find(
+        (a) => a.meter_id === createDto.meter_id && a.status !== AlertStatus.RESOLVED,
+      );
+      if (open)
+        throw new ConflictException(
+          `There is already an open alert for this meter (${open.alert_id}: ${open.title}).`,
         );
     }
     if (createDto.triggering_reading_id) {

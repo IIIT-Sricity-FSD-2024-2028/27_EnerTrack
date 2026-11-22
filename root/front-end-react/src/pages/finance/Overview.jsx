@@ -9,7 +9,6 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../auth/useAuth";
 import FinanceLayout from "./components/FinanceLayout";
 import ToastProvider from "./components/ToastProvider";
-import NotificationBell from "./components/NotificationBell";
 import { useToast } from "./components/toastContext";
 import { loadEnergyCosts, loadReports } from "./financeApi";
 import DepartmentCostBars from "./overview/DepartmentCostBars";
@@ -51,7 +50,6 @@ function OverviewContent() {
           <h1 className="welcome">{firstName ? `Welcome back, ${firstName}` : "Overview"}</h1>
           <p>Energy spend for the latest period, and the approvals and cost reviews waiting on you.</p>
         </div>
-        <NotificationBell email={user.email} />
       </header>
 
       <SummaryCards costs={costs} reports={reports} loading={loading} />

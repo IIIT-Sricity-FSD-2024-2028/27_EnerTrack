@@ -3736,7 +3736,7 @@
       "get": {
         "operationId": "NotificationsController_findAll",
         "summary": "List All Notifications",
-        "description": "Retrieves all notification records across the system. Any authenticated user can access this endpoint to view all notifications. Send a GET request with no additional parameters.",
+        "description": "Every notification in the organisation, for administration. Only the Organization Admin; other users read their own through GET /notifications/mine.",
         "parameters": [
           {
             "name": "x-user-id",
@@ -3762,6 +3762,62 @@
           },
           "403": {
             "description": "Forbidden (RBAC)"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/mine": {
+      "get": {
+        "operationId": "NotificationsController_findMine",
+        "summary": "My Notifications",
+        "description": "The signed-in user's own notifications, newest first. This is what the notification bell shows. Any signed-in role.",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller's notifications."
+          },
+          "401": {
+            "description": "Not signed in."
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/mine/read": {
+      "patch": {
+        "operationId": "NotificationsController_markAllMine",
+        "summary": "Mark My Notifications Read",
+        "description": "Marks all of the signed-in user's notifications as read. Returns how many changed.",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ updated: number }"
+          },
+          "401": {
+            "description": "Not signed in."
           }
         },
         "tags": [
@@ -5652,6 +5708,31 @@
         ]
       }
     },
+    "/api/wastage-reports/{id}/target-check": {
+      "get": {
+        "operationId": "WastageReportsController_targetCheck",
+        "summary": "Evidence for a wastage target",
+        "description": "For a report with a target: the linked meter (sensor_reading_id → reading → meter), the cut the target needs (1 − target ÷ triggering reading), the meter's measured change (each full month since the target was set against the same month a year earlier), and a suggested Target Met / Target Missed. suggested is null, with a reason, when it cannot be measured (no linked meter, no full month yet).",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "The report has no target."
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
     "/api/wastage-reports/{id}": {
       "get": {
         "operationId": "WastageReportsController_findOne",
@@ -5714,9 +5795,9 @@
           },
           {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
             "schema": {
               "type": "string"
             }
@@ -5750,7 +5831,7 @@
       "patch": {
         "operationId": "WastageReportsController_update",
         "summary": "Update Wastage Report",
-        "description": "Partially updates a wastage report (e.g., status). The Sustainability Officer and Organization Admin can update reports.",
+        "description": "Partially updates a wastage report. A status change must follow the workflow: Sustainability Officer (and Organization Admin) Reported→Validated|Dismissed, Validated→Forwarded to Finance|Target Set|Dismissed, Returned to SO→Target Set|Forwarded to Finance, Target Set→Finalized, Finalized→Delivered; Financial Analyst (and Organization Admin) Forwarded to Finance→Cost Impact Added, Cost Impact Added→Returned to SO. Any other move returns 403. Saving the same status with other changes is allowed. Each move notifies the people concerned.",
         "parameters": [
           {
             "name": "id",
@@ -8337,47 +8418,10 @@
       }
     },
     "/api/sustainability-metrics": {
-      "post": {
-        "operationId": "SustainabilityMetricsController_create",
-        "summary": "Create Sustainability Metric",
-        "description": "Records a new sustainability metric snapshot. Sustainability Officer and Organization Admin can create.",
-        "parameters": [
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "User role for RBAC.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateSustainabilityMetricDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created successfully."
-          },
-          "403": {
-            "description": "Forbidden."
-          }
-        },
-        "tags": [
-          "sustainability-metrics"
-        ]
-      },
       "get": {
         "operationId": "SustainabilityMetricsController_findAll",
         "summary": "List All Sustainability Metrics",
-        "description": "Retrieves all sustainability metrics. Sustainability Officer and Organization Admin can view KPIs.",
+        "description": "Read-only list of stored sustainability metric snapshots, kept for the legacy front-end. The dashboards use GET /sustainability-metrics/summary, which is computed from meter readings; metric records can no longer be created, edited or deleted through the API.",
         "parameters": [
           {
             "name": "x-role",
@@ -8406,7 +8450,7 @@
       "get": {
         "operationId": "SustainabilityMetricsController_getSummary",
         "summary": "Get Sustainability Metrics Summary",
-        "description": "Tenant-scoped summary of energy, water, gas, emissions, and food wastage across a period. Includes time series, totals, deltas vs previous period, and meter coverage.",
+        "description": "Tenant-scoped summary of energy, water, gas, emissions (Scope 1 gas + Scope 2 grid electricity), and food wastage across a period. Defaults to January of the current year through the last full month. granularity is month (default), quarter or year; readings are monthly totals, so week/day are rejected with 400. Includes time series, totals, deltas vs previous period, meter coverage, and silent_meters (active meters with no readings in the period). With groupBy=building, also by_building: per-building electricity, water, gas and emissions (they add up to the campus totals), electricity change vs the previous period and vs the same months last year, meters reporting, and silent or faulty meters.",
         "parameters": [
           {
             "name": "from",
@@ -8426,6 +8470,14 @@
           },
           {
             "name": "granularity",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupBy",
             "required": true,
             "in": "query",
             "schema": {
@@ -8467,186 +8519,20 @@
         ]
       }
     },
-    "/api/sustainability-metrics/{id}": {
-      "get": {
-        "operationId": "SustainabilityMetricsController_findOne",
-        "summary": "Get Sustainability Metric by ID",
-        "description": "Retrieves a single metric by UUID. Sustainability Officer and Organization Admin can look up.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "User role for RBAC.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Record returned."
-          },
-          "403": {
-            "description": "Forbidden."
-          },
-          "404": {
-            "description": "Not found."
-          }
-        },
-        "tags": [
-          "sustainability-metrics"
-        ]
-      },
-      "put": {
-        "operationId": "SustainabilityMetricsController_put",
-        "summary": "Replace Sustainability Metric",
-        "description": "Completely replaces a metric record. Only Organization Admin can perform full replacements.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "User role for RBAC.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PutSustainabilityMetricDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Replaced successfully."
-          },
-          "403": {
-            "description": "Forbidden."
-          },
-          "404": {
-            "description": "Not found."
-          }
-        },
-        "tags": [
-          "sustainability-metrics"
-        ]
-      },
-      "patch": {
-        "operationId": "SustainabilityMetricsController_update",
-        "summary": "Update Sustainability Metric",
-        "description": "Partially updates a metric. Sustainability Officer and Organization Admin can update.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "User role for RBAC.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateSustainabilityMetricDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated successfully."
-          },
-          "403": {
-            "description": "Forbidden."
-          },
-          "404": {
-            "description": "Not found."
-          }
-        },
-        "tags": [
-          "sustainability-metrics"
-        ]
-      },
-      "delete": {
-        "operationId": "SustainabilityMetricsController_remove",
-        "summary": "Delete Sustainability Metric",
-        "description": "Permanently removes a metric. Only Organization Admin can delete.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-role",
-            "in": "header",
-            "description": "User role for RBAC.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Deleted successfully."
-          },
-          "403": {
-            "description": "Forbidden."
-          },
-          "404": {
-            "description": "Not found."
-          }
-        },
-        "tags": [
-          "sustainability-metrics"
-        ]
-      }
-    },
     "/api/initiatives": {
       "post": {
         "operationId": "InitiativesController_create",
         "summary": "Create Initiative",
-        "description": "Proposes a new sustainability initiative. Sustainability Officer and Organization Admin can create.",
+        "description": "Proposes a new sustainability initiative. Sustainability Officer and Organization Admin can create. created_by_id is set to the signed-in user; it cannot be supplied. Optional capex, start_date and target_date (YYYY-MM-DD) are stored.",
         "parameters": [
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "x-role",
             "in": "header",
@@ -8761,9 +8647,17 @@
           },
           {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -8797,7 +8691,7 @@
       "patch": {
         "operationId": "InitiativesController_update",
         "summary": "Update Initiative",
-        "description": "Partially updates an initiative (e.g., status, outcomes). Sustainability Officer and Organization Admin can update.",
+        "description": "Partially updates an initiative. Status changes follow the approval gate: only the Organization Admin moves proposed→approved|rejected (optional decision_note, sent to the proposer); the Sustainability Officer (or Admin) moves approved→in-progress→completed. Anything else is 403.",
         "parameters": [
           {
             "name": "id",
@@ -8809,9 +8703,17 @@
           },
           {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -8845,7 +8747,7 @@
       "delete": {
         "operationId": "InitiativesController_remove",
         "summary": "Delete Initiative",
-        "description": "Permanently removes an initiative.",
+        "description": "Permanently removes an initiative. The Sustainability Officer can only withdraw a proposed or rejected one (409 otherwise); the Organization Admin can remove any.",
         "parameters": [
           {
             "name": "id",
@@ -8857,9 +8759,9 @@
           },
           {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
             "schema": {
               "type": "string"
             }
@@ -8878,6 +8780,256 @@
         },
         "tags": [
           "initiatives"
+        ]
+      }
+    },
+    "/api/initiatives/{id}/performance": {
+      "get": {
+        "operationId": "InitiativesController_performance",
+        "summary": "Initiative performance",
+        "description": "Measured saving since start_date: each month against the same month a year earlier on the initiative's meters (meter_ids, else its metric's meters in building_ids, else the whole organisation), counting only months with readings on both sides. Returns months_compared, actual_saving_to_date, expected_to_date (expected_saving pro rata), on_track and a green/amber/red rating. measurable=false without a metric or start date.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      }
+    },
+    "/api/initiatives/{id}/archive": {
+      "patch": {
+        "operationId": "InitiativesController_archive",
+        "summary": "Archive Initiative",
+        "description": "Moves a completed or rejected initiative into Archives without deleting it. Any other status returns 400. Archiving again keeps the original archived_at.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archived."
+          },
+          "400": {
+            "description": "Initiative is not completed or rejected."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      }
+    },
+    "/api/targets": {
+      "post": {
+        "operationId": "TargetsController_create",
+        "summary": "Propose a sustainability target",
+        "description": "Cut a metric (energy_kwh, water_kl, gas_m3, emissions_kg) by reduction_pct against a finished baseline period by a future deadline month, for the organisation or some buildings. Always starts as proposed; the Organization Admins are notified. One open (proposed or active) target per metric and scope.",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTargetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Proposed. Returned with summary and progress."
+          },
+          "400": {
+            "description": "Invalid months, unknown building, or deadline already passed."
+          },
+          "409": {
+            "description": "An open target already covers this metric and scope."
+          }
+        },
+        "tags": [
+          "targets"
+        ]
+      },
+      "get": {
+        "operationId": "TargetsController_findAll",
+        "summary": "List targets with progress",
+        "description": "Every target in the organisation, newest first, each with a plain-language summary and its progress. Active targets whose deadline month has finished are closed as met or missed first.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "targets"
+        ]
+      }
+    },
+    "/api/targets/{id}": {
+      "get": {
+        "operationId": "TargetsController_findOne",
+        "summary": "Get a target with progress",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "tags": [
+          "targets"
+        ]
+      },
+      "delete": {
+        "operationId": "TargetsController_remove",
+        "summary": "Withdraw a proposed target",
+        "description": "Only while proposed, by whoever proposed it or the Organization Admin. 409 once approved or closed.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "409": {
+            "description": "Not proposed any more."
+          }
+        },
+        "tags": [
+          "targets"
+        ]
+      }
+    },
+    "/api/targets/{id}/progress": {
+      "get": {
+        "operationId": "TargetsController_progress",
+        "summary": "Target progress",
+        "description": "Compares each month after the baseline with the same calendar month in the baseline, counting only months with readings on both sides. Returns baseline_value, current_value, target_value, achieved_reduction_pct, required_reduction_pct (straight line from approval to deadline), on_track and months_compared.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "targets"
+        ]
+      }
+    },
+    "/api/targets/{id}/status": {
+      "patch": {
+        "operationId": "TargetsController_setStatus",
+        "summary": "Approve, reject or close a target",
+        "description": "Organization Admin only: proposed→active|rejected, active→met|missed. Anyone else gets 403. The proposer is notified.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTargetStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Not the Organization Admin, or a move that is not allowed."
+          }
+        },
+        "tags": [
+          "targets"
         ]
       }
     },
@@ -9176,8 +9328,16 @@
       "post": {
         "operationId": "SustainabilityReportsController_create",
         "summary": "Create Sustainability Report",
-        "description": "Archives a new sustainability report with KPI metrics. Sustainability Officer and Organization Admin can create.",
+        "description": "Saves a sustainability report for a period. The server generates the whole snapshot (totals, deltas, metrics, meter coverage, data gaps) from meter readings, exactly as POST /generate previews it, and records the signed-in user as generated_by_id. Only period, from, to and title are accepted; client-supplied metrics are rejected. New reports start as status draft.",
         "parameters": [
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "x-role",
             "in": "header",
@@ -9280,7 +9440,7 @@
       "put": {
         "operationId": "SustainabilityReportsController_put",
         "summary": "Replace Sustainability Report",
-        "description": "Completely replaces a report. Only Organization Admin can perform full replacements.",
+        "description": "Regenerates a saved report for the given period from current meter readings, keeping its id, author and status. Only Organization Admin.",
         "parameters": [
           {
             "name": "id",
@@ -9328,7 +9488,7 @@
       "patch": {
         "operationId": "SustainabilityReportsController_update",
         "summary": "Update Sustainability Report",
-        "description": "Partially updates a report. Sustainability Officer and Organization Admin can update.",
+        "description": "Renames a draft report. Only the title of a draft can change (409 once submitted); the figures are a snapshot of the readings.",
         "parameters": [
           {
             "name": "id",
@@ -9376,7 +9536,7 @@
       "delete": {
         "operationId": "SustainabilityReportsController_remove",
         "summary": "Delete Sustainability Report",
-        "description": "Permanently removes a report. Organization Admin and Sustainability Officer can delete.",
+        "description": "Deletes a draft report: the Sustainability Officer their own drafts, the Organization Admin any draft. Submitted, approved and published reports cannot be deleted (409).",
         "parameters": [
           {
             "name": "id",
@@ -9388,9 +9548,17 @@
           },
           {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -9405,6 +9573,90 @@
           },
           "404": {
             "description": "Not found."
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      }
+    },
+    "/api/sustainability-reports/{id}/status": {
+      "patch": {
+        "operationId": "SustainabilityReportsController_setStatus",
+        "summary": "Move a report through sign-off",
+        "description": "draft→submitted (Sustainability Officer or Organization Admin); submitted→approved or back to draft with a note, approved→published (Organization Admin only). Anything else is 403. The people concerned are notified.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateReportStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Not allowed for this role, or not a legal move."
+          }
+        },
+        "tags": [
+          "sustainability-reports"
+        ]
+      }
+    },
+    "/api/sustainability-reports/{id}/restate": {
+      "post": {
+        "operationId": "SustainabilityReportsController_restate",
+        "summary": "Restate a published report",
+        "description": "Creates a new draft for the same period from current readings, linked to the original (supersedes / superseded_by). The published report itself never changes. 409 unless published and not already restated.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "409": {
+            "description": "Not published, or already restated."
           }
         },
         "tags": [
@@ -9702,7 +9954,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$5H7w6aJ50bQXYylnNLzoD.MCW7YqKkn/xNrghiB2nyUyAHaWWudO2",
+          "password": "$2b$08$DK5LZVAYa1RTovJO0jt4nefmYnuq6rhMldIBT0D5pTg0LVEf6KhIK",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -9719,7 +9971,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$5H7w6aJ50bQXYylnNLzoD.MCW7YqKkn/xNrghiB2nyUyAHaWWudO2",
+          "password": "$2b$08$DK5LZVAYa1RTovJO0jt4nefmYnuq6rhMldIBT0D5pTg0LVEf6KhIK",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -9729,11 +9981,12 @@
         "properties": {},
         "example": {
           "organization_id": "org-001",
-          "user_id": "550e8400-0002-4000-8000-000000000002",
-          "target_type": "alert",
-          "target_id": "target1",
-          "message": "Notif 1",
-          "is_read": false
+          "user_id": "550e8400-0005-4000-8000-000000000005",
+          "target_type": "wastage",
+          "target_id": "wwww0000-0001-4000-8000-000000000000",
+          "message": "New water wastage report WR-3N2A8Z at Main Courtyard, East Wing.",
+          "is_read": true,
+          "created_at": "2026-11-12T09:15:00.000Z"
         }
       },
       "PutNotificationDto": {
@@ -9745,11 +9998,12 @@
         "properties": {},
         "example": {
           "organization_id": "org-001",
-          "user_id": "550e8400-0002-4000-8000-000000000002",
-          "target_type": "alert",
-          "target_id": "target1",
-          "message": "Notif 1",
-          "is_read": false
+          "user_id": "550e8400-0005-4000-8000-000000000005",
+          "target_type": "wastage",
+          "target_id": "wwww0000-0001-4000-8000-000000000000",
+          "message": "New water wastage report WR-3N2A8Z at Main Courtyard, East Wing.",
+          "is_read": true,
+          "created_at": "2026-11-12T09:15:00.000Z"
         }
       },
       "CreateCampusDto": {
@@ -9882,6 +10136,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "created_at": "2026-11-12T09:15:00.000Z",
           "organization_id": "org-001",
           "reporter_id": "550e8400-0002-4000-8000-000000000002",
           "type": "Water",
@@ -9916,6 +10171,7 @@
         "type": "object",
         "properties": {},
         "example": {
+          "created_at": "2026-11-12T09:15:00.000Z",
           "organization_id": "org-001",
           "reporter_id": "550e8400-0002-4000-8000-000000000002",
           "type": "Water",
@@ -10214,32 +10470,6 @@
           "npv": 10000
         }
       },
-      "CreateSustainabilityMetricDto": {
-        "type": "object",
-        "properties": {},
-        "example": {
-          "organization_id": "org-001",
-          "period": "2024-11",
-          "energy_consumed": 15000,
-          "water_usage": 2000,
-          "emissions": 500
-        }
-      },
-      "PutSustainabilityMetricDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateSustainabilityMetricDto": {
-        "type": "object",
-        "properties": {},
-        "example": {
-          "organization_id": "org-001",
-          "period": "2024-11",
-          "energy_consumed": 15000,
-          "water_usage": 2000,
-          "emissions": 500
-        }
-      },
       "CreateInitiativeDto": {
         "type": "object",
         "properties": {},
@@ -10277,6 +10507,14 @@
             "Decreased maintenance costs for replacements"
           ]
         }
+      },
+      "CreateTargetDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateTargetStatusDto": {
+        "type": "object",
+        "properties": {}
       },
       "CreateActivityLogDto": {
         "type": "object",
@@ -10322,7 +10560,9 @@
             "carbonOffset": "124 tCO2e",
             "waterSaved": "1.2 ML"
           },
-          "generated_at": "2025-04-01T10:00:00.000Z"
+          "generated_at": "2025-04-01T10:00:00.000Z",
+          "status": "published",
+          "published_at": "2025-04-01T10:00:00.000Z"
         }
       },
       "PutSustainabilityReportDto": {
@@ -10343,8 +10583,14 @@
             "carbonOffset": "124 tCO2e",
             "waterSaved": "1.2 ML"
           },
-          "generated_at": "2025-04-01T10:00:00.000Z"
+          "generated_at": "2025-04-01T10:00:00.000Z",
+          "status": "published",
+          "published_at": "2025-04-01T10:00:00.000Z"
         }
+      },
+      "UpdateReportStatusDto": {
+        "type": "object",
+        "properties": {}
       }
     }
   },
