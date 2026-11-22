@@ -1,193 +1,134 @@
 /**
  * Dashboard — /campus/dashboard ("Report an Issue"), the Campus Visitor's
- * home page. Replaces html/enduser/enduser_dashboard.html + js/enduser/enduser.js.
+ * home page.
  *
  * This is the parent. It:
- *   - loads the visitor's reports (useEffect) and passes them to <MyReports>
- *   - gives <IssueForm> a function to call on submit, and saves the report
- *   - shows the "submitted" toast
+ *   - loads the question lists, the buildings and the visitor's reports
+ *   - gives <ReportForm> a function to call on submit
+ *   - shows the status-only list and the 4-step timeline
  *
- * Works with the backend stopped: reports are then saved to and read from
- * the old local store (universalDB), exactly like the original page. That
- * fallback is ONLY for "server not running". If the server is running but
- * refuses the report, the visitor is told, not shown a fake success.
+ * The server decides priority, team and duplicates and takes the reporter
+ * from the login, so there is no offline fallback here: a report that did not
+ * reach the server is not a report, and the visitor is told so.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
-import universalDB from "../../legacy/universalDB";
-import IssueForm from "./IssueForm";
+import ReportForm from "./ReportForm";
 import MyReports from "./MyReports";
 import {
-  getProgress,
-  splitDescription,
   TIMELINE_STEPS,
+  formatReportedOn,
+  statusStep,
 } from "./serviceRequestHelpers";
 import campusCss from "./campus.css?inline";
 
-// True when the request never reached the server (backend stopped). Any
-// other error means the server answered and said no.
-function isNetworkError(error) {
-  return String(error?.message || "").startsWith("Cannot reach server");
-}
+export default function Dashboard() {
+  const { user } = useAuth();
+  const [catalogue, setCatalogue] = useState(null);
+  const [buildings, setBuildings] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [nearby, setNearby] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [toast, setToast] = useState({ text: "", error: false, show: false });
+  const [loadError, setLoadError] = useState("");
 
-// Loads this user's reports and returns them in the shape <MyReports> wants,
-// newest first. Backend first; if that fails or finds nothing, the local store.
-async function fetchMyTickets(user) {
-  let tickets = [];
+  const loadTickets = useCallback(
+    () =>
+      api
+        .get("/service-requests/mine")
+        .then((list) =>
+          setTickets(Array.isArray(list) ? [...list].reverse() : []),
+        )
+        .catch(() => setTickets([])),
+    [],
+  );
 
-  try {
-    const [requests, workOrders] = await Promise.all([
-      api.get("/service-requests"),
-      api.get("/work-orders"),
-    ]);
-    const orders = Array.isArray(workOrders) ? workOrders : [];
+  useEffect(() => {
+    Promise.all([api.get("/service-requests/catalogue"), api.get("/buildings")])
+      .then(([cat, b]) => {
+        setCatalogue(cat);
+        setBuildings(Array.isArray(b) ? b : []);
+      })
+      .catch((e) => setLoadError(e.message));
+    loadTickets();
+  }, [loadTickets]);
 
-    if (Array.isArray(requests)) {
-      tickets = requests
-        .filter((sr) => sr.reporter_id === user.user_id)
-        .map((sr) => {
-          // A request's status follows its work orders: a closed work order
-          // means it is done, an active one means it is being worked on.
-          const related = orders.filter(
-            (wo) => wo.source_request_id === sr.service_request_id,
-          );
-          let status = sr.status || "open";
-          if (related.some((wo) => wo.status === "closed")) {
-            status = "closed";
-          } else if (
-            status === "open" &&
-            related.some((wo) =>
-              ["new", "approval", "inprogress", "review"].includes(wo.status),
-            )
-          ) {
-            status = "in_progress";
-          }
+  // Keep the list current without a refresh: every 30 seconds, and when the
+  // student comes back to this tab.
+  useEffect(() => {
+    const timer = setInterval(loadTickets, 30000);
+    const onFocus = () => loadTickets();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [loadTickets]);
 
-          const parts = splitDescription(sr.description);
-          const progress = getProgress(status, related);
+  const selected = tickets.find((t) => t.id === selectedId) || null;
 
-          return {
-            id: sr.service_request_id,
-            description: parts.description,
-            location: parts.location,
-            priority: sr.priority
-              ? sr.priority.charAt(0).toUpperCase() + sr.priority.slice(1)
-              : "Medium",
-            status: status,
-            timestamp: sr.created_at, // when it was filed (none on seeded rows)
-            issueType: sr.issue_type || parts.issueType,
-            step: progress.step,
-            stepNote: progress.note,
-          };
-        })
-        // The backend lists oldest first, so reverse it: newest on top
-        .reverse();
-    }
-  } catch (err) {
-    console.warn(
-      "[EndUser] Backend fetch failed, using local data",
-      err.message,
+  function show(text, error = false) {
+    setToast({ text, error, show: true });
+    setTimeout(
+      () => setToast((t) => ({ ...t, show: false })),
+      error ? 5000 : 4000,
     );
   }
 
-  // Fallback: reports saved in the browser while the backend was down.
-  // These do carry a real timestamp, so sort by it (newest first).
-  if (tickets.length === 0) {
-    tickets = universalDB.data.workflow.serviceRequests
-      .filter((sr) => sr.reporterEmail === user.email)
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      .map((t) => {
-        const progress = getProgress(t.status);
-        return { ...t, step: progress.step, stepNote: progress.note };
-      });
-  }
-
-  return tickets;
-}
-
-export default function Dashboard() {
-  const { user } = useAuth();
-  const [tickets, setTickets] = useState([]);
-  const [selectedId, setSelectedId] = useState(null); // the clicked card
-  const [toastVisible, setToastVisible] = useState(false);
-  const [errorText, setErrorText] = useState(""); // red toast when not empty
-
-  // Load the reports when the page opens
-  useEffect(() => {
-    fetchMyTickets(user).then(setTickets);
-  }, [user]);
-
-  // The selected report, looked up fresh so it is never out of date
-  const selectedTicket = tickets.find((t) => t.id === selectedId) || null;
-
-  // Clicking a card opens it read-only in the form and in the timeline
-  function handleSelect(ticket) {
-    setSelectedId(ticket.id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function showToast() {
-    setErrorText("");
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 3500);
-  }
-
-  function showError(message) {
-    setErrorText(message);
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 5000);
-  }
-
-  // Called by <IssueForm> with { location, issueType, priority, description }
-  async function handleSubmit(values) {
-    const type = values.issueType || "General";
-
-    // 1. Try the backend
+  // The "Already reported here" row: open issues on the chosen floor.
+  // "It is fixed" / "Still broken" on a fixed issue.
+  async function respond(id, fixed) {
     try {
-      await api.post("/service-requests", {
-        reporter_id: user.user_id || "550e8400-0006-4000-8000-000000000006",
-        category: "General",
-        issue_type: type,
-        description: `[${type}] ${values.description} — Location: ${values.location}`,
-        priority: values.priority.toLowerCase(),
-        status: "open",
-      });
-      showToast();
-      setTickets(await fetchMyTickets(user));
-      return true;
-    } catch (err) {
-      // The server answered but refused (e.g. 403): do not pretend it worked
-      if (!isNetworkError(err)) {
-        showError("Could not submit your report: " + err.message);
-        return false; // tells <IssueForm> to keep what the visitor typed
-      }
-      console.warn(
-        "[EndUser] Could not reach backend, saving locally only:",
-        err.message,
-      );
+      await api.post(`/service-requests/${id}/${fixed ? "confirm-fixed" : "still-broken"}`, {});
+      show(fixed ? "Thanks for letting us know." : "Sent again. We have marked it as a repeat.");
+      await loadTickets();
+    } catch (e) {
+      show(e.message, true);
     }
+  }
 
-    // 2. Backend is not running: save in the browser instead
-    universalDB.data.workflow.serviceRequests.push({
-      id: "SR-" + Date.now().toString(36).toUpperCase(),
-      source: "User-Reported",
-      reporterName: user.name,
-      reporterEmail: user.email,
-      location: values.location,
-      description: values.description,
-      issueType: values.issueType || "General Maintenance",
-      priority: values.priority,
-      status: "Reported",
-      category: null,
-      assignedTo: null,
-      costProposal: null,
-      timestamp: new Date().toISOString(),
-    });
-    universalDB.save();
-    showToast();
-    setTickets(await fetchMyTickets(user));
-    return true;
+  async function loadNearby(buildingId, floor) {
+    if (!buildingId || !floor) return setNearby([]);
+    try {
+      const list = await api.get(
+        `/service-requests/campus-issues?building_id=${buildingId}&floor=${floor}`,
+      );
+      setNearby(Array.isArray(list) ? list : []);
+    } catch {
+      setNearby([]);
+    }
+  }
+
+  async function handleSubmit(payload) {
+    const result = await api.post("/service-requests/reports", payload);
+    if (result.outcome === "covered") return result; // the form asks "same problem?"
+    const when = result.ticket?.reported_on
+      ? ` Reported on ${formatReportedOn(result.ticket.reported_on)}.`
+      : "";
+    show(
+      result.outcome === "joined"
+        ? `Already reported, you've been added.${when}`
+        : result.outcome === "already_reported"
+          ? "You've already reported this one."
+          : `Report submitted.${when}`,
+    );
+    await loadTickets();
+    setNearby([]);
+    return result;
+  }
+
+  async function handlePlusOne(id) {
+    try {
+      await api.post(`/service-requests/${id}/plus-one`, {});
+      show("Added. Thanks, you're counted as affected.");
+      await loadTickets();
+      setNearby((list) =>
+        list.map((t) => (t.id === id ? { ...t, mine: true } : t)),
+      );
+    } catch (e) {
+      show(e.message, true);
+    }
   }
 
   return (
@@ -197,75 +138,77 @@ export default function Dashboard() {
       <div className="header-row">
         <div className="page-header">
           <h1>Welcome, {user.name}</h1>
-          <p>
-            Anyone on campus — students, faculty, staff, or visitors — can log
-            an issue and we'll take it from there.
-          </p>
+          <p>Anyone on campus can log an issue and we'll take it from there.</p>
         </div>
       </div>
 
+      {loadError && <div className="form-error">{loadError}</div>}
+
       <div className="eu-grid">
         <div>
-          <IssueForm
-            email={user.email}
-            selectedTicket={selectedTicket}
-            onSubmit={handleSubmit}
-            onNewReport={() => setSelectedId(null)}
-          />
+          {catalogue ? (
+            <ReportForm
+              email={user.email}
+              catalogue={catalogue}
+              buildings={buildings}
+              nearby={nearby}
+              onSubmit={handleSubmit}
+              onPlusOne={handlePlusOne}
+              onFloorChange={loadNearby}
+            />
+          ) : (
+            !loadError && <p>Loading the form…</p>
+          )}
         </div>
-        {/* Shows the clicked report; on a new form, the start of the flow */}
-        <InfoPanel
-          ticket={selectedTicket}
-          showLabel={selectedTicket !== null}
-        />
+        <InfoPanel ticket={selected} />
       </div>
 
       <MyReports
         tickets={tickets}
         selectedId={selectedId}
-        onSelect={handleSelect}
+        onSelect={(t) => setSelectedId(t.id === selectedId ? null : t.id)}
+        onRespond={respond}
       />
 
       <div
         className={
           "eu-toast" +
-          (toastVisible ? " show" : "") +
-          (errorText ? " error" : "")
+          (toast.show ? " show" : "") +
+          (toast.error ? " error" : "")
         }
       >
-        {errorText || "Report submitted successfully!"}
+        {toast.text}
       </div>
     </div>
   );
 }
 
-/* ── Right-hand info panel: the progress timeline and tips. ── */
+/* ── Right-hand panel: the status steps and a few tips. ── */
 
-// How one step looks for the given report: "done", "active" or "pending".
-function getStepState(stepNum, ticket) {
-  const step = ticket ? ticket.step : 1; // no report yet: the visitor is on step 1
-  if (step >= 5) return "done"; // Resolved is the end: every step is done
-  if (stepNum < step) return "done";
-  if (stepNum === step) return "active";
+function stepState(num, ticket) {
+  const step = ticket ? statusStep(ticket.status) : 1;
+  if (step >= 5) return "done";
+  if (num < step) return "done";
+  if (num === step) return "active";
   return "pending";
 }
 
-// Each tip has an id, used as its React key
 const TIPS = [
   {
-    id: "location",
+    id: "check",
     text: (
       <>
-        Be specific about the <strong>exact location</strong> — floor, room
-        number, wing.
+        Check <strong>Campus issues</strong> first. If it is already there,
+        press +1.
       </>
     ),
   },
   {
-    id: "when",
+    id: "see",
     text: (
       <>
-        Mention <strong>when</strong> the issue started or was first noticed.
+        Only describe what you can <strong>see</strong>. We work out how urgent
+        it is.
       </>
     ),
   },
@@ -273,85 +216,39 @@ const TIPS = [
     id: "safety",
     text: (
       <>
-        If it's a <strong>safety hazard</strong>, set priority to High.
-      </>
-    ),
-  },
-  {
-    id: "contact",
-    text: (
-      <>
-        Leave a <strong>contact</strong> so we can reach you for more details if
-        needed.
+        In danger? Call <strong>campus security</strong> straight away.
       </>
     ),
   },
 ];
 
-function InfoPanel({ ticket, showLabel }) {
+function InfoPanel({ ticket }) {
   return (
     <div className="right-panel">
       <div className="info-card">
-        <h3>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          What Happens Next
-        </h3>
-
-        {showLabel && ticket && (
+        <h3>What Happens Next</h3>
+        {ticket && (
           <div className="trail-label">
-            Showing progress for <strong>#{ticket.id}</strong>
+            Showing progress for <strong>{ticket.summary}</strong>
           </div>
         )}
-
         <ul className="timeline">
-          {TIMELINE_STEPS.map((step) => {
-            const state = getStepState(step.num, ticket);
-            return (
-              <li key={step.num}>
-                <div className={`tl-dot ${state}`}>{step.num}</div>
-                <div>
-                  <p className="tl-label">{step.label}</p>
-                  <p className="tl-desc">{step.desc}</p>
-                  {state === "active" && ticket && ticket.stepNote && (
-                    <p className="tl-active-desc">{ticket.stepNote}</p>
-                  )}
-                </div>
-              </li>
-            );
-          })}
+          {TIMELINE_STEPS.map((step) => (
+            <li key={step.num}>
+              <div className={`tl-dot ${stepState(step.num, ticket)}`}>
+                {step.num}
+              </div>
+              <div>
+                <p className="tl-label">{step.label}</p>
+                <p className="tl-desc">{step.desc}</p>
+              </div>
+            </li>
+          ))}
         </ul>
       </div>
 
       <div className="info-card">
-        <h3>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M9 18h6" />
-            <path d="M10 22h4" />
-            <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
-          </svg>
-          Tips for a Good Report
-        </h3>
+        <h3>Tips for a Good Report</h3>
         {TIPS.map((tip) => (
           <div className="tip-item" key={tip.id}>
             <div className="tip-dot"></div>

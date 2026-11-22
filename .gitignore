@@ -9,3 +9,16 @@ logs/
 .DS_Store
 dist/
 build/
+
+# Tests (kept local, not committed)
+*.spec.ts
+*.e2e-spec.ts
+root/backend/test/
+
+# Build and tooling leftovers
+coverage/
+*.tsbuildinfo
+.claude/
+*.bak
+*.orig
+*.tmp

@@ -52,10 +52,14 @@ export default function WorkOrderModal({
   const [priority, setPriority] = useState(
     defaultPriority(kind, fault.severity),
   );
-  const [assigneeId, setAssigneeId] = useState(fault.assigned_to_id || "");
+  // Blank means "let the system choose". The person who confirmed the fault is
+  // usually the coordinator, not someone who can take the job, so it is not
+  // used as the starting choice.
+  const [assigneeId, setAssigneeId] = useState("");
   const [notes, setNotes] = useState(defaultNotes(fault));
 
-  const technicians = assignableUsers(users);
+  // Only field technicians can be given a job.
+  const technicians = assignableUsers(users).filter((u) => u.role === "Technician");
 
   let title = "Setup Scheduled Work Order";
   let confirmLabel = "Create Work Order";
@@ -119,7 +123,7 @@ export default function WorkOrderModal({
               value={assigneeId}
               onChange={(event) => setAssigneeId(event.target.value)}
             >
-              <option value="">Unassigned</option>
+              <option value="">Let the system choose</option>
               {technicians.map((tech) => (
                 <option key={tech.user_id} value={tech.user_id}>
                   {tech.name}

@@ -35,7 +35,11 @@ export default function JrActionPanel({
   const needsEstimate =
     (details.estimateRequired && !details.estimate) || estimateRejected;
 
-  const rejectButton = (
+  // A job the system sent was accepted on the Overview; there is no taking it
+  // back here. Handing a job back is for the coordinator, or "decline" before
+  // acknowledging.
+  const sent = !!wo.dispatch;
+  const rejectButton = sent ? null : (
     <button
       type="button"
       className="btn btn-light btn-full reject-btn"
@@ -72,22 +76,24 @@ export default function JrActionPanel({
     body = (
       <div className="grid2">
         <div className="option active">
-          <b>Accept Task</b>
-          <p>Begin phase execution.</p>
+          <b>{sent ? "Start work" : "Accept Task"}</b>
+          <p>{sent ? "You accepted this job. Begin the work." : "Begin phase execution."}</p>
           <button
             type="button"
             className="btn btn-dark btn-full"
             disabled={busy}
             onClick={onAccept}
           >
-            Accept Task
+            {sent ? "Start work" : "Accept Task"}
           </button>
         </div>
-        <div className="option">
-          <b>Reject Task</b>
-          <p>Return work order to the queue.</p>
-          {rejectButton}
-        </div>
+        {rejectButton && (
+          <div className="option">
+            <b>Reject Task</b>
+            <p>Return work order to the queue.</p>
+            {rejectButton}
+          </div>
+        )}
       </div>
     );
   } else if (wo.status === "approval") {
@@ -114,7 +120,7 @@ export default function JrActionPanel({
           disabled={busy}
           onClick={() => onSubmitReview(notes.trim())}
         >
-          Submit for Review
+          {sent ? "Mark done" : "Submit for Review"}
         </button>
       </div>
     );
@@ -123,7 +129,7 @@ export default function JrActionPanel({
     title = "Under Review";
     body = (
       <p className="stage-note">
-        This task is under review by the Technician Administrator.
+        This task is under review by the Operations Coordinator.
       </p>
     );
   }

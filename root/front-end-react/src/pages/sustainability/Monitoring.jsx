@@ -97,30 +97,17 @@ export default function SustainabilityMonitoring() {
 
     try {
       setPipelineStep(1);
-      setPipelineMessage("Querying upstream sensor network...");
-      await new Promise((r) => setTimeout(r, 180));
-
-      setPipelineStep(2);
-      setPipelineMessage("Aggregating readings across meters...");
-      await new Promise((r) => setTimeout(r, 180));
+      setPipelineMessage("Loading readings...");
 
       const res = await api.get(
         `/sustainability-metrics/summary?from=${config.from}&to=${config.to}&granularity=${config.granularity}`,
       );
 
-      setPipelineStep(3);
-      setPipelineMessage("Calculating emissions with 0.82 grid constant...");
-      await new Promise((r) => setTimeout(r, 150));
-
-      setPipelineStep(4);
-      setPipelineMessage("Verifying active meter coverage...");
-      await new Promise((r) => setTimeout(r, 120));
-
       setData(res);
       setLastUpdated(new Date());
       setPipelineStep(5);
-      setPipelineMessage("Dashboard updated with verified telemetry");
-      showToast("Telemetry data refreshed successfully.", "success");
+      setPipelineMessage("Up to date");
+      showToast("Readings refreshed.", "success");
     } catch (err) {
       const msg = err.message || "Failed to fetch sustainability metrics summary";
       setError(msg);
@@ -222,7 +209,7 @@ export default function SustainabilityMonitoring() {
             Environmental Impact Monitoring
           </h1>
           <p style={{ margin: "6px 0 0 0", color: "#4b5563", fontSize: "14px" }}>
-            Live readings, emissions accounting, and meter reporting coverage driven directly from hardware sensors.
+            Meter readings, emissions (kWh at 0.82 kg CO2 each) and how many meters reported.
           </p>
         </div>
 

@@ -25,12 +25,12 @@ async function fetchArchives(user) {
   let requests = [];
 
   try {
-    const [wastageReports, serviceRequests, workOrders] = await Promise.all([
+    // Work orders are staff-only. Closing a job closes its request on the
+    // server, so the request's own status is all a student needs here.
+    const [wastageReports, serviceRequests] = await Promise.all([
       api.get("/wastage-reports"),
       api.get("/service-requests"),
-      api.get("/work-orders"),
     ]);
-    const orders = Array.isArray(workOrders) ? workOrders : [];
 
     // My wastage reports that I archived, newest archive first
     if (Array.isArray(wastageReports)) {
@@ -56,16 +56,10 @@ async function fetchArchives(user) {
     if (Array.isArray(serviceRequests)) {
       requests = serviceRequests
         .filter((sr) => {
-          const closedByStatus = String(sr.status).toLowerCase() === "closed";
-          const closedByWorkOrder = orders.some(
-            (wo) =>
-              wo.status === "closed" &&
-              wo.source_request_id === sr.service_request_id,
+          const closed = ["closed", "resolved", "completed"].includes(
+            String(sr.status).toLowerCase(),
           );
-          return (
-            sr.reporter_id === user.user_id &&
-            (closedByStatus || closedByWorkOrder)
-          );
+          return sr.reporter_id === user.user_id && closed;
         })
         .map((sr) => {
           const parts = splitDescription(sr.description);
@@ -74,7 +68,6 @@ async function fetchArchives(user) {
             description: parts.description || "Service request",
             location: parts.location,
             issueType: sr.issue_type || parts.issueType,
-            priority: sr.priority || "medium",
             timestamp: sr.created_at, // when it was filed (none on seeded rows)
           };
         })
@@ -188,10 +181,6 @@ export default function Archives() {
 /* ── One closed service request. Small, so it lives in this file. ── */
 
 function ServiceRequestCard({ request }) {
-  // "medium" -> "Medium", to match the .p-Medium CSS class
-  const priority =
-    request.priority.charAt(0).toUpperCase() + request.priority.slice(1);
-
   return (
     <div className="ticket-card">
       <div
@@ -269,9 +258,6 @@ function ServiceRequestCard({ request }) {
               alignItems: "center",
             }}
           >
-            <span className={`ticket-priority p-${priority}`}>
-              {priority} Priority
-            </span>
             {/* When the request was filed. Seeded requests have no date. */}
             {request.timestamp && (
               <span style={{ fontSize: "11px", color: "#9ca3af" }}>

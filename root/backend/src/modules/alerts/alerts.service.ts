@@ -3,8 +3,10 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from "@nestjs/common";
-import { DatabaseService } from "../../core/database/database.service";
+import { AlertStatus, DatabaseService } from "../../core/database/database.service";
+import { DecideAlertDto } from "./dto/decide-alert.dto";
 import {
   scopeToTenant,
   currentOrgId,
@@ -108,5 +110,52 @@ export class AlertsService {
       return this.database.alerts[index];
     }
     return null;
+  }
+
+  /**
+   * Decide an alert in one step: send it on as a fault, keep monitoring it,
+   * or close it as a false alarm. The fault is made first, so if it is
+   * refused the alert is left as it was. What was done is written to the
+   * alert's log.
+   */
+  decide(id: string, dto: DecideAlertDto, callerId: string | undefined, role: string | undefined) {
+    const alert = assertTenantOwns(this.database.alerts.find((a) => a.alert_id === id));
+    if (!alert) throw new NotFoundException(`Alert with ID ${id} not found`);
+    if (alert.status === AlertStatus.RESOLVED) throw new ConflictException("This alert is already resolved.");
+    const withNotes = (label: string) => (dto.notes ? `${label} — ${dto.notes}` : label);
+
+    let action: string;
+    let fault: any = null;
+    if (dto.decision === "fault") {
+      if (!dto.asset || !dto.fault_type) throw new BadRequestException("Say which asset and what kind of fault.");
+      fault = this.database.faults.find((f) => f.alert_id === id && f.status !== "resolved");
+      if (!fault) {
+        const highest = this.database.faults.reduce((max, f) => Math.max(max, Number(/^FLT-(\d+)$/.exec(f.fault_id)?.[1] ?? 0)), 0);
+        const known = ["low", "moderate", "high", "critical"];
+        fault = {
+          fault_id: `FLT-${(highest + 1).toString().padStart(3, "0")}`,
+          organization_id: alert.organization_id,
+          alert_id: id,
+          assigned_to_id: callerId ?? null,
+          asset_name: dto.asset,
+          fault_type: dto.fault_type,
+          severity: known.includes(alert.severity) ? alert.severity : "moderate",
+          status: "active",
+          ...(dto.notes ? { prelim_notes: dto.notes } : {}),
+        };
+        this.database.faults.push(fault);
+      }
+      alert.status = AlertStatus.ACKNOWLEDGED;
+      action = withNotes(`Sent to diagnostics as ${fault.fault_id}`);
+    } else if (dto.decision === "monitor") {
+      alert.status = AlertStatus.ACKNOWLEDGED;
+      action = withNotes("Monitoring");
+    } else {
+      alert.status = AlertStatus.RESOLVED;
+      action = withNotes("False alarm");
+    }
+    alert.messages ??= [];
+    alert.messages.push({ sender_role: role ?? "", content: action, timestamp: new Date().toISOString() });
+    return { alert, fault };
   }
 }

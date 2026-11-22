@@ -1,0 +1,45 @@
+import { IsBoolean, IsIn, IsISO8601, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import { DeclineReason } from "../../../core/database/database.service";
+
+export class DeclineJobDto {
+  @IsIn(["sick", "on_another_job", "no_tools", "other"]) reason: DeclineReason;
+}
+
+export class AvailabilityDto {
+  @IsBoolean() available: boolean;
+}
+
+export class ManualAssignDto {
+  @IsString() user_id: string;
+}
+
+export class NeedsPartsDto {
+  @IsOptional() @IsInt() @Min(1) @Max(60) days?: number;
+}
+
+export class ExtensionRequestDto {
+  @IsISO8601() new_deadline_at: string;
+  @IsString() reason: string;
+}
+
+export class DecideDto {
+  @IsBoolean() approve: boolean;
+}
+
+export class SetDeadlineDto {
+  @IsISO8601() deadline_at: string;
+}
+
+export class FinishJobDto {
+  /** What was done, for the coordinator who verifies the job. */
+  @IsOptional() @IsString() @MaxLength(1000) notes?: string;
+}
+
+export class SendFaultDto {
+  @IsOptional() @IsIn(["scheduled", "immediate"]) kind?: "scheduled" | "immediate";
+  /** Leave out to use the fault's severity. */
+  @IsOptional() @IsIn(["low", "medium", "high", "immediate"]) priority?: string;
+  /** Leave out to let the system pick the technician. */
+  @IsOptional() @IsString() assignee_id?: string;
+  @IsOptional() @IsString() @MaxLength(1000) notes?: string;
+}

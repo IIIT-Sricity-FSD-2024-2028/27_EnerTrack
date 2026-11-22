@@ -3,7 +3,7 @@
  *
  * Ported from front-end/js/technician_jr/workOrdersPage.js.
  *
- * Same shape as the Technician Administrator's work-order page, and built
+ * Same shape as the Operations Coordinator's work-order page, and built
  * from its pieces (board, cards, cost estimate, task flow, summary,
  * archive). The differences: only orders assigned to the signed-in
  * technician are shown, and the action panel is the junior's own
@@ -17,7 +17,8 @@
  *     use the same CostEstimateCard
  */
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { PATHS } from "../../routes";
 import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 
@@ -77,7 +78,7 @@ export default function TechnicianJrWorkOrders() {
   // The work order whose request is running, so its buttons are disabled.
   const [busyId, setBusyId] = useState(null);
 
-  // Same pattern as the Technician Administrator pages: setState only
+  // Same pattern as the Operations Coordinator pages: setState only
   // inside the .then / .catch callbacks (the lint rules require it).
   function loadData() {
     return fetchWorkOrders()
@@ -126,9 +127,31 @@ export default function TechnicianJrWorkOrders() {
     return ok;
   }
 
-  // ── The four actions ─────────────────────────────────
+  /**
+   * A job the system sent goes through the dispatch routes, the same ones
+   * the Overview inbox uses, so this page and the inbox never disagree.
+   */
+  async function dispatchAction(id, action, body, message) {
+    setBusyId(id);
+    let ok = false;
+    try {
+      await api.post(`/dispatch/work-orders/${id}/${action}`, body);
+      showToast(message, "success");
+      await loadData();
+      ok = true;
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+    setBusyId(null);
+    return ok;
+  }
+
+  // ── The actions ──────────────────────────────────────
 
   function acceptOrder(wo) {
+    if (wo.dispatch) {
+      return dispatchAction(wo.work_order_id, "start", {}, "Work started.");
+    }
     return updateWorkOrder(
       wo.work_order_id,
       { status: "inprogress" },
@@ -165,6 +188,14 @@ export default function TechnicianJrWorkOrders() {
   }
 
   function submitForReview(wo, notes) {
+    if (wo.dispatch) {
+      return dispatchAction(
+        wo.work_order_id,
+        "finish",
+        { notes },
+        `Work order ${formatId(wo.work_order_id, "WO")} submitted for review.`,
+      );
+    }
     return updateWorkOrder(
       wo.work_order_id,
       {
@@ -178,7 +209,14 @@ export default function TechnicianJrWorkOrders() {
 
   // ── Only my work orders ──────────────────────────────
   const mine = workOrders.filter((wo) => wo.assigned_to_id === user?.user_id);
-  const openOrders = mine.filter((wo) => wo.status !== "closed");
+  // A job the system just sent is answered on the Overview (Acknowledge or
+  // Decline). It appears here once it has been acknowledged.
+  const waitingForAnswer = mine.filter(
+    (wo) => wo.dispatch?.ack_status === "pending" && wo.status !== "closed",
+  );
+  const openOrders = mine.filter(
+    (wo) => wo.status !== "closed" && wo.dispatch?.ack_status !== "pending",
+  );
   const closedOrders = mine.filter((wo) => wo.status === "closed");
 
   // Which work order the detail panel shows: the clicked one if it is still
@@ -253,6 +291,17 @@ export default function TechnicianJrWorkOrders() {
 
     content = (
       <div>
+        {waitingForAnswer.length > 0 && (
+          <div className="callout callout--warning stage-note mb-10">
+            {waitingForAnswer.length === 1
+              ? "1 new job is waiting for your answer."
+              : `${waitingForAnswer.length} new jobs are waiting for your answer.`}{" "}
+            <Link to={PATHS.technicianJr.overview}>
+              Acknowledge or decline on the Overview
+            </Link>
+            .
+          </div>
+        )}
         <div className="card">
           <h2>Open Work Orders Board</h2>
           <small>

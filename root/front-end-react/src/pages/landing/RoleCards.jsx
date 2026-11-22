@@ -62,9 +62,9 @@ const ROLES = [
 //   "locked" - signed in, but as a different role
 function cardState(user, cardRole) {
   if (!user) return "plain";
-  // A Technician Administrator sees the Technician card as theirs.
+  // A Operations Coordinator sees the Technician card as theirs.
   const effective =
-    user.role === "Technician Administrator" ? "Technician" : user.role;
+    user.role === "Operations Coordinator" ? "Technician" : user.role;
   return user.role === "Super Admin" || effective === cardRole
     ? "open"
     : "locked";
@@ -75,7 +75,7 @@ function cardState(user, cardRole) {
 function cardTarget(user, cardRole) {
   const role =
     cardRole === "Technician" && user.role !== "Technician"
-      ? "Technician Administrator"
+      ? "Operations Coordinator"
       : cardRole;
   return homeForRole(role);
 }

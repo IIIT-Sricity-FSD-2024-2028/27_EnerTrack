@@ -57,6 +57,9 @@ function deviationText(sd) {
   return `${pct > 0 ? "+" : ""}${pct.toFixed(0)}% over baseline`;
 }
 
+// Once a report is validated the officer can send the problem on as a job.
+const RAISABLE = ["Validated", "Returned to SO", "Target Set", "Finalized"];
+
 /** The buttons for each step of the audit workflow. */
 function ActionButtons({ status, busy, onAction }) {
   const props = (action) => ({ type: "button", disabled: busy, onClick: () => onAction(action) });
@@ -225,6 +228,14 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
 
         <div className="so-actions">
           <ActionButtons status={report.status} busy={busy} onAction={onAction} />
+          {RAISABLE.includes(report.status) &&
+            (report.details?.workOrderRaisedAt ? (
+              <span className="so-waiting">Work order raised.</span>
+            ) : (
+              <button type="button" className="so-btn" disabled={busy} onClick={() => onAction("raiseWorkOrder")}>
+                Create work order
+              </button>
+            ))}
           <button type="button" className="so-link" aria-expanded={showComments} onClick={() => setShowComments(!showComments)}>
             {showComments ? "Hide comments" : comments.length ? `Comments (${comments.length})` : "Add comment"}
           </button>

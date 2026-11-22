@@ -71,7 +71,7 @@ exists after each start.
 |---|---|---|---|
 | Organization Admin | aadi@gmail.com | `Aadi@123` | `/admin/users` |
 | Financial Analyst | husaam@gmail.com | `Husaam@123` | `/finance/overview` |
-| Technician Administrator | chirag@gmail.com | `Chirag@123` | `/technician/overview` |
+| Operations Coordinator | chirag@gmail.com | `Chirag@123` | `/technician/overview` |
 | Technician | teja@gmail.com | `Teja@123` | `/technician-jr/overview` |
 | Sustainability Officer | viksa@gmail.com | `Viksa@123` | `/sustainability/overview` |
 | Campus Visitor (shown as "Occupant") | trishank@gmail.com | `Trishank@123` | `/campus/dashboard` |
@@ -190,7 +190,7 @@ There are **11 roles** in the `UserRole` enum.
 |---|---|
 | Organization Admin | Manages users, campus infrastructure and the organisation's plan. Reviews and answers the auditor's proposal. |
 | Financial Analyst | Tracks utility spend, manages invoices and approvals, evaluates return on efficiency measures. |
-| Technician Administrator | Triages anomaly alerts and faults, creates and assigns work orders. |
+| Operations Coordinator | Triages anomaly alerts and faults, creates and assigns work orders. |
 | Technician | Executes assigned work orders and records completion. |
 | Sustainability Officer | Monitors emissions and energy intensity, runs conservation initiatives, prepares compliance reports, reviews wastage reports. |
 | Campus Visitor (shown as **Occupant**) | Reports issues and wastage and tracks them. The only role that can create its own account. |
@@ -210,14 +210,14 @@ permissions and the screens of an existing role.
 | Role | Backend: acts as | Front end: area | Lands on | Seeded? |
 |---|---|---|---|---|
 | Economic Buyer | Financial Analyst | finance | `/finance/subscription` (they sign the cheque, so they see the plan, not the costs) | yes, org-002 |
-| Facility Manager | Technician Administrator | technician | `/technician/overview` | yes, org-002 |
+| Facility Manager | Operations Coordinator | technician | `/technician/overview` | yes, org-002 |
 | Department Head | Campus Visitor | campus | `/campus/dashboard` | no |
 
 How the borrowing works:
 
 - **Backend, `ROLE_EQUIVALENTS`.** `RolesGuard` expands the caller's role into itself plus the
   roles it stands in for, so "Facility Manager" satisfies any route that asks for
-  "Technician Administrator". This let the SRS role model land without editing about 127
+  "Operations Coordinator". This let the SRS role model land without editing about 127
   `@Roles` decorators. Where a route should name a B2B role explicitly (subscriptions, plans,
   organisation reads, energy audits, service requests), the controller lists it.
 - **Front end, `ROLE_AREA` and `ROLE_HOME` in `routes.js`.** Eleven roles collapse onto seven
@@ -230,7 +230,7 @@ How the borrowing works:
 | Super Admin | Organization Admin |
 | Certified Energy Auditor | Technician |
 | Economic Buyer | Financial Analyst |
-| Facility Manager | Technician Administrator |
+| Facility Manager | Operations Coordinator |
 | Department Head | Campus Visitor |
 
 Legacy roles have no entry and expand to themselves, so their behaviour is unchanged.
@@ -487,7 +487,7 @@ the browser and the server agree on what is valid. A blank field stays quiet unt
 | Admin | Organization Admin, Super Admin | Users `/admin/users` · Organisations, Registrations, Pricing Plans, Revenue (Super Admin) · Audit and Proposal, Your Plan (Organization Admin) · Infrastructure `/admin/infrastructure` |
 | Finance | Financial Analyst, Economic Buyer | Overview, Reports and Impact, Utility Costs, Your Subscription, Archives (`/finance/…`) |
 | Sustainability | Sustainability Officer | Overview, Monitoring, Reporting, Initiatives, Archives (`/sustainability/…`) |
-| Technician | Technician Administrator, Facility Manager | Overview, Alerts, Fault Detection, Work Orders (`/technician/…`) |
+| Technician | Operations Coordinator, Facility Manager | Overview, Alerts, Fault Detection, Work Orders (`/technician/…`) |
 | Technician (junior) | Technician | Overview, My Work Orders (`/technician-jr/…`) |
 | Auditor | Certified Energy Auditor | Overview, Audits and Recommendations (`/auditor/…`) |
 | Campus | Campus Visitor, Department Head | Report an Issue, Report Wastage, My Archives (`/campus/…`) |
@@ -503,7 +503,7 @@ A signed-in person who opens another area is redirected to their own landing pag
 four photos. The Sustainability Officer reviews it in the audit queue; handled reports move to
 archives.
 
-**2. Alert to fault to work order (Technician Administrator to Technician).** An alert exists
+**2. Alert to fault to work order (Operations Coordinator to Technician).** An alert exists
 against a meter (`open → acknowledged → resolved`) with a chat thread. The administrator
 raises and assigns a fault, creates a work order from the fault or from a service request, and
 the technician moves it `new → inprogress → review → approval → closed`.

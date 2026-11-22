@@ -8,6 +8,7 @@ import {
   Param,
   Delete,
   Put,
+  Headers,
 } from "@nestjs/common";
 import { NotificationsService } from "./notifications.service";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
@@ -36,9 +37,9 @@ export class NotificationsController {
   @ApiResponse({ status: 200, description: "Array of all notification records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  findAll() {
-    return this.notificationsService.findAll();
+  @Roles("Organization Admin", "Operations Coordinator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  findAll(@Headers("x-user-id") userId?: string, @Headers("x-role") role?: string) {
+    return this.notificationsService.findAll(userId, role);
   }
 
   @Get(":id")
@@ -47,9 +48,9 @@ export class NotificationsController {
   @ApiResponse({ status: 404, description: "Notification with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  findOne(@Param("id") id: string) {
-    return this.notificationsService.findOne(id);
+  @Roles("Organization Admin", "Operations Coordinator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  findOne(@Param("id") id: string, @Headers("x-user-id") userId?: string, @Headers("x-role") role?: string) {
+    return this.notificationsService.findOne(id, userId, role);
   }
 
   @Put(":id")
@@ -62,15 +63,29 @@ export class NotificationsController {
   put(@Param("id") id: string, @Body() putDto: PutNotificationDto) {
     return this.notificationsService.put(id, putDto);
   }
+  @Patch("read-all")
+  @ApiOperation({ summary: "Mark all my notifications as read", description: "Marks every notification addressed to the caller as read." })
+  @ApiResponse({ status: 200, description: "Number of notifications updated." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Organization Admin", "Operations Coordinator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  markAllRead(@Headers("x-user-id") userId?: string) {
+    return this.notificationsService.markAllRead(userId);
+  }
+
   @Patch(":id")
   @ApiOperation({ summary: "Update Notification", description: "Partially updates specific fields of an existing notification (e.g., message text or target references). Any authenticated user can update their own notification. Send a PATCH request with the notification_id in the URL and an UpdateNotificationDto JSON body containing only the fields to change." })
   @ApiResponse({ status: 200, description: "Notification record updated successfully." })
   @ApiResponse({ status: 404, description: "Notification with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  update(@Param("id") id: string, @Body() updateDto: UpdateNotificationDto) {
-    return this.notificationsService.update(id, updateDto);
+  @Roles("Organization Admin", "Operations Coordinator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  update(
+    @Param("id") id: string,
+    @Body() updateDto: UpdateNotificationDto,
+    @Headers("x-user-id") userId?: string,
+    @Headers("x-role") role?: string,
+  ) {
+    return this.notificationsService.update(id, updateDto, userId, role);
   }
 
   @Delete(":id")
@@ -89,8 +104,8 @@ export class NotificationsController {
   @ApiResponse({ status: 200, description: "Notification marked as read successfully." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  markRead(@Param("id") id: string) {
-    return this.notificationsService.markRead(id);
+  @Roles("Organization Admin", "Operations Coordinator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  markRead(@Param("id") id: string, @Headers("x-user-id") userId?: string, @Headers("x-role") role?: string) {
+    return this.notificationsService.markRead(id, userId, role);
   }
 }

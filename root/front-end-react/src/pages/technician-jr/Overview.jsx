@@ -7,7 +7,7 @@
  * counts and an "Up next" list of their most urgent unfinished orders.
  * Every row links to My Work Orders, where the actual work is done.
  *
- * Reuses the Technician Administrator's StatCard, icons, helpers and
+ * Reuses the Operations Coordinator's StatCard, icons, helpers and
  * technician.css, so both roles look the same.
  */
 import { useEffect, useState } from "react";
@@ -16,6 +16,7 @@ import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 import { PATHS } from "../../routes";
 
+import DispatchInbox from "./DispatchInbox";
 import StatCard from "../technician/components/StatCard";
 import {
   BellIcon,
@@ -50,7 +51,7 @@ export default function TechnicianJrOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Same pattern as the Technician Administrator pages: setState only
+  // Same pattern as the Operations Coordinator pages: setState only
   // inside the .then / .catch callbacks (the lint rules require it).
   function loadData() {
     return fetchWorkOrders()
@@ -130,7 +131,7 @@ export default function TechnicianJrOverview() {
             tone="yellow"
             label="Awaiting Review"
             value={inReview.length}
-            note="Waiting on Technician Administrator"
+            note="Waiting on Operations Coordinator"
           />
           <StatCard
             icon={<CheckIcon />}
@@ -179,6 +180,8 @@ export default function TechnicianJrOverview() {
         <h1>Welcome back, {firstName(user?.name)}</h1>
         <p>Here&apos;s what&apos;s on your board today.</p>
       </div>
+
+      <DispatchInbox onChange={loadData} />
 
       {content}
     </div>

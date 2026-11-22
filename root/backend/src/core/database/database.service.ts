@@ -6,7 +6,7 @@ export enum UserRole {
   ORGANIZATION_ADMIN = "Organization Admin",
   FINANCIAL_ANALYST = "Financial Analyst",
   TECHNICIAN = "Technician",
-  TECHNICIAN_ADMINISTRATOR = "Technician Administrator",
+  OPERATIONS_COORDINATOR = "Operations Coordinator",
   SUSTAINABILITY_OFFICER = "Sustainability Officer",
   CAMPUS_VISITOR = "Campus Visitor",
 
@@ -25,7 +25,7 @@ export enum UserRole {
  *
  * The RolesGuard expands an incoming role through this table, so a caller
  * sending "Facility Manager" satisfies a controller that still declares
- * @Roles("Technician Administrator"). This lets the SRS role model land
+ * @Roles("Operations Coordinator"). This lets the SRS role model land
  * without touching 127 @Roles decorators or breaking the existing frontend.
  *
  * Legacy roles are deliberately absent: they expand to themselves only, so
@@ -35,7 +35,7 @@ export const ROLE_EQUIVALENTS: Record<string, string[]> = {
   [UserRole.SUPER_ADMIN]: [UserRole.ORGANIZATION_ADMIN],
   [UserRole.CERTIFIED_ENERGY_AUDITOR]: [UserRole.TECHNICIAN],
   [UserRole.ECONOMIC_BUYER]: [UserRole.FINANCIAL_ANALYST],
-  [UserRole.FACILITY_MANAGER]: [UserRole.TECHNICIAN_ADMINISTRATOR],
+  [UserRole.FACILITY_MANAGER]: [UserRole.OPERATIONS_COORDINATOR],
   [UserRole.DEPARTMENT_HEAD]: [UserRole.CAMPUS_VISITOR],
 };
 
@@ -123,6 +123,8 @@ export enum EnergyCostStatus {
   UNDER_BUDGET = "under-budget",
   ON_BUDGET = "on-budget",
   OVER_BUDGET = "over-budget",
+  /** No budget was set, so there is nothing to be over or under. */
+  NO_BUDGET = "no-budget",
 }
 
 export enum InvoiceStatus {
@@ -167,6 +169,12 @@ export interface User {
   password: string;
   role: UserRole;
   specialization: string | null;
+  /** Field-staff team (electrician | plumber | cleaning). Falls back to the specialization text when unset. */
+  team?: string | null;
+  /** The person's own "Available today" switch. Missing means available. */
+  available?: boolean;
+  /** YYYY-MM-DD the person is off for (declined as sick, or missed an acknowledgement). */
+  unavailable_on?: string | null;
   /** True for accounts an administrator provisioned: the first login must replace the issued password. */
   must_change_password?: boolean;
 }
@@ -216,6 +224,8 @@ export interface WastageReport {
   status: string;
   details: Record<string, any>;
   sensor_reading_id: string | null;
+  /** When the report was filed (ISO). Reports are grouped by month from this. */
+  created_at?: string;
 }
 export interface AlertMessage {
   sender_role: string;
@@ -252,6 +262,69 @@ export interface ServiceRequest {
   status: string;
   /** When the request was filed (ISO). Missing on seeded rows. */
   created_at?: string;
+
+  // ── Structured campus report (issue-catalogue flow). All optional so legacy
+  //    free-text requests keep working. The server sets every one of these;
+  //    the student only supplies the answers. ──
+  description?: string;
+  building_id?: string;
+  floor?: string;
+  area?: string;
+  /** Room number, dropdown choice or machine number. */
+  part?: string;
+  issue_type_id?: string;
+  item_id?: string;
+  problem_id?: string | null;
+  how_many?: string;
+  answers?: Record<string, string>;
+  /** Set when a follow-up moved the report to another item. */
+  filed_as?: { from: string; to: string } | null;
+  team?: string;
+  second_team?: string | null;
+  /** The level everyone works to: the coordinator's override, else the system's. */
+  priority?: string;
+  /** The system's own level, kept live underneath an override. */
+  priority_system?: string;
+  priority_override?: string | null;
+  /** Highest level from the rules across all joined reports, before the crowd raise. */
+  priority_rule?: string;
+  /** Widest reach (1 room, 2 shared place, 3 whole building) seen on the ticket. */
+  tier?: number;
+  priority_source?: "rules" | "joined" | "crowd" | "admin";
+  priority_reasons?: string[];
+  priority_history?: { at: string; level: string; source: string; reason: string }[];
+  /** Hidden job size and load points. Never sent to students. */
+  size?: "S" | "M" | "L";
+  points?: number;
+  /** Everyone who filed a full report on this ticket. */
+  reporter_ids?: string[];
+  /** Everyone who pressed +1 Same. */
+  plus_one_ids?: string[];
+  /** Extra symptoms/descriptions from joined full reports. */
+  joined_reports?: { reporter_id: string; problem_id: string | null; description: string; at: string }[];
+  /** Set on a re-report of an issue that was fixed and broke again. */
+  reopened_from?: string | null;
+  /** Which progress notices the reporters already got (assigned, started, checking, fixed). */
+  student_notified?: string[];
+  /** Set when the job was raised from a monitoring fault, not by a student. */
+  source_fault_id?: string;
+  /** Set when the job carries out an accepted audit recommendation: audit id, a colon, finding id. */
+  source_finding?: string;
+  /** Set when the job was raised from a validated wastage report: its id. */
+  source_wastage?: string;
+  /** The reporter said the fix worked. */
+  confirmed_fixed_at?: string;
+  /** "Other" reports only: the few words the student typed. */
+  other_text?: string;
+  /** Where the ticket is in dispatch: with a person, or waiting for the coordinator. */
+  dispatch_state?: "assigned" | "queued";
+  /** Why it is in the coordinator's queue (other_report, no_one_available, all_declined, manual). */
+  queued_reason?: string;
+  queued_at?: string | null;
+  /** When the coordinators were last reminded that this ticket still waits for a person. */
+  queued_reminded_at?: string | null;
+  /** When it was fixed and closed. Used to spot a fault that comes back. */
+  closed_at?: string;
 }
 export interface WorkOrder {
   work_order_id: string;
@@ -263,6 +336,62 @@ export interface WorkOrder {
   priority: WorkOrderPriority;
   status: WorkOrderStatus;
   details?: Record<string, any>;
+  /** Set when the system (or the coordinator) dispatched it from a service request. */
+  dispatch?: WorkOrderDispatch;
+}
+export type DeclineReason = "sick" | "on_another_job" | "no_tools" | "other";
+export interface DispatchEvent {
+  at: string;
+  /** assigned | acknowledged | declined | missed | queued | reassigned | manual */
+  event: string;
+  user_id: string | null;
+  reason?: string;
+}
+export interface WorkOrderDispatch {
+  team: string;
+  size: "S" | "M" | "L";
+  points: number;
+  building_id?: string;
+  /** When the current assignee was given the job. Fairness reads this. */
+  assigned_at: string | null;
+  ack_status: "pending" | "acknowledged" | "unassigned";
+  ack_due_at: string | null;
+  acknowledged_at: string | null;
+  /** Everyone who already declined or missed this job, so it never goes back to them. */
+  tried: string[];
+  history: DispatchEvent[];
+  /** Deadline and clock state. Starts when the job is first sent to a person. */
+  sla?: Sla;
+}
+export interface SlaRequest {
+  id: string;
+  kind: "extension" | "parts";
+  by: string;
+  requested_at: string;
+  reason: string;
+  new_deadline_at?: string;
+  parts_days?: number;
+  status: "pending" | "approved" | "denied" | "expired";
+  decided_at?: string;
+}
+export interface Sla {
+  started_at: string;
+  deadline_at: string;
+  /** What the matrix gave, kept so an extension is always visible. */
+  original_deadline_at: string;
+  /** The coordinator set the date by hand, so a priority change no longer moves it. */
+  fixed_by_coordinator: boolean;
+  /** Critical only: make the situation safe by this time. */
+  safe_by: string | null;
+  made_safe_at: string | null;
+  /** While waiting for parts the clock is paused. */
+  paused_since: string | null;
+  expected_back: string | null;
+  paused_ms: number;
+  warned: { half: boolean; ninety: boolean; passed: boolean; unsafe: boolean };
+  late: boolean;
+  request: SlaRequest | null;
+  requests_log: SlaRequest[];
 }
 export interface EnergyCost {
   energy_cost_id: string;
@@ -942,7 +1071,7 @@ export class DatabaseService {
       email: "chirag@gmail.com",
       phone: "9876543212",
       password: "Chirag@123",
-      role: UserRole.TECHNICIAN_ADMINISTRATOR,
+      role: UserRole.OPERATIONS_COORDINATOR,
       specialization: "Electrical",
     },
     {
@@ -984,6 +1113,7 @@ export class DatabaseService {
       password: "Elena@123",
       role: UserRole.TECHNICIAN,
       specialization: "Electrical",
+      team: "electrician",
     },
     {
       user_id: "550e8400-0008-4000-8000-000000000008",
@@ -994,6 +1124,7 @@ export class DatabaseService {
       password: "Marcus@123",
       role: UserRole.TECHNICIAN,
       specialization: "HVAC",
+      team: "hvac",
     },
     {
       user_id: "550e8400-0009-4000-8000-000000000009",
@@ -1004,6 +1135,7 @@ export class DatabaseService {
       password: "Noah@123",
       role: UserRole.TECHNICIAN,
       specialization: "General Maintenance",
+      team: "cleaning",
     },
     {
       user_id: "550e8400-000a-4000-8000-00000000000a",
@@ -1014,6 +1146,7 @@ export class DatabaseService {
       password: "Rina@123",
       role: UserRole.TECHNICIAN,
       specialization: "Plumbing",
+      team: "plumber",
     },
     // ── The rest of org-001's facilities and energy team ──────────────
     //
@@ -1031,7 +1164,7 @@ export class DatabaseService {
       email: "kavya@gmail.com",
       phone: "9876543220",
       password: "Kavya@123",
-      role: UserRole.TECHNICIAN_ADMINISTRATOR,
+      role: UserRole.OPERATIONS_COORDINATOR,
       specialization: "HVAC",
     },
     {
@@ -1041,7 +1174,7 @@ export class DatabaseService {
       email: "arjun.b@gmail.com",
       phone: "9876543221",
       password: "Arjun@123",
-      role: UserRole.TECHNICIAN_ADMINISTRATOR,
+      role: UserRole.OPERATIONS_COORDINATOR,
       specialization: "Electrical",
     },
     {
@@ -1103,6 +1236,7 @@ export class DatabaseService {
       password: "Sanjay@123",
       role: UserRole.TECHNICIAN,
       specialization: "HVAC",
+      team: "hvac",
     },
     {
       user_id: "550e8400-0013-4000-8000-000000000013",
@@ -1113,6 +1247,7 @@ export class DatabaseService {
       password: "Meera@123",
       role: UserRole.TECHNICIAN,
       specialization: "Electrical",
+      team: "electrician",
     },
     {
       user_id: "550e8400-0014-4000-8000-000000000014",
@@ -1123,6 +1258,7 @@ export class DatabaseService {
       password: "Imran@123",
       role: UserRole.TECHNICIAN,
       specialization: "Plumbing",
+      team: "plumber",
     },
     {
       user_id: "550e8400-0015-4000-8000-000000000015",
@@ -1143,6 +1279,7 @@ export class DatabaseService {
       password: "Karthik@123",
       role: UserRole.TECHNICIAN,
       specialization: "General Maintenance",
+      team: "cleaning",
     },
     {
       user_id: "550e8400-0017-4000-8000-000000000017",
@@ -1153,6 +1290,7 @@ export class DatabaseService {
       password: "Fatima@123",
       role: UserRole.TECHNICIAN,
       specialization: "HVAC",
+      team: "hvac",
     },
     {
       user_id: "550e8400-0018-4000-8000-000000000018",
@@ -1163,6 +1301,7 @@ export class DatabaseService {
       password: "Nikhil@123",
       role: UserRole.TECHNICIAN,
       specialization: "Electrical",
+      team: "electrician",
     },
     {
       user_id: "550e8400-0019-4000-8000-000000000019",
@@ -1173,6 +1312,7 @@ export class DatabaseService {
       password: "Lakshmi@123",
       role: UserRole.TECHNICIAN,
       specialization: "General Maintenance",
+      team: "cleaning",
     },
 
     // ── Prospect contacts ─────────────────────────────────────────────
@@ -1878,7 +2018,7 @@ export class DatabaseService {
           timestamp: "2026-05-05T08:00:00.000Z",
         },
         {
-          sender_role: "Technician Administrator",
+          sender_role: "Operations Coordinator",
           content: "Sent to diagnostics as FLT-006 — leak traced to the Lab 4 main supply pipe",
           timestamp: "2026-05-05T08:40:00.000Z",
         },
@@ -1899,7 +2039,7 @@ export class DatabaseService {
           timestamp: "2026-05-05T09:30:00.000Z",
         },
         {
-          sender_role: "Technician Administrator",
+          sender_role: "Operations Coordinator",
           content: "Monitoring — load is high today; checking the trend before calling a fault",
           timestamp: "2026-05-05T10:00:00.000Z",
         },
@@ -1920,7 +2060,7 @@ export class DatabaseService {
           timestamp: "2026-05-05T10:15:00.000Z",
         },
         {
-          sender_role: "Technician Administrator",
+          sender_role: "Operations Coordinator",
           content: "Sent to diagnostics as FLT-002 — main breaker MB-01 replaced, phases balanced",
           timestamp: "2026-05-05T11:30:00.000Z",
         },
@@ -1957,7 +2097,7 @@ export class DatabaseService {
           timestamp: "2026-05-05T12:00:00.000Z",
         },
         {
-          sender_role: "Technician Administrator",
+          sender_role: "Operations Coordinator",
           content: "Sent to diagnostics as FLT-004 — BMS controller for the floor 2 thermostats not responding",
           timestamp: "2026-05-05T12:30:00.000Z",
         },
@@ -1978,7 +2118,7 @@ export class DatabaseService {
           timestamp: "2026-05-05T06:00:00.000Z",
         },
         {
-          sender_role: "Technician Administrator",
+          sender_role: "Operations Coordinator",
           content: "False alarm — manual gas check clear; sensor drift, recalibration booked",
           timestamp: "2026-05-05T06:45:00.000Z",
         },

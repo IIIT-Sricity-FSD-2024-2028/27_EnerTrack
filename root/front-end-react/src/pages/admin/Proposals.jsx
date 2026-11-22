@@ -15,7 +15,6 @@
  */
 import { useEffect, useState } from "react";
 import api from "../../api/client";
-import { useAuth } from "../../auth/useAuth";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
 import { addToast, formatCurrency } from "./adminHelpers";
@@ -59,7 +58,6 @@ const labelStyle = {
 };
 
 export default function Proposals() {
-  const { user } = useAuth();
   const [audits, setAudits] = useState([]);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,9 +111,8 @@ export default function Proposals() {
     try {
       await api.patch(
         `/energy-audits/${audit.audit_id}/proposal/${action}`,
-        action === "accept"
-          ? { accepted_by: user.user_id }
-          : { response_note: note, responded_by: user.user_id },
+        // Who answered comes from the signed-in session on the server.
+        action === "accept" ? {} : { response_note: note },
       );
       // Accepting also creates the subscription and makes the organisation
       // active, so read the audits again rather than guess
