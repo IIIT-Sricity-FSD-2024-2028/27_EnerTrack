@@ -49,6 +49,7 @@ export const PATHS = {
     alerts: "/technician/alerts",
     maintenance: "/technician/maintenance",
     workOrders: "/technician/work-orders",
+    dispatch: "/technician/dispatch",
   },
   technicianJr: {
     overview: "/technician-jr/overview",
@@ -60,6 +61,7 @@ export const PATHS = {
   },
   campus: {
     dashboard: "/campus/dashboard",
+    issues: "/campus/issues",
     wastage: "/campus/wastage",
     archives: "/campus/archives",
   },
@@ -73,7 +75,7 @@ export const PATHS = {
 export const ROLE_HOME = {
   "Organization Admin": PATHS.admin.users,
   "Financial Analyst": PATHS.finance.overview,
-  "Technician Administrator": PATHS.technician.overview,
+  "Operations Coordinator": PATHS.technician.overview,
   Technician: PATHS.technicianJr.overview,
   "Sustainability Officer": PATHS.sustainability.overview,
   "Campus Visitor": PATHS.campus.dashboard,
@@ -118,7 +120,7 @@ export const ROLE_AREA = {
 
   "Sustainability Officer": "sustainability",
 
-  "Technician Administrator": "technician",
+  "Operations Coordinator": "technician",
   "Facility Manager": "technician",
 
   Technician: "technicianJr",
@@ -221,6 +223,7 @@ export const NAV = {
   ],
   campus: [
     { label: "Report an Issue", to: PATHS.campus.dashboard },
+    { label: "Campus Issues", to: PATHS.campus.issues },
     { label: "Report Wastage", to: PATHS.campus.wastage },
     { label: "My Archives", to: PATHS.campus.archives },
   ],

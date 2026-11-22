@@ -795,7 +795,7 @@ export default function SustainabilityReport() {
                           {(preview.deltas?.energy_pct ?? 0) > 0 ? "+" : ""}
                           {preview.deltas?.energy_pct ?? 0}%
                         </td>
-                        <td style={{ padding: "12px", color: "#4b5563" }}>Live smart sub-meters</td>
+                        <td style={{ padding: "12px", color: "#4b5563" }}>Electricity meter readings</td>
                       </tr>
 
                       <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
@@ -816,7 +816,7 @@ export default function SustainabilityReport() {
                           {(preview.deltas?.water_pct ?? 0) > 0 ? "+" : ""}
                           {preview.deltas?.water_pct ?? 0}%
                         </td>
-                        <td style={{ padding: "12px", color: "#4b5563" }}>Distribution flow sensors</td>
+                        <td style={{ padding: "12px", color: "#4b5563" }}>Water meter readings</td>
                       </tr>
 
                       <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
@@ -837,7 +837,7 @@ export default function SustainabilityReport() {
                           {(preview.deltas?.gas_pct ?? 0) > 0 ? "+" : ""}
                           {preview.deltas?.gas_pct ?? 0}%
                         </td>
-                        <td style={{ padding: "12px", color: "#4b5563" }}>Kitchen & heating meters</td>
+                        <td style={{ padding: "12px", color: "#4b5563" }}>Gas meter readings</td>
                       </tr>
 
                       <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
@@ -858,7 +858,7 @@ export default function SustainabilityReport() {
                           {(preview.deltas?.food_pct ?? 0) > 0 ? "+" : ""}
                           {preview.deltas?.food_pct ?? 0}%
                         </td>
-                        <td style={{ padding: "12px", color: "#4b5563" }}>Automated weighing scales</td>
+                        <td style={{ padding: "12px", color: "#4b5563" }}>Food wastage reports</td>
                       </tr>
 
                       <tr style={{ background: "#f9fafb" }}>

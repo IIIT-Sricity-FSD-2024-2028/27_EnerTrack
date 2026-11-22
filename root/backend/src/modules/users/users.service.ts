@@ -195,6 +195,7 @@ export class UsersService {
     this.assertMayAssignRole(updateDto.role);
 
     const current = this.database.users[index];
+    if (updateDto.role && updateDto.role !== current.role) this.assertNotLastAdmin(current);
 
     // organization_id is normally pinned, the same way Subscription's is:
     // letting a PATCH move an already-tenanted account would silently
@@ -232,6 +233,7 @@ export class UsersService {
     const index = this.database.users.findIndex((item) => item.user_id === id);
     if (index === -1 || !assertTenantOwns(this.database.users[index]))
       throw new NotFoundException(`User with ID ${id} not found`);
+    this.assertNotLastAdmin(this.database.users[index]);
     this.database.revokeSessions(id);
     const removed = this.database.users.splice(index, 1);
     return this.withoutPassword(removed[0]);
@@ -342,6 +344,24 @@ export class UsersService {
   }
 
   /**
+   * An organisation must keep at least one Organization Admin. Used when an
+   * admin deletes or demotes another account.
+   */
+  private assertNotLastAdmin(target: { user_id: string; role: string; organization_id: string | null }) {
+    if (target.role !== UserRole.ORGANIZATION_ADMIN) return;
+    const others = this.database.users.filter(
+      (u) =>
+        u.user_id !== target.user_id &&
+        u.role === UserRole.ORGANIZATION_ADMIN &&
+        u.organization_id === target.organization_id,
+    );
+    if (others.length === 0)
+      throw new ConflictException(
+        "This is the only Organization Admin of the organisation. Give the role to someone else first.",
+      );
+  }
+
+  /**
    * A person deleting their own account.
    *
    * Refused for the last holder of a role that something depends on: an
@@ -403,7 +423,17 @@ export class UsersService {
     return rows.map((row, i) => {
       const password = this.generatePassword();
       try {
-        const user = this.create({ ...row, password } as CreateUserDto);
+        // A technician is only sent jobs for their own team, so it is required.
+        if (row.role === UserRole.TECHNICIAN && !row.team)
+          throw new BadRequestException("A technician needs a team (electrician, plumber, cleaning or hvac).");
+        const specialization =
+          row.role === UserRole.TECHNICIAN ? row.team!.charAt(0).toUpperCase() + row.team!.slice(1) : undefined;
+        const user = this.create({
+          ...row,
+          team: row.role === UserRole.TECHNICIAN ? row.team : undefined,
+          ...(specialization ? { specialization } : {}),
+          password,
+        } as CreateUserDto);
         return { row: i + 1, ok: true, email: user.email, name: user.name, role: user.role, password };
       } catch (err: any) {
         return { row: i + 1, ok: false, email: row.email, name: row.name, role: row.role, error: err?.message ?? "Could not create user" };

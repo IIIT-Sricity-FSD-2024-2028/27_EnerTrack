@@ -19,7 +19,7 @@ describe('Campus visitor: create rules (e2e)', () => {
   const ORG = 'org-001';
   const TRISHANK = '550e8400-0006-4000-8000-000000000006';
   const asVisitor = { 'x-role': 'Campus Visitor', 'x-org-id': ORG };
-  const asTechAdmin = { 'x-role': 'Technician Administrator', 'x-org-id': ORG };
+  const asTechAdmin = { 'x-role': 'Operations Coordinator', 'x-org-id': ORG };
   const asOfficer = { 'x-role': 'Sustainability Officer', 'x-org-id': ORG };
   const asAdmin = { 'x-role': 'Organization Admin', 'x-org-id': ORG };
   const body = (res: request.Response) => res.body?.data ?? res.body;
@@ -54,7 +54,7 @@ describe('Campus visitor: create rules (e2e)', () => {
       status: 'open',
     });
     const file = (changes: object) =>
-      http().post('/api/service-requests').set(asVisitor).send({ ...valid(), ...changes });
+      http().post('/api/service-requests').set(asTechAdmin).send({ ...valid(), ...changes });
 
     it('accepts what the Report an Issue page sends, as open', async () => {
       const res = await file({});
@@ -64,7 +64,7 @@ describe('Campus visitor: create rules (e2e)', () => {
 
     it('starts open when no status is sent', async () => {
       const { status, ...noStatus } = valid();
-      const res = await http().post('/api/service-requests').set(asVisitor).send(noStatus);
+      const res = await http().post('/api/service-requests').set(asTechAdmin).send(noStatus);
       expect(res.status).toBe(201);
       expect(body(res).status).toBe('open');
     });
@@ -105,11 +105,11 @@ describe('Campus visitor: create rules (e2e)', () => {
 
     it('rejects a missing description', async () => {
       const { description, ...none } = valid();
-      const res = await http().post('/api/service-requests').set(asVisitor).send(none);
+      const res = await http().post('/api/service-requests').set(asTechAdmin).send(none);
       expect(res.status).toBe(400);
     });
 
-    it('still lets a Technician Administrator move a request on afterwards', async () => {
+    it('still lets a Operations Coordinator move a request on afterwards', async () => {
       const id = body(await file({})).service_request_id;
       const res = await http()
         .patch(`/api/service-requests/${id}`)

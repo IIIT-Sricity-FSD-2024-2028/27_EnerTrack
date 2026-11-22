@@ -1,7 +1,7 @@
 /**
  * WorkOrderCard — one card on the work-order board.
  *
- * Shared by the Technician Administrator and Technician Jr work-order
+ * Shared by the Operations Coordinator and Technician Jr work-order
  * pages. It only draws: clicking it reports the id up through onSelect.
  *
  * A card is marked "rejected" (red edge) when it is back in New with nobody

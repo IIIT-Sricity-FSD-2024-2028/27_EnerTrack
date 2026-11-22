@@ -695,3 +695,130 @@ body {
   cursor: not-allowed;
   transform: none;
 }
+
+/* ── Stepwise report form, Campus issues, +1 ── */
+.report-note {
+  font-size: 13px;
+  color: #4b5563;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+.report-note a {
+  color: #166534;
+  font-weight: 600;
+}
+
+.choice-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.choice-btn {
+  padding: 8px 16px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #374151;
+}
+.choice-btn:hover:not(:disabled) {
+  border-color: #166534;
+}
+.choice-btn.selected {
+  border-color: #166534;
+  background: #dcfce7;
+  color: #14532d;
+  font-weight: 600;
+}
+.choice-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.already-reported {
+  border: 1.5px solid #fde68a;
+  background: #fffbeb;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.already-reported small {
+  display: block;
+  margin-top: 8px;
+  color: #6b7280;
+}
+.already-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.plus-one-btn {
+  padding: 6px 12px;
+  border: 1.5px solid #166534;
+  border-radius: 8px;
+  background: #fff;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.plus-one-btn:disabled {
+  border-color: #d1d5db;
+  color: #9ca3af;
+  cursor: default;
+}
+
+.danger-banner {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  border-radius: 8px;
+  color: #991b1b;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.form-error {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.report-summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  margin: 12px 0;
+}
+.report-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.reporting-as {
+  font-size: 12px;
+  color: #6b7280;
+}
+.report-footer .btn-submit {
+  width: auto;
+  padding: 10px 22px;
+}
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

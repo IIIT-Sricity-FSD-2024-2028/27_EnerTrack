@@ -87,8 +87,9 @@ export function normalizeCost(rec, names = {}) {
   const wastewater = Number(rec.wastewater) || 0;
   const demand = Number(rec.demand) || 0;
   const total = electricity + gas + water + wastewater + demand;
-  const budget = Number(rec.budget) > 0 ? Number(rec.budget) : total;
-  const variance = budget - total;
+  // No budget stays 0: it is not the same as "exactly on budget".
+  const budget = Number(rec.budget) > 0 ? Number(rec.budget) : 0;
+  const variance = budget > 0 ? budget - total : 0;
 
   const scope = rec.scope || (rec.department_id ? "department" : "building");
   const scopeRef = rec.scopeRef || rec.department_id || rec.building_id || "";
@@ -112,7 +113,7 @@ export function normalizeCost(rec, names = {}) {
     total,
     budget,
     variance,
-    status: statusFromVariance(variance),
+    status: statusFromVariance(variance, budget),
   };
 }
 

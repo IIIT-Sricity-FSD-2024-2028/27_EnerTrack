@@ -31,9 +31,24 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
     return body(res).wastage_report_id as string;
   };
 
-  /** Moves a report to a status the way the Sustainability Officer does. */
-  const setStatus = (id: string, status: string) =>
-    http().patch(`/api/wastage-reports/${id}`).set(asOfficer).send({ status });
+  /** The steps the officer takes to reach a status (the server only allows real moves). */
+  const PATH: Record<string, string[]> = {
+    Validated: ['Validated'],
+    Dismissed: ['Dismissed'],
+    'Target Set': ['Validated', 'Target Set'],
+    Finalized: ['Validated', 'Finalized'],
+    Delivered: ['Validated', 'Finalized', 'Delivered'],
+    'Forwarded to Finance': ['Validated', 'Forwarded to Finance'],
+  };
+
+  /** Moves a report to a status the way the Sustainability Officer does, step by step. */
+  const setStatus = async (id: string, status: string) => {
+    let res: request.Response | undefined;
+    for (const step of PATH[status] ?? [status]) {
+      res = await http().patch(`/api/wastage-reports/${id}`).set(asOfficer).send({ status: step });
+    }
+    return res!;
+  };
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({

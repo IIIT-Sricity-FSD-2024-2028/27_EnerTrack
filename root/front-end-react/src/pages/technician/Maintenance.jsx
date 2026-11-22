@@ -157,38 +157,24 @@ export default function TechnicianMaintenance() {
       return;
     }
 
-    let title = "Scheduled Maintenance: " + (fault.asset_name || "Asset");
-    let type = "scheduled";
-    if (kind === "immediate") {
-      title = "Urgent Repair: " + (fault.asset_name || "Asset");
-      type = "emergency";
-    }
-
-    // Only fields the backend's CreateWorkOrderDto allows; anything else is
-    // rejected with a 400. Extra information goes inside `details`.
-    // details.description is the asset everywhere (the board card shows it
-    // as "Asset"), so the technician's notes get their own field.
+    // The system turns the fault into a job: team from the kind of fault,
+    // one ranked technician, an acknowledge window and a deadline. Picking a
+    // person here overrides the choice.
     const body = {
-      title: title,
-      status: "new",
+      kind: kind === "immediate" ? "immediate" : "scheduled",
       priority: values.priority,
-      assigned_to_id: values.assigneeId || null,
-      linked_fault_id: fault.fault_id,
-      details: {
-        type: type,
-        description: fault.asset_name || "Asset",
-        diagnostic_notes: values.notes,
-      },
+      ...(values.assigneeId ? { assignee_id: values.assigneeId } : {}),
+      ...(values.notes ? { notes: values.notes } : {}),
     };
 
     setBusyId(id);
     try {
-      await api.post("/work-orders", body);
+      await api.post(`/dispatch/faults/${fault.fault_id}/send`, body);
       let toastType = "info";
       if (kind === "immediate") {
         toastType = "warning";
       }
-      showToast(`Flagged for ${kind} repair. Work order created.`, toastType);
+      showToast(`Flagged for ${kind} repair. Sent to a technician.`, toastType);
       await loadData();
     } catch (err) {
       showToast(err.message, "error");

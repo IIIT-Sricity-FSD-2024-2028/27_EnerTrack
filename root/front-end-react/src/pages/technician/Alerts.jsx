@@ -21,7 +21,6 @@
  */
 import { useEffect, useState } from "react";
 import api from "../../api/client";
-import { useAuth } from "../../auth/useAuth";
 
 import ToastStack from "./components/ToastStack";
 import { useToast } from "./components/useToast";
@@ -52,28 +51,7 @@ async function fetchAlerts() {
   };
 }
 
-/**
- * Alerts and faults share low / moderate / high / critical. The alert's
- * severity is free text, so anything else (e.g. "medium") counts as moderate.
- */
-function faultSeverity(alertSeverity) {
-  const known = ["low", "moderate", "high", "critical"];
-  if (known.includes(alertSeverity)) {
-    return alertSeverity;
-  }
-  return "moderate";
-}
-
-/** "False alarm" + "valve was shut" → "False alarm — valve was shut". */
-function withNotes(label, notes) {
-  if (!notes) {
-    return label;
-  }
-  return label + " — " + notes;
-}
-
 export default function TechnicianAlerts() {
-  const { role, user } = useAuth();
   const { toasts, showToast } = useToast();
 
   const [alerts, setAlerts] = useState([]);
@@ -126,43 +104,21 @@ export default function TechnicianAlerts() {
     const id = alert.alert_id;
     setBusyId(id);
     try {
-      let status = "acknowledged";
-      let action;
+      // One step on the server: if the fault is refused the alert is left
+      // untouched, and what was done is written to the alert log.
+      const result = await api.post(`/alerts/${id}/decide`, {
+        decision: decision === "fault" ? "fault" : decision === "monitor" ? "monitor" : "false_alarm",
+        ...(notes ? { notes } : {}),
+        ...(decision === "fault" ? { asset, fault_type: faultType } : {}),
+      });
       let message;
-
       if (decision === "fault") {
-        let fault = openFaultFor(id);
-        // The fault first: if it is refused, the alert is left untouched.
-        if (!fault) {
-          fault = await api.post("/faults", {
-            alert_id: id,
-            asset_name: asset,
-            fault_type: faultType,
-            severity: faultSeverity(alert.severity),
-            status: "active",
-            // Whoever confirmed it is the one diagnosing it, until reassigned.
-            ...(user?.user_id ? { assigned_to_id: user.user_id } : {}),
-            // Diagnostics carries these notes on into the work order.
-            ...(notes ? { prelim_notes: notes } : {}),
-          });
-        }
-        action = withNotes(`Sent to diagnostics as ${fault.fault_id}`, notes);
-        message = `Alert ${id} acknowledged. ${fault.fault_id} is on Fault Detection & Diagnostics.`;
+        message = `Alert ${id} acknowledged. ${result.fault.fault_id} is on Fault Detection & Diagnostics.`;
       } else if (decision === "monitor") {
-        action = withNotes("Monitoring", notes);
         message = `Alert ${id} is being monitored. It stays in the queue until you decide.`;
       } else {
-        status = "resolved";
-        action = withNotes("False alarm", notes);
         message = `Alert ${id} resolved as a false alarm.`;
       }
-
-      await api.patch(`/alerts/${id}`, { status: status });
-      // Record what was done, so the Alert Log can show it.
-      await api.post(`/alerts/${id}/messages`, {
-        sender_role: role,
-        content: action,
-      });
       showToast(message, "success");
       await loadData();
     } catch (err) {

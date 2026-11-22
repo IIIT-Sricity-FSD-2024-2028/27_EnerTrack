@@ -2,7 +2,7 @@
  * CostEstimateCard — where a work order's cost estimate stands, and a small
  * form (materials + labour) to send one to the Financial Analyst.
  *
- * Shared by the Technician Administrator and Technician Jr work-order pages.
+ * Shared by the Operations Coordinator and Technician Jr work-order pages.
  *
  * The form is only offered while the order is New (first estimate, or a
  * revised one after Finance rejected the last) or In Progress with no
@@ -10,7 +10,7 @@
  * an order already in Review pushed it back to Approval.
  *
  * The estimate belongs to whoever holds the order, so the form is only
- * offered when `canEdit` is true. The Technician Administrator's page turns
+ * offered when `canEdit` is true. The Operations Coordinator's page turns
  * it off for orders assigned to someone else; they still see the status.
  *
  * The page renders this with key={work order id}, so picking another order

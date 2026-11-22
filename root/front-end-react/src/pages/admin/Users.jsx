@@ -29,6 +29,7 @@ import {
   formatLabel,
   assignableRoles,
   matchesSearch,
+  teamLabel,
 } from "./adminHelpers";
 
 // The page always opens with no filters: every user, sorted by name
@@ -210,6 +211,7 @@ function UsersPage() {
       u.phone,
       u.role,
       u.specialization,
+      teamLabel(u.team),
       orgName(u.organization_id, organizations),
     ]),
   );
@@ -363,6 +365,7 @@ function UsersPage() {
                   <th>Organisation</th>
                   <th>Role</th>
                   <th>Specialization</th>
+                  <th>Team</th>
                   <th className="actions-col">Actions</th>
                 </tr>
               </thead>
@@ -389,6 +392,7 @@ function UsersPage() {
                       <td>{orgName(u.organization_id, organizations)}</td>
                       <td>{formatLabel(u.role)}</td>
                       <td>{u.specialization || "-"}</td>
+                      <td>{teamLabel(u.team) || "-"}</td>
                       <td>
                         <div className="row-actions">
                           {isSuperAdmin && !isMe(u) && (

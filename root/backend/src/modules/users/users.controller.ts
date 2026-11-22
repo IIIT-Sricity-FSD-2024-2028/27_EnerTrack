@@ -145,8 +145,8 @@ export class UsersController {
   @ApiOperation({ summary: "List All Users", description: "Retrieves a list of all registered user accounts. Internal staff can view the complete user directory to resolve names for assignments." })
   @ApiResponse({ status: 200, description: "Array of all user records returned." })
   @ApiResponse({ status: 403, description: "Forbidden – caller lacks required role." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician Administrator | Technician | Sustainability Officer", required: false })
-  @Roles("Organization Admin", "Financial Analyst", "Technician Administrator", "Technician", "Sustainability Officer")
+  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Operations Coordinator | Technician | Sustainability Officer", required: false })
+  @Roles("Organization Admin", "Financial Analyst", "Operations Coordinator", "Technician", "Sustainability Officer")
   findAll() {
     return this.usersService.findAll();
   }
@@ -156,8 +156,8 @@ export class UsersController {
   @ApiResponse({ status: 200, description: "User record returned." })
   @ApiResponse({ status: 404, description: "User with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller lacks required role." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician Administrator | Technician | Sustainability Officer", required: false })
-  @Roles("Organization Admin", "Financial Analyst", "Technician Administrator", "Technician", "Sustainability Officer")
+  @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Operations Coordinator | Technician | Sustainability Officer", required: false })
+  @Roles("Organization Admin", "Financial Analyst", "Operations Coordinator", "Technician", "Sustainability Officer")
   findOne(@Param("id") id: string) {
     return this.usersService.findOne(id);
   }
@@ -199,8 +199,14 @@ export class UsersController {
   @ApiResponse({ status: 200, description: "Array of notification records for the user returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
-  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  getNotifications(@Param("id") id: string) {
+  @Roles("Organization Admin", "Operations Coordinator", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  getNotifications(
+    @Param("id") id: string,
+    @Headers("x-user-id") callerId?: string,
+    @Headers("x-role") role?: string,
+  ) {
+    // Messages are private: only their owner (or an Organization Admin) reads them.
+    if (role !== "Organization Admin" && callerId !== id) return [];
     return this.usersService.getNotifications(id);
   }
 }

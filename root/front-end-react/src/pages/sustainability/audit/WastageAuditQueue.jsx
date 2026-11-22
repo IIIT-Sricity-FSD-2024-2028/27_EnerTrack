@@ -153,6 +153,14 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
       if (!saved) return;
       showToast?.("Report sent to the occupant.", "success");
       notify(report, "delivered");
+    } else if (action === "raiseWorkOrder") {
+      try {
+        await api.post(`/wastage-reports/${report.id}/work-order`, {});
+        showToast?.("Work order created and sent to a technician.", "success");
+        setLocalReload((k) => k + 1);
+      } catch (error) {
+        showToast?.(error.message, "error");
+      }
     } else if (action === "dismiss" || action === "sendBack" || action === "target" || action === "preview") {
       setModal({ kind: action, report });
     }

@@ -58,6 +58,7 @@ import AuditorOverview from "./pages/auditor/Overview";
 import AuditorAudits from "./pages/auditor/Audits";
 
 import CampusDashboard from "./pages/campus/Dashboard";
+import CampusIssues from "./pages/campus/CampusIssues";
 import CampusWastage from "./pages/campus/Wastage";
 import CampusArchives from "./pages/campus/Archives";
 
@@ -177,6 +178,10 @@ export default function App() {
             path={PATHS.technician.workOrders}
             element={<TechnicianWorkOrders />}
           />
+          <Route
+            path={PATHS.technician.dispatch}
+            element={<Navigate to={PATHS.technician.overview} replace />}
+          />
         </Route>
       </Route>
 
@@ -203,6 +208,7 @@ export default function App() {
       <Route element={<RequireRole area="campus" />}>
         <Route element={<DashboardLayout />}>
           <Route path={PATHS.campus.dashboard} element={<CampusDashboard />} />
+          <Route path={PATHS.campus.issues} element={<CampusIssues />} />
           <Route path={PATHS.campus.wastage} element={<CampusWastage />} />
           <Route path={PATHS.campus.archives} element={<CampusArchives />} />
         </Route>

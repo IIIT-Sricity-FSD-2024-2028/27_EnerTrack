@@ -35,15 +35,20 @@ export class NotificationsService {
     return newRecord;
   }
 
-  findAll() {
-    return scopeToTenant(this.database.notifications);
+  /**
+   * Everyone sees their own messages; only an Organization Admin sees the
+   * organisation's. (Messages name people and jobs, so they are not shared.)
+   */
+  findAll(userId?: string, role?: string) {
+    const all = scopeToTenant(this.database.notifications);
+    return role === "Organization Admin" ? all : all.filter((n) => !!userId && n.user_id === userId);
   }
 
-  findOne(id: string) {
+  findOne(id: string, userId?: string, role?: string) {
     const record = assertTenantOwns(this.database.notifications.find(
       (item) => item.notification_id === id,
     ));
-    if (!record)
+    if (!record || (role !== "Organization Admin" && record.user_id !== userId))
       throw new NotFoundException(`Notification with ID ${id} not found`);
     return record;
   }
@@ -57,15 +62,17 @@ export class NotificationsService {
     this.database.notifications[index] = {
       notification_id: id,
       ...putDto,
+      organization_id: this.database.notifications[index].organization_id,
     } as any;
     return this.database.notifications[index];
   }
-  update(id: string, updateDto: UpdateNotificationDto) {
+  update(id: string, updateDto: UpdateNotificationDto, userId?: string, role?: string) {
     const index = this.database.notifications.findIndex(
       (item) => item.notification_id === id,
     );
     if (index === -1 || !assertTenantOwns(this.database.notifications[index]))
       throw new NotFoundException(`Notification with ID ${id} not found`);
+    this.assertOwner(this.database.notifications[index], id, userId, role);
     this.database.notifications[index] = {
       ...this.database.notifications[index],
       ...updateDto,
@@ -84,14 +91,32 @@ export class NotificationsService {
     return removed[0];
   }
 
-  markRead(id: string) {
-    const index = this.database.notifications.findIndex(
-      (item) => item.notification_id === id,
+  /** A message can be read or changed by its owner (an Organization Admin may act on any in the organisation). */
+  private assertOwner(record: { user_id?: string | null }, id: string, userId?: string, role?: string) {
+    if (role !== "Organization Admin" && record.user_id !== userId)
+      throw new NotFoundException(`Notification with ID ${id} not found`);
+  }
+
+  /** Marks one of the caller's own messages as read. */
+  markRead(id: string, userId?: string, role?: string) {
+    const record = assertTenantOwns(
+      this.database.notifications.find((item) => item.notification_id === id),
     );
-    if (index > -1) {
-      this.database.notifications[index].is_read = true;
-      return this.database.notifications[index];
+    if (!record) throw new NotFoundException(`Notification with ID ${id} not found`);
+    this.assertOwner(record, id, userId, role);
+    record.is_read = true;
+    return record;
+  }
+
+  /** Marks all of the caller's messages as read. */
+  markAllRead(userId?: string) {
+    let changed = 0;
+    for (const n of scopeToTenant(this.database.notifications)) {
+      if (userId && n.user_id === userId && !n.is_read) {
+        n.is_read = true;
+        changed++;
+      }
     }
-    return null;
+    return { updated: changed };
   }
 }

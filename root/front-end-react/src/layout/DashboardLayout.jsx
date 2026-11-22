@@ -12,6 +12,7 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { PATHS, areaForRole, homeForRole, roleLabel } from "../routes";
 import Sidebar from "./Sidebar";
+import NotificationBell from "./NotificationBell";
 import "./DashboardLayout.css";
 
 export default function DashboardLayout() {
@@ -87,6 +88,10 @@ export default function DashboardLayout() {
             </button>
           </div>
         )}
+
+        <div className="dashboard-layout__topbar">
+          <NotificationBell />
+        </div>
 
         <main className="dashboard-layout__main">
           <Outlet />

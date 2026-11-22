@@ -192,6 +192,21 @@ describe('Sustainability Workflows (e2e)', () => {
         .expect(400);
     });
 
+    it('never invents figures: waste diverted is not measured, and no comparison means "No data"', async () => {
+      const res = await request(server())
+        .post('/api/sustainability-reports/generate')
+        .set('x-role', 'Sustainability Officer')
+        .set('x-org-id', 'org-001')
+        .send({ period: 'custom', from: '2031-01', to: '2031-02' })
+        .expect(201);
+      const m = res.body.data.metrics;
+      expect(m.wasteDiverted).toBe('No data');
+      expect(m.energyReduction).toBe('No data');
+      expect(m.carbonOffset).toBe('No data');
+      expect(m.waterSaved).toBe('No data');
+      expect(JSON.stringify(m)).not.toMatch(/72%|4\.2%|12\.4|1\.2 ML/);
+    });
+
     it('rejects invalid date range with 400', async () => {
       await request(server())
         .post('/api/sustainability-reports/generate')

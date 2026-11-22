@@ -1,5 +1,5 @@
 /**
- * OperationalCheck — the Technician Administrator's action panel for the
+ * OperationalCheck — the Operations Coordinator's action panel for the
  * selected work order. It only offers the action that belongs to the
  * order's current stage, and only to the person who holds the order.
  *

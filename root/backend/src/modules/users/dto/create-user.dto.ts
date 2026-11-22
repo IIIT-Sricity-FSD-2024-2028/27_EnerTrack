@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsEnum, Length, Matches } from "class-validator";
+import { IsString, IsOptional, IsEnum, IsIn, Length, Matches } from "class-validator";
+import { TEAMS } from "../../issue-catalogue/issue-catalogue";
 import { UserRole } from "../../../core/database/database.service";
 import {
   EMAIL,
@@ -22,4 +23,6 @@ export class CreateUserDto {
   @Matches(PASSWORD, { message: `password ${PASSWORD_MESSAGE}` }) password: string;
   @IsEnum(UserRole) role: UserRole;
   @IsOptional() @Matches(LABEL, { message: `specialization ${LABEL_MESSAGE}` }) specialization?: string;
+  /** Field-staff trade. Jobs are only auto-assigned to someone on the matching team; null means none. */
+  @IsOptional() @IsIn(TEAMS, { message: `team must be one of: ${TEAMS.join(", ")}` }) team?: string | null;
 }

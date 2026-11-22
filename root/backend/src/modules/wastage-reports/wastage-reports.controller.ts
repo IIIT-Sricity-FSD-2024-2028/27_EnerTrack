@@ -23,8 +23,8 @@ export class WastageReportsController {
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  create(@Body() createDto: CreateWastageReportDto) {
-    return this.wastageReportsService.create(createDto);
+  create(@Body() createDto: CreateWastageReportDto, @Headers("x-user-id") userId?: string) {
+    return this.wastageReportsService.create(createDto, userId);
   }
   @Post(":id/photos")
 @UseFilters(MulterExceptionFilter)
@@ -82,8 +82,8 @@ export class WastageReportsController {
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  findAll() {
-    return this.wastageReportsService.findAll();
+  findAll(@Headers("x-user-id") userId?: string, @Headers("x-role") role?: string) {
+    return this.wastageReportsService.findAll(userId, role);
   }
 
   @Get(":id")
@@ -93,8 +93,8 @@ export class WastageReportsController {
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  findOne(@Param("id") id: string) {
-    return this.wastageReportsService.findOne(id);
+  findOne(@Param("id") id: string, @Headers("x-user-id") userId?: string, @Headers("x-role") role?: string) {
+    return this.wastageReportsService.findOne(id, userId, role);
   }
 
   @Put(":id")
@@ -130,6 +130,16 @@ export class WastageReportsController {
     return this.wastageReportsService.archive(id);
   }
 
+  @Post(":id/work-order")
+  @ApiOperation({ summary: "Raise a work order from a validated report", description: "Sends the job through the same assignment as every other job: team from the kind of wastage, one ranked technician, a deadline. One per report." })
+  @ApiResponse({ status: 201, description: "Job raised." })
+  @ApiResponse({ status: 409, description: "A work order was already raised." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Sustainability Officer", "Organization Admin")
+  raiseWorkOrder(@Param("id") id: string) {
+    return this.wastageReportsService.raiseWorkOrder(id);
+  }
+
   @Patch(":id")
   @ApiOperation({ summary: "Update Wastage Report", description: "Partially updates a wastage report (e.g., status). The Sustainability Officer and Organization Admin can update reports." })
   @ApiResponse({ status: 200, description: "Updated successfully." })
@@ -137,8 +147,8 @@ export class WastageReportsController {
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Sustainability Officer", "Organization Admin", "Financial Analyst")
-  update(@Param("id") id: string, @Body() updateDto: UpdateWastageReportDto) {
-    return this.wastageReportsService.update(id, updateDto);
+  update(@Param("id") id: string, @Body() updateDto: UpdateWastageReportDto, @Headers("x-role") role?: string) {
+    return this.wastageReportsService.update(id, updateDto, role);
   }
 
   @Delete(":id")

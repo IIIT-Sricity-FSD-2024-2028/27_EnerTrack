@@ -1,7 +1,7 @@
 /**
  * ArchiveTable — "Archived Work Orders": every closed work order.
  *
- * Shared by the Technician Administrator and Technician Jr work-order pages
+ * Shared by the Operations Coordinator and Technician Jr work-order pages
  * (the Jr page passes only their own closed orders).
  *
  * Ported from renderArchive() in js/technician/workOrdersPage.js.
@@ -18,7 +18,7 @@ export default function ArchiveTable({ workOrders, users }) {
     <div className="card">
       <h2>Archived Work Orders</h2>
       <small>Closed and completed work orders from this shift.</small>
-      <table className="archive-table mt-14">
+      <div style={{ overflowX: "auto" }}><table className="archive-table mt-14">
         <thead>
           <tr>
             <th>WO ID</th>
@@ -67,7 +67,7 @@ export default function ArchiveTable({ workOrders, users }) {
             );
           })}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

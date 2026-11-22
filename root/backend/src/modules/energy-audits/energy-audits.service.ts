@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from "@nestjs/common";
 import {
   AuditFinding,
@@ -18,6 +19,7 @@ import {
   UserRole,
 } from "../../core/database/database.service";
 import { buildInvoice } from "../billing/pricing";
+import { DispatchService } from "../dispatch/dispatch.service";
 import {
   scopeToTenant,
   currentOrgId,
@@ -49,7 +51,10 @@ import {
  */
 @Injectable()
 export class EnergyAuditsService {
-  constructor(private database: DatabaseService) {}
+  constructor(
+    private database: DatabaseService,
+    private dispatch: DispatchService,
+  ) {}
 
   /* ── CRUD ──────────────────────────────────────────────────────── */
 
@@ -146,17 +151,7 @@ export class EnergyAuditsService {
   addFinding(id: string, dto: CreateFindingDto) {
     const audit = this.findOne(id);
 
-    for (const buildingId of dto.building_ids) {
-      const building = this.database.buildings.find(
-        (b) => b.building_id === buildingId,
-      );
-      if (!building)
-        throw new NotFoundException(`Building with ID ${buildingId} not found`);
-      if (building.organization_id !== audit.organization_id)
-        throw new BadRequestException(
-          `Building ${buildingId} belongs to a different organisation than this audit`,
-        );
-    }
+    this.assertBuildingsInOrg(dto.building_ids, audit.organization_id);
 
     const finding: AuditFinding = {
       finding_id: crypto.randomUUID(),
@@ -180,7 +175,7 @@ export class EnergyAuditsService {
     return finding;
   }
 
-  updateFinding(id: string, findingId: string, dto: UpdateFindingDto) {
+  updateFinding(id: string, findingId: string, dto: UpdateFindingDto, role?: string) {
     const audit = this.findOne(id);
     const finding = audit.findings.find((f) => f.finding_id === findingId);
     if (!finding)
@@ -188,7 +183,31 @@ export class EnergyAuditsService {
         `Finding with ID ${findingId} not found on audit ${id}`,
       );
 
+    // The client's facilities roles move a recommendation along; they do not
+    // rewrite what the auditor found (cost, saving, severity, buildings).
+    const CLIENT_ROLES = ["Facility Manager", "Operations Coordinator", "Sustainability Officer"];
+    if (CLIENT_ROLES.includes(role ?? "")) {
+      const extra = Object.keys(dto).filter((k) => k !== "status");
+      if (extra.length)
+        throw new ForbiddenException(`You can only change the status of a recommendation, not: ${extra.join(", ")}.`);
+      const allowed: Record<string, string[]> = {
+        proposed: ["accepted", "implemented", "rejected"],
+        accepted: ["implemented", "rejected"],
+        rejected: [],
+        implemented: [],
+      };
+      if (dto.status && dto.status !== finding.status && !allowed[finding.status]?.includes(dto.status))
+        throw new ConflictException(`A ${finding.status} recommendation cannot become ${dto.status}.`);
+    }
+    if (dto.building_ids) this.assertBuildingsInOrg(dto.building_ids, audit.organization_id);
+
+    const wasAccepted = finding.status === FindingStatus.ACCEPTED;
     Object.assign(finding, dto);
+    // Accepting a recommendation puts the work into the same assignment
+    // engine as everything else, so someone is sent to do it.
+    if (finding.status === FindingStatus.ACCEPTED && !wasAccepted) {
+      this.dispatch.sendFinding(audit, finding);
+    }
 
     // Stamped here rather than trusted from the body, so the record of when
     // work was done is the server's rather than the caller's.
@@ -201,6 +220,18 @@ export class EnergyAuditsService {
     }
 
     return finding;
+  }
+
+  private assertBuildingsInOrg(buildingIds: string[], organizationId: string) {
+    for (const buildingId of buildingIds) {
+      const building = this.database.buildings.find((b) => b.building_id === buildingId);
+      if (!building)
+        throw new NotFoundException(`Building with ID ${buildingId} not found`);
+      if (building.organization_id !== organizationId)
+        throw new BadRequestException(
+          `Building ${buildingId} belongs to a different organisation than this audit`,
+        );
+    }
   }
 
   removeFinding(id: string, findingId: string) {
@@ -497,6 +528,8 @@ export class EnergyAuditsService {
       throw new ConflictException(`Audit ${id} has no proposal to respond to`);
     if (audit.status === AuditStatus.ACCEPTED)
       throw new ConflictException(`Audit ${id} has already been accepted`);
+    if (audit.status === AuditStatus.DECLINED)
+      throw new ConflictException(`The proposal on audit ${id} was declined`);
     return audit;
   }
 

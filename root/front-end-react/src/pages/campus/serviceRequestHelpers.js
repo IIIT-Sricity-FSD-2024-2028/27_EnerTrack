@@ -27,90 +27,52 @@ export function splitDescription(raw) {
   return { description: text, location, issueType };
 }
 
-// The five steps shown in the "What Happens Next" timeline.
+// The steps a student sees. Status only: never priority, dates or names.
 export const TIMELINE_STEPS = [
-  {
-    num: 1,
-    label: "You Report",
-    desc: "Submit this form — takes under 1 minute.",
-  },
-  {
-    num: 2,
-    label: "Technician Admin Review",
-    desc: "The Technician Administrator triages and forwards your request.",
-  },
-  {
-    num: 3,
-    label: "Dispatched",
-    desc: "A Technician is assigned and briefed.",
-  },
-  {
-    num: 4,
-    label: "Work in Progress",
-    desc: "Technician assesses and carries out repairs.",
-  },
-  {
-    num: 5,
-    label: "Resolved",
-    desc: "Issue is verified and closed. Track it below.",
-  },
+  { num: 1, label: "Reported", desc: "We have your report. It is sent to the right team automatically." },
+  { num: 2, label: "On its way", desc: "A technician has been given the job." },
+  { num: 3, label: "Work started", desc: "Someone has started working on it." },
+  { num: 4, label: "Waiting for check", desc: "The work is done and is being checked." },
+  { num: 5, label: "Fixed", desc: "The work is done. If it is still broken, tell us." },
 ];
 
-// Works out which timeline step a request is on, from its status and the
-// work orders raised from it. Returns { step, note }: `note` is the small
-// sentence shown under the active step.
-export function getProgress(status, orders = []) {
-  const s = String(status || "open").toLowerCase();
-  if (
-    ["closed", "resolved", "completed"].includes(s) ||
-    orders.some((wo) => wo.status === "closed")
-  ) {
-    return { step: 5, note: "" };
-  }
+// The status words the server sends a student -> timeline step, pill style, and wording.
+const STATUS_STEP = { Reported: 1, Assigned: 2, Visited: 3, Checking: 4, Fixed: 5 };
+const STATUS_CLASS = {
+  Reported: "status-reported",
+  Assigned: "status-dispatched",
+  Visited: "status-progress",
+  Checking: "status-progress",
+  Fixed: "status-closed",
+};
+const STATUS_LABEL = {
+  Reported: "Reported",
+  Assigned: "On its way",
+  Visited: "Work started",
+  Checking: "Waiting for check",
+  Fixed: "Fixed",
+};
 
-  const working = orders.find((wo) =>
-    ["inprogress", "approval", "review"].includes(wo.status),
-  );
-  if (working) {
-    const notes = {
-      inprogress: "The technician is carrying out the repairs.",
-      approval: "The repair cost estimate is waiting for approval.",
-      review: "Repairs are done and are being verified.",
-    };
-    return { step: 4, note: notes[working.status] };
-  }
-
-  if (orders.some((wo) => wo.status === "new" && wo.assigned_to_id)) {
-    return {
-      step: 3,
-      note: "A technician has been assigned and will pick this up shortly.",
-    };
-  }
-
-  return {
-    step: 2,
-    note: "Your report is with the Technician Administrator for review.",
-  };
+export function statusLabel(status) {
+  return STATUS_LABEL[status] || status;
 }
 
-// Turns a raw status ("open", "inprogress", "closed", ...) into the pill's
-// CSS class and label. Same rules as deriveStatusMeta() in enduser.js.
-export function getStatusInfo(statusValue) {
-  const status = String(statusValue || "open").toLowerCase();
+export function statusStep(status) {
+  return STATUS_STEP[status] || 1;
+}
 
-  if (["closed", "resolved", "completed"].includes(status)) {
-    return { cssClass: "status-closed", label: "Completed" };
-  }
-  if (
-    ["in_progress", "inprogress", "approval", "review", "new"].includes(status)
-  ) {
-    return { cssClass: "status-progress", label: "In Progress" };
-  }
-  if (["pending", "pending_category"].includes(status)) {
-    return { cssClass: "status-forwarded", label: "Under Review" };
-  }
-  if (status === "dispatched") {
-    return { cssClass: "status-dispatched", label: "Dispatched" };
-  }
-  return { cssClass: "status-reported", label: "Reported" };
+export function statusClass(status) {
+  return STATUS_CLASS[status] || "status-reported";
+}
+
+// "2026-05-01T..." -> "11 Nov, 9:42 pm"
+export function formatReportedOn(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }

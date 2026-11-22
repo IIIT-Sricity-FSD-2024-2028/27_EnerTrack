@@ -14,7 +14,7 @@ export const USER_ROLES = [
   "Organization Admin",
   "Financial Analyst",
   "Technician",
-  "Technician Administrator",
+  "Operations Coordinator",
   "Sustainability Officer",
   "Campus Visitor",
   "Certified Energy Auditor",
@@ -33,15 +33,26 @@ export function assignableRoles(isSuperAdmin) {
   );
 }
 
+// The trades a technician can belong to. The system only sends a job to
+// someone on the matching team; "" means no automatic jobs.
+export const TEAMS = [
+  { value: "electrician", label: "Electrician" },
+  { value: "plumber", label: "Plumber" },
+  { value: "cleaning", label: "Cleaning" },
+  { value: "hvac", label: "HVAC (AC and cooling)" },
+];
+
+export const teamLabel = (value) => TEAMS.find((t) => t.value === value)?.label || "";
+
 // Roles that must have a specialization (e.g. "Electrical")
-export const TECHNICIAN_ROLES = ["Technician", "Technician Administrator"];
+export const TECHNICIAN_ROLES = ["Technician", "Operations Coordinator"];
 
 // Friendly names for a few stored values; anything else is shown as it is
 const LABELS = {
   systemAdministrator: "Organization Admin",
   financeAnalyst: "Finance Analyst",
   sustainabilityOfficer: "Sustainability Officer",
-  technicianAdministrator: "Technician Administrator",
+  technicianAdministrator: "Operations Coordinator",
   technician: "Technician",
   campusVisitor: "Occupant",
   "Campus Visitor": "Occupant", // stored role value; shown as Occupant

@@ -34,6 +34,7 @@ import { AlertsModule } from "./modules/alerts/alerts.module";
 import { FaultsModule } from "./modules/faults/faults.module";
 import { ServiceRequestsModule } from "./modules/service-requests/service-requests.module";
 import { WorkOrdersModule } from "./modules/work-orders/work-orders.module";
+import { DispatchModule } from "./modules/dispatch/dispatch.module";
 import { EnergyCostsModule } from "./modules/energy-costs/energy-costs.module";
 import { InvoicesModule } from "./modules/invoices/invoices.module";
 import { FinancialReportsModule } from "./modules/financial-reports/financial-reports.module";
@@ -63,6 +64,7 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
     FaultsModule,
     ServiceRequestsModule,
     WorkOrdersModule,
+    DispatchModule,
     EnergyCostsModule,
     InvoicesModule,
     FinancialReportsModule,

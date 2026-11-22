@@ -5,6 +5,7 @@ const BADGES = {
   paid: { cls: "badge-success", label: "Paid" },
   "under-budget": { cls: "badge-success", label: "Under Budget" },
   "on-budget": { cls: "badge-gray", label: "On Budget" },
+  "no-budget": { cls: "badge-gray", label: "No budget set" },
   marginal: { cls: "badge-warning", label: "Marginal" },
   pending: { cls: "badge-warning", label: "Pending" },
   "over-budget": { cls: "badge-danger", label: "Over Budget" },

@@ -33,7 +33,7 @@ export default function AlertLog({ alerts, openFaultFor }) {
         Alerts already decided: resolved, or handed to Fault Detection &amp;
         Diagnostics.
       </small>
-      <table className="alerts-table">
+      <div style={{ overflowX: "auto" }}><table className="alerts-table">
         <thead>
           <tr>
             <th>Alert ID</th>
@@ -86,7 +86,7 @@ export default function AlertLog({ alerts, openFaultFor }) {
             );
           })}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

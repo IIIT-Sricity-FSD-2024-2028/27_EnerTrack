@@ -190,7 +190,7 @@ export class SustainabilityReportsService {
 
     if (!change.has_comparison) {
       data_gaps.push(
-        "No baseline data available for previous period comparison; reduction rates reflect standard operational baselines.",
+        "There is no data for the previous period, so no change is shown for this one.",
       );
     }
 
@@ -205,24 +205,23 @@ export class SustainabilityReportsService {
     }
 
     // Abatement metrics in standard seed shape
-    const energyReductionStr =
-      change.energy_pct !== 0
-        ? `${change.energy_pct > 0 ? "+" : ""}${change.energy_pct}%`
-        : "-4.2%";
+    // Only figures that come from the readings. Without a previous period
+    // there is nothing to compare, and nothing is invented to fill the gap.
+    const NO_DATA = "No data";
+    const energyReductionStr = change.has_comparison
+      ? `${change.energy_pct > 0 ? "+" : ""}${change.energy_pct}%`
+      : NO_DATA;
 
-    const wasteDivertedStr = "72%";
+    // The system does not measure waste diverted from landfill.
+    const wasteDivertedStr = NO_DATA;
 
-    const carbonOffsetVal =
-      change.energy_pct < 0
-        ? Math.abs(Number(((Math.abs(change.energy_pct) / 100) * totals.emissions_t).toFixed(1)))
-        : 12.4;
-    const carbonOffsetStr = `${carbonOffsetVal} tCO2e`;
+    const carbonOffsetStr = change.has_comparison
+      ? `${change.energy_pct < 0 ? Number(((Math.abs(change.energy_pct) / 100) * totals.emissions_t).toFixed(1)) : 0} tCO2e`
+      : NO_DATA;
 
-    const waterSavedVal =
-      change.water_pct < 0
-        ? Math.abs(Number(((Math.abs(change.water_pct) / 100) * totals.water_ml).toFixed(1)))
-        : 1.2;
-    const waterSavedStr = `${waterSavedVal} ML`;
+    const waterSavedStr = change.has_comparison
+      ? `${change.water_pct < 0 ? Number(((Math.abs(change.water_pct) / 100) * totals.water_ml).toFixed(1)) : 0} ML`
+      : NO_DATA;
 
     return {
       title: dto.title || `${dto.period} Sustainability Performance Report`,
