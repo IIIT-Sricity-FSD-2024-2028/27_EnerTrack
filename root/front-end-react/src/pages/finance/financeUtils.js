@@ -52,7 +52,8 @@ export function periodLabel(period) {
 }
 
 /** Budget minus total decides the status badge of a cost record. */
-export function statusFromVariance(variance) {
+export function statusFromVariance(variance, budget = 1) {
+  if (!(budget > 0)) return "no-budget"; // nothing to compare against
   if (variance > 0) return "under-budget";
   if (variance === 0) return "on-budget";
   return "over-budget";

@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
-import { DatabaseService } from "../../core/database/database.service";
+import { DatabaseService, EnergyCostStatus } from "../../core/database/database.service";
 import {
   scopeToTenant,
   currentOrgId,
@@ -18,6 +18,27 @@ import { UpdateEnergyCostDto } from "./dto/update-energy-cost.dto";
 @Injectable()
 export class EnergyCostsService {
   constructor(private database: DatabaseService) {}
+
+  /**
+   * Total, variance and status are worked out here from the amounts, never
+   * taken from the client. With no budget there is no variance to report, so
+   * the record says so instead of reading as "on budget".
+   */
+  private finalise<T extends Record<string, any>>(rec: T): T {
+    const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+    const total = n(rec.electricity) + n(rec.gas) + n(rec.water) + n(rec.wastewater) + n(rec.demand);
+    const budget = n(rec.budget) > 0 ? n(rec.budget) : 0;
+    const variance = budget > 0 ? budget - total : 0;
+    const status =
+      budget === 0
+        ? EnergyCostStatus.NO_BUDGET
+        : variance > 0
+          ? EnergyCostStatus.UNDER_BUDGET
+          : variance === 0
+            ? EnergyCostStatus.ON_BUDGET
+            : EnergyCostStatus.OVER_BUDGET;
+    return { ...rec, total, budget, variance, status };
+  }
 
   create(createDto: CreateEnergyCostDto) {
     if (createDto.building_id) {
@@ -39,7 +60,7 @@ export class EnergyCostsService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { energy_cost_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
+    const newRecord = this.finalise({ energy_cost_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null });
     this.database.energyCosts.push(newRecord as any);
     return newRecord;
   }
@@ -63,11 +84,11 @@ export class EnergyCostsService {
     );
     if (index === -1 || !assertTenantOwns(this.database.energyCosts[index]))
       throw new NotFoundException(`Energy Cost with ID ${id} not found`);
-    this.database.energyCosts[index] = {
+    this.database.energyCosts[index] = this.finalise({
       energy_cost_id: id,
       ...putDto,
       organization_id: this.database.energyCosts[index].organization_id,
-    } as any;
+    }) as any;
     return this.database.energyCosts[index];
   }
   update(id: string, updateDto: UpdateEnergyCostDto) {
@@ -76,11 +97,11 @@ export class EnergyCostsService {
     );
     if (index === -1 || !assertTenantOwns(this.database.energyCosts[index]))
       throw new NotFoundException(`EnergyCost with ID ${id} not found`);
-    this.database.energyCosts[index] = {
+    this.database.energyCosts[index] = this.finalise({
       ...this.database.energyCosts[index],
       ...updateDto,
       organization_id: this.database.energyCosts[index].organization_id,
-    };
+    });
     return this.database.energyCosts[index];
   }
 

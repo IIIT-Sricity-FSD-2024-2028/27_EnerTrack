@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from "@nestjs/common";
 import {
   AuditFinding,
@@ -12,12 +13,17 @@ import {
   DatabaseService,
   EnergyAudit,
   FindingStatus,
+  Initiative,
+  InitiativeStatus,
   NotificationTargetType,
   OrganizationStatus,
   SubscriptionStatus,
+  TargetMetric,
   UserRole,
 } from "../../core/database/database.service";
+import { pushNotifications, usersWithRole } from "../../core/utils/notify";
 import { buildInvoice } from "../billing/pricing";
+import { DispatchService } from "../dispatch/dispatch.service";
 import {
   scopeToTenant,
   currentOrgId,
@@ -49,7 +55,10 @@ import {
  */
 @Injectable()
 export class EnergyAuditsService {
-  constructor(private database: DatabaseService) {}
+  constructor(
+    private database: DatabaseService,
+    private dispatch: DispatchService,
+  ) {}
 
   /* ── CRUD ──────────────────────────────────────────────────────── */
 
@@ -146,17 +155,7 @@ export class EnergyAuditsService {
   addFinding(id: string, dto: CreateFindingDto) {
     const audit = this.findOne(id);
 
-    for (const buildingId of dto.building_ids) {
-      const building = this.database.buildings.find(
-        (b) => b.building_id === buildingId,
-      );
-      if (!building)
-        throw new NotFoundException(`Building with ID ${buildingId} not found`);
-      if (building.organization_id !== audit.organization_id)
-        throw new BadRequestException(
-          `Building ${buildingId} belongs to a different organisation than this audit`,
-        );
-    }
+    this.assertBuildingsInOrg(dto.building_ids, audit.organization_id);
 
     const finding: AuditFinding = {
       finding_id: crypto.randomUUID(),
@@ -180,7 +179,7 @@ export class EnergyAuditsService {
     return finding;
   }
 
-  updateFinding(id: string, findingId: string, dto: UpdateFindingDto) {
+  updateFinding(id: string, findingId: string, dto: UpdateFindingDto, role?: string) {
     const audit = this.findOne(id);
     const finding = audit.findings.find((f) => f.finding_id === findingId);
     if (!finding)
@@ -188,7 +187,31 @@ export class EnergyAuditsService {
         `Finding with ID ${findingId} not found on audit ${id}`,
       );
 
+    // The client's facilities roles move a recommendation along; they do not
+    // rewrite what the auditor found (cost, saving, severity, buildings).
+    const CLIENT_ROLES = ["Facility Manager", "Operations Coordinator", "Sustainability Officer"];
+    if (CLIENT_ROLES.includes(role ?? "")) {
+      const extra = Object.keys(dto).filter((k) => k !== "status");
+      if (extra.length)
+        throw new ForbiddenException(`You can only change the status of a recommendation, not: ${extra.join(", ")}.`);
+      const allowed: Record<string, string[]> = {
+        proposed: ["accepted", "implemented", "rejected"],
+        accepted: ["implemented", "rejected"],
+        rejected: [],
+        implemented: [],
+      };
+      if (dto.status && dto.status !== finding.status && !allowed[finding.status]?.includes(dto.status))
+        throw new ConflictException(`A ${finding.status} recommendation cannot become ${dto.status}.`);
+    }
+    if (dto.building_ids) this.assertBuildingsInOrg(dto.building_ids, audit.organization_id);
+
+    const wasAccepted = finding.status === FindingStatus.ACCEPTED;
     Object.assign(finding, dto);
+    // Accepting a recommendation puts the work into the same assignment
+    // engine as everything else, so someone is sent to do it.
+    if (finding.status === FindingStatus.ACCEPTED && !wasAccepted) {
+      this.dispatch.sendFinding(audit, finding);
+    }
 
     // Stamped here rather than trusted from the body, so the record of when
     // work was done is the server's rather than the caller's.
@@ -200,7 +223,79 @@ export class EnergyAuditsService {
       finding.implemented_on = null;
     }
 
+    // An accepted (or implemented) finding becomes a tracked initiative, so
+    // its promised saving is measured rather than forgotten.
+    if (finding.status === FindingStatus.ACCEPTED || finding.status === FindingStatus.IMPLEMENTED) {
+      const initiative = this.initiativeFor(audit, finding);
+      if (finding.status === FindingStatus.IMPLEMENTED && finding.implemented_on && !initiative.start_date)
+        initiative.start_date = finding.implemented_on;
+    }
+
     return finding;
+  }
+
+  private assertBuildingsInOrg(buildingIds: string[], organizationId: string) {
+    for (const buildingId of buildingIds) {
+      const building = this.database.buildings.find((b) => b.building_id === buildingId);
+      if (!building)
+        throw new NotFoundException(`Building with ID ${buildingId} not found`);
+      if (building.organization_id !== organizationId)
+        throw new BadRequestException(
+          `Building ${buildingId} belongs to a different organisation than this audit`,
+        );
+    }
+  }
+
+  /**
+   * The initiative for an accepted finding, created the first time (never a
+   * second one: it is matched on source_finding). It starts as proposed, so
+   * the Organization Admin still approves it like any other initiative.
+   * The finding's saving is in money; it is converted to kWh with the
+   * organisation's tariff so it can be measured against the meters.
+   */
+  private initiativeFor(audit: EnergyAudit, finding: AuditFinding): Initiative {
+    const source = `${audit.audit_id}:${finding.finding_id}`;
+    const existing = this.database.initiatives.find((i) => i.source_finding === source);
+    if (existing) return existing;
+
+    const org = this.database.organizations.find((o) => o.organization_id === audit.organization_id);
+    const tariff = org?.tariff_rate ?? null;
+    const when = audit.conducted_on ?? audit.scheduled_on;
+    // "12 Sep 2025", formatted by hand: locales disagree on "Sep"/"Sept".
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const date = when
+      ? `${Number(when.slice(8, 10))} ${MONTHS[Number(when.slice(5, 7)) - 1]} ${when.slice(0, 4)}`
+      : null;
+    const initiative: Initiative = {
+      initiative_id: crypto.randomUUID(),
+      organization_id: audit.organization_id,
+      created_by_id: null as unknown as string,
+      title: finding.title,
+      description: `${finding.category} measure from the energy audit${date ? ` of ${date}` : ""}.`,
+      status: InitiativeStatus.PROPOSED,
+      feasible: true,
+      target_reduction: "",
+      outcomes: [],
+      capex: finding.capex,
+      metric: TargetMetric.ENERGY_KWH,
+      building_ids: [...(finding.building_ids ?? [])],
+      expected_saving: tariff ? Math.round(finding.est_annual_saving / tariff) : null,
+      expected_saving_amount: finding.est_annual_saving,
+      source_finding: source,
+      archived_at: null,
+    };
+    this.database.initiatives.push(initiative);
+    pushNotifications(this.database, {
+      organizationId: audit.organization_id,
+      userIds: usersWithRole(this.database, audit.organization_id, [
+        UserRole.SUSTAINABILITY_OFFICER,
+        UserRole.ORGANIZATION_ADMIN,
+      ]),
+      targetType: NotificationTargetType.INITIATIVE,
+      targetId: initiative.initiative_id,
+      message: `The audit finding "${finding.title}" is now an initiative waiting for approval.`,
+    });
+    return initiative;
   }
 
   removeFinding(id: string, findingId: string) {
@@ -497,6 +592,8 @@ export class EnergyAuditsService {
       throw new ConflictException(`Audit ${id} has no proposal to respond to`);
     if (audit.status === AuditStatus.ACCEPTED)
       throw new ConflictException(`Audit ${id} has already been accepted`);
+    if (audit.status === AuditStatus.DECLINED)
+      throw new ConflictException(`The proposal on audit ${id} was declined`);
     return audit;
   }
 

@@ -9,7 +9,7 @@ const DASHBOARD_LABEL = {
   "Organization Admin": "Organisation Dashboard",
   "Sustainability Officer": "Sustainability Dashboard",
   Technician: "Technician Dashboard",
-  "Technician Administrator": "Technician Admin Dashboard",
+  "Operations Coordinator": "Operations Coordinator Dashboard",
   "Financial Analyst": "Finance Analyst Dashboard",
   "Campus Visitor": "Report an Issue",
   "Certified Energy Auditor": "Auditor Dashboard",

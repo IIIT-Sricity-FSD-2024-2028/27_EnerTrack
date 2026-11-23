@@ -1,0 +1,336 @@
+/* Target cards, the propose form, and the approvals page's lists. */
+
+.tcard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px 20px;
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tcard__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tcard__title {
+  flex: 1 1 260px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.tcard__chip {
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.tcard__chip--wait {
+  background: #fef3c7;
+  color: #78350f;
+}
+
+.tcard__chip--active {
+  background: #e8f0eb;
+  color: #1b3a2b;
+}
+
+.tcard__chip--good {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.tcard__chip--bad {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.tcard__note {
+  margin: 6px 0 0;
+  color: #4b5563;
+}
+
+.tcard__progress {
+  margin-top: 12px;
+}
+
+.tcard__measured {
+  margin: 0 0 8px;
+}
+
+.tcard__bar {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: #e5e7eb;
+}
+
+.tcard__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 4px;
+  background: #2d5a43;
+}
+
+.tcard--bad .tcard__fill {
+  background: #b91c1c;
+}
+
+/* Where a straight line from approval to the deadline says it should be now. */
+.tcard__marker {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 16px;
+  margin-left: -1px;
+  background: #111827;
+}
+
+.tcard__basis {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.tcard__decision {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #7f1d1d;
+}
+
+.tcard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* Buttons shared by the Targets and approvals pages. */
+.tbtn {
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tbtn:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.tbtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tbtn:focus-visible {
+  outline: 2px solid #2d5a43;
+  outline-offset: 2px;
+}
+
+.tbtn--primary {
+  background: #2d5a43;
+  border-color: #2d5a43;
+  color: #ffffff;
+}
+
+.tbtn--primary:hover:not(:disabled) {
+  background: #23473a;
+}
+
+.tbtn--danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.tbtn--danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+/* A short reason box that opens under a card (e.g. "Reject"). */
+.treason {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.treason label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.treason textarea,
+.tform input,
+.tform select,
+.tform textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  color: #111827;
+}
+
+.treason textarea:focus-visible,
+.tform input:focus-visible,
+.tform select:focus-visible,
+.tform textarea:focus-visible {
+  outline: 2px solid #2d5a43;
+  outline-offset: 1px;
+}
+
+/* Lists and sections */
+.tlist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tsection + .tsection {
+  margin-top: 28px;
+}
+
+.tsection > h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 650;
+  color: #111827;
+}
+
+.tsection > p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.tempty {
+  padding: 24px 20px;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+/* Propose form */
+.tform {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 18px 20px;
+}
+
+.tform h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.tform > p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.tform__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tform__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tform__field label,
+.tform__legend {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.tform__wide {
+  grid-column: 1 / -1;
+}
+
+.tform__buildings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.tform__buildings label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.tform__buildings input {
+  width: auto;
+}
+
+.tform__preview {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #f3f8f5;
+  font-size: 14px;
+}
+
+.tform__error {
+  margin: 12px 0 0;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.tform__actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .tform__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .tform__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tcard {
+    padding: 14px 16px;
+  }
+}

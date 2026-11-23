@@ -61,6 +61,19 @@
   }
 }
 
+/* Phones: two cards per row, without the empty space a tall card leaves. */
+@media (max-width: 640px) {
+  .so-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .so-metrics > * {
+    min-height: 0 !important;
+    padding: 14px !important;
+  }
+}
+
 /* ── Panel ────────────────────────────────────────── */
 
 .so-panel {
@@ -267,7 +280,7 @@
   font-weight: 600;
 }
 
-/* Status chip — same shape as "Synced & Verified" on Monitoring */
+/* Status chip on wastage report cards */
 .so-status {
   flex-shrink: 0;
   font-size: 12px;
@@ -518,4 +531,86 @@
   .sustainability-overview-page * {
     animation: none !important;
   }
+}
+
+/* "Target −10% vs 2025 by Dec 2026 · on track" under a metric card. */
+.so-target-line {
+  color: #1b3a2b;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.so-target-line:hover {
+  text-decoration: underline;
+}
+
+/* Age badge on reports still waiting for the officer: amber at 7 days, red at 14. */
+.so-report-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.so-age {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.so-age--aging {
+  background: #fef3c7;
+  color: #78350f;
+}
+
+.so-age--old {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+/* Target check dialog */
+.so-check {
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.so-check dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.so-check dt {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.so-check dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.so-check__reason {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #f3f4f6;
+}
+
+.so-check__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.so-check__actions .is-suggested {
+  outline: 2px solid #2d5a43;
+  outline-offset: 2px;
 }

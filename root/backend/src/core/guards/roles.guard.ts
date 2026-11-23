@@ -17,7 +17,7 @@ export class RolesGuard implements CanActivate {
    *
    * This is what lets the B2B role model coexist with the 127 @Roles
    * decorators written against the original roles. "Facility Manager"
-   * expands to ["Facility Manager", "Technician Administrator"], so it
+   * expands to ["Facility Manager", "Operations Coordinator"], so it
    * satisfies a controller that still asks for the latter.
    *
    * A legacy role has no entry in the table and expands to itself, so its

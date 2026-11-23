@@ -12,6 +12,7 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { PATHS, areaForRole, homeForRole, roleLabel } from "../routes";
 import Sidebar from "./Sidebar";
+import NotificationBell from "./NotificationBell";
 import "./DashboardLayout.css";
 
 export default function DashboardLayout() {
@@ -49,6 +50,7 @@ export default function DashboardLayout() {
         area={areaForRole(role)}
         role={role}
         title="Navigation"
+        actions={<NotificationBell />}
         footer={
           <div className="dashboard-layout__profile">
             <div className="dashboard-layout__who">
@@ -88,6 +90,8 @@ export default function DashboardLayout() {
           </div>
         )}
 
+        {/* The notification bell lives in the sidebar's top row (see Sidebar
+            "actions"), so it is in the same place on phones and desktops. */}
         <main className="dashboard-layout__main">
           <Outlet />
         </main>

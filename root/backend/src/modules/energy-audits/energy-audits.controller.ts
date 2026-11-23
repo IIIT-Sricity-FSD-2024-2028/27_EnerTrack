@@ -9,6 +9,7 @@ import {
   Delete,
   Put,
   Query,
+  Headers,
 } from "@nestjs/common";
 import { EnergyAuditsService } from "./energy-audits.service";
 import { CreateEnergyAuditDto } from "./dto/create-energy-audit.dto";
@@ -44,7 +45,7 @@ const READERS = [
   "Financial Analyst",
   "Economic Buyer",
   "Facility Manager",
-  "Technician Administrator",
+  "Operations Coordinator",
   "Sustainability Officer",
 ] as const;
 
@@ -157,15 +158,16 @@ export class EnergyAuditsController {
     "Certified Energy Auditor",
     "Super Admin",
     "Facility Manager",
-    "Technician Administrator",
+    "Operations Coordinator",
     "Sustainability Officer",
   )
   updateFinding(
     @Param("id") id: string,
     @Param("findingId") findingId: string,
     @Body() dto: UpdateFindingDto,
+    @Headers('x-role') role?: string,
   ) {
-    return this.auditsService.updateFinding(id, findingId, dto);
+    return this.auditsService.updateFinding(id, findingId, dto, role);
   }
 
   @Delete(":id/findings/:findingId")
@@ -233,8 +235,9 @@ export class EnergyAuditsController {
   @ApiHeader(ROLE_HEADER)
   @ApiHeader(ORG_HEADER)
   @Roles(...CLIENT_SIGNATORIES)
-  acceptProposal(@Param('id') id: string, @Body() body: { accepted_by: string }) {
-    return this.auditsService.acceptProposal(id, body?.accepted_by);
+  acceptProposal(@Param('id') id: string, @Headers('x-user-id') userId?: string) {
+    // Who accepted comes from the signed-in user, never from the request body.
+    return this.auditsService.acceptProposal(id, userId ?? '');
   }
 
   @Patch(':id/proposal/request-changes')
@@ -251,9 +254,10 @@ export class EnergyAuditsController {
   @Roles(...CLIENT_SIGNATORIES)
   requestChanges(
     @Param('id') id: string,
-    @Body() dto: RespondToProposalDto & { responded_by?: string },
+    @Body() dto: RespondToProposalDto,
+    @Headers('x-user-id') userId?: string,
   ) {
-    return this.auditsService.requestChanges(id, dto, dto?.responded_by ?? '');
+    return this.auditsService.requestChanges(id, dto, userId ?? '');
   }
 
   @Patch(':id/proposal/decline')
@@ -270,9 +274,10 @@ export class EnergyAuditsController {
   @Roles(...CLIENT_SIGNATORIES)
   declineProposal(
     @Param('id') id: string,
-    @Body() dto: RespondToProposalDto & { responded_by?: string },
+    @Body() dto: RespondToProposalDto,
+    @Headers('x-user-id') userId?: string,
   ) {
-    return this.auditsService.declineProposal(id, dto, dto?.responded_by ?? '');
+    return this.auditsService.declineProposal(id, dto, userId ?? '');
   }
 
   @Put(':id')

@@ -4,12 +4,14 @@ import {
   ArrayMinSize,
   IsArray,
   IsEnum,
+  IsIn,
   IsOptional,
   Length,
   Matches,
   ValidateNested,
 } from "class-validator";
 import { UserRole } from "../../../core/database/database.service";
+import { TEAMS } from "../../issue-catalogue/issue-catalogue";
 import {
   EMAIL,
   EMAIL_MESSAGE,
@@ -25,6 +27,8 @@ export class BulkUserRowDto {
   @Length(5, 254) @Matches(EMAIL, { message: `email ${EMAIL_MESSAGE}` }) email: string;
   @IsOptional() @Matches(PHONE, { message: `phone ${PHONE_MESSAGE}` }) phone?: string;
   @IsEnum(UserRole) role: UserRole;
+  /** Technicians only: the trade that decides which jobs they are sent. */
+  @IsOptional() @IsIn(TEAMS, { message: `team must be one of: ${TEAMS.join(", ")}` }) team?: string;
 }
 
 /** Body for POST /api/users/bulk. */

@@ -112,7 +112,7 @@ export function alertTime(alert) {
 // Every role that can act on alerts. Facility Manager uses the Technician
 // Administrator dashboard (see ROLE_AREA in src/routes.js).
 const TECHNICIAN_ROLES = [
-  "Technician Administrator",
+  "Operations Coordinator",
   "Facility Manager",
   "Technician",
 ];
@@ -154,7 +154,7 @@ export function userName(users, userId) {
 // Roles that can be given a work order.
 const ASSIGNABLE_ROLES = [
   "Technician",
-  "Technician Administrator",
+  "Operations Coordinator",
   "Facility Manager",
 ];
 

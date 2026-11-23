@@ -20,19 +20,19 @@ import { useRef, useState } from "react";
 import api from "../../api/client";
 import { emailOnDomain, validators } from "../auth/validators";
 import Modal from "./Modal";
-import { PLATFORM_SIDE_ROLES, TECHNICIAN_ROLES, USER_ROLES, formatLabel } from "./adminHelpers";
+import { PLATFORM_SIDE_ROLES, TEAMS, USER_ROLES, formatLabel } from "./adminHelpers";
 
-// Roles that need no per-person detail. Technicians need a specialization,
-// which the single "Add User" form asks for.
+// Roles that can be imported. A Technician also needs a team (a fifth column),
+// because jobs are only sent to someone on the matching team.
 const BULK_ROLES = USER_ROLES.filter(
   (role) =>
     role !== "Organization Admin" &&
-    !PLATFORM_SIDE_ROLES.includes(role) &&
-    !TECHNICIAN_ROLES.includes(role),
+    role !== "Operations Coordinator" &&
+    !PLATFORM_SIDE_ROLES.includes(role),
 );
 const DEFAULT_ROLE = "Campus Visitor";
 const MAX_ROWS = 500;
-const COLUMNS = ["name", "email", "phone", "role"];
+const COLUMNS = ["name", "email", "phone", "role", "team"];
 
 /** Splits one CSV/TSV line, honouring "quoted, values". */
 function splitLine(line, delimiter) {
@@ -57,7 +57,7 @@ function splitLine(line, delimiter) {
   return cells;
 }
 
-/** Text -> [{ name, email, phone, role }]. A header row is optional. */
+/** Text -> [{ name, email, phone, role, team }]. A header row is optional. */
 function parseRows(text) {
   const lines = text
     .split(/\r?\n/)
@@ -106,6 +106,9 @@ function checkRows(rows, emailDomain, existingEmails) {
     if (phoneError) errors.push(phoneError);
     if (!BULK_ROLES.includes(row.role))
       errors.push(`Role must be one of: ${BULK_ROLES.join(", ")}.`);
+    row.team = (raw.team || "").trim().toLowerCase();
+    if (row.role === "Technician" && !TEAMS.some((t) => t.value === row.team))
+      errors.push(`A technician needs a team: ${TEAMS.map((t) => t.value).join(", ")}.`);
     if (!emailError) seen.add(row.email);
     return { ...row, errors };
   });
@@ -197,10 +200,11 @@ export default function BulkImportModal({
     setProblem("");
     try {
       const response = await api.post("/users/bulk", {
-        users: validRows.map(({ name, email, phone, role }) => ({
+        users: validRows.map(({ name, email, phone, role, team }) => ({
           name,
           email,
           role,
+          ...(role === "Technician" ? { team } : {}),
           ...(phone.trim() ? { phone: phone.trim() } : {}),
         })),
       });
@@ -296,10 +300,10 @@ export default function BulkImportModal({
       onClose={onClose}
     >
       <p>
-        One person per line: <strong>name, email, phone, role</strong>. Phone is
-        optional and role defaults to {formatLabel(DEFAULT_ROLE)}. Allowed roles:{" "}
-        {BULK_ROLES.map(formatLabel).join(", ")}. Add technicians one at a time (they need a
-        specialization).
+        One person per line: <strong>name, email, phone, role, team</strong>.
+        Phone is optional and role defaults to {formatLabel(DEFAULT_ROLE)}. Allowed roles:{" "}
+        {BULK_ROLES.map(formatLabel).join(", ")}. Technicians need a team (
+        {TEAMS.map((t) => t.value).join(", ")}); for everyone else leave it empty.
       </p>
       {emailDomain && (
         <p className="muted-cell">

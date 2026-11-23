@@ -1,11 +1,11 @@
-import { IsString, IsObject, IsOptional } from "class-validator";
+import { GenerateSustainabilityReportDto } from "./generate-sustainability-report.dto";
 
-export class CreateSustainabilityReportDto {
-  /** Tenant this record belongs to. Defaults to the x-org-id header. */
-  @IsOptional() @IsString() organization_id?: string;
-  @IsString() generated_by_id: string;
-  @IsString() title: string;
-  @IsString() period: string;
-  @IsObject() metrics: Record<string, any>;
-  @IsString() generated_at: string;
-}
+/**
+ * What a client may send to save a report: the period (and optionally an
+ * explicit from/to range and a title). Everything else — totals, deltas,
+ * metrics, data gaps, meter coverage, who generated it and when — is
+ * computed or stamped by the server, so a saved report always matches the
+ * meter readings it claims to summarise. Extra fields (metrics,
+ * generated_by_id, ...) are rejected by the global whitelist pipe.
+ */
+export class CreateSustainabilityReportDto extends GenerateSustainabilityReportDto {}

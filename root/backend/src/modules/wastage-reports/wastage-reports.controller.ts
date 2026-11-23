@@ -23,8 +23,8 @@ export class WastageReportsController {
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  create(@Body() createDto: CreateWastageReportDto) {
-    return this.wastageReportsService.create(createDto);
+  create(@Body() createDto: CreateWastageReportDto, @Headers("x-user-id") userId?: string) {
+    return this.wastageReportsService.create(createDto, userId);
   }
   @Post(":id/photos")
 @UseFilters(MulterExceptionFilter)
@@ -82,8 +82,20 @@ export class WastageReportsController {
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  findAll() {
-    return this.wastageReportsService.findAll();
+  findAll(@Headers("x-user-id") userId?: string, @Headers("x-role") role?: string) {
+    return this.wastageReportsService.findAll(userId, role);
+  }
+
+  @Get(":id/target-check")
+  @ApiOperation({
+    summary: "Evidence for a wastage target",
+    description:
+      "For a report with a target: the linked meter (sensor_reading_id → reading → meter), the cut the target needs (1 − target ÷ triggering reading), the meter's measured change (each full month since the target was set against the same month a year earlier), and a suggested Target Met / Target Missed. suggested is null, with a reason, when it cannot be measured (no linked meter, no full month yet).",
+  })
+  @ApiResponse({ status: 400, description: "The report has no target." })
+  @Roles("Sustainability Officer", "Organization Admin")
+  targetCheck(@Param("id") id: string) {
+    return this.wastageReportsService.targetCheck(id);
   }
 
   @Get(":id")
@@ -93,8 +105,8 @@ export class WastageReportsController {
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  findOne(@Param("id") id: string) {
-    return this.wastageReportsService.findOne(id);
+  findOne(@Param("id") id: string, @Headers("x-user-id") userId?: string, @Headers("x-role") role?: string) {
+    return this.wastageReportsService.findOne(id, userId, role);
   }
 
   @Put(":id")
@@ -104,8 +116,12 @@ export class WastageReportsController {
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin")
-  put(@Param("id") id: string, @Body() putDto: PutWastageReportDto) {
-    return this.wastageReportsService.put(id, putDto);
+  put(
+    @Param("id") id: string,
+    @Body() putDto: PutWastageReportDto,
+    @Headers("x-role") role?: string,
+  ) {
+    return this.wastageReportsService.put(id, putDto, role);
   }
 
   @Post(":id/comments")
@@ -130,15 +146,25 @@ export class WastageReportsController {
     return this.wastageReportsService.archive(id);
   }
 
+  @Post(":id/work-order")
+  @ApiOperation({ summary: "Raise a work order from a validated report", description: "Sends the job through the same assignment as every other job: team from the kind of wastage, one ranked technician, a deadline. One per report." })
+  @ApiResponse({ status: 201, description: "Job raised." })
+  @ApiResponse({ status: 409, description: "A work order was already raised." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Sustainability Officer", "Organization Admin")
+  raiseWorkOrder(@Param("id") id: string) {
+    return this.wastageReportsService.raiseWorkOrder(id);
+  }
+
   @Patch(":id")
-  @ApiOperation({ summary: "Update Wastage Report", description: "Partially updates a wastage report (e.g., status). The Sustainability Officer and Organization Admin can update reports." })
+  @ApiOperation({ summary: "Update Wastage Report", description: "Partially updates a wastage report. A status change must follow the workflow: Sustainability Officer (and Organization Admin) Reported→Validated|Dismissed, Validated→Forwarded to Finance|Target Set|Dismissed, Returned to SO→Target Set|Forwarded to Finance, Target Set→Finalized, Finalized→Delivered; Financial Analyst (and Organization Admin) Forwarded to Finance→Cost Impact Added, Cost Impact Added→Returned to SO. Any other move returns 403. Saving the same status with other changes is allowed. Each move notifies the people concerned." })
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Sustainability Officer", "Organization Admin", "Financial Analyst")
-  update(@Param("id") id: string, @Body() updateDto: UpdateWastageReportDto) {
-    return this.wastageReportsService.update(id, updateDto);
+  update(@Param("id") id: string, @Body() updateDto: UpdateWastageReportDto, @Headers("x-role") role?: string) {
+    return this.wastageReportsService.update(id, updateDto, role);
   }
 
   @Delete(":id")

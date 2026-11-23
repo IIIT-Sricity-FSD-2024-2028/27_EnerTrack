@@ -1,0 +1,147 @@
+.nbell {
+  position: relative;
+  display: inline-flex;
+}
+
+.nbell__button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(28, 46, 46, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  color: #111827;
+  cursor: pointer;
+}
+
+.nbell__button:hover {
+  background: #ffffff;
+}
+
+.nbell__button:focus-visible,
+.nbell__link:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
+
+.nbell__count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background: #b91c1c;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* Fixed, so the scrolling sidebar cannot clip it. Desktop: beside the sidebar. */
+.nbell__panel {
+  position: fixed;
+  top: 16px;
+  left: 272px;
+  /* Above page content (cards, icons, sticky bars); below toasts. */
+  z-index: 1000;
+  width: 340px;
+  max-height: min(480px, calc(100vh - 32px));
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  color: #1f2937;
+}
+
+.nbell__head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.nbell__head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.nbell__link {
+  border: 0;
+  background: none;
+  padding: 2px;
+  color: #2d5a43;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nbell__empty,
+.nbell__error {
+  margin: 0;
+  padding: 18px 14px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.nbell__error {
+  color: #991b1b;
+}
+
+.nbell__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nbell__list li {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.nbell__list li:last-child {
+  border-bottom: 0;
+}
+
+.nbell__list li.is-unread {
+  background: #f3f8f5;
+  box-shadow: inset 3px 0 0 #2d5a43;
+}
+
+.nbell__list p {
+  margin: 0;
+}
+
+.nbell__list time {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Phones: a sheet under the top bar, the full width of the screen. */
+@media (max-width: 900px) {
+  .nbell__panel {
+    top: 60px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: calc(100vh - 76px);
+  }
+}

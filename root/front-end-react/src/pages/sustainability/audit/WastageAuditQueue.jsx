@@ -18,11 +18,9 @@
 import { useEffect, useState } from "react";
 import api from "../../../api/client";
 import { useAuth } from "../../../auth/useAuth";
-import { notifyOnStateChange } from "../../../legacy/notifications";
-import universalDB from "../../../legacy/universalDB";
-import { addWastageComment, isNetworkError, normalizeWastageReport, updateWastageReport } from "../../finance/financeApi";
+import { addWastageComment, normalizeWastageReport, updateWastageReport } from "../../finance/financeApi";
 import { reportRef } from "../../finance/financeUtils";
-import { DismissModal, SendBackModal, TargetModal } from "./AuditModals";
+import { DismissModal, SendBackModal, TargetModal, VerifyTargetModal } from "./AuditModals";
 import ReportPreview from "./ReportPreview";
 import WastageAuditCard from "./WastageAuditCard";
 import { normalizeStatus } from "./auditShared";
@@ -30,16 +28,10 @@ import { normalizeStatus } from "./auditShared";
 // Reports waiting on Finance; everything else in the queue waits on the officer.
 const WITH_FINANCE = ["Forwarded to Finance", "Cost Impact Added"];
 
-/** Server rows when the backend is up; the local copies only when offline. */
+/** The server is the only record; if it cannot be reached, the queue says so. */
 async function loadRawReports() {
-  try {
-    const rows = await api.get("/wastage-reports");
-    return Array.isArray(rows) ? rows : [];
-  } catch (error) {
-    if (!isNetworkError(error)) throw error;
-    console.warn("[SO Wastage] Backend unavailable, using local data.");
-    return universalDB.data.workflow.wastageReports || [];
-  }
+  const rows = await api.get("/wastage-reports");
+  return Array.isArray(rows) ? rows : [];
 }
 
 export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
@@ -48,7 +40,8 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null); // report being saved
   const [modal, setModal] = useState(null); // { kind: 'dismiss'|'sendBack'|'target', report }
-  const [localReload, setLocalReload] = useState(0);
+  const [loadError, setLoadError] = useState(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [tab, setTab] = useState("action"); // 'action' | 'finance'
 
   const officerName = user?.name || "Sustainability Officer";
@@ -67,6 +60,7 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
         (Array.isArray(users) ? users : []).forEach((u) => {
           if (u.user_id) directory[u.user_id] = u;
         });
+        setLoadError(null);
         setReports(
           rows.map((raw) => {
             const r = normalizeWastageReport(raw, user);
@@ -85,7 +79,7 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
       .catch((error) => {
         if (!active) return;
         console.error("[SO Wastage] Failed to load reports", error);
-        showToast?.(error.message || "Could not load the wastage audit queue.", "error");
+        setLoadError(error.message || "The server could not be reached.");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -94,17 +88,7 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     return () => {
       active = false;
     };
-  }, [user, reloadKey, localReload, showToast]);
-
-  // Reload whenever another tab (e.g. the Finance Analyst) changes the
-  // shared local data.
-  useEffect(() => {
-    function handleStorage(event) {
-      if (event.key === "enertrack_universal_v1") setLocalReload((k) => k + 1);
-    }
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
+  }, [user, reloadKey, retryKey]);
 
   /**
    * Saves the changes and swaps the updated report into state.
@@ -124,21 +108,15 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     }
   }
 
-  function notify(report, action, extra = {}) {
-    notifyOnStateChange({ id: report.shortId, type: report.type, reporterEmail: report.reporterEmail, ...extra }, action, officerName);
-  }
-
   async function handleAction(report, action) {
     const now = new Date().toISOString();
 
     if (action === "validate") {
       if (!(await saveReport(report, { status: "Validated", validatedAt: now }))) return;
       showToast?.("Report validated successfully.", "success");
-      notify(report, "validated");
     } else if (action === "forward") {
       if (!(await saveReport(report, { status: "Forwarded to Finance", forwardedAt: now }))) return;
       showToast?.("Report forwarded to Finance Analyst.", "success");
-      notify(report, "forwarded");
     } else if (action === "finalize") {
       if (!(await saveReport(report, { status: "Finalized", finalizedAt: now, finalizedBy: officerName }))) return;
       showToast?.("Report finalized. Preview it, then send it to the occupant.", "success");
@@ -152,8 +130,21 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
       });
       if (!saved) return;
       showToast?.("Report sent to the occupant.", "success");
-      notify(report, "delivered");
-    } else if (action === "dismiss" || action === "sendBack" || action === "target" || action === "preview") {
+    } else if (action === "raiseWorkOrder") {
+      // Turns a validated report into a job for a technician (dispatch).
+      try {
+        await api.post(`/wastage-reports/${report.id}/work-order`, {});
+        showToast?.("Work order created and sent to a technician.", "success");
+        setRetryKey((k) => k + 1);
+      } catch (error) {
+        showToast?.(error.message, "error");
+      }
+    } else if (action === "checkNow") {
+      // Check before the deadline: move to Verify Target, then open the check.
+      const saved = await saveReport(report, { status: "Verify Target", checkedEarlyAt: now });
+      if (!saved) return;
+      setModal({ kind: "verify", report: saved });
+    } else if (action === "dismiss" || action === "sendBack" || action === "target" || action === "preview" || action === "verify") {
       setModal({ kind: action, report });
     }
   }
@@ -177,7 +168,6 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     if (!saved) return;
     setModal(null);
     showToast?.("Report dismissed with reason.", "info");
-    notify(report, "dismissed", { dismissReason: reason });
   }
 
   async function handleSendBack({ reason, notes }) {
@@ -193,7 +183,6 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     if (!saved) return;
     setModal(null);
     showToast?.("Report sent back to Finance for revision.", "warning");
-    notify(report, "forwarded");
   }
 
   async function handleSetTarget({ value, unit, deadline }) {
@@ -207,7 +196,22 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     if (!saved) return;
     setModal(null);
     showToast?.(`${report.type} target set to ${value} ${unit}.`, "success");
-    notify(report, "target_set");
+  }
+
+  async function handleVerify({ status, outcome }) {
+    const report = modal.report;
+    const saved = await saveReport(report, {
+      status,
+      targetOutcome: { ...outcome, checkedAt: new Date().toISOString(), checkedBy: officerName },
+    });
+    if (!saved) return;
+    setModal(null);
+    showToast?.(
+      status === "Target Met"
+        ? "Recorded as met. The occupant has been told."
+        : "Recorded as missed. The occupant has been told; you can set a new target.",
+      "success",
+    );
   }
 
   async function handleAddComment(report, text) {
@@ -251,7 +255,21 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
       </div>
 
       <div id="wastageAuditContainer" role="tabpanel">
-        {loading && reports.length === 0 ? (
+        {loadError && reports.length === 0 ? (
+          <div className="so-empty" role="alert">
+            Wastage reports could not be loaded: {loadError}{" "}
+            <button
+              type="button"
+              className="so-btn"
+              onClick={() => {
+                setLoading(true);
+                setRetryKey((k) => k + 1);
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : loading && reports.length === 0 ? (
           <div className="so-empty">Loading wastage reports…</div>
         ) : shown.length === 0 ? (
           <div className="so-empty">
@@ -288,6 +306,9 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
           }}
           onClose={() => setModal(null)}
         />
+      )}
+      {modal?.kind === "verify" && (
+        <VerifyTargetModal report={modal.report} busy={busyId === modal.report.id} onSubmit={handleVerify} onClose={() => setModal(null)} />
       )}
       {modal?.kind === "target" && (
         <TargetModal report={modal.report} busy={busyId === modal.report.id} onSubmit={handleSetTarget} onClose={() => setModal(null)} />

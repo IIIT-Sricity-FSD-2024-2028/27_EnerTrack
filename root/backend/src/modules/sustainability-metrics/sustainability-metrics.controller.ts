@@ -1,9 +1,6 @@
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put, Query } from "@nestjs/common";
+import { Controller, Get, Query } from "@nestjs/common";
 import { SustainabilityMetricsService } from "./sustainability-metrics.service";
-import { CreateSustainabilityMetricDto } from "./dto/create-sustainability-metric.dto";
-import { PutSustainabilityMetricDto } from "./dto/put-sustainability-metric.dto";
-import { UpdateSustainabilityMetricDto } from "./dto/update-sustainability-metric.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
 
 @ApiTags("sustainability-metrics")
@@ -11,18 +8,8 @@ import { Roles } from "../../core/decorators/roles.decorator";
 export class SustainabilityMetricsController {
   constructor(private readonly sustainabilityMetricsService: SustainabilityMetricsService) {}
 
-  @Post()
-  @ApiOperation({ summary: "Create Sustainability Metric", description: "Records a new sustainability metric snapshot. Sustainability Officer and Organization Admin can create." })
-  @ApiResponse({ status: 201, description: "Created successfully." })
-  @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "Organization Admin")
-  create(@Body() createDto: CreateSustainabilityMetricDto) {
-    return this.sustainabilityMetricsService.create(createDto);
-  }
-
   @Get()
-  @ApiOperation({ summary: "List All Sustainability Metrics", description: "Retrieves all sustainability metrics. Sustainability Officer and Organization Admin can view KPIs." })
+  @ApiOperation({ summary: "List All Sustainability Metrics", description: "Read-only list of stored sustainability metric snapshots, kept for the legacy front-end. The dashboards use GET /sustainability-metrics/summary, which is computed from meter readings; metric records can no longer be created, edited or deleted through the API." })
   @ApiResponse({ status: 200, description: "Array of records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
@@ -35,7 +22,7 @@ export class SustainabilityMetricsController {
   @ApiOperation({
     summary: "Get Sustainability Metrics Summary",
     description:
-      "Tenant-scoped summary of energy, water, gas, emissions, and food wastage across a period. Includes time series, totals, deltas vs previous period, and meter coverage.",
+      "Tenant-scoped summary of energy, water, gas, emissions (Scope 1 gas + Scope 2 grid electricity), and food wastage across a period. Defaults to January of the current year through the last full month. granularity is month (default), quarter or year; readings are monthly totals, so week/day are rejected with 400. Includes time series, totals, deltas vs previous period, meter coverage, and silent_meters (active meters with no readings in the period). With groupBy=building, also by_building: per-building electricity, water, gas and emissions (they add up to the campus totals), electricity change vs the previous period and vs the same months last year, meters reporting, and silent or faulty meters.",
   })
   @ApiResponse({ status: 200, description: "Summary returned." })
   @ApiResponse({ status: 400, description: "Invalid date range or format." })
@@ -47,51 +34,8 @@ export class SustainabilityMetricsController {
     @Query("from") from?: string,
     @Query("to") to?: string,
     @Query("granularity") granularity?: string,
+    @Query("groupBy") groupBy?: string,
   ) {
-    return this.sustainabilityMetricsService.getSummary({ from, to, granularity });
-  }
-
-  @Get(":id")
-  @ApiOperation({ summary: "Get Sustainability Metric by ID", description: "Retrieves a single metric by UUID. Sustainability Officer and Organization Admin can look up." })
-  @ApiResponse({ status: 200, description: "Record returned." })
-  @ApiResponse({ status: 404, description: "Not found." })
-  @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "Organization Admin")
-  findOne(@Param("id") id: string) {
-    return this.sustainabilityMetricsService.findOne(id);
-  }
-
-  @Put(":id")
-  @ApiOperation({ summary: "Replace Sustainability Metric", description: "Completely replaces a metric record. Only Organization Admin can perform full replacements." })
-  @ApiResponse({ status: 200, description: "Replaced successfully." })
-  @ApiResponse({ status: 404, description: "Not found." })
-  @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin")
-  put(@Param("id") id: string, @Body() putDto: PutSustainabilityMetricDto) {
-    return this.sustainabilityMetricsService.put(id, putDto);
-  }
-
-  @Patch(":id")
-  @ApiOperation({ summary: "Update Sustainability Metric", description: "Partially updates a metric. Sustainability Officer and Organization Admin can update." })
-  @ApiResponse({ status: 200, description: "Updated successfully." })
-  @ApiResponse({ status: 404, description: "Not found." })
-  @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "Organization Admin")
-  update(@Param("id") id: string, @Body() updateDto: UpdateSustainabilityMetricDto) {
-    return this.sustainabilityMetricsService.update(id, updateDto);
-  }
-
-  @Delete(":id")
-  @ApiOperation({ summary: "Delete Sustainability Metric", description: "Permanently removes a metric. Only Organization Admin can delete." })
-  @ApiResponse({ status: 200, description: "Deleted successfully." })
-  @ApiResponse({ status: 404, description: "Not found." })
-  @ApiResponse({ status: 403, description: "Forbidden." })
-  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin")
-  remove(@Param("id") id: string) {
-    return this.sustainabilityMetricsService.remove(id);
+    return this.sustainabilityMetricsService.getSummary({ from, to, granularity, groupBy });
   }
 }

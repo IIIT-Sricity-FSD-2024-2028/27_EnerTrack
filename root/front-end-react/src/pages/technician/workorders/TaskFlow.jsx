@@ -2,7 +2,7 @@
  * TaskFlow — the four numbered steps under a selected work order, lit up
  * from step 1 to the step matching its status.
  *
- * Shared by the Technician Administrator and Technician Jr work-order pages.
+ * Shared by the Operations Coordinator and Technician Jr work-order pages.
  *
  * Ported from updateTaskFlow() in js/technician/workOrdersPage.js.
  */

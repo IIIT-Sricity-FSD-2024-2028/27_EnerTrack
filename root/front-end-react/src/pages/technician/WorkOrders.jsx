@@ -1,5 +1,5 @@
 /**
- * WorkOrders.jsx — Maintenance Work Orders (Technician Administrator).
+ * WorkOrders.jsx — Maintenance Work Orders (Operations Coordinator).
  *
  * Ported from front-end/js/technician/workOrdersPage.js.
  *
@@ -18,6 +18,7 @@
  *     rather than from a flag that only existed in one browser
  */
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 
@@ -75,7 +76,9 @@ export default function TechnicianWorkOrders() {
   const [error, setError] = useState("");
 
   // The work order the user clicked on the board (null = none clicked yet).
-  const [selectedId, setSelectedId] = useState(null);
+  // A link from the Overview (?wo=<id>) opens that job first.
+  const [searchParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState(searchParams.get("wo"));
 
   // The work order whose request is running (or CREATING).
   const [busyId, setBusyId] = useState(null);
@@ -251,8 +254,15 @@ export default function TechnicianWorkOrders() {
   }
 
   // ── Split the data for each part of the page ─────────
+  // A request the system already turned into a job (or still has an open one)
+  // is not offered here: Create Work Order would make a second job.
+  const hasOpenOrder = (sr) =>
+    workOrders.some(
+      (wo) => wo.source_request_id === sr.service_request_id && wo.status !== "closed",
+    );
   const openRequests = serviceRequests.filter(
-    (sr) => sr.status === "open" || sr.status === "pending",
+    (sr) =>
+      (sr.status === "open" || sr.status === "pending") && !hasOpenOrder(sr),
   );
   const openOrders = workOrders.filter((wo) => wo.status !== "closed");
   const closedOrders = workOrders.filter((wo) => wo.status === "closed");

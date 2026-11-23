@@ -2,7 +2,7 @@
  * SummaryCard — "Work Order Summary": status, type, priority and technician
  * of the selected work order.
  *
- * Shared by the Technician Administrator and Technician Jr work-order pages.
+ * Shared by the Operations Coordinator and Technician Jr work-order pages.
  *
  * Ported from selectWorkOrder() in js/technician/workOrdersPage.js.
  */

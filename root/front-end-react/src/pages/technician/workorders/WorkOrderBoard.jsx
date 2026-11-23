@@ -1,7 +1,7 @@
 /**
  * WorkOrderBoard — the four-column board of open work orders.
  *
- * Shared by the Technician Administrator and Technician Jr work-order pages
+ * Shared by the Operations Coordinator and Technician Jr work-order pages
  * (the Jr page passes only the orders assigned to them). Closed orders are
  * not on the board; they go to the archive table.
  *

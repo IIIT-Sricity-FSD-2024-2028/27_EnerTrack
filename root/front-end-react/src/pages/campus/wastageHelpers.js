@@ -129,8 +129,26 @@ export const STATUS_MAP = {
   "Target Set": {
     label: "Target Set",
     cssClass: "status-target-set",
+    step: 4,
+    hint: "A reduction target was set based on your report. The officer checks it after the deadline.",
+  },
+  "Verify Target": {
+    label: "Checking the Result",
+    cssClass: "status-target-set",
     step: 5,
-    hint: "A new reduction target was set based on your report. The officer is finalizing the findings.",
+    hint: "The target deadline has passed. The officer is checking the meter readings to see whether it was met.",
+  },
+  "Target Met": {
+    label: "Target Met",
+    cssClass: "status-finalized",
+    step: 5,
+    hint: "The readings show the reduction target was met. The officer will send you the outcome.",
+  },
+  "Target Missed": {
+    label: "Target Not Met",
+    cssClass: "status-cost-assessed",
+    step: 5,
+    hint: "The reduction target was not met. The officer is following it up.",
   },
   Delivered: {
     label: "Report Delivered",
@@ -184,8 +202,8 @@ export const TIMELINE_STEPS = [
   },
   {
     num: 5,
-    label: "Report Finalized",
-    desc: "The officer signs off the findings.",
+    label: "Result Checked",
+    desc: "After the deadline, the officer checks the meter readings to see whether the target was met.",
   },
   {
     num: 6,

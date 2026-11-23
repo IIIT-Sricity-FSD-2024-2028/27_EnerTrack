@@ -136,3 +136,99 @@
     padding: 16px;
   }
 }
+
+/* Top bar with the notification bell */
+.dashboard-layout__topbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 24px 0;
+}
+
+.bell {
+  position: relative;
+}
+
+.bell-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: #4b5563;
+  background: #ffffff;
+  border: 1px solid #d8dde2;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.bell-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.bell-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  padding: 1px 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: #ffffff;
+  background: #dc2626;
+  border-radius: 999px;
+}
+
+.bell-menu {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  z-index: 20;
+  width: min(340px, 86vw);
+  max-height: 420px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #d8dde2;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(17, 24, 39, 0.12);
+}
+
+.bell-head {
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  border-bottom: 1px solid #d8dde2;
+}
+
+.bell-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bell-item {
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #111827;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.bell-item.new {
+  background: #fef3c7;
+}
+
+.bell-empty {
+  padding: 18px 14px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+@media (max-width: 900px) {
+  .dashboard-layout__topbar {
+    padding-inline: 16px;
+  }
+}

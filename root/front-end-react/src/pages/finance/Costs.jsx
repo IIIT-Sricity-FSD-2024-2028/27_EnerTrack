@@ -30,8 +30,9 @@ import sharedCss from "../../styles/finance-analyst/finance_shared.css?inline";
 function withTotals(amounts) {
   const total =
     amounts.electricity + amounts.gas + amounts.water + amounts.wastewater + amounts.demand;
-  const variance = amounts.budget - total;
-  return { ...amounts, total, variance, status: statusFromVariance(variance) };
+  const budget = amounts.budget > 0 ? amounts.budget : 0;
+  const variance = budget > 0 ? budget - total : 0;
+  return { ...amounts, budget, total, variance, status: statusFromVariance(variance, budget) };
 }
 
 /** Reads the five amounts and the budget from the form as numbers. */

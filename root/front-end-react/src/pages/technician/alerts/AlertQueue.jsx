@@ -16,7 +16,7 @@ export default function AlertQueue({ alerts, selectedId, onSelect }) {
       <small>
         Incoming anomalies requiring immediate review. Click a row to inspect.
       </small>
-      <table className="alerts-table">
+      <div style={{ overflowX: "auto" }}><table className="alerts-table">
         <thead>
           <tr>
             <th>Alert ID</th>
@@ -69,7 +69,7 @@ export default function AlertQueue({ alerts, selectedId, onSelect }) {
             );
           })}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

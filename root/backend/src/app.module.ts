@@ -34,11 +34,13 @@ import { AlertsModule } from "./modules/alerts/alerts.module";
 import { FaultsModule } from "./modules/faults/faults.module";
 import { ServiceRequestsModule } from "./modules/service-requests/service-requests.module";
 import { WorkOrdersModule } from "./modules/work-orders/work-orders.module";
+import { DispatchModule } from "./modules/dispatch/dispatch.module";
 import { EnergyCostsModule } from "./modules/energy-costs/energy-costs.module";
 import { InvoicesModule } from "./modules/invoices/invoices.module";
 import { FinancialReportsModule } from "./modules/financial-reports/financial-reports.module";
 import { SustainabilityMetricsModule } from "./modules/sustainability-metrics/sustainability-metrics.module";
 import { InitiativesModule } from "./modules/initiatives/initiatives.module";
+import { TargetsModule } from "./modules/targets/targets.module";
 import { ActivityLogsModule } from "./modules/activity-logs/activity-logs.module";
 import { SustainabilityReportsModule } from "./modules/sustainability-reports/sustainability-reports.module";
 
@@ -63,11 +65,13 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
     FaultsModule,
     ServiceRequestsModule,
     WorkOrdersModule,
+    DispatchModule,
     EnergyCostsModule,
     InvoicesModule,
     FinancialReportsModule,
     SustainabilityMetricsModule,
     InitiativesModule,
+    TargetsModule,
     ActivityLogsModule,
     SustainabilityReportsModule,
   ],

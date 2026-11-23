@@ -29,6 +29,7 @@ export const PATHS = {
     proposals: "/admin/proposals",
     registrations: "/admin/registrations",
     infrastructure: "/admin/infrastructure",
+    sustainabilityApprovals: "/admin/sustainability-approvals",
   },
   finance: {
     overview: "/finance/overview",
@@ -40,6 +41,7 @@ export const PATHS = {
   sustainability: {
     overview: "/sustainability/overview",
     monitoring: "/sustainability/monitoring",
+    targets: "/sustainability/targets",
     report: "/sustainability/report",
     initiatives: "/sustainability/initiatives",
     archives: "/sustainability/archives",
@@ -49,6 +51,7 @@ export const PATHS = {
     alerts: "/technician/alerts",
     maintenance: "/technician/maintenance",
     workOrders: "/technician/work-orders",
+    dispatch: "/technician/dispatch",
   },
   technicianJr: {
     overview: "/technician-jr/overview",
@@ -60,6 +63,7 @@ export const PATHS = {
   },
   campus: {
     dashboard: "/campus/dashboard",
+    issues: "/campus/issues",
     wastage: "/campus/wastage",
     archives: "/campus/archives",
   },
@@ -73,7 +77,7 @@ export const PATHS = {
 export const ROLE_HOME = {
   "Organization Admin": PATHS.admin.users,
   "Financial Analyst": PATHS.finance.overview,
-  "Technician Administrator": PATHS.technician.overview,
+  "Operations Coordinator": PATHS.technician.overview,
   Technician: PATHS.technicianJr.overview,
   "Sustainability Officer": PATHS.sustainability.overview,
   "Campus Visitor": PATHS.campus.dashboard,
@@ -118,7 +122,7 @@ export const ROLE_AREA = {
 
   "Sustainability Officer": "sustainability",
 
-  "Technician Administrator": "technician",
+  "Operations Coordinator": "technician",
   "Facility Manager": "technician",
 
   Technician: "technicianJr",
@@ -177,6 +181,11 @@ export const NAV = {
     },
     { label: "Infrastructure", to: PATHS.admin.infrastructure },
     {
+      label: "Sustainability approvals",
+      to: PATHS.admin.sustainabilityApprovals,
+      roles: ["Organization Admin"],
+    },
+    {
       label: "Your Plan",
       to: PATHS.admin.subscription,
       roles: ["Organization Admin"],
@@ -191,13 +200,11 @@ export const NAV = {
   ],
   sustainability: [
     { label: "Overview", to: PATHS.sustainability.overview },
+    { label: "Monitoring", to: PATHS.sustainability.monitoring },
+    { label: "Targets", to: PATHS.sustainability.targets },
+    { label: "Reports", to: PATHS.sustainability.report },
     {
-      label: "Environmental Impact Monitoring",
-      to: PATHS.sustainability.monitoring,
-    },
-    { label: "Sustainability Reporting", to: PATHS.sustainability.report },
-    {
-      label: "Sustainable Conservation Initiatives",
+      label: "Initiatives",
       to: PATHS.sustainability.initiatives,
     },
     { label: "Archives", to: PATHS.sustainability.archives },
@@ -221,6 +228,7 @@ export const NAV = {
   ],
   campus: [
     { label: "Report an Issue", to: PATHS.campus.dashboard },
+    { label: "Campus Issues", to: PATHS.campus.issues },
     { label: "Report Wastage", to: PATHS.campus.wastage },
     { label: "My Archives", to: PATHS.campus.archives },
   ],

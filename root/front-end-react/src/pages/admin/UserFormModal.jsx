@@ -29,6 +29,7 @@ import {
   TECHNICIAN_ROLES,
   USER_ROLES,
   formatLabel,
+  TEAMS,
 } from "./adminHelpers";
 
 export default function UserFormModal({
@@ -51,6 +52,7 @@ export default function UserFormModal({
     role: user?.role || USER_ROLES[0],
     organization_id: "",
     specialization: user?.specialization || "",
+    team: user?.team || "",
     password: "",
   });
   const [errors, setErrors] = useState({});
@@ -140,6 +142,8 @@ export default function UserFormModal({
       specialization: TECHNICIAN_ROLES.includes(values.role)
         ? values.specialization
         : null,
+      // Only field technicians take jobs, so only they have a team.
+      team: values.role === "Technician" ? form.team || null : null,
     };
     // Editing: a blank password means "keep the current one"
     if (values.password) payload.password = values.password;
@@ -157,6 +161,7 @@ export default function UserFormModal({
         role: "editUserRole",
         org: "editUserOrg",
         specialization: "editSpecialization",
+        team: "editTeam",
         password: "editPassword",
       }
     : {
@@ -166,6 +171,7 @@ export default function UserFormModal({
         role: "userRole",
         org: "userOrg",
         specialization: "specialization",
+        team: "userTeam",
         password: "tempPassword",
       };
 
@@ -290,6 +296,24 @@ export default function UserFormModal({
           />
           <span className="field-error">{errors.specialization}</span>
         </div>
+
+        {form.role === "Technician" && (
+          <div className="form-field">
+            <label htmlFor={id.team}>Team</label>
+            <select id={id.team} name="team" value={form.team} onChange={handleChange}>
+              <option value="">No team (no automatic jobs)</option>
+              {TEAMS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+            <p className="muted-cell" style={{ marginTop: "6px" }}>
+              Jobs are only sent to someone on the matching team. A plumbing job
+              never goes to an electrician.
+            </p>
+          </div>
+        )}
 
         <div className="form-field full">
           <label htmlFor={id.password}>

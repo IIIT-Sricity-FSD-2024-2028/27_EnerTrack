@@ -17,6 +17,9 @@
      scrolls, instead of scrolling away with it. */
   position: sticky;
   top: 0;
+  /* Sticky makes the sidebar its own stacking context, so this is what puts
+     the notification panel (which lives inside it) above page content. */
+  z-index: 20;
   align-self: flex-start;
   height: 100vh;
   overflow-y: auto;
@@ -84,6 +87,36 @@
   color: #ffffff;
 }
 
+/* Brand row; on desktop it is just the brand (the toggle is hidden). */
+.app-sidebar__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Links + profile. A column that fills the rest of the sidebar on desktop. */
+.app-sidebar__panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+}
+
+/* Bell (and, on phones, the Menu button) at the right of the brand row. */
+.app-sidebar__tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The Menu button only exists on narrow screens. */
+.app-sidebar__toggle {
+  display: none;
+}
+
 /* Holds the profile card; pushed to the bottom of the column */
 .app-sidebar__footer {
   margin-top: auto;
@@ -95,25 +128,79 @@
   outline-offset: 2px;
 }
 
-/* Narrow screens: the sidebar becomes a strip of links above the page
-   instead of a fixed 260px column that squeezes the content. */
+/* Narrow screens: a slim top bar (brand + Menu button). The links and the
+   profile card open in a panel under it, instead of a block of links that
+   pushed every page down by a third of the screen. */
 @media (max-width: 900px) {
   .app-sidebar {
     width: 100%;
     height: auto;
-    position: static;
-    padding: 12px 16px;
-    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding: 10px 16px;
+    gap: 0;
     border-right: 0;
     border-bottom: 1px solid rgba(28, 46, 46, 0.16);
+    overflow: visible;
   }
 
-  .app-sidebar__nav {
-    flex-direction: row;
-    flex-wrap: wrap;
+  .app-sidebar__brand {
+    font-size: 19px;
+  }
+
+  .app-sidebar__brand img {
+    height: 26px;
+  }
+
+  .app-sidebar__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid rgba(28, 46, 46, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #111827;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .app-sidebar__toggle-label {
+    max-width: 9.5em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-sidebar__toggle:focus-visible {
+    outline: 2px solid #111827;
+    outline-offset: 2px;
+  }
+
+  .app-sidebar__panel {
+    display: none;
+    padding-top: 12px;
+    gap: 12px;
+  }
+
+  .app-sidebar.is-open .app-sidebar__panel {
+    display: flex;
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
+  }
+
+  .app-sidebar__title {
+    display: none;
   }
 
   .app-sidebar__link {
-    padding: 8px 12px;
+    padding: 12px 14px;
+  }
+
+  .app-sidebar__footer {
+    margin-top: 4px;
   }
 }

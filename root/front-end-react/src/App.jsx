@@ -33,6 +33,7 @@ import AdminPlans from "./pages/admin/Plans";
 import AdminRevenue from "./pages/admin/Revenue";
 import AdminProposals from "./pages/admin/Proposals";
 import AdminInfrastructure from "./pages/admin/Infrastructure";
+import AdminSustainabilityApprovals from "./pages/admin/SustainabilityApprovals";
 
 import FinanceOverview from "./pages/finance/Overview";
 import FinanceReports from "./pages/finance/Reports";
@@ -42,6 +43,7 @@ import FinanceArchives from "./pages/finance/Archives";
 
 import SustainabilityOverview from "./pages/sustainability/Overview";
 import SustainabilityMonitoring from "./pages/sustainability/Monitoring";
+import SustainabilityTargets from "./pages/sustainability/Targets";
 import SustainabilityReport from "./pages/sustainability/Report";
 import SustainabilityInitiatives from "./pages/sustainability/Initiatives";
 import SustainabilityArchives from "./pages/sustainability/Archives";
@@ -58,6 +60,7 @@ import AuditorOverview from "./pages/auditor/Overview";
 import AuditorAudits from "./pages/auditor/Audits";
 
 import CampusDashboard from "./pages/campus/Dashboard";
+import CampusIssues from "./pages/campus/CampusIssues";
 import CampusWastage from "./pages/campus/Wastage";
 import CampusArchives from "./pages/campus/Archives";
 
@@ -109,6 +112,10 @@ export default function App() {
           <Route path={PATHS.admin.revenue} element={<AdminRevenue />} />
           <Route path={PATHS.admin.proposals} element={<AdminProposals />} />
           <Route
+            path={PATHS.admin.sustainabilityApprovals}
+            element={<AdminSustainabilityApprovals />}
+          />
+          <Route
             path={PATHS.admin.infrastructure}
             element={<AdminInfrastructure />}
           />
@@ -145,6 +152,10 @@ export default function App() {
             element={<SustainabilityMonitoring />}
           />
           <Route
+            path={PATHS.sustainability.targets}
+            element={<SustainabilityTargets />}
+          />
+          <Route
             path={PATHS.sustainability.report}
             element={<SustainabilityReport />}
           />
@@ -177,6 +188,10 @@ export default function App() {
             path={PATHS.technician.workOrders}
             element={<TechnicianWorkOrders />}
           />
+          <Route
+            path={PATHS.technician.dispatch}
+            element={<Navigate to={PATHS.technician.overview} replace />}
+          />
         </Route>
       </Route>
 
@@ -203,6 +218,7 @@ export default function App() {
       <Route element={<RequireRole area="campus" />}>
         <Route element={<DashboardLayout />}>
           <Route path={PATHS.campus.dashboard} element={<CampusDashboard />} />
+          <Route path={PATHS.campus.issues} element={<CampusIssues />} />
           <Route path={PATHS.campus.wastage} element={<CampusWastage />} />
           <Route path={PATHS.campus.archives} element={<CampusArchives />} />
         </Route>
