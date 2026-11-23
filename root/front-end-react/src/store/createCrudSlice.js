@@ -12,17 +12,17 @@
  *   meters.thunks.update({ id, changes })PATCH  /meters/:id      → upserts the saved row
  *   meters.thunks.remove(id)             DELETE /meters/:id      → removes the row
  *   meters.selectors.selectAll / selectById / selectIds / selectTotal
- *   meters.selectors.selectStatus        "idle" | "loading" | "succeeded" | "failed"
- *   meters.selectors.selectError         message of the last failed fetchAll, or null
+ *   meters.selectors.selectStatus        see store/loadState.js
+ *   meters.selectors.selectError         message of the last failed load, or null
  *
- * State shape: { ids: [], entities: {}, status, error, ...initialState }.
+ * State shape: { ids, entities, status, refreshing, error, ...initialState }.
  * Rows are stored exactly as the backend sends them (snake_case). Put any
  * reshaping for the UI in a selector, not in the reducer.
  *
  * fetchAll is cached: once a list has loaded, calling it again does nothing,
  * so every page can safely `dispatch(fetchMeters())` on mount. Pass
- * `{ force: true }` to reload anyway (e.g. a "Refresh" button, or after a
- * change made by a different endpoint).
+ * `{ force: true }` to reload anyway (polling, a Refresh button, or after an
+ * action on a different endpoint changed this list on the server).
  *
  * create/update/remove do not re-fetch the list: the backend answers with the
  * saved row and the slice updates in place. If an endpoint answers without the
@@ -39,6 +39,7 @@
 import { createEntityAdapter, createSlice } from "@reduxjs/toolkit";
 import api from "../api/client";
 import { apiThunk } from "./apiThunk";
+import { addLoadCases, loadCondition, loadInitial } from "./loadState";
 
 export function createCrudSlice({
   name,
@@ -60,15 +61,7 @@ export function createCrudSlice({
       const rows = await api.get(path);
       return Array.isArray(rows) ? rows : [];
     },
-    {
-      // Skip when a load is already running, or already done (unless forced).
-      condition: (arg, { getState }) => {
-        const { status } = getState()[name];
-        if (status === "loading") return false;
-        if (status === "succeeded" && !arg?.force) return false;
-        return true;
-      },
-    },
+    { condition: loadCondition(name) },
   );
 
   const fetchOne = apiThunk(`${name}/fetchOne`, (id) =>
@@ -98,26 +91,13 @@ export function createCrudSlice({
 
   const slice = createSlice({
     name,
-    initialState: adapter.getInitialState({
-      status: "idle",
-      error: null,
-      ...initialState,
-    }),
+    initialState: adapter.getInitialState({ ...loadInitial, ...initialState }),
     reducers,
     extraReducers: (builder) => {
+      addLoadCases(builder, fetchAll, (state, { payload }) =>
+        adapter.setAll(state, payload),
+      );
       builder
-        .addCase(fetchAll.pending, (state) => {
-          state.status = "loading";
-          state.error = null;
-        })
-        .addCase(fetchAll.fulfilled, (state, { payload }) => {
-          adapter.setAll(state, payload);
-          state.status = "succeeded";
-        })
-        .addCase(fetchAll.rejected, (state, { error }) => {
-          state.status = "failed";
-          state.error = error.message;
-        })
         .addCase(fetchOne.fulfilled, (state, { payload }) => {
           if (isRow(payload)) adapter.upsertOne(state, payload);
         })
@@ -135,7 +115,7 @@ export function createCrudSlice({
         .addCase(remove.fulfilled, (state, { payload }) => {
           adapter.removeOne(state, payload);
         });
-      if (extraReducers) extraReducers(builder, { adapter });
+      if (extraReducers) extraReducers(builder, { adapter, isRow });
     },
   });
 

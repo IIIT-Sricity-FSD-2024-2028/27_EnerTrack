@@ -16,10 +16,34 @@
  *     with type and description inside `details`); the old request was
  *     rejected, so no work order was ever actually created
  *   - no PATCH to the non-existent fault status "flagged"
+ *
+ * Data comes from the Redux store, refreshed every 30 seconds by useLiveData.
  */
-import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../auth/useAuth";
+import { useLiveData } from "../../store/useLiveData";
+import {
+  fetchFaults,
+  selectAllFaults,
+  updateFault as updateFaultThunk,
+} from "../../store/slices/faultsSlice";
+import {
+  fetchAlerts,
+  selectAllAlerts,
+  updateAlert,
+} from "../../store/slices/alertsSlice";
+import { fetchUsers, selectAllUsers } from "../../store/slices/usersSlice";
+import {
+  fetchMeterReadings,
+  selectAllMeterReadings,
+} from "../../store/slices/meterReadingsSlice";
+import { fetchMeters, selectAllMeters } from "../../store/slices/metersSlice";
+import {
+  fetchWorkOrders,
+  selectAllWorkOrders,
+} from "../../store/slices/workOrdersSlice";
+import { sendFault } from "../../store/slices/dispatchSlice";
 
 import Modal from "./components/Modal";
 import ToastStack from "./components/ToastStack";
@@ -35,41 +59,31 @@ import "../../styles/shared/tech_shared.css";
 import "../../styles/technician/tech_maintenance.css";
 import "./technician.css";
 
-/**
- * Gets every list the page needs. Only fetches — it does not touch React
- * state, so it lives outside the component.
- */
-async function fetchMaintenance() {
-  const faults = await api.get("/faults");
-  const users = await api.get("/users");
-  const alerts = await api.get("/alerts");
-  const readings = await api.get("/meter-readings");
-  const meters = await api.get("/meters");
-  const workOrders = await api.get("/work-orders");
-
-  return {
-    faults: faults || [],
-    users: users || [],
-    alerts: alerts || [],
-    readings: readings || [],
-    meters: meters || [],
-    workOrders: workOrders || [],
-  };
-}
+// Every list the page needs.
+const LOADS = [
+  fetchFaults,
+  fetchUsers,
+  fetchAlerts,
+  fetchMeterReadings,
+  fetchMeters,
+  fetchWorkOrders,
+];
 
 export default function TechnicianMaintenance() {
   const { user } = useAuth();
   const { toasts, showToast } = useToast();
+  const dispatch = useDispatch();
 
-  const [faults, setFaults] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [alerts, setAlerts] = useState([]);
-  const [readings, setReadings] = useState([]);
-  const [meters, setMeters] = useState([]);
-  const [workOrders, setWorkOrders] = useState([]);
+  const faults = useSelector(selectAllFaults);
+  const users = useSelector(selectAllUsers);
+  const alerts = useSelector(selectAllAlerts);
+  const readings = useSelector(selectAllMeterReadings);
+  const meters = useSelector(selectAllMeters);
+  const workOrders = useSelector(selectAllWorkOrders);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // A refresh does not wipe a half-typed note: NotesSection keeps its draft
+  // as long as its key (the fault id) stays the same.
+  const { loading, error, reload } = useLiveData(LOADS);
 
   // The fault the user clicked (null = none clicked yet).
   const [selectedId, setSelectedId] = useState(null);
@@ -86,35 +100,6 @@ export default function TechnicianMaintenance() {
   // page: a refresh can change the selection while a popup is open.
   const [dialog, setDialog] = useState(null);
 
-  // Same lint-safe pattern as Overview.jsx: setState only inside the
-  // .then / .catch callbacks.
-  function loadData() {
-    return fetchMaintenance()
-      .then((result) => {
-        setError("");
-        setFaults(result.faults);
-        setUsers(result.users);
-        setAlerts(result.alerts);
-        setReadings(result.readings);
-        setMeters(result.meters);
-        setWorkOrders(result.workOrders);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }
-
-  // Load when the page opens, then refresh every 30 seconds. A refresh does
-  // not wipe a half-typed note: NotesSection keeps its draft as long as its
-  // key (the fault id) stays the same.
-  useEffect(() => {
-    loadData();
-    const timer = setInterval(loadData, 30000);
-    return () => clearInterval(timer);
-  }, []);
-
   /**
    * PATCH a fault and report the result. Returns true if it worked, so
    * NotesSection knows whether to leave edit mode.
@@ -123,9 +108,8 @@ export default function TechnicianMaintenance() {
     setBusyId(id);
     let ok = false;
     try {
-      await api.patch(`/faults/${id}`, body);
+      await dispatch(updateFaultThunk({ id, changes: body })).unwrap();
       showToast(message, toastType);
-      await loadData();
       ok = true;
     } catch (err) {
       showToast(err.message, "error");
@@ -138,13 +122,16 @@ export default function TechnicianMaintenance() {
     const fault = faults.find((f) => f.fault_id === id);
     setBusyId(id);
     try {
-      await api.patch(`/faults/${id}`, { status: "resolved" });
+      await dispatch(
+        updateFaultThunk({ id, changes: { status: "resolved" } }),
+      ).unwrap();
       // The alert that raised this fault is finished too.
       if (fault && fault.alert_id) {
-        await api.patch(`/alerts/${fault.alert_id}`, { status: "resolved" });
+        await dispatch(
+          updateAlert({ id: fault.alert_id, changes: { status: "resolved" } }),
+        ).unwrap();
       }
       showToast(`Fault ${id} resolved and logged.`, "success");
-      await loadData();
     } catch (err) {
       showToast(err.message, "error");
     }
@@ -160,22 +147,23 @@ export default function TechnicianMaintenance() {
     // The system turns the fault into a job: team from the kind of fault,
     // one ranked technician, an acknowledge window and a deadline. Picking a
     // person here overrides the choice.
-    const body = {
-      kind: kind === "immediate" ? "immediate" : "scheduled",
-      priority: values.priority,
-      ...(values.assigneeId ? { assignee_id: values.assigneeId } : {}),
-      ...(values.notes ? { notes: values.notes } : {}),
-    };
-
     setBusyId(id);
     try {
-      await api.post(`/dispatch/faults/${fault.fault_id}/send`, body);
+      // Reloads faults, work orders and the queue itself when it succeeds.
+      await dispatch(
+        sendFault({
+          faultId: fault.fault_id,
+          kind: kind === "immediate" ? "immediate" : "scheduled",
+          priority: values.priority,
+          assigneeId: values.assigneeId,
+          notes: values.notes,
+        }),
+      ).unwrap();
       let toastType = "info";
       if (kind === "immediate") {
         toastType = "warning";
       }
       showToast(`Flagged for ${kind} repair. Sent to a technician.`, toastType);
-      await loadData();
     } catch (err) {
       showToast(err.message, "error");
     }
@@ -367,7 +355,7 @@ export default function TechnicianMaintenance() {
     content = (
       <div className="empty-state">
         <p>{error}</p>
-        <button type="button" className="btn btn-dark" onClick={loadData}>
+        <button type="button" className="btn btn-dark" onClick={reload}>
           Retry
         </button>
       </div>

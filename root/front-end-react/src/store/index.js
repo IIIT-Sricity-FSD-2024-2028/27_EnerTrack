@@ -23,6 +23,22 @@ import campus from "./slices/campusSlice";
 import buildings from "./slices/buildingsSlice";
 import departments from "./slices/departmentsSlice";
 import meters from "./slices/metersSlice";
+// Person 1: technician / dispatch
+import alerts from "./slices/alertsSlice";
+import faults from "./slices/faultsSlice";
+import meterReadings from "./slices/meterReadingsSlice";
+import workOrders from "./slices/workOrdersSlice";
+import {
+  availabilityReducer as availability,
+  dispatchQueueReducer as dispatchQueue,
+  myJobsReducer as myJobs,
+} from "./slices/dispatchSlice";
+// Person 2: admin / auditor
+import notifications from "./slices/notificationsSlice";
+// Person 5: wastage / campus
+import serviceRequests, {
+  serviceCatalogueReducer as serviceCatalogue,
+} from "./slices/serviceRequestsSlice";
 
 const reducers = {
   auth,
@@ -34,11 +50,21 @@ const reducers = {
   buildings,
   departments,
   meters,
-  // Person 1: technician / dispatch    (alerts, faults, workOrders, meterReadings, dispatch)
-  // Person 2: admin / auditor          (subscriptionPlans, subscriptions, platformInvoices, auditRequests, energyAudits, notifications)
+  // Person 1: technician / dispatch
+  alerts,
+  faults,
+  meterReadings,
+  workOrders,
+  dispatchQueue,
+  myJobs,
+  availability,
+  // Person 2: admin / auditor          (+ subscriptionPlans, subscriptions, platformInvoices, auditRequests, energyAudits)
+  notifications,
   // Person 3: finance                  (energyCosts, financialReports, invoices)
   // Person 4: sustainability           (initiatives, sustainabilityReports, sustainabilityMetrics)
-  // Person 5: wastage / campus         (wastageReports, serviceRequests)
+  // Person 5: wastage / campus         (+ wastageReports)
+  serviceRequests,
+  serviceCatalogue,
 };
 
 const appReducer = combineReducers(reducers);

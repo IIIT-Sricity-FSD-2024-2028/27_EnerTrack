@@ -56,29 +56,35 @@ Pages:
 - `sustainability/archives/WastageArchive.jsx`: archived selector.
 - `campus/Archives.jsx`: wastage part (service-request part in PR 2).
 
-## PR 2: `feat/redux-service-requests` (after auto-dispatch merges)
-| Slice | Path / id |
-|---|---|
-| `serviceRequestsSlice` | `/service-requests`, `service_request_id` |
+## PR 2: `feat/redux-service-requests`
+`store/slices/serviceRequestsSlice.js` **already exists**. Person 1 created
+the base because the technician pages needed it first. It is yours from
+here on, and already has:
+- CRUD (`fetchServiceRequests`, `updateServiceRequest`, ...)
+- `setServiceRequestPriority({ id, level })`
+- a second resource slice `serviceCatalogue`, with `fetchServiceCatalogue()`
+  and `selectServiceCatalogue`
 
-State extras: `catalogue` (list for the "report an issue" picker),
-`mineIds`, `campusIssueIds` (ids that point into `entities`, so a request
-updated anywhere updates everywhere).
+**Don't rename those.** The coordinator Overview and Work Orders pages use
+them, and `workOrdersSlice.closeWorkOrder` / `createWorkOrderFromRequest`
+call `updateServiceRequest`.
+
+Add state extras `mineIds` and `campusIssueIds` (ids that point into
+`entities`, so a request updated anywhere updates everywhere), and:
 
 | Thunk | Endpoint |
 |---|---|
-| `fetchServiceRequests` / `updateServiceRequest` | CRUD (technician side; Person 1 uses them) |
-| `fetchServiceCatalogue` | GET `/service-requests/catalogue` → `catalogue` |
 | `fetchMyServiceRequests` | GET `/service-requests/mine` → upsert + `mineIds` |
 | `fetchCampusIssues` | GET `/service-requests/campus-issues` → upsert + `campusIssueIds` |
 | `submitServiceReport(payload)` | POST `/service-requests/reports` → upsert, add to `mineIds`. It may return a "duplicate found" answer; keep returning it so `DuplicateModal` still works |
 | `plusOneServiceRequest(id)` | POST `/:id/plus-one` |
 | `confirmFixed(id)` / `stillBroken(id)` | POST `/:id/confirm-fixed` / `/:id/still-broken` |
-| `setServiceRequestPriority({ id, level })` | PUT `/:id/priority` (Person 1's Overview uses it) |
 
 Each POST should upsert the row it gets back. If an endpoint returns
 something other than the request, refetch with `fetchServiceRequest(id)`. Check
 in the Network tab and note it in the slice header.
+
+Polling pages can use `useLiveData(LOADS)` (see `src/store/README.md`).
 
 Pages: `campus/Dashboard.jsx` (+ `ReportForm`, `ReportResult`, `MyReports`,
 `AuditTimeline`, `DuplicateModal`), `campus/CampusIssues.jsx`,

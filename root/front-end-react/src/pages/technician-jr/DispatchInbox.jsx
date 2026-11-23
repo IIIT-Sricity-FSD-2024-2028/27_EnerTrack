@@ -6,10 +6,30 @@
  *   - the "Available today" switch (off = the system sends nothing new)
  *   - Acknowledge a job that was given to me
  *   - Decline it with a reason (it then moves to the next person)
+ *
+ * Everything comes from the Redux store (availability, my jobs, messages),
+ * refreshed every 30 seconds by useLiveData. Each action (jobAction,
+ * setAvailability) reloads my jobs and the work orders by itself, so the
+ * rest of the page follows without being told.
  */
-import { useCallback, useEffect, useState } from "react";
-import api from "../../api/client";
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useLiveData } from "../../store/useLiveData";
+import {
+  fetchAvailability,
+  fetchMyJobs,
+  jobAction,
+  selectAvailability,
+  selectMyJobs,
+  setAvailability,
+} from "../../store/slices/dispatchSlice";
+import {
+  fetchNotifications,
+  selectAllNotifications,
+} from "../../store/slices/notificationsSlice";
 import { capitalize } from "../technician/techUtils";
+
+const LOADS = [fetchAvailability, fetchMyJobs, fetchNotifications];
 
 const REASONS = [
   { value: "sick", label: "I am unwell today" },
@@ -23,43 +43,30 @@ function minutesLeft(dueAt) {
   return Math.max(0, Math.round((new Date(dueAt).getTime() - Date.now()) / 60000));
 }
 
-export default function DispatchInbox({ onChange }) {
-  const [state, setState] = useState(null);
-  const [jobs, setJobs] = useState([]);
+export default function DispatchInbox() {
+  const dispatch = useDispatch();
+  const state = useSelector(selectAvailability);
+  const jobs = useSelector(selectMyJobs);
+  const allMessages = useSelector(selectAllNotifications);
+  const messages = allMessages.slice(0, 5);
+  const { error: loadError } = useLiveData(LOADS);
+
   const [declining, setDeclining] = useState(null);
   const [reason, setReason] = useState("on_another_job");
-  const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const error = actionError || loadError;
 
-  const load = useCallback(
-    () =>
-      Promise.all([api.get("/dispatch/availability"), api.get("/dispatch/mine"), api.get("/notifications")])
-        .then(([a, mine, msgs]) => {
-          setError("");
-          setState(a);
-          setJobs(Array.isArray(mine) ? mine : []);
-          setMessages(Array.isArray(msgs) ? [...msgs].reverse().slice(0, 5) : []);
-        })
-        .catch((e) => setError(e.message)),
-    [],
-  );
-
-  useEffect(() => {
-    load();
-    const timer = setInterval(load, 30000);
-    return () => clearInterval(timer);
-  }, [load]);
-
-  async function run(fn) {
+  /** Runs one action thunk; it reloads what it changed by itself. */
+  async function run(thunk) {
     setBusy(true);
+    setActionError("");
     try {
-      await fn();
+      await dispatch(thunk).unwrap();
       setDeclining(null);
-      await load();
-      if (onChange) onChange();
     } catch (e) {
-      setError(e.message);
+      setActionError(e.message);
+      throw e;
     } finally {
       setBusy(false);
     }
@@ -84,11 +91,7 @@ export default function DispatchInbox({ onChange }) {
             className={state.switched_on ? "btn btn-green" : "btn btn-light"}
             disabled={busy}
             onClick={() =>
-              run(() =>
-                api.put("/dispatch/availability", {
-                  available: !state.switched_on,
-                }),
-              )
+              run(setAvailability(!state.switched_on)).catch(() => {})
             }
           >
             {state.switched_on ? "Available today" : "Not available"}
@@ -140,9 +143,13 @@ export default function DispatchInbox({ onChange }) {
                   className="btn btn-dark"
                   disabled={busy}
                   onClick={() =>
-                    run(() =>
-                      api.post(`/dispatch/work-orders/${job.work_order_id}/decline`, { reason }),
-                    )
+                    run(
+                      jobAction({
+                        id: job.work_order_id,
+                        action: "decline",
+                        body: { reason },
+                      }),
+                    ).catch(() => {})
                   }
                 >
                   Confirm decline
@@ -158,7 +165,9 @@ export default function DispatchInbox({ onChange }) {
                   className="btn btn-green"
                   disabled={busy}
                   onClick={() =>
-                    run(() => api.post(`/dispatch/work-orders/${job.work_order_id}/acknowledge`, {}))
+                    run(
+                      jobAction({ id: job.work_order_id, action: "acknowledge" }),
+                    ).catch(() => {})
                   }
                 >
                   Acknowledge
@@ -202,7 +211,11 @@ function ActiveJob({ job, run, busy }) {
   const [days, setDays] = useState(2);
   const [date, setDate] = useState("");
   const [why, setWhy] = useState("");
-  const base = `/dispatch/work-orders/${job.work_order_id}`;
+  // Runs one step on this job. An error is shown by the inbox.
+  const step = (action, body) =>
+    run(jobAction({ id: job.work_order_id, action, body }));
+  const stepThenClose = (action, body) =>
+    step(action, body).then(() => setMode(null), () => {});
 
   return (
     <div className="up-next-item" style={{ flexWrap: "wrap", gap: 8 }}>
@@ -226,22 +239,22 @@ function ActiveJob({ job, run, busy }) {
       {mode === null && (
         <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {job.status === "new" && (
-            <button type="button" className="btn btn-dark" disabled={busy} onClick={() => run(() => api.post(`${base}/start`, {}))}>
+            <button type="button" className="btn btn-dark" disabled={busy} onClick={() => step("start").catch(() => {})}>
               Start work
             </button>
           )}
           {job.status === "inprogress" && (
-            <button type="button" className="btn btn-green" disabled={busy} onClick={() => run(() => api.post(`${base}/finish`, {}))}>
+            <button type="button" className="btn btn-green" disabled={busy} onClick={() => step("finish").catch(() => {})}>
               Mark done
             </button>
           )}
           {sla.safe_by && !sla.made_safe_at && (
-            <button type="button" className="btn btn-green" disabled={busy} onClick={() => run(() => api.post(`${base}/made-safe`, {}))}>
+            <button type="button" className="btn btn-green" disabled={busy} onClick={() => step("made-safe").catch(() => {})}>
               Made safe
             </button>
           )}
           {sla.paused ? (
-            <button type="button" className="btn btn-dark" disabled={busy} onClick={() => run(() => api.post(`${base}/resume`, {}))}>
+            <button type="button" className="btn btn-dark" disabled={busy} onClick={() => step("resume").catch(() => {})}>
               Parts arrived
             </button>
           ) : (
@@ -265,7 +278,7 @@ function ActiveJob({ job, run, busy }) {
           </label>
           {days > 5 && <small>Over 5 days needs the coordinator&apos;s OK.</small>}
           <button type="button" className="btn btn-dark" disabled={busy}
-            onClick={() => run(() => api.post(`${base}/needs-parts`, { days })).then(() => setMode(null))}>
+            onClick={() => stepThenClose("needs-parts", { days })}>
             Pause for parts
           </button>
           <button type="button" className="btn btn-light" onClick={() => setMode(null)}>Cancel</button>
@@ -277,7 +290,12 @@ function ActiveJob({ job, run, busy }) {
           <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
           <input type="text" placeholder="Short reason" value={why} onChange={(e) => setWhy(e.target.value)} />
           <button type="button" className="btn btn-dark" disabled={busy || !date || why.trim().length < 3}
-            onClick={() => run(() => api.post(`${base}/extension`, { new_deadline_at: new Date(date).toISOString(), reason: why })).then(() => setMode(null))}>
+            onClick={() =>
+              stepThenClose("extension", {
+                new_deadline_at: new Date(date).toISOString(),
+                reason: why,
+              })
+            }>
             Send request
           </button>
           <button type="button" className="btn btn-light" onClick={() => setMode(null)}>Cancel</button>

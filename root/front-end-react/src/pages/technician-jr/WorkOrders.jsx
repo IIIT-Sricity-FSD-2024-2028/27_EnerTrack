@@ -15,12 +15,22 @@
  *   - resolution notes are saved on Submit for Review (they were dropped)
  *   - "estimate required" means the same as on the admin page, because both
  *     use the same CostEstimateCard
+ *
+ * Data comes from the Redux store, refreshed every 30 seconds by useLiveData.
  */
 import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useSearchParams } from "react-router-dom";
 import { PATHS } from "../../routes";
-import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
+import { useLiveData } from "../../store/useLiveData";
+import { fetchUsers, selectAllUsers } from "../../store/slices/usersSlice";
+import {
+  fetchWorkOrders,
+  selectAllWorkOrders,
+  updateWorkOrder as updateWorkOrderThunk,
+} from "../../store/slices/workOrdersSlice";
+import { jobAction } from "../../store/slices/dispatchSlice";
 
 import ToastStack from "../technician/components/ToastStack";
 import { useToast } from "../technician/components/useToast";
@@ -37,27 +47,16 @@ import "../../styles/shared/tech_work_orders.css";
 import "../technician/technician.css";
 import "./technician-jr.css";
 
-/**
- * Gets every list the page needs. Only fetches — it does not touch React
- * state, so it lives outside the component.
- */
-async function fetchWorkOrders() {
-  const users = await api.get("/users");
-  const workOrders = await api.get("/work-orders");
-  return {
-    users: users || [],
-    workOrders: workOrders || [],
-  };
-}
+const LOADS = [fetchUsers, fetchWorkOrders];
 
 export default function TechnicianJrWorkOrders() {
   const { user } = useAuth();
   const { toasts, showToast } = useToast();
+  const dispatch = useDispatch();
 
-  const [users, setUsers] = useState([]);
-  const [workOrders, setWorkOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const users = useSelector(selectAllUsers);
+  const workOrders = useSelector(selectAllWorkOrders);
+  const { loading, error, reload } = useLiveData(LOADS);
 
   // The work order clicked on the board (null = none clicked yet). It is
   // kept in the URL as ?wo=<id>, so "Up next" on the Overview can link
@@ -78,29 +77,6 @@ export default function TechnicianJrWorkOrders() {
   // The work order whose request is running, so its buttons are disabled.
   const [busyId, setBusyId] = useState(null);
 
-  // Same pattern as the Operations Coordinator pages: setState only
-  // inside the .then / .catch callbacks (the lint rules require it).
-  function loadData() {
-    return fetchWorkOrders()
-      .then((result) => {
-        setError("");
-        setUsers(result.users);
-        setWorkOrders(result.workOrders);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }
-
-  // Load when the page opens, then refresh every 30 seconds.
-  useEffect(() => {
-    loadData();
-    const timer = setInterval(loadData, 30000);
-    return () => clearInterval(timer);
-  }, []);
-
   useEffect(() => {
     if (!loading && linkedOnArrival.current && detailRef.current) {
       linkedOnArrival.current = false; // only on arrival, not every refresh
@@ -116,9 +92,8 @@ export default function TechnicianJrWorkOrders() {
     setBusyId(id);
     let ok = false;
     try {
-      await api.patch(`/work-orders/${id}`, body);
+      await dispatch(updateWorkOrderThunk({ id, changes: body })).unwrap();
       showToast(message, toastType);
-      await loadData();
       ok = true;
     } catch (err) {
       showToast(err.message, "error");
@@ -135,9 +110,9 @@ export default function TechnicianJrWorkOrders() {
     setBusyId(id);
     let ok = false;
     try {
-      await api.post(`/dispatch/work-orders/${id}/${action}`, body);
+      // Reloads the work orders and my jobs by itself.
+      await dispatch(jobAction({ id, action, body })).unwrap();
       showToast(message, "success");
-      await loadData();
       ok = true;
     } catch (err) {
       showToast(err.message, "error");
@@ -278,7 +253,7 @@ export default function TechnicianJrWorkOrders() {
     content = (
       <div className="empty-state">
         <p>{error}</p>
-        <button type="button" className="btn btn-dark" onClick={loadData}>
+        <button type="button" className="btn btn-dark" onClick={reload}>
           Retry
         </button>
       </div>

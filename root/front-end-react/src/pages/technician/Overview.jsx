@@ -7,13 +7,40 @@
  * status board, verify and close) stays on the Work Orders page; each issue
  * links there instead of repeating it.
  *
- * This component owns all the data: it loads the lists, keeps them in state
- * and hands them down. The row list is worked out on every render from those
- * lists (buildRows), so it always matches what was loaded.
+ * The lists come from the Redux store (refreshed every 30 seconds by
+ * useLiveData) and are handed down. The row list is worked out from them
+ * (buildRows), so it always matches what was loaded.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import api from "../../api/client";
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../auth/useAuth";
+import { useLiveData } from "../../store/useLiveData";
+import { fetchAlerts, selectAllAlerts } from "../../store/slices/alertsSlice";
+import { fetchFaults, selectAllFaults } from "../../store/slices/faultsSlice";
+import {
+  fetchWorkOrders,
+  selectAllWorkOrders,
+} from "../../store/slices/workOrdersSlice";
+import {
+  fetchServiceCatalogue,
+  fetchServiceRequests,
+  selectAllServiceRequests,
+  selectServiceCatalogue,
+  setServiceRequestPriority,
+} from "../../store/slices/serviceRequestsSlice";
+import { fetchUsers, selectAllUsers } from "../../store/slices/usersSlice";
+import {
+  fetchBuildings,
+  selectAllBuildings,
+} from "../../store/slices/buildingsSlice";
+import {
+  assignTicket,
+  decideExtension,
+  fetchDispatchQueue,
+  selectDispatchQueue,
+  setJobDeadline,
+  sweepTimeouts,
+} from "../../store/slices/dispatchSlice";
 
 import StatCard from "./components/StatCard";
 import ToastStack from "./components/ToastStack";
@@ -50,79 +77,49 @@ function writeLastSeen() {
   }
 }
 
-/** Only fetches; it does not touch React state. */
-async function fetchOverview() {
-  const [alerts, faults, workOrders, tickets, users, buildings, queue, catalogue] = await Promise.all([
-    api.get("/alerts"),
-    api.get("/faults"),
-    api.get("/work-orders"),
-    api.get("/service-requests"),
-    api.get("/users"),
-    api.get("/buildings"),
-    api.get("/dispatch/queue"),
-    api.get("/service-requests/catalogue"),
-  ]);
-  return {
-    alerts: alerts || [],
-    faults: faults || [],
-    workOrders: workOrders || [],
-    tickets: tickets || [],
-    users: users || [],
-    buildings: buildings || [],
-    queue: queue || { queued: [], team_status: [] },
-    catalogue: catalogue || null,
-  };
-}
+const LOADS = [
+  fetchAlerts,
+  fetchFaults,
+  fetchWorkOrders,
+  fetchServiceRequests,
+  fetchUsers,
+  fetchBuildings,
+  fetchDispatchQueue,
+  fetchServiceCatalogue,
+];
 
 export default function TechnicianOverview() {
   const { user } = useAuth();
   const { toasts, showToast } = useToast();
+  const dispatch = useDispatch();
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [updatedAt, setUpdatedAt] = useState(null);
+  const alerts = useSelector(selectAllAlerts);
+  const faults = useSelector(selectAllFaults);
+  const workOrders = useSelector(selectAllWorkOrders);
+  const tickets = useSelector(selectAllServiceRequests);
+  const users = useSelector(selectAllUsers);
+  const buildings = useSelector(selectAllBuildings);
+  const queue = useSelector(selectDispatchQueue);
+  const catalogue = useSelector(selectServiceCatalogue);
+
+  // Every 30 seconds, so new reports and technician answers show up
+  // without a refresh.
+  const { loading, ready, error, reload, updatedAt } = useLiveData(LOADS);
+
   const [filter, setFilter] = useState("all");
   const [busy, setBusy] = useState(false);
   // Read once when the page opens; the marker stays put while the page is open.
   const [lastSeen] = useState(readLastSeen);
 
-  // setState sits inside the .then/.catch callbacks on purpose: lint
-  // (react-hooks/set-state-in-effect) allows that, but not a direct call
-  // from the effect.
-  const loadData = useCallback(
-    () =>
-      fetchOverview()
-        .then((result) => {
-          setError("");
-          setData(result);
-          setUpdatedAt(new Date());
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError(err.message);
-          setLoading(false);
-        }),
-    [],
-  );
+  // Leaving the page: remember when, for the "New" marker next time.
+  useEffect(() => writeLastSeen, []);
 
-  // Load when the page opens, then every 30 seconds so new reports and
-  // technician answers show up without a refresh.
-  useEffect(() => {
-    loadData();
-    const timer = setInterval(loadData, 30000);
-    return () => {
-      clearInterval(timer);
-      writeLastSeen();
-    };
-  }, [loadData]);
-
-  async function act(fn, done) {
+  // Each dispatch thunk reloads the lists it changed, so no reload here.
+  async function act(thunk, done) {
     setBusy(true);
     try {
-      await fn();
+      await dispatch(thunk).unwrap();
       showToast(done, "success");
-      await loadData();
     } catch (err) {
       showToast(err.message, "error");
     }
@@ -131,51 +128,57 @@ export default function TechnicianOverview() {
 
   const assign = (ticketId, userId) =>
     act(
-      () => api.post(`/dispatch/tickets/${ticketId}/assign`, { user_id: userId }),
-      `Assigned to ${userName(data.users, userId)}.`,
+      assignTicket({ ticketId, userId }),
+      `Assigned to ${userName(users, userId)}.`,
     );
 
-  // null = go back to the system's own level.
-  const setPriority = (ticketId, level) =>
-    act(
-      () => api.put(`/service-requests/${ticketId}/priority`, { level }),
+  // null = go back to the system's own level. The ticket updates in place;
+  // the queue is reloaded because its order may change.
+  const setPriority = async (ticketId, level) => {
+    await act(
+      setServiceRequestPriority({ id: ticketId, level }),
       level ? "Priority changed." : "Back to the system's priority.",
     );
+    dispatch(fetchDispatchQueue({ force: true }));
+  };
 
   const setDeadline = (workOrderId, iso) =>
-    act(() => api.put(`/dispatch/work-orders/${workOrderId}/deadline`, { deadline_at: iso }), "Finish date changed.");
+    act(
+      setJobDeadline({ workOrderId, deadlineAt: iso }),
+      "Finish date changed.",
+    );
 
-  const sweepNow = () => act(() => api.post("/dispatch/sweep", {}), "Timeouts checked.");
+  const sweepNow = () => act(sweepTimeouts(), "Timeouts checked.");
 
   const decide = (workOrderId, approve) =>
     act(
-      () => api.post(`/dispatch/work-orders/${workOrderId}/extension/decide`, { approve }),
+      decideExtension({ workOrderId, approve }),
       approve ? "Request approved." : "Request refused.",
     );
 
   const rows = useMemo(
     () =>
-      data
+      ready
         ? buildRows({
-            tickets: data.tickets,
-            workOrders: data.workOrders,
-            queued: data.queue.queued || [],
-            buildings: data.buildings,
-            catalogue: data.catalogue,
-            users: data.users,
+            tickets,
+            workOrders,
+            queued: queue.queued || [],
+            buildings,
+            catalogue,
+            users,
           })
         : [],
-    [data],
+    [ready, tickets, workOrders, queue, buildings, catalogue, users],
   );
 
   let content;
   if (loading) {
     content = <div className="empty-state">Loading…</div>;
-  } else if (error && !data) {
+  } else if (!ready) {
     content = (
       <div className="empty-state">
         <p>{error}</p>
-        <button type="button" className="btn btn-dark" onClick={loadData}>
+        <button type="button" className="btn btn-dark" onClick={reload}>
           Retry
         </button>
       </div>
@@ -187,17 +190,17 @@ export default function TechnicianOverview() {
       requests: open.filter((r) => r.clock?.request).length,
       unsafe: open.filter((r) => r.clock?.unsafe).length,
       late: open.filter((r) => r.clock?.late).length,
-      verify: data.workOrders.filter((w) => w.status === "review").length,
+      verify: workOrders.filter((w) => w.status === "review").length,
     };
 
     // Numbers for the slim stats row.
-    const openAlerts = data.alerts.filter((a) => a.status !== "resolved");
+    const openAlerts = alerts.filter((a) => a.status !== "resolved");
     const acknowledged = openAlerts.filter((a) => a.status === "acknowledged");
-    const openFaults = faultsAwaitingDiagnosis(data.faults, data.workOrders);
-    const unresolvedFaults = data.faults.filter((f) => f.status !== "resolved");
-    const pending = data.workOrders.filter((w) => w.status !== "closed");
+    const openFaults = faultsAwaitingDiagnosis(faults, workOrders);
+    const unresolvedFaults = faults.filter((f) => f.status !== "resolved");
+    const pending = workOrders.filter((w) => w.status !== "closed");
     const urgent = pending.filter((w) => w.priority === "high" || w.priority === "immediate");
-    const closed = data.workOrders.filter((w) => w.status === "closed");
+    const closed = workOrders.filter((w) => w.status === "closed");
 
     content = (
       <div>
@@ -207,8 +210,8 @@ export default function TechnicianOverview() {
 
         <IssueBoard
           rows={rows}
-          people={data.queue.team_status || []}
-          users={data.users}
+          people={queue.team_status || []}
+          users={users}
           filter={filter}
           onFilter={setFilter}
           lastSeen={lastSeen}
@@ -219,7 +222,7 @@ export default function TechnicianOverview() {
           onDeadline={setDeadline}
         />
 
-        <TeamPanel queue={data.queue} busy={busy} onSweep={sweepNow} />
+        <TeamPanel queue={queue} busy={busy} onSweep={sweepNow} />
 
         <h2 className="section-title stats-title">Around the campus</h2>
         <div className="stats-grid">
@@ -249,7 +252,7 @@ export default function TechnicianOverview() {
             tone="green"
             label="Closed Work Orders"
             value={closed.length}
-            note={data.workOrders.length + (data.workOrders.length === 1 ? " total work order" : " total work orders")}
+            note={workOrders.length + (workOrders.length === 1 ? " total work order" : " total work orders")}
           />
         </div>
       </div>

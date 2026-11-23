@@ -14,32 +14,35 @@
   `departments`, `meters`.
 - Session expiry (401) dispatches `logout`, which clears every data slice.
 
-## PR 2: `feat/redux-technician-alerts-faults` (after auto-dispatch merges: `/alerts/:id/decide` lives there)
+## PR 2: `feat/redux-technician` ✅ (done; branched from the foundation, with `main` merged in)
+Combined the planned "alerts/faults" and "work orders" PRs into one, because
+the pages share most of their lists.
+
+Shared additions (everyone can use them, see `src/store/README.md`):
+- `loadState.js`: `status` stays `succeeded` while a refresh runs
+  (`refreshing: true`), so polling never blanks a page.
+- `createResourceSlice.js`: slices for one computed value (not a list).
+- `useLiveData(LOADS)`: load + poll every 30 s, returns
+  `{ loading, ready, error, reload, updatedAt }`.
+
 | Slice | Path / id | Extra thunks |
 |---|---|---|
-| `alertsSlice` | `/alerts`, `alert_id` | `decideAlert({ id, ...body })` → `POST /alerts/:id/decide` |
-| `faultsSlice` | `/faults`, `fault_id` | — (status changes use `updateFault`) |
-| `meterReadingsSlice` | `/meter-readings`, `reading_id` | — |
+| `alertsSlice` | `/alerts`, `alert_id` | `decideAlert({ id, decision, notes, asset, faultType })` → `{ alert, fault }`; alert and new fault update in place |
+| `faultsSlice` | `/faults`, `fault_id` | none; notes/status use `updateFault` |
+| `meterReadingsSlice` | `/meter-readings`, `reading_id` | none |
+| `workOrdersSlice` | `/work-orders`, `work_order_id` | `createWorkOrderFromRequest({ body, requestId })`, `closeWorkOrder(id)` (closes order + its service request, fault, alert). Old `workorders/closeWorkOrder.js` deleted |
+| `dispatchSlice` | `dispatchQueue`, `myJobs`, `availability` (resource slices) | coordinator: `sendFault`, `assignTicket`, `setJobDeadline`, `decideExtension`, `sweepTimeouts`; technician: `setAvailability`, `jobAction({ id, action, body })`. Each reloads the lists it affects |
+| `serviceRequestsSlice` (base, **owner: Person 5**) | `/service-requests`, `service_request_id` + `serviceCatalogue` | `setServiceRequestPriority`, `fetchServiceCatalogue` |
+| `notificationsSlice` (base, **owner: Person 2**) | `/notifications`, `notification_id` | `selectAllNotifications` (newest first), `selectUnreadCount` |
 
-Pages: `technician/Alerts.jsx` (+ `alerts/*`), `technician/Maintenance.jsx`
-(+ `maintenance/*`). Buildings, meters and users come from the shared slices.
+Pages migrated: `technician/Overview`, `Alerts`, `Maintenance`, `WorkOrders`;
+`technician-jr/Overview`, `WorkOrders`, `DispatchInbox`. None import
+`api/client` any more.
 
-## PR 3: `feat/redux-technician-work-orders` (after auto-dispatch merges)
-| Slice | Path / id | Extra thunks |
-|---|---|---|
-| `workOrdersSlice` | `/work-orders`, `work_order_id` | `closeWorkOrder(wo)`: PATCH the work order to `closed`, then the linked service request, fault and alert, and update all four slices. Replaces `technician/workorders/closeWorkOrder.js` |
-| `dispatchSlice` | not CRUD; state `{ queue, mine, availability }` | `fetchDispatchQueue` (GET `/dispatch/queue`), `fetchMyJobs` (GET `/dispatch/mine`), `fetchAvailability` / `setAvailability` (GET/PUT `/dispatch/availability`), `sendFault` (POST `/dispatch/faults/:id/send`), `assignTicket` (POST `/dispatch/tickets/:id/assign`), `sweepTimeouts` (POST `/dispatch/sweep`), `setDeadline` (PUT `/dispatch/work-orders/:id/deadline`), `decideExtension` (POST `.../extension/decide`), and the junior technician's `jobAction({ id, action, body })` for `acknowledge|decline|start|finish|made-safe|resume|needs-parts|extension` |
-
-Each dispatch action answers with the changed work order. The slice upserts it
-into `workOrders`: `dispatchSlice` dispatches `workOrderUpserted`, or
-workOrders listens with `addMatcher(isFulfilled(...dispatchActions))`.
-
-Pages: `technician/Overview.jsx` (+ `overview/*`), `technician/WorkOrders.jsx`
-(+ `workorders/*`), `technician-jr/Overview.jsx`, `WorkOrders.jsx`,
-`DispatchInbox.jsx`, `JrActionPanel.jsx`.
-`serviceRequests` belongs to Person 5. Use their `selectAllServiceRequests`,
-`updateServiceRequest` and `setServiceRequestPriority` (agree on the names
-with them early).
+Verified against the running backend: every load, decide (monitor + fault),
+fault notes, sendFault → new work order, closeWorkOrder (order closed, fault
+and alert resolved), sweep, availability toggle, and a sign-in switch
+clearing the previous role's data.
 
 ## PR 4: `feat/redux-cleanup` (last)
 - ESLint `no-restricted-imports`: block `**/api/client` (except `isNetworkError`,

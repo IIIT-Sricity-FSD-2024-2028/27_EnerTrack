@@ -13,7 +13,7 @@ must follow.
 
 | Person | Area | Slices you own | Plan |
 |---|---|---|---|
-| 1 (lead) | Foundation, session, shared reference data, technician + dispatch | auth, ui, users, organizations, campus, buildings, departments, meters, alerts, faults, workOrders, meterReadings, dispatch | [person-1-foundation-technician.md](person-1-foundation-technician.md) |
+| 1 (lead) | Foundation, session, shared reference data, technician + dispatch | auth, ui, users, organizations, campus, buildings, departments, meters, alerts, faults, workOrders, meterReadings, dispatch (✅ done) | [person-1-foundation-technician.md](person-1-foundation-technician.md) |
 | 2 | Admin + Auditor | subscriptionPlans, subscriptions, platformInvoices, auditRequests, energyAudits, notifications | [person-2-admin-auditor.md](person-2-admin-auditor.md) |
 | 3 | Finance | energyCosts, financialReports, invoices | [person-3-finance.md](person-3-finance.md) |
 | 4 | Sustainability | initiatives, sustainabilityReports, sustainabilityMetrics | [person-4-sustainability.md](person-4-sustainability.md) |
@@ -24,12 +24,10 @@ must follow.
 1. **`feat/redux-foundation` (Person 1) merges first.** It adds the store, the
    factory, the session slice, the offline banner slice, and the six shared
    slices. Everyone else branches from `main` *after* it lands.
-2. **`feat/auto-dispatch` must also be merged** before anyone touches the
-   dispatch / service-request / notification pages. Those pages and endpoints
-   (`/dispatch/*`, `/service-requests/catalogue|mine|campus-issues|reports`,
-   `NotificationBell`, `DispatchInbox`, `CampusIssues`) only exist on that
-   branch. Persons 2, 3 and 4 can start without it; Person 5's campus part
-   waits for it.
+2. `feat/auto-dispatch` is merged into `main` ✅, so the dispatch /
+   service-request / notification pages are there. `notificationsSlice`
+   (Person 2) and `serviceRequestsSlice` (Person 5) **already exist** as
+   bases from Person 1's technician PR. Extend them; don't recreate them.
 3. Persons 2–5 work in parallel, **one PR per slice group** (each plan lists
    its PRs). Small PRs, each one leaves the app working.
 4. Person 1 does the final cleanup PR: an ESLint rule that forbids

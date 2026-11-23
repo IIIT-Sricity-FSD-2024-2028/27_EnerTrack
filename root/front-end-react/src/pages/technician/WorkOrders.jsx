@@ -16,11 +16,28 @@
  *     rebuilt it by hand and silently dropped any field it forgot
  *   - a rejected order is recognised from the data (New, nobody assigned)
  *     rather than from a flag that only existed in one browser
+ *
+ * Data comes from the Redux store, refreshed every 30 seconds by useLiveData.
+ * Saves update the store in place, so nothing is reloaded after them.
  */
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
-import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
+import { useLiveData } from "../../store/useLiveData";
+import { fetchUsers, selectAllUsers } from "../../store/slices/usersSlice";
+import {
+  closeWorkOrder,
+  createWorkOrderFromRequest,
+  fetchWorkOrders,
+  selectAllWorkOrders,
+  updateWorkOrder as updateWorkOrderThunk,
+} from "../../store/slices/workOrdersSlice";
+import {
+  fetchServiceRequests,
+  selectAllServiceRequests,
+} from "../../store/slices/serviceRequestsSlice";
+import { fetchFaults } from "../../store/slices/faultsSlice";
 
 import Modal from "./components/Modal";
 import ToastStack from "./components/ToastStack";
@@ -33,31 +50,14 @@ import TaskFlow from "./workorders/TaskFlow";
 import SummaryCard from "./workorders/SummaryCard";
 import OperationalCheck from "./workorders/OperationalCheck";
 import ArchiveTable from "./workorders/ArchiveTable";
-import { closeWorkOrder } from "./workorders/closeWorkOrder";
 import { capitalize, formatId } from "./techUtils";
 
 import "../../styles/shared/tech_shared.css";
 import "../../styles/shared/tech_work_orders.css";
 import "./technician.css";
 
-/**
- * Gets every list the page needs. Only fetches — it does not touch React
- * state, so it lives outside the component.
- */
-async function fetchWorkOrders() {
-  const users = await api.get("/users");
-  const workOrders = await api.get("/work-orders");
-  const serviceRequests = await api.get("/service-requests");
-  // Only needed so closing a repair order can resolve its fault.
-  const faults = await api.get("/faults");
-
-  return {
-    users: users || [],
-    workOrders: workOrders || [],
-    serviceRequests: serviceRequests || [],
-    faults: faults || [],
-  };
-}
+// Faults are only needed so closing a repair order can resolve its fault.
+const LOADS = [fetchUsers, fetchWorkOrders, fetchServiceRequests, fetchFaults];
 
 // Used as busyId while the New Work Order form is being sent, since that
 // order has no id yet.
@@ -66,14 +66,12 @@ const CREATING = "creating";
 export default function TechnicianWorkOrders() {
   const { user } = useAuth();
   const { toasts, showToast } = useToast();
+  const dispatch = useDispatch();
 
-  const [users, setUsers] = useState([]);
-  const [workOrders, setWorkOrders] = useState([]);
-  const [serviceRequests, setServiceRequests] = useState([]);
-  const [faults, setFaults] = useState([]);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const users = useSelector(selectAllUsers);
+  const workOrders = useSelector(selectAllWorkOrders);
+  const serviceRequests = useSelector(selectAllServiceRequests);
+  const { loading, error, reload } = useLiveData(LOADS);
 
   // The work order the user clicked on the board (null = none clicked yet).
   // A link from the Overview (?wo=<id>) opens that job first.
@@ -91,31 +89,6 @@ export default function TechnicianWorkOrders() {
 
   // A handle on the form's box on the page, so we can scroll to it.
   const formRef = useRef(null);
-
-  // Same lint-safe pattern as Overview.jsx: setState only inside the
-  // .then / .catch callbacks.
-  function loadData() {
-    return fetchWorkOrders()
-      .then((result) => {
-        setError("");
-        setUsers(result.users);
-        setWorkOrders(result.workOrders);
-        setServiceRequests(result.serviceRequests);
-        setFaults(result.faults);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }
-
-  // Load when the page opens, then refresh every 30 seconds.
-  useEffect(() => {
-    loadData();
-    const timer = setInterval(loadData, 30000);
-    return () => clearInterval(timer);
-  }, []);
 
   // ── Actions ──────────────────────────────────────────
 
@@ -145,16 +118,12 @@ export default function TechnicianWorkOrders() {
     setBusyId(CREATING);
     let ok = false;
     try {
-      await api.post("/work-orders", body);
-      // The request it came from is now being worked on.
-      if (triageSrId) {
-        await api.patch(`/service-requests/${triageSrId}`, {
-          status: "in_progress",
-        });
-        setTriageSrId(null);
-      }
+      // The request it came from (if any) moves to in progress.
+      await dispatch(
+        createWorkOrderFromRequest({ body, requestId: triageSrId }),
+      ).unwrap();
+      setTriageSrId(null);
       showToast("Work order created.", "success");
-      await loadData();
       ok = true;
     } catch (err) {
       showToast(err.message, "error");
@@ -171,9 +140,8 @@ export default function TechnicianWorkOrders() {
     setBusyId(id);
     let ok = false;
     try {
-      await api.patch(`/work-orders/${id}`, body);
+      await dispatch(updateWorkOrderThunk({ id, changes: body })).unwrap();
       showToast(message, "success");
-      await loadData();
       ok = true;
     } catch (err) {
       showToast(err.message, "error");
@@ -228,19 +196,14 @@ export default function TechnicianWorkOrders() {
   }
 
   async function closeOrder(id) {
-    const wo = workOrders.find((w) => w.work_order_id === id);
-    if (!wo) {
-      return;
-    }
     setBusyId(id);
     try {
       // Also closes its service request and resolves its fault + alert.
-      await closeWorkOrder(wo, faults, serviceRequests);
+      await dispatch(closeWorkOrder(id)).unwrap();
       showToast(
         `Work order ${formatId(id, "WO")} closed and archived.`,
         "success",
       );
-      await loadData();
     } catch (err) {
       showToast(err.message, "error");
     }
@@ -337,7 +300,7 @@ export default function TechnicianWorkOrders() {
     content = (
       <div className="empty-state">
         <p>{error}</p>
-        <button type="button" className="btn btn-dark" onClick={loadData}>
+        <button type="button" className="btn btn-dark" onClick={reload}>
           Retry
         </button>
       </div>

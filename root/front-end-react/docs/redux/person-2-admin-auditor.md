@@ -63,15 +63,22 @@ Engagement lists, counts and "outstanding" tables become selectors in
 `energyAuditsSlice` (move the logic from `auditor/auditorUtils.js` and
 `overview/impact.js` there, or call those helpers inside `createSelector`).
 
-## PR 4: `feat/redux-notifications` (after `feat/auto-dispatch` merges)
-| Slice | Path / id | Extra thunks |
-|---|---|---|
-| `notificationsSlice` | `/notifications`, `notification_id`, `sortComparer` newest first | `markAllNotificationsRead()` PATCH `/notifications/read-all` → set every `is_read: true` in the reducer |
+## PR 4: `feat/redux-notifications`
+`store/slices/notificationsSlice.js` **already exists** (Person 1 created
+the base for the technician inbox, which already uses it). It has CRUD,
+`selectAllNotifications` (newest first) and `selectUnreadCount`. It is yours
+from here on. Add:
 
-- `layout/NotificationBell.jsx`: `setInterval(() => dispatch(fetchNotifications({ force: true })), 30000)`.
-  Unread count = `selectUnreadCount` selector. Keep `open` / `fresh` as local UI state.
-- `technician-jr/DispatchInbox.jsx` reads the same slice. Tell Person 1 the
-  selector names.
+| Thunk | Endpoint | Reducer |
+|---|---|---|
+| `markAllNotificationsRead()` | PATCH `/notifications/read-all` | set every row `is_read: true` |
+
+- `layout/NotificationBell.jsx`: replace the fetch + `setInterval` with
+  `useLiveData([fetchNotifications])` (it polls every 30 s), read
+  `selectAllNotifications` / `selectUnreadCount`, and dispatch
+  `markAllNotificationsRead` when the menu opens. Keep `open` / `fresh` as
+  local UI state.
+- Don't rename the two selectors: `technician-jr/DispatchInbox.jsx` uses them.
 
 ## Acceptance checks (with the backend running)
 - Super Admin: users list, add / edit / delete / bulk import, act-as and back;

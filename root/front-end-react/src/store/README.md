@@ -26,9 +26,9 @@ export const archiveInvoice = apiThunk("invoices/archive", (id) =>
 );
 
 const invoices = createCrudSlice({
-  name: "invoices",            // = key in store/index.js = state.invoices
-  path: "/invoices",           // REST base path
-  idKey: "invoice_id",         // primary key the backend sends
+  name: "invoices", // = key in store/index.js = state.invoices
+  path: "/invoices", // REST base path
+  idKey: "invoice_id", // primary key the backend sends
   extraReducers: (builder, { adapter }) => {
     builder.addCase(archiveInvoice.fulfilled, (state, { payload }) => {
       adapter.upsertOne(state, payload); // backend returns the saved row
@@ -40,7 +40,7 @@ export const {
   fetchAll: fetchInvoices,
   fetchOne: fetchInvoice,
   create: createInvoice,
-  update: updateInvoice,     // dispatch(updateInvoice({ id, changes }))
+  update: updateInvoice, // dispatch(updateInvoice({ id, changes }))
   remove: removeInvoice,
 } = invoices.thunks;
 
@@ -57,14 +57,16 @@ export default invoices.reducer;
 Then add one line to `reducers` in `store/index.js` (in your own block).
 
 ### Naming (keep it identical everywhere)
-| thing | name |
-|---|---|
-| slice file | `<resource>Slice.js` (camelCase plural: `workOrdersSlice.js`) |
-| state key | same as slice `name`: `state.workOrders` |
-| thunks | `fetchWorkOrders`, `fetchWorkOrder`, `createWorkOrder`, `updateWorkOrder`, `removeWorkOrder`, then verbs for extras: `archiveInvoice`, `decideAlert` |
-| selectors | `selectAllWorkOrders`, `selectWorkOrderById`, `selectWorkOrdersStatus`, `selectWorkOrdersError`, and derived ones `selectOpenWorkOrders`... |
+
+| thing      | name                                                                                                                                                 |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| slice file | `<resource>Slice.js` (camelCase plural: `workOrdersSlice.js`)                                                                                        |
+| state key  | same as slice `name`: `state.workOrders`                                                                                                             |
+| thunks     | `fetchWorkOrders`, `fetchWorkOrder`, `createWorkOrder`, `updateWorkOrder`, `removeWorkOrder`, then verbs for extras: `archiveInvoice`, `decideAlert` |
+| selectors  | `selectAllWorkOrders`, `selectWorkOrderById`, `selectWorkOrdersStatus`, `selectWorkOrdersError`, and derived ones `selectOpenWorkOrders`...          |
 
 ### Rules
+
 - **Store raw backend rows** (snake_case). Reshape for the UI in a selector
   built with `createSelector`, never in the reducer. Selectors live in the
   slice file.
@@ -116,10 +118,71 @@ export default function Invoices() {
 
 - `dispatch(fetchX())` on mount is cheap: the factory skips it once loaded.
   Use `dispatch(fetchX({ force: true }))` for a Refresh button, or after an
-  action on a *different* endpoint changed this list server-side.
+  action on a _different_ endpoint changed this list server-side.
 - `.unwrap()` turns the thunk result back into a normal promise that throws
   `{ message, isNetworkError }`, so existing try/catch + toast code keeps working.
 - Do not re-fetch after create/update/remove. The slice already has the saved row.
+
+### Loading status
+
+Every data slice carries `status`, `refreshing` and `error` (see
+`store/loadState.js`):
+
+| `status`    | meaning                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------ |
+| `idle`      | never loaded (also right after sign-out)                                                               |
+| `loading`   | first load running, nothing to show yet: show a spinner                                                |
+| `succeeded` | data is there. **Stays so while a refresh runs** (`refreshing: true`), so a poll never blanks the page |
+| `failed`    | first load failed, nothing to show                                                                     |
+
+`error` is the last failed load's message, even when old data is still shown.
+
+### One computed value, not a list: `createResourceSlice`
+
+For endpoints that return a single object (a summary, the dispatch queue,
+someone's availability, a catalogue) use `createResourceSlice` instead:
+
+```js
+const queue = createResourceSlice({
+  name: "dispatchQueue",
+  path: "/dispatch/queue",
+  initialData: { queued: [], team_status: [] },
+});
+export const { fetch: fetchDispatchQueue } = queue.thunks;
+export const { selectData: selectDispatchQueue } = queue.selectors;
+```
+
+Same caching and `{ force: true }` as `fetchAll`. See
+`slices/dispatchSlice.js` for examples.
+
+### Pages that poll: `useLiveData`
+
+Most dashboards load several lists and refresh them every 30 s. Instead of
+a `useEffect` + `setInterval` per page:
+
+```jsx
+// module level: the same array on every render
+const LOADS = [fetchAlerts, fetchFaults, fetchMeters, fetchBuildings];
+
+function Alerts() {
+  const alerts = useSelector(selectAllAlerts);
+  const { loading, ready, error, reload, updatedAt } = useLiveData(LOADS);
+  if (loading) return <Spinner />;
+  if (!ready) return <Retry message={error} onRetry={reload} />;
+  ...
+}
+```
+
+`useLiveData(LOADS, { intervalMs: 0 })` loads once with no polling. See
+`pages/technician/*` for real uses.
+
+### Actions with server-side side effects
+
+When one request changes several records on the server (dispatch ranking,
+an approval that creates an organisation, ...), don't guess the result in
+the reducer. Have the thunk reload the affected lists with
+`{ force: true }` once it succeeds (see `coordinatorAction` in
+`slices/dispatchSlice.js`). The page then only dispatches and shows a toast.
 
 ## 3. Session (`authSlice`)
 
@@ -133,6 +196,7 @@ On sign-out, session expiry, or act-as, `resetData` empties every data slice
 automatically. You don't need to handle it.
 
 ## 4. Before you open a PR
+
 - `npm run lint` and `npm run build` pass.
 - `grep -rn "api/client" <your page folders>` only finds `isNetworkError` imports.
 - Redux DevTools (browser extension) shows `x/fetchAll/pending → fulfilled`,

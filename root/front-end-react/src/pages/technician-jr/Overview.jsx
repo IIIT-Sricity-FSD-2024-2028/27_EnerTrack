@@ -9,11 +9,18 @@
  *
  * Reuses the Operations Coordinator's StatCard, icons, helpers and
  * technician.css, so both roles look the same.
+ *
+ * Work orders come from the Redux store, refreshed every 30 seconds by
+ * useLiveData. Answering a job in the inbox reloads them by itself.
  */
-import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
+import { useLiveData } from "../../store/useLiveData";
+import {
+  fetchWorkOrders,
+  selectAllWorkOrders,
+} from "../../store/slices/workOrdersSlice";
 import { PATHS } from "../../routes";
 
 import DispatchInbox from "./DispatchInbox";
@@ -35,43 +42,13 @@ import "../technician/technician.css";
 // Most urgent first, for the "Up next" list.
 const PRIORITY_RANK = { immediate: 0, high: 1, medium: 2, low: 3 };
 
-/**
- * Gets every work order. Only fetches — it does not touch React state, so
- * it lives outside the component.
- */
-async function fetchWorkOrders() {
-  const workOrders = await api.get("/work-orders");
-  return workOrders || [];
-}
+const LOADS = [fetchWorkOrders];
 
 export default function TechnicianJrOverview() {
   const { user } = useAuth();
 
-  const [workOrders, setWorkOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  // Same pattern as the Operations Coordinator pages: setState only
-  // inside the .then / .catch callbacks (the lint rules require it).
-  function loadData() {
-    return fetchWorkOrders()
-      .then((list) => {
-        setError("");
-        setWorkOrders(list);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }
-
-  // Load when the page opens, then refresh every 30 seconds.
-  useEffect(() => {
-    loadData();
-    const timer = setInterval(loadData, 30000);
-    return () => clearInterval(timer);
-  }, []);
+  const workOrders = useSelector(selectAllWorkOrders);
+  const { loading, error, reload } = useLiveData(LOADS);
 
   // ── Only my work orders ──────────────────────────────
   const mine = workOrders.filter((wo) => wo.assigned_to_id === user?.user_id);
@@ -103,7 +80,7 @@ export default function TechnicianJrOverview() {
     content = (
       <div className="empty-state">
         <p>{error}</p>
-        <button type="button" className="btn btn-dark" onClick={loadData}>
+        <button type="button" className="btn btn-dark" onClick={reload}>
           Retry
         </button>
       </div>
@@ -181,7 +158,7 @@ export default function TechnicianJrOverview() {
         <p>Here&apos;s what&apos;s on your board today.</p>
       </div>
 
-      <DispatchInbox onChange={loadData} />
+      <DispatchInbox />
 
       {content}
     </div>
