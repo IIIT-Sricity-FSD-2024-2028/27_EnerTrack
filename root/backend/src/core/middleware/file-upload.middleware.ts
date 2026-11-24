@@ -85,3 +85,22 @@ export const photoUploadConfig = {
   },
   limits: { fileSize: 5 * 1024 * 1024, files: 4 },
 };
+
+// --- Recipe 3: Expense bill receipts (PDF or JPEG/PNG, up to 5 files, 10 MB each) ---
+export const billUploadConfig = {
+  storage: makeStorage(),
+  fileFilter: (req: any, file: Express.Multer.File, callback: Function) => {
+    const allowedExt = [".pdf", ".jpg", ".jpeg", ".png"];
+    const allowedMime = ["application/pdf", "image/jpeg", "image/png"];
+    const extOk = allowedExt.includes(extname(file.originalname).toLowerCase());
+    const mimeOk = allowedMime.includes(file.mimetype);
+    if (!extOk || !mimeOk) {
+      return callback(
+        new BadRequestException("Only .pdf, .jpg, .jpeg, .png files are accepted"),
+        false,
+      );
+    }
+    callback(null, true);
+  },
+  limits: { fileSize: 10 * 1024 * 1024, files: 5 },
+};

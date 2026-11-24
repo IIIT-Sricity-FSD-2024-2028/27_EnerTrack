@@ -40,6 +40,14 @@ const SIGNATURES: Record<string, Signature> = {
       [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], // PNG
     ],
   },
+  pdf_or_image: {
+    label: "PDF, JPEG, or PNG",
+    magic: [
+      [0x25, 0x50, 0x44, 0x46], // %PDF
+      [0xff, 0xd8, 0xff], // JPEG
+      [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], // PNG
+    ],
+  },
 };
 
 /** Reads the first `length` bytes of a file without loading the whole thing. */
@@ -71,7 +79,7 @@ function discard(filePath: string): void {
  */
 export function assertFileSignature(
   file: { path: string; originalname: string },
-  kind: "pdf" | "image",
+  kind: "pdf" | "image" | "pdf_or_image",
 ): void {
   if (!file?.path || !fs.existsSync(file.path)) return;
 
@@ -94,7 +102,7 @@ export function assertFileSignature(
 /** Convenience wrapper for endpoints that accept several files at once. */
 export function assertFileSignatures(
   files: { path: string; originalname: string }[],
-  kind: "pdf" | "image",
+  kind: "pdf" | "image" | "pdf_or_image",
 ): void {
   for (const file of files) assertFileSignature(file, kind);
 }

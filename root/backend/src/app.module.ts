@@ -43,6 +43,7 @@ import { InitiativesModule } from "./modules/initiatives/initiatives.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { ActivityLogsModule } from "./modules/activity-logs/activity-logs.module";
 import { SustainabilityReportsModule } from "./modules/sustainability-reports/sustainability-reports.module";
+import { ExpenseBillsModule } from "./modules/expense-bills/expense-bills.module";
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
     TargetsModule,
     ActivityLogsModule,
     SustainabilityReportsModule,
+    ExpenseBillsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -142,6 +144,7 @@ export class AppModule implements NestModule {
       .forRoutes(
         { path: "invoices/:id/document", method: RequestMethod.POST },
         { path: "wastage-reports/:id/photos", method: RequestMethod.POST },
+        { path: "expense-bills/:id/attachments", method: RequestMethod.POST },
       );
   }
 }

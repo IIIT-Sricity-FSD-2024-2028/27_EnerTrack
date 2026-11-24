@@ -13,6 +13,7 @@ import { useToast } from "./components/toastContext";
 import { loadEnergyCosts, loadReports } from "./financeApi";
 import DepartmentCostBars from "./overview/DepartmentCostBars";
 import MaintenanceApprovals from "./overview/MaintenanceApprovals";
+import PendingExpenseBills from "./overview/PendingExpenseBills";
 import SummaryCards from "./overview/SummaryCards";
 import WastageReviewQueue from "./overview/WastageReviewQueue";
 import overviewCss from "../../styles/finance-analyst/finance_overview.css?inline";
@@ -54,6 +55,7 @@ function OverviewContent() {
 
       <SummaryCards costs={costs} reports={reports} loading={loading} />
       <MaintenanceApprovals />
+      <PendingExpenseBills />
       <WastageReviewQueue />
       <DepartmentCostBars costs={costs} />
     </FinanceLayout>
