@@ -261,6 +261,12 @@ export default function SustainabilityApprovals() {
                       typeof i.capex === "number" && `Cost ${i.capex.toLocaleString("en-GB")}`,
                       i.target_date &&
                         `Finish by ${new Date(`${i.target_date}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`,
+                      // Who it will use: at Start work each type gets its own job.
+                      i.onsite_work
+                        ? `Needs ${(i.teams || [])
+                            .map((t) => ({ electrician: "Electrician", plumber: "Plumber", hvac: "HVAC", cleaning: "Cleaning" })[t] || t)
+                            .join(", ")} on site`
+                        : "No on-site work",
                       by(i.created_by_id),
                     ]
                       .filter(Boolean)

@@ -22,6 +22,7 @@ import { lastFullMonth, periodsBetween } from "../../core/utils/period";
 import { compareYoY } from "../../core/utils/period-compare";
 import { METRIC_INFO, metricMeasure } from "../../core/utils/metric-measure";
 import { pushNotifications, usersWithRole } from "../../core/utils/notify";
+import { DispatchService, endOfDay } from "../dispatch/dispatch.service";
 import { CreateInitiativeDto } from "./dto/create-initiative.dto";
 import { PutInitiativeDto } from "./dto/put-initiative.dto";
 
@@ -65,20 +66,47 @@ const WITHDRAWABLE: InitiativeStatus[] = [InitiativeStatus.PROPOSED, InitiativeS
  * proposer could lower the promised saving after approval and turn a red
  * rating green.
  */
-const AGREED_TERMS = ["metric", "expected_saving", "capex", "building_ids", "meter_ids", "target_id"] as const;
+const AGREED_TERMS = [
+  "metric",
+  "expected_saving",
+  "capex",
+  "building_ids",
+  "meter_ids",
+  "target_id",
+  // Whether it needs technicians on site, and which types: the admin
+  // approved the plan knowing who it would use.
+  "onsite_work",
+  "teams",
+] as const;
 
-/** Same value for an agreed term? Lists compare as sets; unset and null are the same. */
+const TEAM_LABEL: Record<string, string> = {
+  electrician: "Electrician",
+  plumber: "Plumber",
+  hvac: "HVAC",
+  cleaning: "Cleaning",
+};
+
+/** Today on the server's calendar (same clock as endOfDay), not UTC's. */
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+/** Same value for an agreed term? Lists compare as sets; unset, null, false and [] are the same. */
 function sameTerm(a: unknown, b: unknown): boolean {
   const norm = (v: unknown) =>
     Array.isArray(v) ? JSON.stringify([...v].sort()) : JSON.stringify(v ?? null);
-  const isEmpty = (v: unknown) => v == null || (Array.isArray(v) && v.length === 0);
+  const isEmpty = (v: unknown) => v == null || v === false || (Array.isArray(v) && v.length === 0);
   if (isEmpty(a) && isEmpty(b)) return true;
   return norm(a) === norm(b);
 }
 
 @Injectable()
 export class InitiativesService {
-  constructor(private database: DatabaseService) {}
+  constructor(
+    private database: DatabaseService,
+    private dispatch: DispatchService,
+  ) {}
 
   /**
    * Proposes an initiative. created_by_id is the signed-in user (from the
@@ -92,10 +120,12 @@ export class InitiativesService {
       );
     this.assertDates(createDto.start_date, createDto.target_date);
     this.assertScope(createDto);
+    const work = this.onsiteWork(createDto);
     const generatedId = crypto.randomUUID();
     const newRecord = {
       initiative_id: generatedId,
       ...createDto,
+      ...work,
       status: InitiativeStatus.PROPOSED,
       created_by_id: userId ?? null,
       archived_at: null,
@@ -143,11 +173,15 @@ export class InitiativesService {
     this.assertScope(putDto);
     const to = (putDto.status ?? existing.status) as InitiativeStatus;
     assertMove(INITIATIVE_MOVES, role, existing.status, to, "an initiative");
+    const work = this.onsiteWork(putDto);
+    this.assertCanMove({ ...existing, ...putDto, ...work } as Initiative, existing.status, to);
+    this.assertWorkChange(existing, { ...existing, ...putDto, ...work, status: to } as Initiative);
     // A full replace still keeps who proposed it, the decision and whether it
     // is archived: none of those are part of the editable record.
     this.database.initiatives[index] = {
       initiative_id: id,
       ...putDto,
+      ...work,
       status: to,
       created_by_id: existing.created_by_id,
       archived_at: existing.archived_at ?? null,
@@ -162,6 +196,7 @@ export class InitiativesService {
       organization_id: existing.organization_id,
     } as Initiative;
     this.afterMove(this.database.initiatives[index], existing.status, to, userId, undefined);
+    this.afterWorkChange(existing, this.database.initiatives[index]);
     return this.database.initiatives[index];
   }
 
@@ -191,13 +226,18 @@ export class InitiativesService {
     const to = (changes.status ?? existing.status) as InitiativeStatus;
     assertMove(INITIATIVE_MOVES, role, existing.status, to, "an initiative");
     this.assertScope({ ...existing, ...changes });
+    const work = this.onsiteWork({ ...existing, ...changes });
+    this.assertCanMove({ ...existing, ...changes, ...work } as Initiative, existing.status, to);
+    this.assertWorkChange(existing, { ...existing, ...changes, ...work, status: to } as Initiative);
     this.database.initiatives[index] = {
       ...existing,
       ...changes,
+      ...work,
       status: to,
       organization_id: existing.organization_id,
     };
     this.afterMove(this.database.initiatives[index], existing.status, to, userId, note);
+    this.afterWorkChange(existing, this.database.initiatives[index]);
     return this.withPerformance(this.database.initiatives[index]);
   }
 
@@ -229,6 +269,12 @@ export class InitiativesService {
   remove(id: string, role?: string) {
     const index = this.indexOf(id);
     const existing = this.database.initiatives[index];
+    // Its jobs would stay with technicians for an initiative that no longer exists.
+    const open = this.dispatch.initiativeJobs(id).filter((j) => j.open);
+    if (open.length)
+      throw new ConflictException(
+        `${open.length} job${open.length === 1 ? " is" : "s are"} still open for this initiative (${this.teamNames(open)}). Close them first; the coordinator can close a job that is no longer needed.`,
+      );
     if (role !== UserRole.ORGANIZATION_ADMIN && !WITHDRAWABLE.includes(existing.status))
       throw new ConflictException(
         `Only a proposed or rejected initiative can be deleted (this one is ${existing.status}); ask the Organization Admin.`,
@@ -254,6 +300,11 @@ export class InitiativesService {
     const today = new Date().toISOString().slice(0, 10);
     // Starting work without a start date: it starts today.
     if (to === InitiativeStatus.IN_PROGRESS && !record.start_date) record.start_date = today;
+    // Starting work on an initiative that needs technicians on site sends one
+    // job per technician type into dispatch, all at once (in parallel).
+    if (from === InitiativeStatus.APPROVED && to === InitiativeStatus.IN_PROGRESS && record.onsite_work) {
+      this.dispatch.sendInitiative(record);
+    }
     // Completing it records what it actually saved up to now.
     if (to === InitiativeStatus.COMPLETED) {
       record.completed_at = new Date().toISOString();
@@ -286,7 +337,119 @@ export class InitiativesService {
   }
 
   private withPerformance(record: Initiative) {
-    return { ...record, performance: this.measure(record) };
+    return {
+      ...record,
+      performance: this.measure(record),
+      jobs: record.onsite_work ? this.dispatch.initiativeJobs(record.initiative_id) : [],
+    };
+  }
+
+  /**
+   * The officer checked finished work and it is not right: one closed job
+   * goes back to the same technician type as a new job, with the reason and
+   * a new finish date. The initiative cannot be completed until it is closed.
+   */
+  sendBack(id: string, workOrderId: string, reason: string | undefined, finishBy: string | undefined) {
+    const record = this.database.initiatives[this.indexOf(id)];
+    if (!record.onsite_work) throw new BadRequestException("This initiative has no on-site work to send back.");
+    if (record.status !== InitiativeStatus.IN_PROGRESS)
+      throw new BadRequestException(`Work can only be sent back while the initiative is in progress (it is ${record.status}).`);
+    const job = this.dispatch.initiativeJobs(id).find((j) => j.work_order_id === workOrderId);
+    if (!job) throw new NotFoundException(`This initiative has no job ${workOrderId}.`);
+    if (job.open) throw new BadRequestException("That job is still open. Send work back once it has been closed.");
+    if (this.dispatch.initiativeJobs(id).some((j) => j.rework_of === workOrderId))
+      throw new ConflictException(
+        "This job was already sent back. If the rework is not right either, send back the rework job instead.",
+      );
+    const why = (reason ?? "").trim();
+    if (why.length < 3) throw new BadRequestException("Say what needs redoing (at least 3 characters).");
+    if (!finishBy || !/^\d{4}-\d{2}-\d{2}$/.test(finishBy) || finishBy < todayIso())
+      throw new BadRequestException("Give a new finish date (YYYY-MM-DD), today or later.");
+    this.dispatch.sendInitiativeJob(record, job.team!, endOfDay(finishBy), { of: workOrderId, reason: why });
+    return this.withPerformance(record);
+  }
+
+  /**
+   * On-site work, cleaned up: "no" keeps no technician types; "yes" needs at
+   * least one type and a target date (the jobs' finish date).
+   */
+  private onsiteWork(dto: { onsite_work?: boolean | null; teams?: string[] | null; target_date?: string | null }) {
+    if (!dto.onsite_work) return { onsite_work: false, teams: [] as string[] };
+    const teams = [...new Set(dto.teams ?? [])];
+    if (!teams.length)
+      throw new BadRequestException("Pick at least one technician type the on-site work needs.");
+    if (!dto.target_date)
+      throw new BadRequestException("Initiatives with on-site work need a target date: it is the technicians' finish date.");
+    return { onsite_work: true, teams };
+  }
+
+  /**
+   * Checks that only apply to on-site work, before anything is saved:
+   * starting needs a target date that has not passed; completing needs every
+   * job (first try and rework) to be closed.
+   */
+  private assertCanMove(record: Initiative, from: InitiativeStatus, to: InitiativeStatus) {
+    if (from === to || !record.onsite_work) return;
+    if (from === InitiativeStatus.APPROVED && to === InitiativeStatus.IN_PROGRESS && (record.target_date ?? "") < todayIso())
+      throw new BadRequestException(
+        `The target date (${record.target_date}) has passed. Move it first: it becomes the technicians' finish date.`,
+      );
+    if (to === InitiativeStatus.COMPLETED) {
+      const open = this.dispatch.initiativeJobs(record.initiative_id).filter((j) => j.open);
+      if (open.length)
+        throw new ConflictException(
+          `${open.length} job${open.length === 1 ? " is" : "s are"} still open (${this.teamNames(open)}). The initiative can be completed once all its work is closed.`,
+        );
+    }
+  }
+
+  private teamNames(jobs: { team: string | null }[]) {
+    return [...new Set(jobs.map((j) => TEAM_LABEL[j.team ?? ""] ?? j.team))].join(", ");
+  }
+
+  /**
+   * Changes to on-site work once jobs exist (only the Organization Admin can
+   * make them: they are agreed terms). Refused when they would leave jobs
+   * behind: switching on-site work off, dropping a technician type that
+   * already has a job, or changing anything after completion. A running
+   * initiative's target date (its jobs' finish date) cannot move into the past.
+   */
+  private assertWorkChange(existing: Initiative, next: Initiative) {
+    const jobs = existing.onsite_work ? this.dispatch.initiativeJobs(existing.initiative_id) : [];
+    if (jobs.length) {
+      const typesChanged = !sameTerm(existing.teams, next.teams) || !sameTerm(existing.onsite_work, next.onsite_work);
+      if (existing.status === InitiativeStatus.COMPLETED && typesChanged)
+        throw new ConflictException("This initiative is completed; its on-site work can no longer change.");
+      if (!next.onsite_work)
+        throw new ConflictException(
+          `Jobs have already been sent (${this.teamNames(jobs)}), so on-site work cannot be switched off. Close any open jobs through the coordinator instead.`,
+        );
+      const dropped = (existing.teams ?? []).filter((t) => !(next.teams ?? []).includes(t) && jobs.some((j) => j.team === t));
+      if (dropped.length)
+        throw new ConflictException(
+          `${dropped.map((t) => TEAM_LABEL[t] ?? t).join(", ")} already ${dropped.length === 1 ? "has a job" : "have jobs"} for this initiative, so ${dropped.length === 1 ? "it" : "they"} cannot be removed. Close the job through the coordinator if it is not needed.`,
+        );
+    }
+    if (
+      next.status === InitiativeStatus.IN_PROGRESS &&
+      next.onsite_work &&
+      next.target_date !== existing.target_date &&
+      (next.target_date ?? "") < todayIso()
+    )
+      throw new BadRequestException(
+        "Work is running, so the target date (the technicians' finish date) cannot be in the past.",
+      );
+  }
+
+  /**
+   * After a change to a running initiative with on-site work: a technician
+   * type added later gets its job now (one per missing type, as at Start
+   * work), and a new target date moves the open jobs' finish date.
+   */
+  private afterWorkChange(existing: Initiative, saved: Initiative) {
+    if (existing.status !== InitiativeStatus.IN_PROGRESS || saved.status !== InitiativeStatus.IN_PROGRESS || !saved.onsite_work) return;
+    this.dispatch.sendInitiative(saved);
+    if (saved.target_date !== existing.target_date) this.dispatch.retimeInitiative(saved);
   }
 
   /** See performance(). Not measurable without a metric and a start date. */

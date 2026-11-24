@@ -99,7 +99,11 @@ export default function IssueRow({
               ? "From an audit recommendation"
               : ticket.source_wastage
                 ? "From a wastage report"
-                : row.reports === 1
+                : ticket.source_initiative
+                  ? ticket.rework_of
+                    ? "From an initiative, sent back for rework"
+                    : "From an initiative"
+                  : row.reports === 1
                   ? "1 report"
                   : `${row.reports} reports`}
           {row.plusOnes > 0 ? `, ${row.plusOnes} more say the same` : ""}

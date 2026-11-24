@@ -29,6 +29,7 @@ import {
   FindingStatus,
   DeclineReason,
   FaultStatus,
+  Initiative,
   NotificationTargetType,
   ServiceRequest,
   User,
@@ -62,6 +63,29 @@ export const DECLINE_REASONS: DeclineReason[] = ["sick", "on_another_job", "no_t
 export const WEEKLY_DECLINE_FLAG = 3;
 const WEEK_MS = 7 * 86_400_000;
 const SWEEP_EVERY_MS = 60_000;
+
+/** "Plumbing work for … is done": the kind of work each technician type does. */
+const TEAM_WORK: Record<string, string> = {
+  electrician: "Electrical",
+  plumber: "Plumbing",
+  hvac: "HVAC",
+  cleaning: "Cleaning",
+};
+
+const CLOSED_STATUSES = ["closed", "resolved", "completed"];
+const isOpenTicket = (t: ServiceRequest) => !CLOSED_STATUSES.includes(String(t.status).toLowerCase());
+
+/** "2027-03-31" → the end of that day, as an ISO time. */
+export const endOfDay = (date: string) => new Date(`${date.slice(0, 10)}T23:59:59`).toISOString();
+
+/** Where one initiative job is, in the officer's words. */
+function initiativeStage(t: ServiceRequest, wo: WorkOrder | undefined): string {
+  if (!isOpenTicket(t)) return "Closed";
+  if (t.dispatch_state === "queued" || !wo?.assigned_to_id) return "Waiting for a person";
+  if (wo.status === WorkOrderStatus.REVIEW) return "Being checked";
+  if (wo.status === WorkOrderStatus.INPROGRESS || wo.status === WorkOrderStatus.APPROVAL) return "In progress";
+  return wo.dispatch?.ack_status === "acknowledged" ? "Accepted" : "Sent";
+}
 
 @Injectable()
 export class DispatchService implements OnModuleInit, OnModuleDestroy {
@@ -309,6 +333,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       this.notifyReporters(ticket, "fixed", `Fixed: ${this.ticketLabel(ticket)}. If it is still broken, tell us in My Reports.`);
       this.resolveFault(ticket);
       this.completeFinding(ticket, now);
+      this.initiativeJobClosed(ticket);
     } else if (wo.status === WorkOrderStatus.REVIEW) {
       ticket.status = "checking";
       this.notifyReporters(ticket, "checking", `The work is done and is being checked: ${this.ticketLabel(ticket)}.`);
@@ -425,13 +450,148 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     if (alert) alert.status = AlertStatus.RESOLVED;
   }
 
+  // ── Initiatives with on-site work ──────────────────────────────────────
+
+  /**
+   * An initiative that needs technicians on site joins the same engine at
+   * "Start work": one job per technician type it needs, all sent now, so they
+   * run in parallel and never wait for each other. Each job's finish date is
+   * the initiative's target date, not the priority × size table. A type that
+   * already has an open job is skipped, so calling this twice sends nothing new.
+   */
+  sendInitiative(initiative: Initiative, now = this.clock.now()): ServiceRequest[] {
+    const finishBy = endOfDay(initiative.target_date!);
+    const sent: ServiceRequest[] = [];
+    for (const team of new Set(initiative.teams ?? [])) {
+      const open = this.initiativeTickets(initiative.initiative_id).some((t) => t.team === team && isOpenTicket(t));
+      if (!open) sent.push(this.sendInitiativeJob(initiative, team, finishBy, null, now));
+    }
+    return sent;
+  }
+
+  /** One technician type's job for an initiative; `rework` when the officer sent a closed job back. */
+  sendInitiativeJob(
+    initiative: Initiative,
+    team: string,
+    finishBy: string,
+    rework: { of: string; reason: string } | null,
+    now = this.clock.now(),
+  ): ServiceRequest {
+    const ids = initiative.building_ids ?? [];
+    const names = ids.map((id) => this.database.buildings.find((b) => b.building_id === id)?.name ?? id);
+    const description = [initiative.description, rework ? `Sent back by the Sustainability Officer: ${rework.reason}` : ""]
+      .filter(Boolean)
+      .join("\n\n");
+    const ticket: ServiceRequest = {
+      service_request_id: crypto.randomUUID(),
+      organization_id: initiative.organization_id,
+      reporter_id: "system",
+      assigned_to_id: null,
+      category: "Initiative",
+      issue_type: `${rework ? "Rework: " : "Initiative: "}${initiative.title} (${TEAM_WORK[team] ?? team})`,
+      status: "open",
+      created_at: now.toISOString(),
+      description,
+      item_id: "initiative",
+      building_id: ids.length === 1 ? ids[0] : undefined,
+      part: ids.length === 1 ? undefined : names.length ? names.join(", ") : "Whole campus",
+      team,
+      // An installation runs for weeks; at L (4 points) the technician could
+      // take almost no repairs for its whole duration.
+      size: "M",
+      points: 2,
+      priority: "medium",
+      priority_system: "medium",
+      priority_override: null,
+      priority_reasons: [rework ? "Initiative work sent back for rework" : "On-site work for an approved initiative"],
+      source_initiative: initiative.initiative_id,
+      finish_by: finishBy,
+      rework_of: rework?.of ?? null,
+      rework_reason: rework?.reason ?? null,
+      reporter_ids: [],
+      plus_one_ids: [],
+    };
+    this.database.serviceRequests.push(ticket);
+    this.dispatch(ticket, now);
+    return ticket;
+  }
+
+  /** Every job (open or closed, first try or rework) for an initiative, oldest first. */
+  initiativeJobs(initiativeId: string) {
+    return this.initiativeTickets(initiativeId).map((t) => {
+      const wo = this.database.workOrders
+        .filter((w) => w.source_request_id === t.service_request_id)
+        .sort((a, b) => String(b.dispatch?.assigned_at ?? "").localeCompare(String(a.dispatch?.assigned_at ?? "")))[0];
+      return {
+        ticket_id: t.service_request_id,
+        work_order_id: wo?.work_order_id ?? null,
+        team: t.team ?? null,
+        technician_name: wo?.assigned_to_id ? this.nameOf(wo.assigned_to_id) : null,
+        stage: initiativeStage(t, wo),
+        open: isOpenTicket(t),
+        finish_by: wo?.dispatch?.sla?.deadline_at ?? t.finish_by ?? null,
+        closed_at: t.closed_at ?? null,
+        rework_of: t.rework_of ?? null,
+        rework_reason: t.rework_reason ?? null,
+      };
+    });
+  }
+
+  /**
+   * The initiative's target date moved: its open first-try jobs move with it
+   * (their technicians are told). Rework jobs keep the date the officer gave
+   * them when sending the work back.
+   */
+  retimeInitiative(initiative: Initiative, now = this.clock.now()) {
+    const finishBy = endOfDay(initiative.target_date!);
+    for (const t of this.initiativeTickets(initiative.initiative_id)) {
+      if (!isOpenTicket(t) || t.rework_of) continue;
+      t.finish_by = finishBy;
+      const wo = this.workOrderFor(t);
+      if (!wo?.dispatch) continue;
+      wo.dispatch.fixed_deadline_at = finishBy;
+      // Already sent to someone: the clock is running, so move its date.
+      if (wo.dispatch.sla && wo.dispatch.sla.deadline_at !== finishBy) this.sla.setDeadline(wo.work_order_id, finishBy, now);
+    }
+  }
+
+  private initiativeTickets(initiativeId: string): ServiceRequest[] {
+    return this.database.serviceRequests
+      .filter((t) => t.source_initiative === initiativeId)
+      .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+  }
+
+  /**
+   * A job for an initiative was closed. Tell the officer; when it was the
+   * last open one, ask them to check the work and complete the initiative.
+   * The initiative itself does not move: the officer decides it is done.
+   */
+  private initiativeJobClosed(ticket: ServiceRequest) {
+    if (!ticket.source_initiative) return;
+    const initiative = this.database.initiatives.find((i) => i.initiative_id === ticket.source_initiative);
+    if (!initiative) return;
+    const stillOpen = this.initiativeTickets(initiative.initiative_id).filter(isOpenTicket);
+    const work = TEAM_WORK[ticket.team ?? ""] ?? "The";
+    const message = stillOpen.length
+      ? `${work} work for "${initiative.title}" is done. ${stillOpen.length} job${stillOpen.length === 1 ? " is" : "s are"} still open.`
+      : `All work for "${initiative.title}" is done. Check it, then mark the initiative completed or send a job back.`;
+    const people = new Set([
+      initiative.created_by_id,
+      ...this.database.users
+        .filter((u) => u.role === UserRole.SUSTAINABILITY_OFFICER && u.organization_id === initiative.organization_id)
+        .map((u) => u.user_id),
+    ]);
+    for (const id of people)
+      if (id) this.notify(id, initiative.organization_id, initiative.initiative_id, message, NotificationTargetType.INITIATIVE);
+  }
+
   private ticketLabel(t: ServiceRequest) {
     return `${t.issue_type ?? "Issue"}, ${this.locationOf(t)}`;
   }
 
   /** Tell everyone who reported or +1'd the issue, once per stage. */
   private notifyReporters(ticket: ServiceRequest, stage: string, message: string) {
-    if (!ticket.item_id || ticket.source_fault_id || ticket.source_finding || ticket.source_wastage) return; // only student reports have reporters to tell
+    if (!ticket.item_id || ticket.source_fault_id || ticket.source_finding || ticket.source_wastage || ticket.source_initiative) return; // only student reports have reporters to tell
     ticket.student_notified ??= [];
     if (ticket.student_notified.includes(stage)) return;
     ticket.student_notified.push(stage);
@@ -450,6 +610,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     wo.dispatch!.history.push({ at: now.toISOString(), event: "closed_with_ticket", user_id: holder });
     this.notifyReporters(ticket, "fixed", `Fixed: ${this.ticketLabel(ticket)}. If it is still broken, tell us in My Reports.`);
     if (holder) this.notify(holder, wo.organization_id, wo.work_order_id, `"${wo.title}" was closed by the coordinator. You no longer need to do it.`);
+    this.initiativeJobClosed(ticket);
   }
 
   /** Going unavailable gives back jobs not yet started; the next person gets them. */
@@ -787,6 +948,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       acknowledged_at: null,
       tried: [],
       history: [],
+      fixed_deadline_at: ticket.finish_by ?? null,
     };
     const wo: WorkOrder = {
       work_order_id: crypto.randomUUID(),

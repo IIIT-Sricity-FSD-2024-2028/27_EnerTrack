@@ -783,55 +783,94 @@
   }
 }
 
-/* ── Measured performance (replaces the manual on/off-track toggle) ── */
+/* ── Measured performance (replaces the manual on/off-track toggle) ──
+   No tinted box: a hairline above, a dot + plain status (same pattern as
+   the Overview and Campus issues), the saving as the one bold figure, a thin
+   progress bar against what was expected, and the period in grey. */
 .perf {
-  margin: 8px 0 0;
-  padding: 8px 10px;
-  border-radius: 6px;
-  font-size: 12px;
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid #eef0f2;
+  font-size: 12.5px;
   line-height: 1.45;
-  background: #f3f4f6;
-  color: #374151;
+  color: #4b5563;
 }
 
-.perf__chip {
-  display: inline-block;
-  margin-right: 6px;
-  padding: 0 6px;
-  border-radius: 4px;
+.perf-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.perf-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.perf-status::before {
+  content: "";
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+
+.perf-pct {
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.perf-figure {
+  margin: 6px 0 0;
+}
+
+.perf-figure strong {
+  font-size: 15px;
   font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
 }
 
-.perf--green {
-  background: #ecfdf3;
-  color: #14532d;
+.perf-bar {
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 2px;
+  background: #eef0f2;
+  overflow: hidden;
 }
 
-.perf--green .perf__chip {
-  background: #bbf7d0;
+.perf-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: #9ca3af;
 }
 
-.perf--amber {
-  background: #fffbeb;
-  color: #78350f;
+.perf-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #6b7280;
 }
 
-.perf--amber .perf__chip {
-  background: #fde68a;
+.perf--green .perf-status::before,
+.perf--green .perf-bar span {
+  background: #16a34a;
 }
 
-.perf--red {
-  background: #fef2f2;
-  color: #7f1d1d;
+.perf--amber .perf-status::before,
+.perf--amber .perf-bar span {
+  background: #d97706;
 }
 
-.perf--red .perf__chip {
-  background: #fecaca;
-}
-
-.perf--done {
-  background: #eef4f0;
-  color: #1b3a2b;
+.perf--red .perf-status::before,
+.perf--red .perf-bar span {
+  background: #dc2626;
 }
 
 .init-source {
@@ -887,4 +926,153 @@
   font-size: 12px;
   font-weight: 600;
   color: #374151;
+}
+
+/* ── "Does this need technicians on site?" (form and edit dialog) ── */
+.init-onsite {
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+  font-size: 13px;
+}
+
+.init-onsite legend {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.init-choice {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.init-choice button {
+  padding: 6px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.init-choice button.is-selected {
+  border-color: #047857;
+  background: #ecfdf5;
+  color: #065f46;
+  font-weight: 600;
+}
+
+.init-onsite:disabled .init-choice button {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.init-teams {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  margin-top: 10px;
+}
+
+.init-teams-label {
+  width: 100%;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.init-teams label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 400;
+  color: #1f2937;
+}
+
+.init-teams input {
+  width: auto;
+  margin: 0;
+}
+
+/* ── The on-site jobs on a card: same hairline + dot pattern as .perf ── */
+.init-work {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid #eef0f2;
+  font-size: 12.5px;
+  color: #4b5563;
+}
+
+.init-work-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #374151;
+}
+
+.init-work ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.init-work li + li {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #eef0f2;
+}
+
+.init-work-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.init-work-stage {
+  color: #374151;
+  text-align: right;
+}
+
+/* The dot colour comes from the .perf--green/amber modifiers. */
+.init-work-status.perf--green::before {
+  background: #16a34a;
+}
+
+.init-work-status.perf--amber::before {
+  background: #d97706;
+}
+
+.init-work .perf-note {
+  margin-top: 2px;
+}
+
+.init-sendback-open {
+  margin-top: 6px;
+}
+
+.init-sendback {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.init-sendback-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.init-open-jobs {
+  margin: 0;
+  font-size: 12px;
+  color: #4b5563;
 }
