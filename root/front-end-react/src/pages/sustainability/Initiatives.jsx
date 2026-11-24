@@ -322,15 +322,19 @@ export default function SustainabilityInitiatives() {
     }
 
     const id = idOf(editingInit);
+    // Once approved, what it saves, how much and its cost are what the
+    // Organization Admin agreed to; the server refuses changes (409), so
+    // they are not sent.
+    const termsLocked = editingInit.status !== "proposed";
     const patch = {
       title,
       description: editingInit.description || "",
       feasible: editingInit.feasible,
-      ...(editingInit.metric ? { metric: editingInit.metric } : {}),
-      ...(editingInit.savingText !== undefined && String(editingInit.savingText).trim() !== ""
+      ...(!termsLocked && editingInit.metric ? { metric: editingInit.metric } : {}),
+      ...(!termsLocked && editingInit.savingText !== undefined && String(editingInit.savingText).trim() !== ""
         ? { expected_saving: Number(String(editingInit.savingText).replace(/,/g, "")) }
         : {}),
-      ...(capex !== undefined ? { capex } : {}),
+      ...(!termsLocked && capex !== undefined ? { capex } : {}),
       ...(editingInit.target_date ? { target_date: editingInit.target_date } : {}),
     };
 
@@ -858,6 +862,12 @@ export default function SustainabilityInitiatives() {
                   }
                 />
               </div>
+              {editingInit.status !== "proposed" && (
+                <p style={{ margin: 0, fontSize: "12px", color: "#6b7280" }}>
+                  What it saves, the expected saving and the cost were approved by the Organization Admin. Ask them
+                  to change these.
+                </p>
+              )}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
                   <label
@@ -870,6 +880,7 @@ export default function SustainabilityInitiatives() {
                     id="edit-init-metric"
                     className="form-input"
                     value={editingInit.metric || ""}
+                    disabled={editingInit.status !== "proposed"}
                     onChange={(e) => setEditingInit({ ...editingInit, metric: e.target.value || null })}
                   >
                     <option value="">Not measured</option>
@@ -892,7 +903,7 @@ export default function SustainabilityInitiatives() {
                     type="text"
                     inputMode="decimal"
                     className="form-input"
-                    disabled={!editingInit.metric}
+                    disabled={!editingInit.metric || editingInit.status !== "proposed"}
                     value={editingInit.savingText ?? ""}
                     onChange={(e) => setEditingInit({ ...editingInit, savingText: e.target.value })}
                   />
@@ -912,6 +923,7 @@ export default function SustainabilityInitiatives() {
                     inputMode="decimal"
                     className="form-input"
                     value={editingInit.capexText ?? ""}
+                    disabled={editingInit.status !== "proposed"}
                     onChange={(e) => setEditingInit({ ...editingInit, capexText: e.target.value })}
                   />
                 </div>

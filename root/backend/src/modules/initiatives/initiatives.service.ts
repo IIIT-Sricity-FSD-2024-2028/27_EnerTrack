@@ -58,6 +58,24 @@ const INITIATIVE_MOVES: MoveTable[] = [
 /** Statuses a non-admin may delete from: never started, so nothing is lost. */
 const WITHDRAWABLE: InitiativeStatus[] = [InitiativeStatus.PROPOSED, InitiativeStatus.REJECTED];
 
+/**
+ * What the Organization Admin approved: what it saves, how much, at what
+ * cost, where, and towards which target. Once an initiative leaves
+ * "proposed" only the Organization Admin can change these, otherwise the
+ * proposer could lower the promised saving after approval and turn a red
+ * rating green.
+ */
+const AGREED_TERMS = ["metric", "expected_saving", "capex", "building_ids", "meter_ids", "target_id"] as const;
+
+/** Same value for an agreed term? Lists compare as sets; unset and null are the same. */
+function sameTerm(a: unknown, b: unknown): boolean {
+  const norm = (v: unknown) =>
+    Array.isArray(v) ? JSON.stringify([...v].sort()) : JSON.stringify(v ?? null);
+  const isEmpty = (v: unknown) => v == null || (Array.isArray(v) && v.length === 0);
+  if (isEmpty(a) && isEmpty(b)) return true;
+  return norm(a) === norm(b);
+}
+
 @Injectable()
 export class InitiativesService {
   constructor(private database: DatabaseService) {}
@@ -149,11 +167,22 @@ export class InitiativesService {
 
   /**
    * Edits an initiative. A status change must follow the approval gate
-   * (INITIATIVE_MOVES), otherwise 403; editing other fields is fine.
+   * (INITIATIVE_MOVES), otherwise 403. After approval the agreed terms
+   * (AGREED_TERMS) are locked for everyone but the Organization Admin (409);
+   * the title, description and dates stay editable.
    */
   update(id: string, updateDto: UpdateInitiativeDto, role?: string, userId?: string) {
     const index = this.indexOf(id);
     const existing = this.database.initiatives[index];
+    if (existing.status !== InitiativeStatus.PROPOSED && role !== UserRole.ORGANIZATION_ADMIN) {
+      const changed = AGREED_TERMS.filter(
+        (key) => key in updateDto && !sameTerm((updateDto as any)[key], (existing as any)[key]),
+      );
+      if (changed.length)
+        throw new ConflictException(
+          `This initiative is ${existing.status}, so what was approved (${changed.join(", ")}) can only be changed by the Organization Admin.`,
+        );
+    }
     this.assertDates(
       updateDto.start_date ?? existing.start_date ?? undefined,
       updateDto.target_date ?? existing.target_date ?? undefined,

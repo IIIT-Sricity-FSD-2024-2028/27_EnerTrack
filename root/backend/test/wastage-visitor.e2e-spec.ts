@@ -40,8 +40,8 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
     Validated: ['Validated'],
     'Forwarded to Finance': ['Validated', 'Forwarded to Finance'],
     'Target Set': ['Validated', 'Target Set'],
-    Finalized: ['Validated', 'Target Set', 'Finalized'],
-    Delivered: ['Validated', 'Target Set', 'Finalized', 'Delivered'],
+    Finalized: ['Validated', 'Finalized'],
+    Delivered: ['Validated', 'Finalized', 'Delivered'],
     Dismissed: ['Dismissed'],
   };
   const setStatus = async (id: string, status: string) => {

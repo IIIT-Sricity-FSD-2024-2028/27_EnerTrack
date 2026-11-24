@@ -159,9 +159,13 @@ describe('Wastage workflow and notifications (e2e)', () => {
       fresh = await step(SO, 'Target Set');
       expect(fresh.map((n) => n.user_id)).toEqual([REPORTER]);
 
-      fresh = await step(SO, 'Finalized');
+      // A target is always checked before the report closes.
+      fresh = await step(SO, 'Verify Target');
+      expect(fresh.map((n) => n.user_id).sort()).toEqual(idsWithRole('Sustainability Officer'));
+
+      fresh = await step(SO, 'Target Met');
       expect(fresh.map((n) => n.user_id)).toEqual([REPORTER]);
-      expect(fresh[0].message).toBe(`Your water report ${ref} has been finalised.`);
+      expect(fresh[0].message).toBe(`Good news: the reduction target for your water report ${ref} was met.`);
 
       fresh = await step(SO, 'Delivered');
       expect(fresh.map((n) => n.user_id)).toEqual([REPORTER]);
