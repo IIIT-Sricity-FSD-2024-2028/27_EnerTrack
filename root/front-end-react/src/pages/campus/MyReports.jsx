@@ -2,7 +2,7 @@
  * MyReports — the "My Reports" list at the bottom of /campus/dashboard.
  *
  * Shows the student's own reports and the ones they +1'd. Status only:
- * Reported, On its way, Work started, Waiting for check or Fixed. Never
+ * Reported, Technician assigned, Work started, Waiting for check or Fixed. Never
  * priority, dates the work is due, or who is working on it. A fixed issue
  * shows "It is fixed" and "Still broken" for a week.
  *
@@ -11,7 +11,7 @@
  */
 import { formatReportedOn, statusClass, statusLabel } from "./serviceRequestHelpers";
 
-export default function MyReports({ tickets, selectedId, onSelect, onRespond }) {
+export default function MyReports({ tickets, onRespond }) {
   return (
     <div className="ticket-section">
       <h2>
@@ -26,13 +26,8 @@ export default function MyReports({ tickets, selectedId, onSelect, onRespond }) 
       ) : (
         tickets.map((ticket) => (
           <div
-            className={
-              "ticket-card selectable" +
-              (ticket.id === selectedId ? " is-selected" : "") +
-              (ticket.can_respond ? " has-actions" : "")
-            }
+            className={"ticket-card" + (ticket.can_respond ? " has-actions" : "")}
             key={ticket.id}
-            onClick={() => onSelect(ticket)}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <p
@@ -56,10 +51,7 @@ export default function MyReports({ tickets, selectedId, onSelect, onRespond }) 
               {statusLabel(ticket.status)}
             </div>
             {ticket.can_respond && (
-              <div
-                style={{ display: "flex", gap: 8, flexBasis: "100%" }}
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div style={{ display: "flex", gap: 8, flexBasis: "100%" }}>
                 <button type="button" className="plus-one-btn" onClick={() => onRespond(ticket.id, true)}>
                   It is fixed
                 </button>
