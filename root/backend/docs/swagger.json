@@ -9941,6 +9941,70 @@
         ]
       }
     },
+    "/api/expense-bills/settings": {
+      "get": {
+        "operationId": "ExpenseBillsController_getSettings",
+        "summary": "Get Expense Auto-Approve Settings",
+        "description": "Returns the organization's cumulative per-Work-Order minor expense cap and max auto-approvals per WO.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense settings."
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "patch": {
+        "operationId": "ExpenseBillsController_updateSettings",
+        "summary": "Update Expense Auto-Approve Cap",
+        "description": "Updates the organization's cumulative per-Work-Order auto-approve cap (set 0 to disable auto-approval).",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExpenseSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expense settings updated."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
+    },
     "/api/expense-bills/{id}": {
       "get": {
         "operationId": "ExpenseBillsController_findOne",
@@ -10212,7 +10276,8 @@
           "floor_area_sqm": 42000,
           "tariff_rate": 8.5,
           "contract_start": "2025-01-01",
-          "email_domain": null
+          "email_domain": null,
+          "expense_auto_approve_cap": 1500
         }
       },
       "PutOrganizationDto": {
@@ -10230,7 +10295,8 @@
           "floor_area_sqm": 42000,
           "tariff_rate": 8.5,
           "contract_start": "2025-01-01",
-          "email_domain": null
+          "email_domain": null,
+          "expense_auto_approve_cap": 1500
         }
       },
       "CreateSubscriptionPlanDto": {
@@ -10391,7 +10457,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$Y4BTweyphEI9dC4wTlry7OJnletlqgLKsH.W6QJ21smKBVhPt5fka",
+          "password": "$2b$08$relUyE.qHHl994/PSKVAX.IjVoBBR1nPdW.zNTHZEGPhIlB45JXcW",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -10408,7 +10474,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$Y4BTweyphEI9dC4wTlry7OJnletlqgLKsH.W6QJ21smKBVhPt5fka",
+          "password": "$2b$08$relUyE.qHHl994/PSKVAX.IjVoBBR1nPdW.zNTHZEGPhIlB45JXcW",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -11045,6 +11111,7 @@
           "notes": "Heavy-duty UV resistant cables and MC4 connectors for Roof Level 3 array inspection repair.",
           "attachments": [],
           "status": "submitted",
+          "auto_approved": false,
           "reviewed_by_id": null,
           "reviewed_at": null,
           "rejection_reason": null,
@@ -11059,6 +11126,10 @@
             }
           ]
         }
+      },
+      "UpdateExpenseSettingsDto": {
+        "type": "object",
+        "properties": {}
       },
       "UpdateExpenseBillDto": {
         "type": "object",
@@ -11076,6 +11147,7 @@
           "notes": "Heavy-duty UV resistant cables and MC4 connectors for Roof Level 3 array inspection repair.",
           "attachments": [],
           "status": "submitted",
+          "auto_approved": false,
           "reviewed_by_id": null,
           "reviewed_at": null,
           "rejection_reason": null,

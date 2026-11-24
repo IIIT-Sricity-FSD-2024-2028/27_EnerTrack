@@ -30,6 +30,7 @@ import { billUploadConfig } from "../../core/middleware/file-upload.middleware";
 import { assertFileSignatures } from "../../core/utils/file-signature";
 import { CreateExpenseBillDto } from "./dto/create-expense-bill.dto";
 import { UpdateExpenseBillDto } from "./dto/update-expense-bill.dto";
+import { UpdateExpenseSettingsDto } from "./dto/update-expense-settings.dto";
 import { ExpenseBillsService } from "./expense-bills.service";
 
 @ApiTags("expense-bills")
@@ -155,6 +156,32 @@ export class ExpenseBillsController {
       status,
       work_order_id: workOrderId,
     });
+  }
+
+  @Get("settings")
+  @ApiOperation({
+    summary: "Get Expense Auto-Approve Settings",
+    description: "Returns the organization's cumulative per-Work-Order minor expense cap and max auto-approvals per WO.",
+  })
+  @ApiResponse({ status: 200, description: "Expense settings." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC." })
+  @Roles("Technician", "Financial Analyst", "Organization Admin")
+  getSettings() {
+    return this.expenseBillsService.getSettings(null);
+  }
+
+  @Patch("settings")
+  @ApiOperation({
+    summary: "Update Expense Auto-Approve Cap",
+    description: "Updates the organization's cumulative per-Work-Order auto-approve cap (set 0 to disable auto-approval).",
+  })
+  @ApiResponse({ status: 200, description: "Expense settings updated." })
+  @ApiResponse({ status: 400, description: "Bad Request" })
+  @ApiResponse({ status: 403, description: "Forbidden" })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC." })
+  @Roles("Financial Analyst", "Organization Admin")
+  updateSettings(@Body() dto: UpdateExpenseSettingsDto) {
+    return this.expenseBillsService.updateSettings(dto, null);
   }
 
   @Get(":id")

@@ -98,7 +98,11 @@ export default function PendingExpenseBills() {
                   <div style={{ fontWeight: 700, fontSize: "15px", color: "#0f172a" }}>
                     {formatCurrency(b.amount)}
                   </div>
-                  {b.variance?.over_estimate ? (
+                  {!b.variance?.has_estimate ? (
+                    <span style={{ fontSize: "11px", color: "#64748b", background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>
+                      No estimate
+                    </span>
+                  ) : b.variance?.over_estimate ? (
                     <span style={{ fontSize: "11px", color: "#b45309", background: "#fef3c7", padding: "2px 6px", borderRadius: "4px" }}>
                       Over estimate
                     </span>

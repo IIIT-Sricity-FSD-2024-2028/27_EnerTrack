@@ -16,11 +16,15 @@ import {
   UserRole,
   WorkOrderStatus,
 } from "../../core/database/database.service";
-import { assertTenantOwns, scopeToTenant } from "../../core/tenancy/tenant-context";
+import { assertTenantOwns, currentOrgId, scopeToTenant } from "../../core/tenancy/tenant-context";
 import { pushNotifications, usersWithRole } from "../../core/utils/notify";
 import { assertMove, MoveTable } from "../../core/utils/transitions";
 import { CreateExpenseBillDto } from "./dto/create-expense-bill.dto";
 import { UpdateExpenseBillDto } from "./dto/update-expense-bill.dto";
+import { UpdateExpenseSettingsDto } from "./dto/update-expense-settings.dto";
+
+const DEFAULT_AUTO_APPROVE_CAP = 1500;
+const MAX_AUTO_APPROVED_PER_WO = 2;
 
 const WORKFLOW: MoveTable[] = [
   {
@@ -47,16 +51,45 @@ const ALLOWED_WO_STATUSES = new Set([
 export class ExpenseBillsService {
   constructor(private database: DatabaseService) {}
 
+  public getOrgCap(orgId: string | null): number {
+    const org = this.database.organizations.find((o) => o.organization_id === orgId);
+    return typeof org?.expense_auto_approve_cap === "number"
+      ? org.expense_auto_approve_cap
+      : DEFAULT_AUTO_APPROVE_CAP;
+  }
+
+  public getSettings(orgId: string | null) {
+    const resolvedOrgId = currentOrgId() ?? orgId;
+    return {
+      auto_approve_cap: this.getOrgCap(resolvedOrgId),
+      max_auto_approved_per_wo: MAX_AUTO_APPROVED_PER_WO,
+    };
+  }
+
+  public updateSettings(dto: UpdateExpenseSettingsDto, orgId: string | null) {
+    const resolvedOrgId = currentOrgId() ?? orgId;
+    const org = this.database.organizations.find((o) => o.organization_id === resolvedOrgId);
+    if (!org) {
+      throw new NotFoundException("Organization not found.");
+    }
+    org.expense_auto_approve_cap = Number(dto.auto_approve_cap);
+    return {
+      auto_approve_cap: org.expense_auto_approve_cap,
+      max_auto_approved_per_wo: MAX_AUTO_APPROVED_PER_WO,
+    };
+  }
+
   public create(dto: CreateExpenseBillDto, role?: string, userId?: string) {
     if (!userId) {
       throw new BadRequestException("User ID is required to create an expense bill.");
     }
 
-    const wo = this.database.workOrders.find((w) => w.work_order_id === dto.work_order_id);
+    const wo = assertTenantOwns(
+      this.database.workOrders.find((w) => w.work_order_id === dto.work_order_id),
+    );
     if (!wo) {
       throw new NotFoundException("Work order not found.");
     }
-    assertTenantOwns(wo);
 
     if (!ALLOWED_WO_STATUSES.has(wo.status)) {
       throw new BadRequestException(
@@ -69,6 +102,22 @@ export class ExpenseBillsService {
         "You can only submit expense bills for work orders assigned to you.",
       );
     }
+
+    const existingNonRejected = this.database.expenseBills.filter(
+      (b) =>
+        b.organization_id === wo.organization_id &&
+        b.work_order_id === dto.work_order_id &&
+        b.status !== ExpenseBillStatus.REJECTED,
+    );
+    const existingTotal = existingNonRejected.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+    const existingAutoApprovedCount = existingNonRejected.filter((b) => b.auto_approved === true).length;
+    const cap = this.getOrgCap(wo.organization_id);
+    const newCumulativeTotal = existingTotal + Number(dto.amount);
+
+    const qualifiesForAutoApprove =
+      cap > 0 &&
+      newCumulativeTotal <= cap &&
+      existingAutoApprovedCount < MAX_AUTO_APPROVED_PER_WO;
 
     const now = new Date().toISOString();
     const bill: ExpenseBill = {
@@ -84,20 +133,31 @@ export class ExpenseBillsService {
       amount: Number(dto.amount),
       notes: dto.notes ?? null,
       attachments: [],
-      status: ExpenseBillStatus.SUBMITTED,
+      status: qualifiesForAutoApprove ? ExpenseBillStatus.APPROVED : ExpenseBillStatus.SUBMITTED,
+      auto_approved: qualifiesForAutoApprove,
       reviewed_by_id: null,
-      reviewed_at: null,
+      reviewed_at: qualifiesForAutoApprove ? now : null,
       rejection_reason: null,
       created_at: now,
       updated_at: now,
-      history: [
-        {
-          at: now,
-          by: userId,
-          role: role || UserRole.TECHNICIAN,
-          action: "submitted",
-        },
-      ],
+      history: qualifiesForAutoApprove
+        ? [
+            {
+              at: now,
+              by: userId,
+              role: role || UserRole.TECHNICIAN,
+              action: "auto_approved",
+              note: `Auto-approved under cumulative Work Order cap (₹${newCumulativeTotal} / ₹${cap})`,
+            },
+          ]
+        : [
+            {
+              at: now,
+              by: userId,
+              role: role || UserRole.TECHNICIAN,
+              action: "submitted",
+            },
+          ],
     };
 
     this.database.expenseBills.push(bill);
@@ -112,7 +172,9 @@ export class ExpenseBillsService {
       userIds: financeUserIds,
       targetType: NotificationTargetType.EXPENSE,
       targetId: bill.expense_bill_id,
-      message: `New expense bill '${bill.title}' (₹${bill.amount}) submitted for review.`,
+      message: qualifiesForAutoApprove
+        ? `Minor expense bill '${bill.title}' (₹${bill.amount}) was auto-approved under the ₹${cap} Work Order cap.`
+        : `New expense bill '${bill.title}' (₹${bill.amount}) submitted for review.`,
     });
 
     return this.serialize(bill);
@@ -145,11 +207,12 @@ export class ExpenseBillsService {
   }
 
   public findOne(id: string, role?: string, userId?: string) {
-    const bill = this.database.expenseBills.find((b) => b.expense_bill_id === id);
+    const bill = assertTenantOwns(
+      this.database.expenseBills.find((b) => b.expense_bill_id === id),
+    );
     if (!bill) {
       throw new NotFoundException("Expense bill not found.");
     }
-    assertTenantOwns(bill);
 
     if (role === UserRole.TECHNICIAN && bill.submitted_by_id !== userId) {
       throw new ForbiddenException("You can only access your own expense bills.");
@@ -159,14 +222,30 @@ export class ExpenseBillsService {
   }
 
   public update(id: string, dto: UpdateExpenseBillDto, role?: string, userId?: string) {
-    const bill = this.database.expenseBills.find((b) => b.expense_bill_id === id);
+    const bill = assertTenantOwns(
+      this.database.expenseBills.find((b) => b.expense_bill_id === id),
+    );
     if (!bill) {
       throw new NotFoundException("Expense bill not found.");
     }
-    assertTenantOwns(bill);
 
-    if (bill.status === ExpenseBillStatus.APPROVED) {
-      throw new ForbiddenException("Approved expense bills are locked and cannot be modified.");
+    const isFinanceReviewer =
+      role === UserRole.FINANCIAL_ANALYST ||
+      role === UserRole.ECONOMIC_BUYER ||
+      role === UserRole.ORGANIZATION_ADMIN;
+
+    const isRevokingAutoApproval =
+      bill.status === ExpenseBillStatus.APPROVED &&
+      bill.auto_approved === true &&
+      isFinanceReviewer &&
+      dto.status === ExpenseBillStatus.REJECTED;
+
+    if (bill.status === ExpenseBillStatus.APPROVED && !isRevokingAutoApproval) {
+      throw new ForbiddenException(
+        bill.auto_approved
+          ? "Auto-approved bills can only be revoked by Finance or Organization Admin."
+          : "Manually approved expense bills are locked and cannot be modified.",
+      );
     }
 
     if (role === UserRole.TECHNICIAN && bill.submitted_by_id !== userId) {
@@ -184,8 +263,9 @@ export class ExpenseBillsService {
 
     if (contentFieldsModified) {
       const canEditContent =
-        (role === UserRole.TECHNICIAN && bill.submitted_by_id === userId) ||
-        role === UserRole.ORGANIZATION_ADMIN;
+        !isRevokingAutoApproval &&
+        ((role === UserRole.TECHNICIAN && bill.submitted_by_id === userId) ||
+          role === UserRole.ORGANIZATION_ADMIN);
 
       if (!canEditContent) {
         throw new ForbiddenException("Only the technician who submitted the bill or an Organization Admin can edit bill details.");
@@ -202,7 +282,32 @@ export class ExpenseBillsService {
 
     const now = new Date().toISOString();
 
-    if (dto.status !== undefined && dto.status !== bill.status) {
+    if (isRevokingAutoApproval) {
+      const reason = dto.rejection_reason?.trim();
+      if (!reason) {
+        throw new BadRequestException("A rejection reason is required to revoke an auto-approved bill.");
+      }
+      bill.status = ExpenseBillStatus.REJECTED;
+      bill.auto_approved = false;
+      bill.reviewed_by_id = userId ?? null;
+      bill.reviewed_at = now;
+      bill.rejection_reason = reason;
+      bill.history.push({
+        at: now,
+        by: userId ?? "system",
+        role: role ?? "reviewer",
+        action: "revoked",
+        note: reason,
+      });
+
+      pushNotifications(this.database, {
+        organizationId: bill.organization_id,
+        userIds: [bill.submitted_by_id],
+        targetType: NotificationTargetType.EXPENSE,
+        targetId: bill.expense_bill_id,
+        message: `Auto-approved expense bill '${bill.title}' was flagged and revoked by Finance: ${reason}`,
+      });
+    } else if (dto.status !== undefined && dto.status !== bill.status) {
       assertMove(WORKFLOW, role, bill.status, dto.status, "an expense bill");
 
       if (dto.status === ExpenseBillStatus.REJECTED) {
@@ -211,6 +316,7 @@ export class ExpenseBillsService {
           throw new BadRequestException("A rejection reason is required.");
         }
         bill.status = ExpenseBillStatus.REJECTED;
+        bill.auto_approved = false;
         bill.reviewed_by_id = userId ?? null;
         bill.reviewed_at = now;
         bill.rejection_reason = reason;
@@ -231,6 +337,7 @@ export class ExpenseBillsService {
         });
       } else if (dto.status === ExpenseBillStatus.APPROVED) {
         bill.status = ExpenseBillStatus.APPROVED;
+        bill.auto_approved = false;
         bill.reviewed_by_id = userId ?? null;
         bill.reviewed_at = now;
         bill.rejection_reason = null;
@@ -250,6 +357,7 @@ export class ExpenseBillsService {
         });
       } else if (dto.status === ExpenseBillStatus.SUBMITTED && bill.status === ExpenseBillStatus.REJECTED) {
         bill.status = ExpenseBillStatus.SUBMITTED;
+        bill.auto_approved = false;
         bill.rejection_reason = null;
         bill.reviewed_by_id = null;
         bill.reviewed_at = null;
@@ -295,17 +403,12 @@ export class ExpenseBillsService {
       }
     };
 
-    const bill = this.database.expenseBills.find((b) => b.expense_bill_id === id);
+    const bill = assertTenantOwns(
+      this.database.expenseBills.find((b) => b.expense_bill_id === id),
+    );
     if (!bill) {
       discardFiles();
       throw new NotFoundException("Expense bill not found.");
-    }
-
-    try {
-      assertTenantOwns(bill);
-    } catch (err) {
-      discardFiles();
-      throw err;
     }
 
     if (role === UserRole.TECHNICIAN && bill.submitted_by_id !== userId) {
@@ -313,7 +416,7 @@ export class ExpenseBillsService {
       throw new ForbiddenException("You can only attach files to your own expense bills.");
     }
 
-    if (bill.status === ExpenseBillStatus.APPROVED) {
+    if (bill.status === ExpenseBillStatus.APPROVED && !bill.auto_approved) {
       discardFiles();
       throw new ForbiddenException("Cannot attach files to an approved expense bill.");
     }
@@ -340,11 +443,12 @@ export class ExpenseBillsService {
   }
 
   public removeAttachment(id: string, filename: string, role?: string, userId?: string) {
-    const bill = this.database.expenseBills.find((b) => b.expense_bill_id === id);
+    const bill = assertTenantOwns(
+      this.database.expenseBills.find((b) => b.expense_bill_id === id),
+    );
     if (!bill) {
       throw new NotFoundException("Expense bill not found.");
     }
-    assertTenantOwns(bill);
 
     if (role === UserRole.TECHNICIAN && bill.submitted_by_id !== userId) {
       throw new ForbiddenException("You can only modify attachments on your own expense bills.");
@@ -373,11 +477,12 @@ export class ExpenseBillsService {
   }
 
   public getAttachmentPath(id: string, filename: string, role?: string, userId?: string) {
-    const bill = this.database.expenseBills.find((b) => b.expense_bill_id === id);
+    const bill = assertTenantOwns(
+      this.database.expenseBills.find((b) => b.expense_bill_id === id),
+    );
     if (!bill) {
       throw new NotFoundException("Expense bill not found.");
     }
-    assertTenantOwns(bill);
 
     if (role === UserRole.TECHNICIAN && bill.submitted_by_id !== userId) {
       throw new ForbiddenException("You can only access attachments on your own expense bills.");
@@ -400,12 +505,13 @@ export class ExpenseBillsService {
   }
 
   public remove(id: string, role?: string, userId?: string) {
-    const index = this.database.expenseBills.findIndex((b) => b.expense_bill_id === id);
-    if (index === -1) {
+    const bill = assertTenantOwns(
+      this.database.expenseBills.find((b) => b.expense_bill_id === id),
+    );
+    if (!bill) {
       throw new NotFoundException("Expense bill not found.");
     }
-    const bill = this.database.expenseBills[index];
-    assertTenantOwns(bill);
+    const index = this.database.expenseBills.indexOf(bill);
 
     if (role === UserRole.TECHNICIAN) {
       if (bill.submitted_by_id !== userId || bill.status === ExpenseBillStatus.APPROVED) {
@@ -454,6 +560,9 @@ export class ExpenseBillsService {
     const overEstimate =
       estimatedTotal !== null && workOrderBilledTotal > estimatedTotal;
 
+    const cap = this.getOrgCap(bill.organization_id);
+    const autoApprovedCount = nonRejected.filter((b) => b.auto_approved === true).length;
+
     const safeAttachments = bill.attachments.map((a) => ({
       filename: a.filename,
       original_name: a.original_name,
@@ -476,6 +585,7 @@ export class ExpenseBillsService {
       amount: bill.amount,
       notes: bill.notes,
       status: bill.status,
+      auto_approved: bill.auto_approved ?? false,
       reviewed_by_id: bill.reviewed_by_id,
       reviewed_at: bill.reviewed_at,
       rejection_reason: bill.rejection_reason,
@@ -496,6 +606,12 @@ export class ExpenseBillsService {
         work_order_bill_count: nonRejected.length,
         variance_amount: varianceAmount,
         over_estimate: overEstimate,
+        auto_approve_cap: cap,
+        auto_approved_count: autoApprovedCount,
+        max_auto_approved_per_wo: MAX_AUTO_APPROVED_PER_WO,
+        exceeds_auto_approve_cap: cap > 0 && workOrderBilledTotal > cap,
+        split_bill_watch: nonRejected.length >= 3,
+        receipt_required: !bill.auto_approved,
       },
     };
   }

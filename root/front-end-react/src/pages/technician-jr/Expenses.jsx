@@ -1,9 +1,10 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 import ToastStack from "../technician/components/ToastStack";
 import { useToast } from "../technician/components/useToast";
+import { formatId } from "../technician/techUtils";
 import BillAttachmentModal from "../../ui/BillAttachmentModal";
 
 import "../../styles/shared/tech_shared.css";
@@ -20,6 +21,21 @@ const CATEGORIES = [
   { value: "other", label: "Other" },
 ];
 
+const WO_STATUS_LABELS = {
+  new: "New",
+  approval: "Approval",
+  inprogress: "In Progress",
+  review: "Review",
+  closed: "Closed",
+};
+
+function renderStatusBadge(bill) {
+  if (bill.status === "approved" && bill.auto_approved) {
+    return <span className="badge-status badge-auto-approved">Auto-Approved</span>;
+  }
+  return <span className={`badge-status badge-${bill.status}`}>{bill.status}</span>;
+}
+
 export default function TechnicianJrExpenses() {
   const { user } = useAuth();
   const { toasts, showToast } = useToast();
@@ -28,9 +44,16 @@ export default function TechnicianJrExpenses() {
 
   const [workOrders, setWorkOrders] = useState([]);
   const [bills, setBills] = useState([]);
+  const [autoApproveCap, setAutoApproveCap] = useState(1500);
+  const [maxAutoApprovedPerWo, setMaxAutoApprovedPerWo] = useState(2);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
   const [filterTab, setFilterTab] = useState("all");
+  const [viewMode, setViewMode] = useState("grouped"); // "grouped" | "all"
+  const [expandedWos, setExpandedWos] = useState(() =>
+    preselectedWo ? { [preselectedWo]: true } : {},
+  );
+  const initializedExpandRef = useRef(false);
 
   // Form state
   const [woId, setWoId] = useState(preselectedWo || "");
@@ -59,14 +82,22 @@ export default function TechnicianJrExpenses() {
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([api.get("/work-orders"), api.get("/expense-bills")])
-      .then(([woList, billList]) => {
+    Promise.all([
+      api.get("/work-orders"),
+      api.get("/expense-bills"),
+      api.get("/expense-bills/settings").catch(() => ({
+        auto_approve_cap: 1500,
+        max_auto_approved_per_wo: 2,
+      })),
+    ])
+      .then(([woList, billList, settings]) => {
         if (cancelled) return;
         const myWos = (woList || []).filter(
           (wo) =>
             wo.assigned_to_id === user?.user_id &&
             ["inprogress", "review", "closed"].includes(wo.status),
         );
+        const loadedBills = Array.isArray(billList) ? billList : [];
         setWorkOrders(myWos);
         setWoId((prev) => {
           if (preselectedWo && myWos.some((w) => w.work_order_id === preselectedWo)) {
@@ -77,7 +108,30 @@ export default function TechnicianJrExpenses() {
           }
           return prev;
         });
-        setBills(billList || []);
+        setBills(loadedBills);
+        if (settings && typeof settings.auto_approve_cap === "number") {
+          setAutoApproveCap(settings.auto_approve_cap);
+        }
+        if (settings && typeof settings.max_auto_approved_per_wo === "number") {
+          setMaxAutoApprovedPerWo(settings.max_auto_approved_per_wo);
+        }
+        if (!initializedExpandRef.current && loadedBills.length > 0) {
+          initializedExpandRef.current = true;
+          const initialExpanded = {};
+          if (preselectedWo) {
+            initialExpanded[preselectedWo] = true;
+          } else {
+            for (const b of loadedBills) {
+              if (b.status === "rejected" || b.status === "submitted") {
+                initialExpanded[b.work_order_id] = true;
+              }
+            }
+            if (Object.keys(initialExpanded).length === 0) {
+              initialExpanded[loadedBills[0].work_order_id] = true;
+            }
+          }
+          setExpandedWos(initialExpanded);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -98,19 +152,23 @@ export default function TechnicianJrExpenses() {
       ? selectedWo.details.estimate.total
       : null;
 
-  // Calculate already billed on selected work order from non-rejected bills
-  const alreadyBilled = bills
-    .filter(
-      (b) =>
-        b.work_order_id === woId &&
-        b.status !== "rejected",
-    )
-    .reduce((sum, b) => sum + Number(b.amount || 0), 0);
+  // Non-rejected bills on selected work order
+  const woNonRejected = bills.filter(
+    (b) => b.work_order_id === woId && b.status !== "rejected",
+  );
+  const alreadyBilled = woNonRejected.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+  const autoApprovedCount = woNonRejected.filter((b) => b.auto_approved === true).length;
 
   const numericEnteredAmount = Number(amount) || 0;
   const projectedTotal = alreadyBilled + numericEnteredAmount;
-  const isOverEstimate =
-    estimatedTotal !== null && projectedTotal > estimatedTotal;
+  const isOverEstimate = estimatedTotal !== null && projectedTotal > estimatedTotal;
+
+  const willAutoApprove =
+    autoApproveCap > 0 &&
+    projectedTotal > 0 &&
+    projectedTotal <= autoApproveCap &&
+    autoApprovedCount < maxAutoApprovedPerWo;
+  const receiptRequired = !willAutoApprove;
 
   // Handle file selection
   function handleFileChange(e) {
@@ -146,9 +204,17 @@ export default function TechnicianJrExpenses() {
       showToast("Amount must be greater than zero.", "error");
       return;
     }
+    if (receiptRequired && selectedFiles.length === 0 && !draftBillId) {
+      showToast(
+        "Please attach at least one receipt (PDF/JPG/PNG) for bills requiring Finance approval.",
+        "error",
+      );
+      return;
+    }
 
     setSubmitting(true);
     let currentId = draftBillId;
+    let createdRecord = null;
 
     try {
       if (!currentId) {
@@ -162,8 +228,8 @@ export default function TechnicianJrExpenses() {
           amount: Number(amount),
           notes: notes.trim() || undefined,
         };
-        const created = await api.post("/expense-bills", payload);
-        currentId = created.expense_bill_id;
+        createdRecord = await api.post("/expense-bills", payload);
+        currentId = createdRecord.expense_bill_id;
         setDraftBillId(currentId);
       }
 
@@ -171,7 +237,12 @@ export default function TechnicianJrExpenses() {
         await api.upload(`/expense-bills/${currentId}/attachments`, "files", selectedFiles);
       }
 
-      showToast("Expense bill submitted successfully!", "success");
+      showToast(
+        createdRecord?.auto_approved
+          ? `Minor expense bill auto-approved under ₹${autoApproveCap.toLocaleString("en-IN")} Work Order cap!`
+          : "Expense bill submitted for Finance verification!",
+        "success",
+      );
       setDraftBillId(null);
       setTitle("");
       setVendor("");
@@ -179,6 +250,7 @@ export default function TechnicianJrExpenses() {
       setAmount("");
       setNotes("");
       setSelectedFiles([]);
+      setExpandedWos((prev) => ({ ...prev, [woId]: true }));
       setReloadKey((k) => k + 1);
     } catch (err) {
       showToast(err.message || "Failed to submit expense bill.", "error");
@@ -246,6 +318,11 @@ export default function TechnicianJrExpenses() {
       showToast("Amount must be greater than zero.", "error");
       return;
     }
+    const totalAttachments = (editingBill.attachments?.length || 0) + editFiles.length;
+    if (totalAttachments === 0) {
+      showToast("Please attach at least one receipt (PDF/JPG/PNG) before resubmitting.", "error");
+      return;
+    }
 
     setEditSubmitting(true);
     try {
@@ -270,7 +347,7 @@ export default function TechnicianJrExpenses() {
         );
       }
 
-      showToast("Bill updated and resubmitted successfully!", "success");
+      showToast("Bill updated and resubmitted for Finance review!", "success");
       setEditingBill(null);
       setEditFiles([]);
       setReloadKey((k) => k + 1);
@@ -284,6 +361,7 @@ export default function TechnicianJrExpenses() {
   // Summary counts
   const totalSubmitted = bills.length;
   const pendingReview = bills.filter((b) => b.status === "submitted").length;
+  const autoApprovedTotalCount = bills.filter((b) => b.status === "approved" && b.auto_approved).length;
   const approvedSum = bills
     .filter((b) => b.status === "approved")
     .reduce((sum, b) => sum + Number(b.amount || 0), 0);
@@ -291,8 +369,129 @@ export default function TechnicianJrExpenses() {
 
   const filteredBills = bills.filter((b) => {
     if (filterTab === "all") return true;
+    if (filterTab === "auto_approved") return b.status === "approved" && b.auto_approved;
     return b.status === filterTab;
   });
+
+  // Group filtered bills by work_order_id
+  const woGroupsMap = new Map();
+  for (const bill of filteredBills) {
+    if (!woGroupsMap.has(bill.work_order_id)) {
+      const allForWo = bills.filter((x) => x.work_order_id === bill.work_order_id);
+      const nonRejForWo = allForWo.filter((x) => x.status !== "rejected");
+      woGroupsMap.set(bill.work_order_id, {
+        workOrderId: bill.work_order_id,
+        workOrderTitle: bill.work_order_title,
+        workOrderStatus: bill.work_order_status,
+        variance: bill.variance,
+        totalBilledSoFar: nonRejForWo.reduce((s, x) => s + Number(x.amount || 0), 0),
+        totalNonRejectedCount: nonRejForWo.length,
+        pendingCount: allForWo.filter((x) => x.status === "submitted").length,
+        approvedCount: allForWo.filter((x) => x.status === "approved").length,
+        rejectedCount: allForWo.filter((x) => x.status === "rejected").length,
+        bills: [],
+      });
+    }
+    woGroupsMap.get(bill.work_order_id).bills.push(bill);
+  }
+  const woGroups = Array.from(woGroupsMap.values());
+
+  function toggleWoExpand(id) {
+    setExpandedWos((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  function renderBillItem(bill) {
+    const wasRevoked = bill.status === "rejected" && bill.history?.some((h) => h.action === "revoked");
+    return (
+      <div key={bill.expense_bill_id} className="tech-bill-item">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <div style={{ fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>
+              {bill.title}
+            </div>
+            <div style={{ fontSize: "13px", color: "#64748b", marginTop: "2px" }}>
+              WO: <strong>{bill.work_order_title}</strong> | Vendor: <strong>{bill.vendor}</strong> | Category: <span style={{ textTransform: "capitalize" }}>{bill.category}</span>
+            </div>
+            {bill.bill_number && (
+              <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "2px" }}>
+                Bill #: {bill.bill_number} | Date: {bill.bill_date}
+              </div>
+            )}
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "18px", fontWeight: 700, color: "#0f172a" }}>
+              ₹{Number(bill.amount).toLocaleString("en-IN")}
+            </div>
+            <div style={{ marginTop: "4px" }}>
+              {renderStatusBadge(bill)}
+            </div>
+          </div>
+        </div>
+
+        {/* Over estimate indicator if applicable */}
+        {bill.variance?.over_estimate && (
+          <div style={{ fontSize: "12px", color: "#b45309", background: "#fef3c7", padding: "4px 8px", borderRadius: "4px" }}>
+            ⚠️ Total work order billing exceeds approved estimate by ₹
+            {bill.variance.variance_amount?.toLocaleString("en-IN")}.
+          </div>
+        )}
+
+        {/* Rejection / Revocation callout box */}
+        {bill.status === "rejected" && (
+          <div style={{ background: "#fef2f2", borderLeft: "4px solid #ef4444", padding: "10px 14px", borderRadius: "4px" }}>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: "#b91c1c" }}>
+              {wasRevoked ? "Auto-Approval Revoked by Finance:" : "Revision Requested by Finance:"}
+            </div>
+            <div style={{ fontSize: "13px", color: "#7f1d1d", marginTop: "2px" }}>
+              {bill.rejection_reason}
+            </div>
+          </div>
+        )}
+
+        {/* Attachments chips */}
+        {bill.attachments && bill.attachments.length > 0 && (
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: "12px", color: "#64748b" }}>Receipts:</span>
+            {bill.attachments.map((att) => (
+              <button
+                key={att.filename}
+                type="button"
+                className="tech-file-chip"
+                onClick={() => setPreviewModal({ bill, initialAttachment: att })}
+                style={{ cursor: "pointer", border: "1px solid #94a3b8" }}
+              >
+                📄 {att.original_name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
+          {bill.status === "rejected" && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => openEditModal(bill)}
+              style={{ padding: "5px 12px", fontSize: "13px" }}
+            >
+              Edit & Resubmit
+            </button>
+          )}
+          {bill.status !== "approved" && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => handleDeleteBill(bill.expense_bill_id)}
+              style={{ padding: "5px 12px", fontSize: "13px", color: "#dc2626" }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tech-expenses-container">
@@ -324,6 +523,11 @@ export default function TechnicianJrExpenses() {
           <div className="pill-value" style={{ color: "#16a34a" }}>
             ₹{approvedSum.toLocaleString("en-IN")}
           </div>
+          {autoApprovedTotalCount > 0 && (
+            <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+              Includes {autoApprovedTotalCount} auto-approved
+            </div>
+          )}
         </div>
         <div className="tech-expense-pill">
           <div className="pill-label">Needs Revision</div>
@@ -356,7 +560,7 @@ export default function TechnicianJrExpenses() {
                 <option value="">Select a work order…</option>
                 {workOrders.map((wo) => (
                   <option key={wo.work_order_id} value={wo.work_order_id}>
-                    {wo.title} ({wo.status})
+                    {formatId(wo.work_order_id, "WO")} — {wo.title} ({wo.status})
                   </option>
                 ))}
               </select>
@@ -372,6 +576,32 @@ export default function TechnicianJrExpenses() {
                   {" | "}
                   <strong>Already Billed:</strong> ₹{alreadyBilled.toLocaleString("en-IN")}
                 </div>
+
+                <div style={{ marginTop: "4px" }}>
+                  {autoApproveCap <= 0 ? (
+                    <span className="tech-cap-pill tech-cap-pill--amber">
+                      Requires Finance sign-off (auto-approval disabled) — receipt attachment required
+                    </span>
+                  ) : willAutoApprove ? (
+                    <span className="tech-cap-pill tech-cap-pill--green">
+                      Eligible for auto-approval (cumulative ₹{projectedTotal.toLocaleString("en-IN")} / ₹
+                      {autoApproveCap.toLocaleString("en-IN")}, {autoApprovedCount} of {maxAutoApprovedPerWo} auto-approvals used) — receipt optional
+                    </span>
+                  ) : numericEnteredAmount === 0 &&
+                    alreadyBilled < autoApproveCap &&
+                    autoApprovedCount < maxAutoApprovedPerWo ? (
+                    <span className="tech-cap-pill tech-cap-pill--green">
+                      Minor expense cap: ₹{alreadyBilled.toLocaleString("en-IN")} / ₹
+                      {autoApproveCap.toLocaleString("en-IN")} ({autoApprovedCount} of {maxAutoApprovedPerWo} auto-approvals used) — enter amount to check receipt requirement
+                    </span>
+                  ) : (
+                    <span className="tech-cap-pill tech-cap-pill--amber">
+                      Requires Finance sign-off (exceeds ₹{autoApproveCap.toLocaleString("en-IN")} cap or{" "}
+                      {maxAutoApprovedPerWo}-bill auto-approve limit) — receipt attachment required
+                    </span>
+                  )}
+                </div>
+
                 {isOverEstimate && (
                   <div style={{ color: "#b45309", fontWeight: 600 }}>
                     ⚠️ Warning: Total billing (₹{projectedTotal.toLocaleString("en-IN")}) will
@@ -472,7 +702,14 @@ export default function TechnicianJrExpenses() {
             </div>
 
             <div className="tech-form-group" style={{ marginTop: "16px" }}>
-              <label htmlFor={fileInputId}>Receipt Files (.pdf, .jpg, .png up to 10 MB, max 5 files)</label>
+              <label htmlFor={fileInputId}>
+                Receipt Files (.pdf, .jpg, .png up to 10 MB, max 5 files){" "}
+                {receiptRequired ? (
+                  <span style={{ color: "#b45309" }}>* (Required for Finance sign-off)</span>
+                ) : (
+                  <span style={{ color: "#15803d" }}>(Optional for auto-approved minor bill)</span>
+                )}
+              </label>
               <input
                 id={fileInputId}
                 type="file"
@@ -513,9 +750,27 @@ export default function TechnicianJrExpenses() {
 
       {/* Submitted Bills List */}
       <div className="tech-expense-card">
-        <h2 style={{ margin: "0 0 16px 0", fontSize: "18px", color: "#1e293b" }}>
-          My Submitted Expense Bills
-        </h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "12px" }}>
+          <h2 style={{ margin: 0, fontSize: "18px", color: "#1e293b" }}>
+            My Submitted Expense Bills
+          </h2>
+          <div className="tech-view-toggle">
+            <button
+              type="button"
+              className={`tech-view-btn ${viewMode === "grouped" ? "active" : ""}`}
+              onClick={() => setViewMode("grouped")}
+            >
+              By Work Order
+            </button>
+            <button
+              type="button"
+              className={`tech-view-btn ${viewMode === "all" ? "active" : ""}`}
+              onClick={() => setViewMode("all")}
+            >
+              All Bills
+            </button>
+          </div>
+        </div>
 
         <div className="tech-filter-tabs">
           <button
@@ -531,6 +786,13 @@ export default function TechnicianJrExpenses() {
             onClick={() => setFilterTab("submitted")}
           >
             Submitted ({bills.filter((b) => b.status === "submitted").length})
+          </button>
+          <button
+            type="button"
+            className={`tech-filter-tab ${filterTab === "auto_approved" ? "active" : ""}`}
+            onClick={() => setFilterTab("auto_approved")}
+          >
+            Auto-Approved ({autoApprovedTotalCount})
           </button>
           <button
             type="button"
@@ -556,100 +818,66 @@ export default function TechnicianJrExpenses() {
           <div className="empty-state" style={{ padding: "32px", textAlign: "center" }}>
             No expense bills in this tab.
           </div>
-        ) : (
-          <div>
-            {filteredBills.map((bill) => (
-              <div key={bill.expense_bill_id} className="tech-bill-item">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
-                  <div>
-                    <div style={{ fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>
-                      {bill.title}
-                    </div>
-                    <div style={{ fontSize: "13px", color: "#64748b", marginTop: "2px" }}>
-                      WO: <strong>{bill.work_order_title}</strong> | Vendor: <strong>{bill.vendor}</strong> | Category: <span style={{ textTransform: "capitalize" }}>{bill.category}</span>
-                    </div>
-                    {bill.bill_number && (
-                      <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "2px" }}>
-                        Bill #: {bill.bill_number}
+        ) : viewMode === "grouped" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {woGroups.map((group) => {
+              const isExpanded = !!expandedWos[group.workOrderId];
+              const estTotal = group.variance?.has_estimate
+                ? `₹${Number(group.variance.estimated_total).toLocaleString("en-IN")}`
+                : "No estimate";
+              return (
+                <div key={group.workOrderId} className="tech-wo-group">
+                  <button
+                    type="button"
+                    className="tech-wo-group-header"
+                    onClick={() => toggleWoExpand(group.workOrderId)}
+                    aria-expanded={isExpanded}
+                  >
+                    <div className="tech-wo-group-left">
+                      <span className="tech-wo-chevron">{isExpanded ? "▾" : "▸"}</span>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                          <strong style={{ fontSize: "15px", color: "#0f172a" }}>
+                            {formatId(group.workOrderId, "WO")} — {group.workOrderTitle}
+                          </strong>
+                          {group.workOrderStatus && (
+                            <span className="tech-wo-status-chip">
+                              {WO_STATUS_LABELS[group.workOrderStatus] || group.workOrderStatus}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                          Estimate: <strong>{estTotal}</strong> | Total Billed So Far:{" "}
+                          <strong>₹{group.totalBilledSoFar.toLocaleString("en-IN")}</strong> across{" "}
+                          {group.totalNonRejectedCount} active bill(s)
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: "18px", fontWeight: 700, color: "#0f172a" }}>
-                      ₹{Number(bill.amount).toLocaleString("en-IN")}
                     </div>
-                    <div style={{ marginTop: "4px" }}>
-                      <span className={`badge-status badge-${bill.status}`}>
-                        {bill.status}
-                      </span>
+
+                    <div className="tech-wo-group-right">
+                      {group.pendingCount > 0 && (
+                        <span className="badge-status badge-submitted">{group.pendingCount} pending</span>
+                      )}
+                      {group.approvedCount > 0 && (
+                        <span className="badge-status badge-approved">{group.approvedCount} approved</span>
+                      )}
+                      {group.rejectedCount > 0 && (
+                        <span className="badge-status badge-rejected">{group.rejectedCount} rejected</span>
+                      )}
                     </div>
-                  </div>
-                </div>
+                  </button>
 
-                {/* Over estimate indicator if applicable */}
-                {bill.variance?.over_estimate && (
-                  <div style={{ fontSize: "12px", color: "#b45309", background: "#fef3c7", padding: "4px 8px", borderRadius: "4px" }}>
-                    ⚠️ Total work order billing exceeds approved estimate by ₹
-                    {bill.variance.variance_amount?.toLocaleString("en-IN")}.
-                  </div>
-                )}
-
-                {/* Rejection callout box */}
-                {bill.status === "rejected" && (
-                  <div style={{ background: "#fef2f2", borderLeft: "4px solid #ef4444", padding: "10px 14px", borderRadius: "4px" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#b91c1c" }}>
-                      Revision Requested by Finance:
+                  {isExpanded && (
+                    <div className="tech-wo-group-body">
+                      {group.bills.map((bill) => renderBillItem(bill))}
                     </div>
-                    <div style={{ fontSize: "13px", color: "#7f1d1d", marginTop: "2px" }}>
-                      {bill.rejection_reason}
-                    </div>
-                  </div>
-                )}
-
-                {/* Attachments chips */}
-                {bill.attachments && bill.attachments.length > 0 && (
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>Receipts:</span>
-                    {bill.attachments.map((att) => (
-                      <button
-                        key={att.filename}
-                        type="button"
-                        className="tech-file-chip"
-                        onClick={() => setPreviewModal({ bill, initialAttachment: att })}
-                        style={{ cursor: "pointer", border: "1px solid #94a3b8" }}
-                      >
-                        📄 {att.original_name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Action buttons */}
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
-                  {bill.status === "rejected" && (
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => openEditModal(bill)}
-                      style={{ padding: "5px 12px", fontSize: "13px" }}
-                    >
-                      Edit & Resubmit
-                    </button>
-                  )}
-                  {bill.status !== "approved" && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => handleDeleteBill(bill.expense_bill_id)}
-                      style={{ padding: "5px 12px", fontSize: "13px", color: "#dc2626" }}
-                    >
-                      Delete
-                    </button>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+        ) : (
+          <div>{filteredBills.map((bill) => renderBillItem(bill))}</div>
         )}
       </div>
 
@@ -669,6 +897,10 @@ export default function TechnicianJrExpenses() {
             <h3 className="fa-modal-title">Edit & Resubmit Expense Bill</h3>
             <div className="fa-modal-body">
               <form onSubmit={handleSaveAndResubmit}>
+                <div className="callout callout--warning" style={{ marginBottom: "14px", fontSize: "13px" }}>
+                  Resubmitted bills always go to Finance for manual review. At least one receipt attachment is required.
+                </div>
+
                 <div className="tech-expense-form-grid">
                   <div className="tech-form-group">
                     <label htmlFor="edit-title">Title *</label>
@@ -750,33 +982,37 @@ export default function TechnicianJrExpenses() {
                 {/* Existing attachments */}
                 <div style={{ marginTop: "16px" }}>
                   <label style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>
-                    Current Receipts:
+                    Current Receipts ({editingBill.attachments?.length || 0}):
                   </label>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "6px" }}>
-                    {editingBill.attachments?.map((att) => (
-                      <span key={att.filename} className="tech-file-chip">
-                        {att.original_name}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDeleteExistingAttachment(
-                              editingBill.expense_bill_id,
-                              att.filename,
-                            )
-                          }
-                          style={{ border: "none", background: "none", cursor: "pointer", color: "#dc2626" }}
-                          title="Remove receipt"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+                    {(!editingBill.attachments || editingBill.attachments.length === 0) ? (
+                      <span style={{ fontSize: "12px", color: "#94a3b8" }}>No receipts currently attached.</span>
+                    ) : (
+                      editingBill.attachments.map((att) => (
+                        <span key={att.filename} className="tech-file-chip">
+                          {att.original_name}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDeleteExistingAttachment(
+                                editingBill.expense_bill_id,
+                                att.filename,
+                              )
+                            }
+                            style={{ border: "none", background: "none", cursor: "pointer", color: "#dc2626" }}
+                            title="Remove receipt"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))
+                    )}
                   </div>
                 </div>
 
                 {/* Add more files */}
                 <div className="tech-form-group" style={{ marginTop: "16px" }}>
-                  <label htmlFor={editFileInputId}>Add Additional / Replacement Receipts</label>
+                  <label htmlFor={editFileInputId}>Add Additional / Replacement Receipts *</label>
                   <input
                     id={editFileInputId}
                     type="file"

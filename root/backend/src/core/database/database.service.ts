@@ -186,7 +186,7 @@ export interface ExpenseBillHistoryEntry {
   at: string;
   by: string;
   role: string;
-  action: "submitted" | "resubmitted" | "approved" | "rejected";
+  action: "submitted" | "resubmitted" | "approved" | "auto_approved" | "rejected" | "revoked";
   note?: string;
 }
 
@@ -204,6 +204,8 @@ export interface ExpenseBill {
   notes?: string | null;
   attachments: ExpenseAttachment[];
   status: ExpenseBillStatus;
+  /** True when the bill was auto-approved under the org's cumulative WO cap. */
+  auto_approved?: boolean;
   reviewed_by_id: string | null;
   reviewed_at: string | null;
   rejection_reason: string | null;
@@ -235,6 +237,8 @@ export interface Organization {
   contract_start: string | null;
   /** Mail domain of this organisation's people (e.g. iiits.in). When set, every account created for the organisation must use it. */
   email_domain?: string | null;
+  /** Cumulative per-Work-Order amount (₹) below which minor bills auto-approve. 0 disables auto-approval. */
+  expense_auto_approve_cap?: number;
 }
 
 export interface User {
@@ -1195,6 +1199,7 @@ export class DatabaseService {
       tariff_rate: 8.5,
       contract_start: "2025-01-01",
       email_domain: null,
+      expense_auto_approve_cap: 1500,
     },
     {
       organization_id: "org-002",
@@ -2711,6 +2716,7 @@ export class DatabaseService {
       notes: "Heavy-duty UV resistant cables and MC4 connectors for Roof Level 3 array inspection repair.",
       attachments: [],
       status: ExpenseBillStatus.SUBMITTED,
+      auto_approved: false,
       reviewed_by_id: null,
       reviewed_at: null,
       rejection_reason: null,
@@ -2739,6 +2745,7 @@ export class DatabaseService {
       notes: "Emergency generator maintenance and load testing run fuel replenishment.",
       attachments: [],
       status: ExpenseBillStatus.APPROVED,
+      auto_approved: false,
       reviewed_by_id: "550e8400-0002-4000-8000-000000000002",
       reviewed_at: "2026-11-19T14:30:00.000Z",
       rejection_reason: null,
@@ -2773,6 +2780,7 @@ export class DatabaseService {
       notes: "Replacement breakers for corridor B2 distribution board.",
       attachments: [],
       status: ExpenseBillStatus.REJECTED,
+      auto_approved: false,
       reviewed_by_id: "550e8400-0002-4000-8000-000000000002",
       reviewed_at: "2026-11-20T09:10:00.000Z",
       rejection_reason: "Receipt photo is blurry; please re-upload a clear invoice showing GST breakdown.",
@@ -2791,6 +2799,36 @@ export class DatabaseService {
           role: "Financial Analyst",
           action: "rejected",
           note: "Receipt photo is blurry; please re-upload a clear invoice showing GST breakdown.",
+        },
+      ],
+    },
+    {
+      expense_bill_id: "eb000000-0004-4000-8000-000000000004",
+      organization_id: "org-001",
+      work_order_id: "660e8600-0002-4000-8000-000000000000",
+      submitted_by_id: "550e8400-0004-4000-8000-000000000004",
+      title: "UV Weatherproof Insulating Tape & Cable Clips",
+      vendor: "Sri City Hardware",
+      category: ExpenseCategory.CONSUMABLES,
+      bill_date: "2026-11-21",
+      bill_number: "SCH-1104",
+      amount: 450,
+      notes: "Minor fasteners and weatherproof insulation tape for roof conduit securing.",
+      attachments: [],
+      status: ExpenseBillStatus.APPROVED,
+      auto_approved: true,
+      reviewed_by_id: null,
+      reviewed_at: "2026-11-21T08:30:00.000Z",
+      rejection_reason: null,
+      created_at: "2026-11-21T08:30:00.000Z",
+      updated_at: "2026-11-21T08:30:00.000Z",
+      history: [
+        {
+          at: "2026-11-21T08:30:00.000Z",
+          by: "550e8400-0004-4000-8000-000000000004",
+          role: "Technician",
+          action: "auto_approved",
+          note: "Auto-approved under cumulative Work Order cap (₹450 / ₹1500)",
         },
       ],
     },
