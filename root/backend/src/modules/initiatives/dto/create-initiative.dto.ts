@@ -4,11 +4,13 @@ import {
   IsEnum,
   IsBoolean,
   IsArray,
+  IsIn,
   IsNumber,
   Min,
   Matches,
 } from "class-validator";
 import { InitiativeStatus, TargetMetric } from "../../../core/database/database.service";
+import { TEAMS } from "../../issue-catalogue/issue-catalogue";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -44,4 +46,10 @@ export class CreateInitiativeDto {
   @IsOptional() @IsArray() @IsString({ each: true }) meter_ids?: string[];
   /** The target it contributes to. */
   @IsOptional() @IsString() target_id?: string;
+
+  // ── On-site work ──
+  /** Does it need technicians on site? If true, teams and target_date are required. */
+  @IsOptional() @IsBoolean() onsite_work?: boolean;
+  /** Technician types needed: electrician, plumber, hvac, cleaning. Start work sends one job to each, in parallel. */
+  @IsOptional() @IsArray() @IsIn(TEAMS, { each: true }) teams?: string[];
 }

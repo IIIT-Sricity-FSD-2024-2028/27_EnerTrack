@@ -50,6 +50,10 @@ const DAY_MS = 24 * 3600 * 1000;
 export interface StudentTicketView {
   id: string;
   status: "Reported" | "Assigned" | "Visited" | "Checking" | "Fixed";
+  /** The kind of problem (catalogue issue type id), so lists can group by it. */
+  issue_type_id: string | null;
+  /** What is wrong, without the place, e.g. "Lights – Flickering". */
+  title: string;
   summary: string;
   location: string;
   reported_on: string | null;
@@ -329,7 +333,7 @@ export class IssueReportsService {
 
   private structuredOpen(): ServiceRequest[] {
     // Jobs raised from a monitoring fault are not student reports.
-    return scopeToTenant(this.database.serviceRequests).filter((t) => t.item_id && !t.source_fault_id && !t.source_finding && !t.source_wastage && this.isOpen(t));
+    return scopeToTenant(this.database.serviceRequests).filter((t) => t.item_id && !t.source_fault_id && !t.source_finding && !t.source_wastage && !t.source_initiative && this.isOpen(t));
   }
 
   private isMine(t: ServiceRequest, user: string) {
@@ -474,6 +478,8 @@ export class IssueReportsService {
     return {
       id: t.service_request_id,
       status: this.studentStatus(t),
+      issue_type_id: t.issue_type_id ?? null,
+      title: t.issue_type ?? "Issue",
       summary: `${t.issue_type ?? "Issue"}: ${place}`,
       location: place,
       reported_on: t.created_at ?? null,
