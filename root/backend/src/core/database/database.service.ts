@@ -162,11 +162,9 @@ export enum ExpenseBillStatus {
 }
 
 export enum ExpenseCategory {
-  PARTS = "parts",
   MATERIALS = "materials",
-  CONSUMABLES = "consumables",
   TOOLS = "tools",
-  TRANSPORT = "transport",
+  LABOUR = "labour",
   OTHER = "other",
 }
 
@@ -2301,7 +2299,10 @@ export class DatabaseService {
     },
   ];
   public serviceRequests: ServiceRequest[] = [];
-  public workOrders: WorkOrder[] = [
+  public workOrders: WorkOrder[] =
+    process.env.CLEAN_SLATE === "true"
+      ? []
+      : [
     {
       work_order_id: "660e8600-0001-4000-8000-000000000000",
       organization_id: "org-001",
@@ -2398,7 +2399,7 @@ export class DatabaseService {
       status: WorkOrderStatus.CLOSED,
       details: { description: "Smart Meter – Energy Lab", type: "emergency", estimateRequired: false },
     },
-  ];
+        ];
 
   public energyCosts: EnergyCost[] = [
     {
@@ -2702,7 +2703,7 @@ export class DatabaseService {
   ];
 
   public expenseBills: ExpenseBill[] =
-    process.env.CLEAN_EXPENSE_SEEDS === "true"
+    process.env.CLEAN_SLATE === "true" || process.env.CLEAN_EXPENSE_SEEDS === "true"
       ? []
       : [
     {
@@ -2741,7 +2742,7 @@ export class DatabaseService {
       submitted_by_id: "550e8400-0004-4000-8000-000000000004",
       title: "Diesel Fuel & Synthetic Engine Oil Top-Up",
       vendor: "Apex Fuel & Lubricants",
-      category: ExpenseCategory.CONSUMABLES,
+      category: ExpenseCategory.MATERIALS,
       bill_date: "2026-11-18",
       bill_number: "AFL-44021",
       amount: 6850,
@@ -2776,7 +2777,7 @@ export class DatabaseService {
       submitted_by_id: "550e8400-0004-4000-8000-000000000004",
       title: "Circuit Breakers 16A & Conduit Pipe",
       vendor: "Metro Hardware Stores",
-      category: ExpenseCategory.PARTS,
+      category: ExpenseCategory.MATERIALS,
       bill_date: "2026-11-19",
       bill_number: "MHS-8821",
       amount: 3150,
@@ -2812,7 +2813,7 @@ export class DatabaseService {
       submitted_by_id: "550e8400-0004-4000-8000-000000000004",
       title: "UV Weatherproof Insulating Tape & Cable Clips",
       vendor: "Sri City Hardware",
-      category: ExpenseCategory.CONSUMABLES,
+      category: ExpenseCategory.MATERIALS,
       bill_date: "2026-11-21",
       bill_number: "SCH-1104",
       amount: 450,

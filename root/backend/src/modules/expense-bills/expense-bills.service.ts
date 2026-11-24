@@ -294,6 +294,7 @@ export class ExpenseBillsService {
     const now = new Date().toISOString();
 
     if (isRevokingAutoApproval) {
+      this.assertWorkOrderNotClosed(bill.work_order_id);
       const reason = dto.rejection_reason?.trim();
       if (!reason) {
         throw new BadRequestException("A rejection reason is required to revoke an auto-approved bill.");

@@ -283,7 +283,9 @@ function FinanceExpensesContent() {
   }
 
   const isAutoApprovedModal =
-    reviewingBill?.status === "approved" && reviewingBill?.auto_approved === true;
+    reviewingBill?.status === "approved" &&
+    reviewingBill?.auto_approved === true &&
+    reviewingBill?.work_order_status !== "closed";
   const isManualApprovedModal =
     reviewingBill?.status === "approved" && !reviewingBill?.auto_approved;
 

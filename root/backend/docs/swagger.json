@@ -9668,7 +9668,7 @@
       "post": {
         "operationId": "ExpenseBillsController_create",
         "summary": "Create Expense Bill",
-        "description": "Submits a new expense bill linked to an inprogress, review, or closed work order.",
+        "description": "Submits a new expense bill linked to an inprogress or review work order.",
         "parameters": [
           {
             "name": "x-role",
@@ -10457,7 +10457,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$relUyE.qHHl994/PSKVAX.IjVoBBR1nPdW.zNTHZEGPhIlB45JXcW",
+          "password": "$2b$08$L7wvcyNUC.CakDiI11vySO1eOyNjsRu/M7Cum9QL0VJIZvzMBiTaO",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -10474,7 +10474,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$relUyE.qHHl994/PSKVAX.IjVoBBR1nPdW.zNTHZEGPhIlB45JXcW",
+          "password": "$2b$08$L7wvcyNUC.CakDiI11vySO1eOyNjsRu/M7Cum9QL0VJIZvzMBiTaO",
           "role": "Organization Admin",
           "specialization": null
         }
@@ -10809,27 +10809,7 @@
       },
       "CreateWorkOrderDto": {
         "type": "object",
-        "properties": {},
-        "example": {
-          "organization_id": "org-001",
-          "assigned_to_id": "550e8400-0004-4000-8000-000000000004",
-          "linked_fault_id": null,
-          "source_request_id": "660e8500-0002-4000-8000-000000000000",
-          "title": "HVAC Filter Replacement – Block A",
-          "priority": "high",
-          "status": "approval",
-          "details": {
-            "description": "HVAC Unit – Block A",
-            "type": "scheduled",
-            "estimateRequired": true,
-            "estimate": {
-              "materials": 18000,
-              "labor": 6500,
-              "total": 24500,
-              "type": "repair"
-            }
-          }
-        }
+        "properties": {}
       },
       "PutWorkOrderDto": {
         "type": "object",
@@ -10837,27 +10817,7 @@
       },
       "UpdateWorkOrderDto": {
         "type": "object",
-        "properties": {},
-        "example": {
-          "organization_id": "org-001",
-          "assigned_to_id": "550e8400-0004-4000-8000-000000000004",
-          "linked_fault_id": null,
-          "source_request_id": "660e8500-0002-4000-8000-000000000000",
-          "title": "HVAC Filter Replacement – Block A",
-          "priority": "high",
-          "status": "approval",
-          "details": {
-            "description": "HVAC Unit – Block A",
-            "type": "scheduled",
-            "estimateRequired": true,
-            "estimate": {
-              "materials": 18000,
-              "labor": 6500,
-              "total": 24500,
-              "type": "repair"
-            }
-          }
-        }
+        "properties": {}
       },
       "CreateEnergyCostDto": {
         "type": "object",
@@ -11097,35 +11057,7 @@
       },
       "CreateExpenseBillDto": {
         "type": "object",
-        "properties": {},
-        "example": {
-          "organization_id": "org-001",
-          "work_order_id": "660e8600-0002-4000-8000-000000000000",
-          "submitted_by_id": "550e8400-0004-4000-8000-000000000004",
-          "title": "Replacement Solar Inverter Cables & Connectors",
-          "vendor": "Sri City Electricals",
-          "category": "materials",
-          "bill_date": "2026-11-20",
-          "bill_number": "SCE-2026-901",
-          "amount": 4200,
-          "notes": "Heavy-duty UV resistant cables and MC4 connectors for Roof Level 3 array inspection repair.",
-          "attachments": [],
-          "status": "submitted",
-          "auto_approved": false,
-          "reviewed_by_id": null,
-          "reviewed_at": null,
-          "rejection_reason": null,
-          "created_at": "2026-11-20T10:15:00.000Z",
-          "updated_at": "2026-11-20T10:15:00.000Z",
-          "history": [
-            {
-              "at": "2026-11-20T10:15:00.000Z",
-              "by": "550e8400-0004-4000-8000-000000000004",
-              "role": "Technician",
-              "action": "submitted"
-            }
-          ]
-        }
+        "properties": {}
       },
       "UpdateExpenseSettingsDto": {
         "type": "object",
@@ -11133,35 +11065,7 @@
       },
       "UpdateExpenseBillDto": {
         "type": "object",
-        "properties": {},
-        "example": {
-          "organization_id": "org-001",
-          "work_order_id": "660e8600-0002-4000-8000-000000000000",
-          "submitted_by_id": "550e8400-0004-4000-8000-000000000004",
-          "title": "Replacement Solar Inverter Cables & Connectors",
-          "vendor": "Sri City Electricals",
-          "category": "materials",
-          "bill_date": "2026-11-20",
-          "bill_number": "SCE-2026-901",
-          "amount": 4200,
-          "notes": "Heavy-duty UV resistant cables and MC4 connectors for Roof Level 3 array inspection repair.",
-          "attachments": [],
-          "status": "submitted",
-          "auto_approved": false,
-          "reviewed_by_id": null,
-          "reviewed_at": null,
-          "rejection_reason": null,
-          "created_at": "2026-11-20T10:15:00.000Z",
-          "updated_at": "2026-11-20T10:15:00.000Z",
-          "history": [
-            {
-              "at": "2026-11-20T10:15:00.000Z",
-              "by": "550e8400-0004-4000-8000-000000000004",
-              "role": "Technician",
-              "action": "submitted"
-            }
-          ]
-        }
+        "properties": {}
       }
     }
   },

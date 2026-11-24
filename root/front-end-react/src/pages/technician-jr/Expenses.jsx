@@ -13,11 +13,9 @@ import "./technician-jr.css";
 import "./expenses.css";
 
 const CATEGORIES = [
-  { value: "parts", label: "Parts" },
   { value: "materials", label: "Materials" },
-  { value: "consumables", label: "Consumables" },
   { value: "tools", label: "Tools" },
-  { value: "transport", label: "Transport" },
+  { value: "labour", label: "Labour" },
   { value: "other", label: "Other" },
 ];
 
