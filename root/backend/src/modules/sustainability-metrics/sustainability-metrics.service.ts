@@ -210,10 +210,10 @@ export class SustainabilityMetricsService {
       let total = 0;
       tenantWastage.forEach((w) => {
         if (w.type === WastageType.FOOD && w.details?.specificData?.estimatedAmount) {
-          const createdPeriod = (w as any).created_at
-            ? (w as any).created_at.slice(0, 7)
-            : periods[0];
-          if (targetPeriods.includes(createdPeriod)) {
+          // A report with no date cannot be placed in a month, so it is not
+          // counted (it used to land in whatever month the view started on).
+          const createdAt = (w as any).created_at;
+          if (typeof createdAt === "string" && targetPeriods.includes(createdAt.slice(0, 7))) {
             total += parseFloat(w.details.specificData.estimatedAmount) || 0;
           }
         }
@@ -379,7 +379,12 @@ export class SustainabilityMetricsService {
         });
         const prevEnergy = Math.round(sum(elec, prevPeriods));
         // Same months a year earlier, like for like (shared with targets).
-        const yoy = compareYoY(meterSum(this.database, elec), periods);
+        // Decommissioned meters are left out, as targets and savings do: a
+        // meter that stopped reporting would otherwise read as a saving.
+        const liveElec = meters
+          .filter((m) => m.meter_type === MeterType.ELECTRICITY && m.status !== MeterStatus.DECOMMISSIONED)
+          .map((m) => m.meter_id);
+        const yoy = compareYoY(meterSum(this.database, liveElec), periods);
         const active = meters.filter((m) => m.status === MeterStatus.ACTIVE);
         return {
           building_id: b.building_id,

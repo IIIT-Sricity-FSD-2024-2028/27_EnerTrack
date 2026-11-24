@@ -43,14 +43,16 @@ import { AddWastageCommentDto } from "./dto/add-wastage-comment.dto";
  *    checked early) Verify Target ──► Target Met ──► Delivered
  *                        └──────────► Target Missed ──► Delivered
  *
- * Older reports may still be "Finalized" (the step before T14); they can
- * still be delivered, and Target Set → Finalized is kept for them.
+ * Once a target is set, the only way on is through Verify Target: a report
+ * cannot be finalised or delivered with its target never checked. A report
+ * that needs no target can still go Validated → Finalized → Delivered, and
+ * older "Finalized" reports can still be delivered.
  */
 const OFFICER_MOVES: Record<string, string[]> = {
   Reported: ["Validated", "Dismissed"],
   Validated: ["Forwarded to Finance", "Target Set", "Finalized", "Dismissed"],
   "Returned to SO": ["Target Set", "Forwarded to Finance", "Finalized", "Dismissed"],
-  "Target Set": ["Verify Target", "Finalized", "Delivered"],
+  "Target Set": ["Verify Target"],
   "Verify Target": ["Target Met", "Target Missed"],
   "Target Met": ["Delivered"],
   "Target Missed": ["Delivered", "Target Set"],
