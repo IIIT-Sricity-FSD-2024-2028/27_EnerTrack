@@ -41,7 +41,7 @@ export class ExpenseBillsController {
   @Post()
   @ApiOperation({
     summary: "Create Expense Bill",
-    description: "Submits a new expense bill linked to an inprogress, review, or closed work order.",
+    description: "Submits a new expense bill linked to an inprogress or review work order.",
   })
   @ApiResponse({ status: 201, description: "Expense bill created successfully." })
   @ApiResponse({ status: 400, description: "Bad Request" })

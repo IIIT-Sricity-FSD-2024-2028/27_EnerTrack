@@ -44,7 +44,6 @@ const WORKFLOW: MoveTable[] = [
 const ALLOWED_WO_STATUSES = new Set([
   WorkOrderStatus.INPROGRESS,
   WorkOrderStatus.REVIEW,
-  WorkOrderStatus.CLOSED,
 ]);
 
 @Injectable()
@@ -93,7 +92,7 @@ export class ExpenseBillsService {
 
     if (!ALLOWED_WO_STATUSES.has(wo.status)) {
       throw new BadRequestException(
-        "Expense bills can only be uploaded for In Progress, Review, or Closed work orders.",
+        "Expense bills can only be created for In Progress or Review work orders.",
       );
     }
 

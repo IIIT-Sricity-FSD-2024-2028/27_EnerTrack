@@ -245,7 +245,7 @@ export default function TechnicianJrWorkOrders() {
       <div className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
           <h2 style={{ margin: 0 }}>Selected Work Order — {formatId(id, "WO")}</h2>
-          {["inprogress", "review", "closed"].includes(selected.status) && (
+          {["inprogress", "review"].includes(selected.status) && (
             <Link
               to={`${PATHS.technicianJr.expenses}?wo=${selected.work_order_id}`}
               className="btn btn-secondary"

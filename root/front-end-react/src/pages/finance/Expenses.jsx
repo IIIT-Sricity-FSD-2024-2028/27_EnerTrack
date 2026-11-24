@@ -10,14 +10,6 @@ import BillAttachmentModal from "../../ui/BillAttachmentModal";
 import sharedCss from "../../styles/finance-analyst/finance_shared.css?inline";
 import "./expenses.css";
 
-const WO_STATUS_LABELS = {
-  new: "New",
-  approval: "Approval",
-  inprogress: "In Progress",
-  review: "Review",
-  closed: "Closed",
-};
-
 function formatWOId(id) {
   if (!id) return "WO-XXXX";
   if (id.startsWith("WO-")) return id;
@@ -28,7 +20,10 @@ function formatWOId(id) {
 
 function renderStatusBadge(bill) {
   if (bill.status === "approved" && bill.auto_approved) {
-    return <span className="badge-status badge-auto-approved">Auto-Approved</span>;
+    return <span className="badge-status badge-auto-approved">Auto</span>;
+  }
+  if (bill.status === "submitted") {
+    return <span className="badge-status badge-submitted">Pending</span>;
   }
   return <span className={`badge-status badge-${bill.status}`}>{bill.status}</span>;
 }
@@ -39,16 +34,14 @@ function FinanceExpensesContent() {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
-  const [activeTab, setActiveTab] = useState("all"); // "submitted", "auto_approved", "approved", "rejected", "all"
-  const [viewMode, setViewMode] = useState("grouped"); // "grouped" | "flat"
+  const [activeTab, setActiveTab] = useState("submitted"); // "submitted", "approved", "rejected"
   const [expandedWos, setExpandedWos] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [overEstimateOnly, setOverEstimateOnly] = useState(false);
 
-  // Settings bar state
+  // Cap modal state
+  const [capModalOpen, setCapModalOpen] = useState(false);
   const [capInput, setCapInput] = useState("1500");
   const [savedCap, setSavedCap] = useState(1500);
-  const [maxAutoApproved, setMaxAutoApproved] = useState(2);
   const [savingCap, setSavingCap] = useState(false);
 
   // Sign-off / Review modal state
@@ -76,9 +69,6 @@ function FinanceExpensesContent() {
             setSavedCap(settings.auto_approve_cap);
             setCapInput(String(settings.auto_approve_cap));
           }
-          if (settings && typeof settings.max_auto_approved_per_wo === "number") {
-            setMaxAutoApproved(settings.max_auto_approved_per_wo);
-          }
           setLoading(false);
         }
       })
@@ -94,8 +84,12 @@ function FinanceExpensesContent() {
     };
   }, [showToast, reloadKey]);
 
-  async function handleSaveCap(e) {
-    e.preventDefault();
+  function openCapModal() {
+    setCapInput(String(savedCap));
+    setCapModalOpen(true);
+  }
+
+  async function handleSaveCap() {
     const numeric = Number(capInput);
     if (!Number.isFinite(numeric) || numeric < 0) {
       showToast("Cap must be a non-negative number.", "error");
@@ -108,6 +102,7 @@ function FinanceExpensesContent() {
       });
       setSavedCap(updated.auto_approve_cap);
       setCapInput(String(updated.auto_approve_cap));
+      setCapModalOpen(false);
       showToast(
         updated.auto_approve_cap === 0
           ? "Auto-approval disabled. All bills now require manual Finance sign-off."
@@ -122,14 +117,9 @@ function FinanceExpensesContent() {
     }
   }
 
-  // Filtered bills
+  // Filtered bills (3 tabs + search)
   const filteredBills = bills.filter((b) => {
-    if (activeTab === "auto_approved") {
-      if (!(b.status === "approved" && b.auto_approved)) return false;
-    } else if (activeTab !== "all" && b.status !== activeTab) {
-      return false;
-    }
-    if (overEstimateOnly && !b.variance?.over_estimate) {
+    if (b.status !== activeTab) {
       return false;
     }
     if (searchQuery.trim()) {
@@ -147,35 +137,21 @@ function FinanceExpensesContent() {
     return true;
   });
 
-  // KPI summaries
-  const pendingBills = bills.filter((b) => b.status === "submitted");
-  const pendingCount = pendingBills.length;
-  const pendingSum = pendingBills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+  const pendingCount = bills.filter((b) => b.status === "submitted").length;
+  const approvedCount = bills.filter((b) => b.status === "approved").length;
+  const rejectedCount = bills.filter((b) => b.status === "rejected").length;
 
-  const approvedBills = bills.filter((b) => b.status === "approved");
-  const autoApprovedBills = approvedBills.filter((b) => b.auto_approved === true);
-  const manualApprovedCount = approvedBills.length - autoApprovedBills.length;
-  const approvedCount = approvedBills.length;
-  const approvedSum = approvedBills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
-
-  const overEstimateFlagged = pendingBills.filter((b) => b.variance?.over_estimate).length;
-
-  // Group filtered bills by work_order_id for By Work Order mode
+  // Group filtered bills by work_order_id
   const woGroupsMap = new Map();
   for (const b of filteredBills) {
     if (!woGroupsMap.has(b.work_order_id)) {
       const allForWo = bills.filter((x) => x.work_order_id === b.work_order_id);
-      const nonRejectedForWo = allForWo.filter((x) => x.status !== "rejected");
       woGroupsMap.set(b.work_order_id, {
         workOrderId: b.work_order_id,
         workOrderTitle: b.work_order_title,
-        workOrderStatus: b.work_order_status,
         submittedByName: b.submitted_by_name,
         variance: b.variance,
-        totalBilledSoFar: nonRejectedForWo.reduce((s, x) => s + Number(x.amount || 0), 0),
-        totalNonRejectedCount: nonRejectedForWo.length,
         pendingCount: allForWo.filter((x) => x.status === "submitted").length,
-        approvedCount: allForWo.filter((x) => x.status === "approved").length,
         rejectedCount: allForWo.filter((x) => x.status === "rejected").length,
         bills: [],
       });
@@ -186,6 +162,19 @@ function FinanceExpensesContent() {
 
   function toggleWoGroup(woId) {
     setExpandedWos((prev) => ({ ...prev, [woId]: !prev[woId] }));
+  }
+
+  function renderHeaderSignalBadge(group) {
+    if (group.variance?.over_estimate) {
+      return <span className="badge-variance-over">Over estimate</span>;
+    }
+    if (group.pendingCount > 0) {
+      return <span className="badge-status badge-submitted">{group.pendingCount} to review</span>;
+    }
+    if (group.rejectedCount > 0) {
+      return <span className="badge-cap-warn">Rejected</span>;
+    }
+    return <span className="badge-status badge-approved">Approved</span>;
   }
 
   // Actions
@@ -247,75 +236,29 @@ function FinanceExpensesContent() {
   return (
     <FinanceLayout styles={[sharedCss]}>
       <div className="finance-expenses-page">
-        <div style={{ marginBottom: "20px" }}>
-          <h1 style={{ margin: "0 0 6px 0", fontSize: "24px", color: "#0f172a" }}>
-            Expense Bills Verification & Sign-Off
-          </h1>
-          <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
-            Review technician material receipts, evaluate variance against work order estimates, and sign off.
-          </p>
+        {/* Clean Header + Compact Cap Trigger */}
+        <div className="fe-header-row">
+          <div>
+            <h1 style={{ margin: "0 0 4px 0", fontSize: "24px", color: "#0f172a" }}>
+              Expense Bills
+            </h1>
+            <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
+              Review and sign off technician expense claims.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="fe-cap-trigger"
+            onClick={openCapModal}
+          >
+            <span>
+              {savedCap === 0 ? "Auto-approve: Off" : `Auto-approve cap: ${formatCurrency(savedCap)}`}
+            </span>
+            <span className="fe-cap-edit-tag">Edit</span>
+          </button>
         </div>
 
-        {/* Auto-Approve Cap Control Bar */}
-        <form className="fe-cap-bar" onSubmit={handleSaveCap}>
-          <div className="fe-cap-info">
-            <label htmlFor="auto-approve-cap-input" className="fe-cap-title">
-              Minor Expense Auto-Approve Cap (cumulative per Work Order, max {maxAutoApproved} bills)
-            </label>
-            <div className="fe-cap-note">
-              Set to ₹0 to require manual Finance approval for all bills. Currently:{" "}
-              <strong>{savedCap === 0 ? "Disabled (₹0)" : formatCurrency(savedCap)}</strong>
-            </div>
-          </div>
-          <div className="fe-cap-actions">
-            <div className="fe-cap-input-wrap">
-              <span>₹</span>
-              <input
-                id="auto-approve-cap-input"
-                type="number"
-                min="0"
-                step="100"
-                value={capInput}
-                onChange={(e) => setCapInput(e.target.value)}
-                disabled={savingCap}
-              />
-            </div>
-            <button type="submit" className="fo-btn primary" disabled={savingCap}>
-              {savingCap ? "Saving…" : "Save Cap"}
-            </button>
-          </div>
-        </form>
-
-        {/* KPI Cards */}
-        <div className="fe-kpi-grid">
-          <div className="fe-kpi-card">
-            <div className="fe-kpi-label">Pending Sign-Off</div>
-            <div className="fe-kpi-value" style={{ color: "#0284c7" }}>
-              {pendingCount}
-            </div>
-            <div className="fe-kpi-sub">Total {formatCurrency(pendingSum)}</div>
-          </div>
-
-          <div className="fe-kpi-card">
-            <div className="fe-kpi-label">Approved Spend</div>
-            <div className="fe-kpi-value" style={{ color: "#16a34a" }}>
-              {formatCurrency(approvedSum)}
-            </div>
-            <div className="fe-kpi-sub">
-              {approvedCount} bill(s) ({manualApprovedCount} manual, {autoApprovedBills.length} auto-approved)
-            </div>
-          </div>
-
-          <div className="fe-kpi-card">
-            <div className="fe-kpi-label">Over-Estimate Flagged</div>
-            <div className="fe-kpi-value" style={{ color: overEstimateFlagged > 0 ? "#b45309" : "#64748b" }}>
-              {overEstimateFlagged}
-            </div>
-            <div className="fe-kpi-sub">Pending bills exceeding estimates</div>
-          </div>
-        </div>
-
-        {/* Filter bar */}
+        {/* 3 Tabs + Search */}
         <div className="fe-controls">
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             <button
@@ -323,14 +266,7 @@ function FinanceExpensesContent() {
               className={`fo-btn ${activeTab === "submitted" ? "primary" : ""}`}
               onClick={() => setActiveTab("submitted")}
             >
-              Pending Review ({pendingCount})
-            </button>
-            <button
-              type="button"
-              className={`fo-btn ${activeTab === "auto_approved" ? "primary" : ""}`}
-              onClick={() => setActiveTab("auto_approved")}
-            >
-              Auto-Approved ({autoApprovedBills.length})
+              Pending ({pendingCount})
             </button>
             <button
               type="button"
@@ -344,70 +280,38 @@ function FinanceExpensesContent() {
               className={`fo-btn ${activeTab === "rejected" ? "primary" : ""}`}
               onClick={() => setActiveTab("rejected")}
             >
-              Rejected ({bills.filter((b) => b.status === "rejected").length})
-            </button>
-            <button
-              type="button"
-              className={`fo-btn ${activeTab === "all" ? "primary" : ""}`}
-              onClick={() => setActiveTab("all")}
-            >
-              All ({bills.length})
+              Rejected ({rejectedCount})
             </button>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-            <div className="fe-view-toggle">
-              <button
-                type="button"
-                className={`fe-view-btn ${viewMode === "grouped" ? "active" : ""}`}
-                onClick={() => setViewMode("grouped")}
-              >
-                By Work Order
-              </button>
-              <button
-                type="button"
-                className={`fe-view-btn ${viewMode === "flat" ? "active" : ""}`}
-                onClick={() => setViewMode("flat")}
-              >
-                Flat Table
-              </button>
-            </div>
-
-            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", color: "#334155" }}>
-              <input
-                type="checkbox"
-                checked={overEstimateOnly}
-                onChange={(e) => setOverEstimateOnly(e.target.checked)}
-              />
-              Over estimate only
-            </label>
-
-            <input
-              type="text"
-              className="fe-search-input"
-              placeholder="Search title, vendor, WO, tech…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+          <input
+            type="text"
+            className="fe-search-input"
+            placeholder="Search bill, vendor, WO, tech…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
 
-        {/* Grouped by Work Order or Flat Table */}
+        {/* Work Order Accordion List */}
         {loading ? (
           <div className="fe-table-card" style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
             Loading expense bills…
           </div>
-        ) : filteredBills.length === 0 ? (
+        ) : woGroups.length === 0 ? (
           <div className="fe-table-card" style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
             No expense bills match current filters.
           </div>
-        ) : viewMode === "grouped" ? (
+        ) : (
           <div className="fe-wo-list">
             {woGroups.map((group) => {
               const isExpanded = !!expandedWos[group.workOrderId];
-              const estText = group.variance?.has_estimate
-                ? formatCurrency(group.variance.estimated_total)
-                : "No estimate";
+              const groupSum = group.bills.reduce((s, x) => s + Number(x.amount || 0), 0);
+              const displayTotal =
+                activeTab === "rejected"
+                  ? groupSum
+                  : (group.variance?.work_order_billed_total ?? groupSum);
+
               return (
                 <div key={group.workOrderId} className="fe-wo-card">
                   <button
@@ -421,54 +325,54 @@ function FinanceExpensesContent() {
                       <div>
                         <div className="fe-wo-title-row">
                           <strong>
-                            {formatWOId(group.workOrderId)} — {group.workOrderTitle}
+                            {formatWOId(group.workOrderId)} · {group.workOrderTitle}
                           </strong>
-                          {group.workOrderStatus && (
-                            <span className="fe-wo-status">
-                              {WO_STATUS_LABELS[group.workOrderStatus] || group.workOrderStatus}
-                            </span>
-                          )}
                         </div>
                         <div className="fe-wo-meta">
-                          <span>Technician: <strong>{group.submittedByName}</strong></span>
-                          <span>•</span>
-                          <span>Estimate: <strong>{estText}</strong></span>
-                          <span>•</span>
                           <span>
-                            Total Billed So Far: <strong>{formatCurrency(group.totalBilledSoFar)}</strong> across{" "}
-                            {group.totalNonRejectedCount} bill(s) ({group.pendingCount} pending, {group.approvedCount} approved, {group.rejectedCount} rejected)
+                            {group.submittedByName} · {group.bills.length} bill
+                            {group.bills.length === 1 ? "" : "s"}
                           </span>
                         </div>
                       </div>
                     </div>
 
                     <div className="fe-wo-badges">
-                      {group.variance?.over_estimate && (
-                        <span className="badge-variance-over">
-                          +{formatCurrency(group.variance.variance_amount)} over estimate
-                        </span>
-                      )}
-                      {group.variance?.exceeds_auto_approve_cap && (
-                        <span className="badge-cap-warn">Cap exceeded</span>
-                      )}
-                      {group.variance?.split_bill_watch && (
-                        <span className="badge-cap-warn">
-                          Split-bill watch ({group.variance.work_order_bill_count} bills)
-                        </span>
-                      )}
+                      <div className="fe-wo-amount-wrap">
+                        <strong className="fe-wo-total">{formatCurrency(displayTotal)}</strong>
+                        {group.variance?.has_estimate && (
+                          <span className="fe-wo-est">
+                            / {formatCurrency(group.variance.estimated_total)} est.
+                          </span>
+                        )}
+                      </div>
+                      {renderHeaderSignalBadge(group)}
                     </div>
                   </button>
 
                   {isExpanded && (
                     <div className="fe-wo-body">
+                      {(group.variance?.exceeds_auto_approve_cap || group.variance?.split_bill_watch) && (
+                        <div className="fe-wo-inline-warnings">
+                          {group.variance?.exceeds_auto_approve_cap && (
+                            <span className="badge-cap-warn">
+                              Cap exceeded ({formatCurrency(group.variance.work_order_billed_total)} /{" "}
+                              {formatCurrency(group.variance.auto_approve_cap)})
+                            </span>
+                          )}
+                          {group.variance?.split_bill_watch && (
+                            <span className="badge-cap-warn">
+                              Split-bill watch ({group.variance.work_order_bill_count} bills)
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <table className="fe-table">
                         <thead>
                           <tr>
-                            <th>Title</th>
-                            <th>Vendor / Category</th>
-                            <th>Bill Date</th>
+                            <th>Bill</th>
+                            <th>Date</th>
                             <th>Amount</th>
-                            <th>Receipts</th>
                             <th>Status</th>
                             <th>Action</th>
                           </tr>
@@ -478,36 +382,11 @@ function FinanceExpensesContent() {
                             <tr key={b.expense_bill_id}>
                               <td>
                                 <div style={{ fontWeight: 600, color: "#0f172a" }}>{b.title}</div>
-                                {b.bill_number && (
-                                  <div style={{ fontSize: "12px", color: "#64748b" }}>#{b.bill_number}</div>
-                                )}
-                              </td>
-                              <td>
-                                <div>{b.vendor}</div>
-                                <div style={{ fontSize: "12px", color: "#64748b", textTransform: "capitalize" }}>
-                                  {b.category}
-                                </div>
+                                <div style={{ fontSize: "12px", color: "#64748b" }}>{b.vendor}</div>
                               </td>
                               <td style={{ whiteSpace: "nowrap" }}>{b.bill_date}</td>
                               <td>
                                 <strong style={{ color: "#0f172a" }}>{formatCurrency(b.amount)}</strong>
-                              </td>
-                              <td>
-                                {b.attachments?.length > 0 ? (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setPreviewModal({ bill: b, initialAttachment: b.attachments[0] })
-                                    }
-                                    className="fe-receipt-btn"
-                                  >
-                                    📎 {b.attachments.length} receipt{b.attachments.length > 1 ? "s" : ""}
-                                  </button>
-                                ) : (
-                                  <span style={{ fontSize: "12px", color: "#94a3b8" }}>
-                                    {b.auto_approved ? "Optional" : "None"}
-                                  </span>
-                                )}
                               </td>
                               <td>{renderStatusBadge(b)}</td>
                               <td>
@@ -530,88 +409,40 @@ function FinanceExpensesContent() {
               );
             })}
           </div>
-        ) : (
-          <div className="fe-table-card">
-            <table className="fe-table">
-              <thead>
-                <tr>
-                  <th>Bill & Work Order</th>
-                  <th>Technician</th>
-                  <th>Vendor / Category</th>
-                  <th>Bill Date</th>
-                  <th>Amount</th>
-                  <th>Estimate vs. Actual</th>
-                  <th>Receipts</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredBills.map((b) => {
-                  const hasEstimate = b.variance?.has_estimate;
-                  const isOver = b.variance?.over_estimate;
-                  return (
-                    <tr key={b.expense_bill_id}>
-                      <td>
-                        <div style={{ fontWeight: 600, color: "#0f172a" }}>{b.title}</div>
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>
-                          {formatWOId(b.work_order_id)} — {b.work_order_title}
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 500 }}>{b.submitted_by_name}</div>
-                      </td>
-                      <td>
-                        <div>{b.vendor}</div>
-                        <div style={{ fontSize: "12px", color: "#64748b", textTransform: "capitalize" }}>{b.category}</div>
-                      </td>
-                      <td style={{ whiteSpace: "nowrap" }}>{b.bill_date}</td>
-                      <td>
-                        <strong style={{ color: "#0f172a" }}>{formatCurrency(b.amount)}</strong>
-                      </td>
-                      <td>
-                        {!hasEstimate ? (
-                          <span className="badge-variance-none">No estimate</span>
-                        ) : isOver ? (
-                          <span className="badge-variance-over">
-                            +{formatCurrency(b.variance.variance_amount)} over
-                          </span>
-                        ) : (
-                          <span className="badge-variance-ok">Within estimate</span>
-                        )}
-                      </td>
-                      <td>
-                        {b.attachments?.length > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() => setPreviewModal({ bill: b, initialAttachment: b.attachments[0] })}
-                            className="fe-receipt-btn"
-                          >
-                            📎 {b.attachments.length} receipt{b.attachments.length > 1 ? "s" : ""}
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: "12px", color: "#94a3b8" }}>
-                            {b.auto_approved ? "Optional" : "None"}
-                          </span>
-                        )}
-                      </td>
-                      <td>{renderStatusBadge(b)}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className={`fo-btn ${b.status === "submitted" ? "primary" : ""}`}
-                          onClick={() => openReview(b)}
-                          style={{ padding: "4px 10px", fontSize: "12px" }}
-                        >
-                          {b.status === "submitted" ? "Review" : "View"}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        )}
+
+        {/* Cap Edit Modal */}
+        {capModalOpen && (
+          <Modal
+            title="Minor Expense Auto-Approve Cap"
+            confirmLabel="Save"
+            cancelLabel="Cancel"
+            busy={savingCap}
+            onConfirm={handleSaveCap}
+            onClose={() => setCapModalOpen(false)}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <label htmlFor="cap-modal-input" style={{ fontSize: "13px", fontWeight: 600, color: "#0f172a" }}>
+                Cumulative Cap per Work Order (₹)
+              </label>
+              <div className="fe-cap-input-wrap" style={{ width: "100%" }}>
+                <span>₹</span>
+                <input
+                  id="cap-modal-input"
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={capInput}
+                  onChange={(e) => setCapInput(e.target.value)}
+                  disabled={savingCap}
+                  style={{ width: "100%" }}
+                />
+              </div>
+              <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
+                Applies cumulatively per Work Order, max 2 bills. Set to 0 to disable.
+              </p>
+            </div>
+          </Modal>
         )}
 
         {/* Attachment preview modal */}
@@ -633,7 +464,6 @@ function FinanceExpensesContent() {
             onClose={() => setReviewingBill(null)}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {/* Auto-approved / Manually signed-off status banner */}
               {isAutoApprovedModal && (
                 <div className="fe-auto-banner">
                   <div>
@@ -654,7 +484,22 @@ function FinanceExpensesContent() {
                 </div>
               )}
 
-              {/* Top details grid */}
+              {(reviewingBill.variance?.exceeds_auto_approve_cap || reviewingBill.variance?.split_bill_watch) && (
+                <div className="fe-wo-inline-warnings" style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #fde68a", background: "#fffbeb" }}>
+                  {reviewingBill.variance?.exceeds_auto_approve_cap && (
+                    <span className="badge-cap-warn">
+                      Cap exceeded ({formatCurrency(reviewingBill.variance.work_order_billed_total)} /{" "}
+                      {formatCurrency(reviewingBill.variance.auto_approve_cap)})
+                    </span>
+                  )}
+                  {reviewingBill.variance?.split_bill_watch && (
+                    <span className="badge-cap-warn">
+                      Split-bill watch ({reviewingBill.variance.work_order_bill_count} bills on this WO)
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", background: "#f8fafc", padding: "16px", borderRadius: "6px" }}>
                 <div>
                   <div style={{ fontSize: "12px", color: "#64748b" }}>Work Order:</div>
@@ -785,7 +630,7 @@ function FinanceExpensesContent() {
                 </div>
               )}
 
-              {/* Decision Controls (submitted bills OR revoking auto-approved bills) */}
+              {/* Decision Controls */}
               {(reviewingBill.status === "submitted" || isAutoApprovedModal) && (
                 <div style={{ marginTop: "16px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
                   {!rejecting ? (
