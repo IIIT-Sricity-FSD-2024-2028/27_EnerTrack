@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../api/client";
 import FinanceLayout from "./components/FinanceLayout";
 import Modal from "./components/Modal";
@@ -6,8 +7,11 @@ import ToastProvider from "./components/ToastProvider";
 import { useToast } from "./components/toastContext";
 import { formatCurrency } from "./financeUtils";
 import BillAttachmentModal from "../../ui/BillAttachmentModal";
+import MaintenanceApprovals from "./overview/MaintenanceApprovals";
 
+import overviewCss from "../../styles/finance-analyst/finance_overview.css?inline";
 import sharedCss from "../../styles/finance-analyst/finance_shared.css?inline";
+import pageCss from "./overview/overview.css?inline";
 import "./expenses.css";
 
 function formatWOId(id) {
@@ -28,14 +32,56 @@ function renderStatusBadge(bill) {
   return <span className={`badge-status badge-${bill.status}`}>{bill.status}</span>;
 }
 
+function groupBillsByWorkOrder(billList) {
+  const map = new Map();
+  for (const b of billList) {
+    if (!map.has(b.work_order_id)) {
+      map.set(b.work_order_id, {
+        workOrderId: b.work_order_id,
+        workOrderTitle: b.work_order_title,
+        workOrderStatus: b.work_order_status,
+        submittedByName: b.submitted_by_name,
+        variance: b.variance,
+        bills: [],
+      });
+    }
+    map.get(b.work_order_id).bills.push(b);
+  }
+  return Array.from(map.values()).map((g) => {
+    const pendingCount = g.bills.filter((x) => x.status === "submitted").length;
+    const approvedCount = g.bills.filter((x) => x.status === "approved").length;
+    const rejectedCount = g.bills.filter((x) => x.status === "rejected").length;
+    const totalNonRejectedBilled = g.bills
+      .filter((x) => x.status !== "rejected")
+      .reduce((sum, x) => sum + Number(x.amount || 0), 0);
+    return {
+      ...g,
+      pendingCount,
+      approvedCount,
+      rejectedCount,
+      totalNonRejectedBilled,
+    };
+  });
+}
+
+function defaultFinanceInnerTab(group) {
+  if (group.pendingCount > 0) return "submitted";
+  if (group.approvedCount > 0) return "approved";
+  return "rejected";
+}
+
 function FinanceExpensesContent() {
   const showToast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const topTab = searchParams.get("tab") === "quotes" ? "quotes" : "bills";
 
   const [bills, setBills] = useState([]);
+  const [quoteCount, setQuoteCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
-  const [activeTab, setActiveTab] = useState("submitted"); // "submitted", "approved", "rejected"
+  const [woScope, setWoScope] = useState("active"); // "active" | "archived"
   const [expandedWos, setExpandedWos] = useState({});
+  const [woInnerTab, setWoInnerTab] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
 
   // Cap modal state
@@ -57,14 +103,19 @@ function FinanceExpensesContent() {
     let cancelled = false;
     Promise.all([
       api.get("/expense-bills"),
+      api.get("/work-orders").catch(() => []),
       api.get("/expense-bills/settings").catch(() => ({
         auto_approve_cap: 1500,
         max_auto_approved_per_wo: 2,
       })),
     ])
-      .then(([data, settings]) => {
+      .then(([data, wos, settings]) => {
         if (!cancelled) {
           setBills(Array.isArray(data) ? data : []);
+          const approvalWos = Array.isArray(wos)
+            ? wos.filter((w) => w.status === "approval")
+            : [];
+          setQuoteCount(approvalWos.length);
           if (settings && typeof settings.auto_approve_cap === "number") {
             setSavedCap(settings.auto_approve_cap);
             setCapInput(String(settings.auto_approve_cap));
@@ -74,7 +125,7 @@ function FinanceExpensesContent() {
       })
       .catch((err) => {
         if (!cancelled) {
-          showToast(err.message || "Failed to load expense bills.", "error");
+          showToast(err.message || "Failed to load maintenance spend data.", "error");
           setLoading(false);
         }
       });
@@ -83,6 +134,14 @@ function FinanceExpensesContent() {
       cancelled = true;
     };
   }, [showToast, reloadKey]);
+
+  function switchTopTab(nextTab) {
+    if (nextTab === "quotes") {
+      setSearchParams({ tab: "quotes" }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  }
 
   function openCapModal() {
     setCapInput(String(savedCap));
@@ -117,51 +176,46 @@ function FinanceExpensesContent() {
     }
   }
 
-  // Filtered bills (3 tabs + search)
-  const filteredBills = bills.filter((b) => {
-    if (b.status !== activeTab) {
-      return false;
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = (b.title || "").toLowerCase().includes(q);
-      const matchVendor = (b.vendor || "").toLowerCase().includes(q);
-      const matchWo = (b.work_order_title || "").toLowerCase().includes(q);
-      const matchWoId = formatWOId(b.work_order_id).toLowerCase().includes(q);
-      const matchTech = (b.submitted_by_name || "").toLowerCase().includes(q);
-      const matchNum = (b.bill_number || "").toLowerCase().includes(q);
-      if (!matchTitle && !matchVendor && !matchWo && !matchWoId && !matchTech && !matchNum) {
-        return false;
-      }
-    }
-    return true;
-  });
-
   const pendingCount = bills.filter((b) => b.status === "submitted").length;
-  const approvedCount = bills.filter((b) => b.status === "approved").length;
-  const rejectedCount = bills.filter((b) => b.status === "rejected").length;
 
-  // Group filtered bills by work_order_id
-  const woGroupsMap = new Map();
-  for (const b of filteredBills) {
-    if (!woGroupsMap.has(b.work_order_id)) {
-      const allForWo = bills.filter((x) => x.work_order_id === b.work_order_id);
-      woGroupsMap.set(b.work_order_id, {
-        workOrderId: b.work_order_id,
-        workOrderTitle: b.work_order_title,
-        submittedByName: b.submitted_by_name,
-        variance: b.variance,
-        pendingCount: allForWo.filter((x) => x.status === "submitted").length,
-        rejectedCount: allForWo.filter((x) => x.status === "rejected").length,
-        bills: [],
-      });
-    }
-    woGroupsMap.get(b.work_order_id).bills.push(b);
-  }
-  const woGroups = Array.from(woGroupsMap.values());
+  // Apply search across bills while keeping each Work Order grouped together
+  const searchFilteredBills = searchQuery.trim()
+    ? bills.filter((b) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          (b.title || "").toLowerCase().includes(q) ||
+          (b.vendor || "").toLowerCase().includes(q) ||
+          (b.work_order_title || "").toLowerCase().includes(q) ||
+          formatWOId(b.work_order_id).toLowerCase().includes(q) ||
+          (b.submitted_by_name || "").toLowerCase().includes(q) ||
+          (b.bill_number || "").toLowerCase().includes(q)
+        );
+      })
+    : bills;
+
+  const activeGroups = groupBillsByWorkOrder(
+    searchFilteredBills.filter((b) => b.work_order_status !== "closed"),
+  );
+  const archivedGroups = groupBillsByWorkOrder(
+    searchFilteredBills.filter((b) => b.work_order_status === "closed"),
+  );
+  const visibleGroups = woScope === "active" ? activeGroups : archivedGroups;
 
   function toggleWoGroup(woId) {
     setExpandedWos((prev) => ({ ...prev, [woId]: !prev[woId] }));
+  }
+
+  function getActiveInnerTab(group) {
+    const counts = {
+      submitted: group.pendingCount,
+      approved: group.approvedCount,
+      rejected: group.rejectedCount,
+    };
+    const chosen = woInnerTab[group.workOrderId];
+    if (chosen && counts[chosen] > 0) {
+      return chosen;
+    }
+    return defaultFinanceInnerTab(group);
   }
 
   function renderHeaderSignalBadge(group) {
@@ -182,7 +236,7 @@ function FinanceExpensesContent() {
     setActionBusy(true);
     try {
       await api.patch(`/expense-bills/${billId}`, { status: "approved" });
-      showToast("Expense bill signed off and approved successfully!", "success");
+      showToast("Expense bill verified and cleared for settlement.", "success");
       setReviewingBill(null);
       setRejecting(false);
       setRejectionReason("");
@@ -196,7 +250,7 @@ function FinanceExpensesContent() {
 
   async function handleReject(billId, isRevoke = false) {
     if (!rejectionReason.trim()) {
-      showToast("Please provide a rejection reason.", "error");
+      showToast("Please provide a clarification or hold reason.", "error");
       return;
     }
     setActionBusy(true);
@@ -207,8 +261,8 @@ function FinanceExpensesContent() {
       });
       showToast(
         isRevoke
-          ? "Auto-approval revoked; technician notified to attach receipt & resubmit."
-          : "Expense bill rejected; technician notified for revision.",
+          ? "Auto-approval held & revoked; technician notified to attach receipt & resubmit."
+          : "Expense bill placed on hold; technician notified for clarification.",
         "warning",
       );
       setReviewingBill(null);
@@ -234,181 +288,248 @@ function FinanceExpensesContent() {
     reviewingBill?.status === "approved" && !reviewingBill?.auto_approved;
 
   return (
-    <FinanceLayout styles={[sharedCss]}>
+    <FinanceLayout styles={[sharedCss, overviewCss, pageCss]}>
       <div className="finance-expenses-page">
         {/* Clean Header + Compact Cap Trigger */}
         <div className="fe-header-row">
           <div>
             <h1 style={{ margin: "0 0 4px 0", fontSize: "24px", color: "#0f172a" }}>
-              Expense Bills
+              Maintenance Spend
             </h1>
             <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
-              Review and sign off technician expense claims.
+              Authorize pre-work quotes and verify actual expense receipts.
             </p>
           </div>
+          {topTab === "bills" && (
+            <button
+              type="button"
+              className="fe-cap-trigger"
+              onClick={openCapModal}
+            >
+              <span>
+                {savedCap === 0 ? "Auto-approve: Off" : `Auto-approve cap: ${formatCurrency(savedCap)}`}
+              </span>
+              <span className="fe-cap-edit-tag">Edit</span>
+            </button>
+          )}
+        </div>
+
+        {/* Unified 2-Tab Switcher */}
+        <div className="fe-top-tabs">
           <button
             type="button"
-            className="fe-cap-trigger"
-            onClick={openCapModal}
+            className={`fe-top-tab ${topTab === "bills" ? "active" : ""}`}
+            onClick={() => switchTopTab("bills")}
           >
-            <span>
-              {savedCap === 0 ? "Auto-approve: Off" : `Auto-approve cap: ${formatCurrency(savedCap)}`}
-            </span>
-            <span className="fe-cap-edit-tag">Edit</span>
+            Expense Bills ({pendingCount})
+          </button>
+          <button
+            type="button"
+            className={`fe-top-tab ${topTab === "quotes" ? "active" : ""}`}
+            onClick={() => switchTopTab("quotes")}
+          >
+            Pre-Work Quotes ({quoteCount})
           </button>
         </div>
 
-        {/* 3 Tabs + Search */}
-        <div className="fe-controls">
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className={`fo-btn ${activeTab === "submitted" ? "primary" : ""}`}
-              onClick={() => setActiveTab("submitted")}
-            >
-              Pending ({pendingCount})
-            </button>
-            <button
-              type="button"
-              className={`fo-btn ${activeTab === "approved" ? "primary" : ""}`}
-              onClick={() => setActiveTab("approved")}
-            >
-              Approved ({approvedCount})
-            </button>
-            <button
-              type="button"
-              className={`fo-btn ${activeTab === "rejected" ? "primary" : ""}`}
-              onClick={() => setActiveTab("rejected")}
-            >
-              Rejected ({rejectedCount})
-            </button>
-          </div>
-
-          <input
-            type="text"
-            className="fe-search-input"
-            placeholder="Search bill, vendor, WO, tech…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        {/* Work Order Accordion List */}
-        {loading ? (
-          <div className="fe-table-card" style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
-            Loading expense bills…
-          </div>
-        ) : woGroups.length === 0 ? (
-          <div className="fe-table-card" style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
-            No expense bills match current filters.
-          </div>
+        {topTab === "quotes" ? (
+          <MaintenanceApprovals onChange={() => setReloadKey((k) => k + 1)} />
         ) : (
-          <div className="fe-wo-list">
-            {woGroups.map((group) => {
-              const isExpanded = !!expandedWos[group.workOrderId];
-              const groupSum = group.bills.reduce((s, x) => s + Number(x.amount || 0), 0);
-              const displayTotal =
-                activeTab === "rejected"
-                  ? groupSum
-                  : (group.variance?.work_order_billed_total ?? groupSum);
+          <>
+            {/* Active / Archived View Pills + Search */}
+            <div className="fe-controls">
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className={`fo-btn ${woScope === "active" ? "primary" : ""}`}
+                  onClick={() => setWoScope("active")}
+                >
+                  Active Work Orders ({activeGroups.length})
+                </button>
+                <button
+                  type="button"
+                  className={`fo-btn ${woScope === "archived" ? "primary" : ""}`}
+                  onClick={() => setWoScope("archived")}
+                >
+                  Archived / Closed ({archivedGroups.length})
+                </button>
+              </div>
 
-              return (
-                <div key={group.workOrderId} className="fe-wo-card">
-                  <button
-                    type="button"
-                    className="fe-wo-header"
-                    onClick={() => toggleWoGroup(group.workOrderId)}
-                    aria-expanded={isExpanded}
-                  >
-                    <div className="fe-wo-header-main">
-                      <span className="fe-wo-chevron">{isExpanded ? "▾" : "▸"}</span>
-                      <div>
-                        <div className="fe-wo-title-row">
-                          <strong>
-                            {formatWOId(group.workOrderId)} · {group.workOrderTitle}
-                          </strong>
+              <input
+                type="text"
+                className="fe-search-input"
+                placeholder="Search bill, vendor, WO, tech…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Work Order Accordion List */}
+            {loading ? (
+              <div className="fe-table-card" style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+                Loading expense bills…
+              </div>
+            ) : visibleGroups.length === 0 ? (
+              <div className="fe-table-card" style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+                {woScope === "active"
+                  ? "No active work orders with expense bills match your search."
+                  : "No archived work orders with expense bills match your search."}
+              </div>
+            ) : (
+              <div className="fe-wo-list">
+                {visibleGroups.map((group) => {
+                  const isExpanded = !!expandedWos[group.workOrderId];
+                  const innerTab = getActiveInnerTab(group);
+                  const innerBills = group.bills.filter((b) => b.status === innerTab);
+
+                  return (
+                    <div key={group.workOrderId} className="fe-wo-card">
+                      <button
+                        type="button"
+                        className="fe-wo-header"
+                        onClick={() => toggleWoGroup(group.workOrderId)}
+                        aria-expanded={isExpanded}
+                      >
+                        <div className="fe-wo-header-main">
+                          <span className="fe-wo-chevron">{isExpanded ? "▾" : "▸"}</span>
+                          <div>
+                            <div className="fe-wo-title-row">
+                              <strong>
+                                {formatWOId(group.workOrderId)} · {group.workOrderTitle}
+                              </strong>
+                            </div>
+                            <div className="fe-wo-meta">
+                              <span>
+                                {group.submittedByName} · {group.bills.length} bill
+                                {group.bills.length === 1 ? "" : "s"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="fe-wo-meta">
-                          <span>
-                            {group.submittedByName} · {group.bills.length} bill
-                            {group.bills.length === 1 ? "" : "s"}
-                          </span>
+
+                        <div className="fe-wo-badges">
+                          <div className="fe-wo-amount-wrap">
+                            <strong className="fe-wo-total">
+                              {formatCurrency(group.totalNonRejectedBilled)}
+                            </strong>
+                            {group.variance?.has_estimate && (
+                              <span className="fe-wo-est">
+                                / {formatCurrency(group.variance.estimated_total)} est.
+                              </span>
+                            )}
+                          </div>
+                          {renderHeaderSignalBadge(group)}
                         </div>
-                      </div>
-                    </div>
+                      </button>
 
-                    <div className="fe-wo-badges">
-                      <div className="fe-wo-amount-wrap">
-                        <strong className="fe-wo-total">{formatCurrency(displayTotal)}</strong>
-                        {group.variance?.has_estimate && (
-                          <span className="fe-wo-est">
-                            / {formatCurrency(group.variance.estimated_total)} est.
-                          </span>
-                        )}
-                      </div>
-                      {renderHeaderSignalBadge(group)}
-                    </div>
-                  </button>
-
-                  {isExpanded && (
-                    <div className="fe-wo-body">
-                      {(group.variance?.exceeds_auto_approve_cap || group.variance?.split_bill_watch) && (
-                        <div className="fe-wo-inline-warnings">
-                          {group.variance?.exceeds_auto_approve_cap && (
-                            <span className="badge-cap-warn">
-                              Cap exceeded ({formatCurrency(group.variance.work_order_billed_total)} /{" "}
-                              {formatCurrency(group.variance.auto_approve_cap)})
-                            </span>
+                      {isExpanded && (
+                        <div className="fe-wo-body">
+                          {(group.variance?.exceeds_auto_approve_cap || group.variance?.split_bill_watch) && (
+                            <div className="fe-wo-inline-warnings">
+                              {group.variance?.exceeds_auto_approve_cap && (
+                                <span className="badge-cap-warn">
+                                  Cap exceeded ({formatCurrency(group.variance.work_order_billed_total)} /{" "}
+                                  {formatCurrency(group.variance.auto_approve_cap)})
+                                </span>
+                              )}
+                              {group.variance?.split_bill_watch && (
+                                <span className="badge-cap-warn">
+                                  Split-bill watch ({group.variance.work_order_bill_count} bills)
+                                </span>
+                              )}
+                            </div>
                           )}
-                          {group.variance?.split_bill_watch && (
-                            <span className="badge-cap-warn">
-                              Split-bill watch ({group.variance.work_order_bill_count} bills)
-                            </span>
+
+                          {/* Nested Per-WO Inner Status Pills */}
+                          <div className="fe-inner-tabs">
+                            <button
+                              type="button"
+                              className={`fe-inner-pill ${innerTab === "submitted" ? "active" : ""}`}
+                              onClick={() =>
+                                setWoInnerTab((prev) => ({
+                                  ...prev,
+                                  [group.workOrderId]: "submitted",
+                                }))
+                              }
+                            >
+                              Pending ({group.pendingCount})
+                            </button>
+                            <button
+                              type="button"
+                              className={`fe-inner-pill ${innerTab === "approved" ? "active" : ""}`}
+                              onClick={() =>
+                                setWoInnerTab((prev) => ({
+                                  ...prev,
+                                  [group.workOrderId]: "approved",
+                                }))
+                              }
+                            >
+                              Approved ({group.approvedCount})
+                            </button>
+                            <button
+                              type="button"
+                              className={`fe-inner-pill ${innerTab === "rejected" ? "active" : ""}`}
+                              onClick={() =>
+                                setWoInnerTab((prev) => ({
+                                  ...prev,
+                                  [group.workOrderId]: "rejected",
+                                }))
+                              }
+                            >
+                              Rejected ({group.rejectedCount})
+                            </button>
+                          </div>
+
+                          {innerBills.length === 0 ? (
+                            <div style={{ padding: "20px", textAlign: "center", fontSize: "13px", color: "#64748b" }}>
+                              No bills in this status for this work order.
+                            </div>
+                          ) : (
+                            <table className="fe-table">
+                              <thead>
+                                <tr>
+                                  <th>Bill</th>
+                                  <th>Date</th>
+                                  <th>Amount</th>
+                                  <th>Status</th>
+                                  <th>Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {innerBills.map((b) => (
+                                  <tr key={b.expense_bill_id}>
+                                    <td>
+                                      <div style={{ fontWeight: 600, color: "#0f172a" }}>{b.title}</div>
+                                      <div style={{ fontSize: "12px", color: "#64748b" }}>{b.vendor}</div>
+                                    </td>
+                                    <td style={{ whiteSpace: "nowrap" }}>{b.bill_date}</td>
+                                    <td>
+                                      <strong style={{ color: "#0f172a" }}>{formatCurrency(b.amount)}</strong>
+                                    </td>
+                                    <td>{renderStatusBadge(b)}</td>
+                                    <td>
+                                      <button
+                                        type="button"
+                                        className={`fo-btn ${b.status === "submitted" ? "primary" : ""}`}
+                                        onClick={() => openReview(b)}
+                                        style={{ padding: "4px 10px", fontSize: "12px" }}
+                                      >
+                                        {b.status === "submitted" ? "Review" : "View"}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           )}
                         </div>
                       )}
-                      <table className="fe-table">
-                        <thead>
-                          <tr>
-                            <th>Bill</th>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {group.bills.map((b) => (
-                            <tr key={b.expense_bill_id}>
-                              <td>
-                                <div style={{ fontWeight: 600, color: "#0f172a" }}>{b.title}</div>
-                                <div style={{ fontSize: "12px", color: "#64748b" }}>{b.vendor}</div>
-                              </td>
-                              <td style={{ whiteSpace: "nowrap" }}>{b.bill_date}</td>
-                              <td>
-                                <strong style={{ color: "#0f172a" }}>{formatCurrency(b.amount)}</strong>
-                              </td>
-                              <td>{renderStatusBadge(b)}</td>
-                              <td>
-                                <button
-                                  type="button"
-                                  className={`fo-btn ${b.status === "submitted" ? "primary" : ""}`}
-                                  onClick={() => openReview(b)}
-                                  style={{ padding: "4px 10px", fontSize: "12px" }}
-                                >
-                                  {b.status === "submitted" ? "Review" : "View"}
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {/* Cap Edit Modal */}
@@ -469,7 +590,7 @@ function FinanceExpensesContent() {
                   <div>
                     <strong>Auto-Approved</strong> under the{" "}
                     {formatCurrency(reviewingBill.variance?.auto_approve_cap ?? savedCap)} cumulative Work Order cap.
-                    Finance can flag and revoke this approval if a receipt check or correction is needed.
+                    Finance can flag and hold this auto-approval if a receipt check or correction is needed.
                   </div>
                 </div>
               )}
@@ -643,7 +764,7 @@ function FinanceExpensesContent() {
                           onClick={() => setRejecting(true)}
                           disabled={actionBusy}
                         >
-                          Flag & Revoke Auto-Approval
+                          Hold &amp; Flag Auto-Approval
                         </button>
                       ) : (
                         <>
@@ -654,7 +775,7 @@ function FinanceExpensesContent() {
                             onClick={() => setRejecting(true)}
                             disabled={actionBusy}
                           >
-                            Reject & Request Revision
+                            Hold &amp; Request Clarification
                           </button>
                           <button
                             type="button"
@@ -662,7 +783,7 @@ function FinanceExpensesContent() {
                             onClick={() => handleApprove(reviewingBill.expense_bill_id)}
                             disabled={actionBusy}
                           >
-                            {actionBusy ? "Processing…" : "Verify & Sign Off"}
+                            {actionBusy ? "Processing…" : "Approve & Settle"}
                           </button>
                         </>
                       )}
@@ -670,7 +791,7 @@ function FinanceExpensesContent() {
                   ) : (
                     <div style={{ background: "#fef2f2", padding: "14px", borderRadius: "6px", border: "1px solid #fecaca" }}>
                       <label htmlFor="rejection-reason" style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#991b1b", marginBottom: "6px" }}>
-                        {isAutoApprovedModal ? "Revocation Reason (Required) *" : "Rejection Reason (Required) *"}
+                        {isAutoApprovedModal ? "Clarification / Hold Reason (Required) *" : "Clarification Reason (Required) *"}
                       </label>
                       <textarea
                         id="rejection-reason"
@@ -678,7 +799,7 @@ function FinanceExpensesContent() {
                         placeholder={
                           isAutoApprovedModal
                             ? "Explain why this auto-approved bill needs a receipt or correction…"
-                            : "Explain what the technician needs to adjust or clarify (e.g. blurry receipt, amount mismatch)…"
+                            : "Explain what needs fixing (e.g. blurry receipt, missing bill #, exceeds quote)..."
                         }
                         value={rejectionReason}
                         onChange={(e) => setRejectionReason(e.target.value)}
@@ -710,11 +831,7 @@ function FinanceExpensesContent() {
                           disabled={actionBusy || !rejectionReason.trim()}
                           onClick={() => handleReject(reviewingBill.expense_bill_id, isAutoApprovedModal)}
                         >
-                          {actionBusy
-                            ? "Submitting…"
-                            : isAutoApprovedModal
-                              ? "Confirm Revoke"
-                              : "Confirm Rejection"}
+                          {actionBusy ? "Submitting…" : "Confirm Hold"}
                         </button>
                       </div>
                     </div>

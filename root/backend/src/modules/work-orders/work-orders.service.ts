@@ -6,7 +6,11 @@ import {
   ConflictException,
   BadRequestException,
 } from "@nestjs/common";
-import { DatabaseService } from "../../core/database/database.service";
+import {
+  DatabaseService,
+  ExpenseBillStatus,
+  WorkOrderStatus,
+} from "../../core/database/database.service";
 import {
   scopeToTenant,
   currentOrgId,
@@ -100,6 +104,7 @@ export class WorkOrdersService {
     // A replace must not wipe the dispatch record, and must not be a back door
     // around the assignment rules: reassigning goes through dispatch.
     const safe = this.dispatch.guardUpdate(before, { ...putDto }, role, userId) as any;
+    this.assertBillsSettledBeforeClose(id, safe.status, before.status);
     this.database.workOrders[index] = {
       work_order_id: id,
       ...safe,
@@ -124,6 +129,7 @@ export class WorkOrdersService {
     // Dispatched jobs: who may change what is decided in one place.
     const previous = this.database.workOrders[index].status;
     const safe = this.dispatch.guardUpdate(this.database.workOrders[index], { ...updateDto }, role, userId);
+    this.assertBillsSettledBeforeClose(id, safe.status ?? previous, previous);
     this.database.workOrders[index] = {
       ...this.database.workOrders[index],
       ...safe,
@@ -132,6 +138,18 @@ export class WorkOrdersService {
     this.dispatch.onStatusChange(this.database.workOrders[index]);
     this.dispatch.estimateNotices(previous, this.database.workOrders[index]);
     return this.database.workOrders[index];
+  }
+
+  private assertBillsSettledBeforeClose(workOrderId: string, nextStatus: string, prevStatus: string) {
+    if (nextStatus !== WorkOrderStatus.CLOSED || prevStatus === WorkOrderStatus.CLOSED) return;
+    const unsettled = this.database.expenseBills.filter(
+      (b) => b.work_order_id === workOrderId && b.status !== ExpenseBillStatus.APPROVED,
+    );
+    if (unsettled.length > 0) {
+      throw new BadRequestException(
+        `Cannot close this work order while ${unsettled.length} expense bill(s) are still pending Finance sign-off or revision.`,
+      );
+    }
   }
 
   /** A technician can only be assigned to a work order in their own organisation. */

@@ -2701,7 +2701,10 @@ export class DatabaseService {
     },
   ];
 
-  public expenseBills: ExpenseBill[] = [
+  public expenseBills: ExpenseBill[] =
+    process.env.CLEAN_EXPENSE_SEEDS === "true"
+      ? []
+      : [
     {
       expense_bill_id: "eb000000-0001-4000-8000-000000000001",
       organization_id: "org-001",
@@ -2832,7 +2835,7 @@ export class DatabaseService {
         },
       ],
     },
-  ];
+        ];
   public financialReports: FinancialReport[] = [
     {
       financial_report_id: "pppp0000-0001-4000-8000-000000000000",

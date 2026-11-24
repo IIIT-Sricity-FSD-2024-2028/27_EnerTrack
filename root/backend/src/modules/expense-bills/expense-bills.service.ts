@@ -50,6 +50,15 @@ const ALLOWED_WO_STATUSES = new Set([
 export class ExpenseBillsService {
   constructor(private database: DatabaseService) {}
 
+  private assertWorkOrderNotClosed(workOrderId: string) {
+    const wo = this.database.workOrders.find((w) => w.work_order_id === workOrderId);
+    if (wo && wo.status === WorkOrderStatus.CLOSED) {
+      throw new BadRequestException(
+        "This work order is closed; expense bills can no longer be edited or resubmitted.",
+      );
+    }
+  }
+
   public getOrgCap(orgId: string | null): number {
     const org = this.database.organizations.find((o) => o.organization_id === orgId);
     return typeof org?.expense_auto_approve_cap === "number"
@@ -247,8 +256,11 @@ export class ExpenseBillsService {
       );
     }
 
-    if (role === UserRole.TECHNICIAN && bill.submitted_by_id !== userId) {
-      throw new ForbiddenException("You can only modify your own expense bills.");
+    if (role === UserRole.TECHNICIAN) {
+      if (bill.submitted_by_id !== userId) {
+        throw new ForbiddenException("You can only modify your own expense bills.");
+      }
+      this.assertWorkOrderNotClosed(bill.work_order_id);
     }
 
     const contentFieldsModified =
@@ -420,6 +432,13 @@ export class ExpenseBillsService {
       throw new ForbiddenException("Cannot attach files to an approved expense bill.");
     }
 
+    try {
+      this.assertWorkOrderNotClosed(bill.work_order_id);
+    } catch (err) {
+      discardFiles();
+      throw err;
+    }
+
     if (bill.attachments.length + files.length > 5) {
       discardFiles();
       throw new BadRequestException("Maximum 5 attachments allowed per expense bill.");
@@ -456,6 +475,8 @@ export class ExpenseBillsService {
     if (bill.status === ExpenseBillStatus.APPROVED) {
       throw new ForbiddenException("Cannot remove attachments from an approved expense bill.");
     }
+
+    this.assertWorkOrderNotClosed(bill.work_order_id);
 
     const index = bill.attachments.findIndex((a) => a.filename === filename);
     if (index === -1) {
@@ -518,6 +539,7 @@ export class ExpenseBillsService {
           "Technicians can only delete their own non-approved expense bills.",
         );
       }
+      this.assertWorkOrderNotClosed(bill.work_order_id);
     } else if (role !== UserRole.ORGANIZATION_ADMIN && role !== UserRole.SUPER_ADMIN) {
       throw new ForbiddenException("You do not have permission to delete this expense bill.");
     }

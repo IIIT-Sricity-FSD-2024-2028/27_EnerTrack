@@ -28,7 +28,46 @@ function renderBillStatusBadge(bill) {
   if (bill.status === "submitted") {
     return <span className="badge-status badge-submitted">Pending</span>;
   }
+  if (bill.status === "rejected") {
+    return <span className="badge-status badge-rejected">Needs Revision</span>;
+  }
   return <span className={`badge-status badge-${bill.status}`}>{bill.status}</span>;
+}
+
+function groupBillsByWorkOrder(billList) {
+  const map = new Map();
+  for (const bill of billList) {
+    if (!map.has(bill.work_order_id)) {
+      map.set(bill.work_order_id, {
+        workOrderId: bill.work_order_id,
+        workOrderTitle: bill.work_order_title,
+        workOrderStatus: bill.work_order_status,
+        bills: [],
+      });
+    }
+    map.get(bill.work_order_id).bills.push(bill);
+  }
+  return Array.from(map.values()).map((g) => {
+    const pendingCount = g.bills.filter((b) => b.status === "submitted").length;
+    const rejectedCount = g.bills.filter((b) => b.status === "rejected").length;
+    const approvedCount = g.bills.filter((b) => b.status === "approved").length;
+    const totalNonRejectedBilled = g.bills
+      .filter((b) => b.status !== "rejected")
+      .reduce((sum, b) => sum + Number(b.amount || 0), 0);
+    return {
+      ...g,
+      pendingCount,
+      rejectedCount,
+      approvedCount,
+      totalNonRejectedBilled,
+    };
+  });
+}
+
+function defaultTechInnerTab(group) {
+  if (group.rejectedCount > 0) return "rejected";
+  if (group.pendingCount > 0) return "submitted";
+  return "approved";
 }
 
 export default function TechnicianJrExpenses() {
@@ -43,8 +82,9 @@ export default function TechnicianJrExpenses() {
   const [maxAutoApprovedPerWo, setMaxAutoApprovedPerWo] = useState(2);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
-  const [filterTab, setFilterTab] = useState("submitted"); // "submitted" | "rejected" | "approved"
+  const [woScope, setWoScope] = useState("active"); // "active" | "archived"
   const [expandedWos, setExpandedWos] = useState({});
+  const [woInnerTab, setWoInnerTab] = useState({});
 
   const autoOpenedUploadRef = useRef(false);
   const initializedExpandRef = useRef(false);
@@ -121,7 +161,7 @@ export default function TechnicianJrExpenses() {
           initializedExpandRef.current = true;
           const initialExpanded = {};
           for (const b of loadedBills) {
-            if (b.status === "submitted" || b.status === "rejected") {
+            if (b.work_order_status !== "closed" && (b.status === "submitted" || b.status === "rejected")) {
               initialExpanded[b.work_order_id] = true;
             }
           }
@@ -261,8 +301,12 @@ export default function TechnicianJrExpenses() {
       setShowOptional(false);
       setSelectedFiles([]);
       setUploadModalOpen(false);
-      setFilterTab(wasAutoApproved ? "approved" : "submitted");
+      setWoScope("active");
       setExpandedWos((prev) => ({ ...prev, [woId]: true }));
+      setWoInnerTab((prev) => ({
+        ...prev,
+        [woId]: wasAutoApproved ? "approved" : "submitted",
+      }));
       setReloadKey((k) => k + 1);
     } catch (err) {
       showToast(err.message || "Failed to submit expense bill.", "error");
@@ -336,6 +380,7 @@ export default function TechnicianJrExpenses() {
     }
 
     setEditSubmitting(true);
+    const targetWoId = editingBill.work_order_id;
     try {
       const payload = {
         title: editingBill.title.trim(),
@@ -361,7 +406,7 @@ export default function TechnicianJrExpenses() {
       showToast("Bill updated and resubmitted for Finance review!", "success");
       setEditingBill(null);
       setEditFiles([]);
-      setFilterTab("submitted");
+      setWoInnerTab((prev) => ({ ...prev, [targetWoId]: "submitted" }));
       setReloadKey((k) => k + 1);
     } catch (err) {
       showToast(err.message || "Failed to resubmit bill.", "error");
@@ -370,49 +415,45 @@ export default function TechnicianJrExpenses() {
     }
   }
 
-  const pendingCount = bills.filter((b) => b.status === "submitted").length;
-  const rejectedCount = bills.filter((b) => b.status === "rejected").length;
-  const approvedCount = bills.filter((b) => b.status === "approved").length;
-
-  const filteredBills = bills.filter((b) => b.status === filterTab);
-
-  // Group filtered bills by work_order_id
-  const woGroupsMap = new Map();
-  for (const bill of filteredBills) {
-    if (!woGroupsMap.has(bill.work_order_id)) {
-      woGroupsMap.set(bill.work_order_id, {
-        workOrderId: bill.work_order_id,
-        workOrderTitle: bill.work_order_title,
-        bills: [],
-      });
-    }
-    woGroupsMap.get(bill.work_order_id).bills.push(bill);
-  }
-  const woGroups = Array.from(woGroupsMap.values()).map((g) => ({
-    ...g,
-    totalBilled: g.bills.reduce((sum, x) => sum + Number(x.amount || 0), 0),
-  }));
+  const activeGroups = groupBillsByWorkOrder(
+    bills.filter((b) => b.work_order_status !== "closed"),
+  );
+  const archivedGroups = groupBillsByWorkOrder(
+    bills.filter((b) => b.work_order_status === "closed"),
+  );
+  const visibleGroups = woScope === "active" ? activeGroups : archivedGroups;
 
   function toggleWoExpand(id) {
     setExpandedWos((prev) => ({ ...prev, [id]: !prev[id] }));
   }
 
-  function renderGroupStatusBadge(group) {
-    if (filterTab === "submitted") {
-      return <span className="badge-status badge-submitted">Pending</span>;
+  function getActiveInnerTab(group) {
+    const counts = {
+      submitted: group.pendingCount,
+      rejected: group.rejectedCount,
+      approved: group.approvedCount,
+    };
+    const chosen = woInnerTab[group.workOrderId];
+    if (chosen && counts[chosen] > 0) {
+      return chosen;
     }
-    if (filterTab === "rejected") {
+    return defaultTechInnerTab(group);
+  }
+
+  function renderGroupStatusBadge(group) {
+    if (group.rejectedCount > 0) {
       return <span className="badge-status badge-rejected">Needs Revision</span>;
     }
-    const allAuto = group.bills.every((b) => b.auto_approved);
-    if (allAuto) {
-      return <span className="badge-status badge-auto-approved">Auto</span>;
+    if (group.pendingCount > 0) {
+      return <span className="badge-status badge-submitted">Pending</span>;
     }
     return <span className="badge-status badge-approved">Approved</span>;
   }
 
   function renderBillItem(bill) {
     const wasRevoked = bill.status === "rejected" && bill.history?.some((h) => h.action === "revoked");
+    const isClosed = bill.work_order_status === "closed";
+
     return (
       <div key={bill.expense_bill_id} className="tech-bill-item">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
@@ -460,19 +501,23 @@ export default function TechnicianJrExpenses() {
           </div>
         )}
 
-        {(bill.status === "rejected" || bill.status !== "approved") && (
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-            {bill.status === "rejected" && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => openEditModal(bill)}
-                style={{ padding: "5px 12px", fontSize: "13px" }}
-              >
-                Edit & Resubmit
-              </button>
-            )}
-            {bill.status !== "approved" && (
+        {isClosed ? (
+          <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic", textAlign: "right" }}>
+            Work order closed — archived
+          </div>
+        ) : (
+          bill.status !== "approved" && (
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              {bill.status === "rejected" && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => openEditModal(bill)}
+                  style={{ padding: "5px 12px", fontSize: "13px" }}
+                >
+                  Edit & Resubmit
+                </button>
+              )}
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -481,8 +526,8 @@ export default function TechnicianJrExpenses() {
               >
                 Delete
               </button>
-            )}
-          </div>
+            </div>
+          )
         )}
       </div>
     );
@@ -513,27 +558,21 @@ export default function TechnicianJrExpenses() {
 
       {/* Main Bills Card */}
       <div className="tech-expense-card">
+        {/* Top-level Active / Archived switcher (2 tabs only) */}
         <div className="tech-filter-tabs">
           <button
             type="button"
-            className={`tech-filter-tab ${filterTab === "submitted" ? "active" : ""}`}
-            onClick={() => setFilterTab("submitted")}
+            className={`tech-filter-tab ${woScope === "active" ? "active" : ""}`}
+            onClick={() => setWoScope("active")}
           >
-            Pending ({pendingCount})
+            Active Work Orders ({activeGroups.length})
           </button>
           <button
             type="button"
-            className={`tech-filter-tab ${filterTab === "rejected" ? "active" : ""} ${rejectedCount > 0 ? "tab-alert" : ""}`}
-            onClick={() => setFilterTab("rejected")}
+            className={`tech-filter-tab ${woScope === "archived" ? "active" : ""}`}
+            onClick={() => setWoScope("archived")}
           >
-            Needs Revision ({rejectedCount})
-          </button>
-          <button
-            type="button"
-            className={`tech-filter-tab ${filterTab === "approved" ? "active" : ""}`}
-            onClick={() => setFilterTab("approved")}
-          >
-            Approved ({approvedCount})
+            Archived / Closed ({archivedGroups.length})
           </button>
         </div>
 
@@ -541,14 +580,19 @@ export default function TechnicianJrExpenses() {
           <div style={{ padding: "32px", textAlign: "center", color: "#64748b" }}>
             Loading expense bills…
           </div>
-        ) : woGroups.length === 0 ? (
+        ) : visibleGroups.length === 0 ? (
           <div className="empty-state" style={{ padding: "32px", textAlign: "center" }}>
-            No expense bills in this tab.
+            {woScope === "active"
+              ? "No bills on active work orders yet."
+              : "No archived expense bills from closed work orders."}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {woGroups.map((group) => {
+            {visibleGroups.map((group) => {
               const isExpanded = !!expandedWos[group.workOrderId];
+              const innerTab = getActiveInnerTab(group);
+              const innerBills = group.bills.filter((b) => b.status === innerTab);
+
               return (
                 <div key={group.workOrderId} className="tech-wo-group">
                   <button
@@ -571,7 +615,7 @@ export default function TechnicianJrExpenses() {
 
                     <div className="tech-wo-group-right">
                       <strong style={{ fontSize: "15px", color: "#0f172a" }}>
-                        ₹{group.totalBilled.toLocaleString("en-IN")}
+                        ₹{group.totalNonRejectedBilled.toLocaleString("en-IN")}
                       </strong>
                       {renderGroupStatusBadge(group)}
                     </div>
@@ -579,7 +623,55 @@ export default function TechnicianJrExpenses() {
 
                   {isExpanded && (
                     <div className="tech-wo-group-body">
-                      {group.bills.map((bill) => renderBillItem(bill))}
+                      {/* Nested Per-WO Inner Status Pills */}
+                      <div className="tech-inner-tabs">
+                        <button
+                          type="button"
+                          className={`tech-inner-pill ${innerTab === "submitted" ? "active" : ""}`}
+                          onClick={() =>
+                            setWoInnerTab((prev) => ({
+                              ...prev,
+                              [group.workOrderId]: "submitted",
+                            }))
+                          }
+                        >
+                          Pending ({group.pendingCount})
+                        </button>
+                        <button
+                          type="button"
+                          className={`tech-inner-pill ${innerTab === "rejected" ? "active" : ""} ${
+                            group.rejectedCount > 0 ? "pill-alert" : ""
+                          }`}
+                          onClick={() =>
+                            setWoInnerTab((prev) => ({
+                              ...prev,
+                              [group.workOrderId]: "rejected",
+                            }))
+                          }
+                        >
+                          Needs Revision ({group.rejectedCount})
+                        </button>
+                        <button
+                          type="button"
+                          className={`tech-inner-pill ${innerTab === "approved" ? "active" : ""}`}
+                          onClick={() =>
+                            setWoInnerTab((prev) => ({
+                              ...prev,
+                              [group.workOrderId]: "approved",
+                            }))
+                          }
+                        >
+                          Approved ({group.approvedCount})
+                        </button>
+                      </div>
+
+                      {innerBills.length === 0 ? (
+                        <div style={{ padding: "16px", textAlign: "center", fontSize: "13px", color: "#64748b" }}>
+                          No bills in this status for this work order.
+                        </div>
+                      ) : (
+                        innerBills.map((bill) => renderBillItem(bill))
+                      )}
                     </div>
                   )}
                 </div>

@@ -330,3 +330,41 @@
   border-top: 1px solid #e2e8f0;
   background: #ffffff;
 }
+
+.tech-inner-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.tech-inner-pill {
+  padding: 5px 12px;
+  border-radius: 16px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+
+.tech-inner-pill.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+.tech-inner-pill.pill-alert {
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.tech-inner-pill.pill-alert.active {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}

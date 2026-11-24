@@ -189,7 +189,7 @@ export const NAV = {
       roles: ["Organization Admin"],
     },
     {
-      label: "Expense Bills",
+      label: "Maintenance Spend",
       to: PATHS.admin.expenses,
       roles: ["Organization Admin"],
     },
@@ -201,7 +201,7 @@ export const NAV = {
   ],
   finance: [
     { label: "Overview", to: PATHS.finance.overview },
-    { label: "Expense Bills", to: PATHS.finance.expenses },
+    { label: "Maintenance Spend", to: PATHS.finance.expenses },
     { label: "Financial Reports & Impact", to: PATHS.finance.reports },
     { label: "Utility Costs", to: PATHS.finance.costs },
     { label: "Your EnerTrack Subscription", to: PATHS.finance.subscription },
