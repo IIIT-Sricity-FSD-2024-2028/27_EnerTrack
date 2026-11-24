@@ -657,6 +657,12 @@ body {
   box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
 }
 
+/* A fixed report adds a full-width "It is fixed / Still broken" row. Without
+   wrapping, that row stays on the first line and crushes the summary text. */
+.ticket-card.has-actions {
+  flex-wrap: wrap;
+}
+
 .new-report-link {
   margin-top: 12px;
   text-align: center;

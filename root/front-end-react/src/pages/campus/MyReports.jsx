@@ -27,9 +27,9 @@ export default function MyReports({ tickets, selectedId, onSelect, onRespond }) 
         tickets.map((ticket) => (
           <div
             className={
-              ticket.id === selectedId
-                ? "ticket-card selectable is-selected"
-                : "ticket-card selectable"
+              "ticket-card selectable" +
+              (ticket.id === selectedId ? " is-selected" : "") +
+              (ticket.can_respond ? " has-actions" : "")
             }
             key={ticket.id}
             onClick={() => onSelect(ticket)}
