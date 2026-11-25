@@ -6,16 +6,21 @@
  * across departments too. The fill is green up to the budget; anything past
  * it is red, and a dark tick marks where the budget ends.
  */
+import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { formatCurrency, latestPeriod, periodLabel } from "../financeUtils";
+import { formatCurrency, periodLabel } from "../financeUtils";
+import {
+  selectLatestCostPeriod,
+  selectLatestCostRows,
+} from "../../../store/slices/energyCostsSlice";
 
 /** Percentage of the shared scale, for a CSS width or left. */
 const pct = (value, scale) => `${scale > 0 ? (value / scale) * 100 : 0}%`;
 
-export default function DepartmentCostBars({ costs }) {
-  const period = latestPeriod(costs);
-  const records = costs
-    .filter((c) => c.scope === "department" && c.period === period)
+export default function DepartmentCostBars() {
+  const period = useSelector(selectLatestCostPeriod);
+  const records = useSelector(selectLatestCostRows)
+    .filter((c) => c.scope === "department")
     .sort((a, b) => b.total - a.total);
   const scale = Math.max(...records.map((c) => Math.max(c.total, c.budget || 0)), 0);
   const overCount = records.filter((c) => c.variance < 0).length;
