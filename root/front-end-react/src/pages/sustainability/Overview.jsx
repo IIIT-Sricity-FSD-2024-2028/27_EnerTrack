@@ -1,23 +1,37 @@
 /**
  * Overview — /sustainability/overview, the Sustainability Officer's home page.
  *
- * How is campus doing? One summary panel: energy, water, emissions and
- * food waste, each with its change on the previous period and its
- * campus-wide target. How each figure is measured sits in a fold below.
- * Waste signals and wastage cases have their own page (Wastage.jsx).
+ * Three questions, top to bottom:
+ *   1. How is campus doing?  Energy, water, emissions and food waste, each
+ *      with its change on the previous period, a month-by-month trend line
+ *      and its campus-wide target. How each is measured sits in a fold.
+ *   2. What needs me?        Counts that link to the page where the work is
+ *      (waste hotspots and cases on Wastage, initiatives awaiting approval).
+ *   3. Are we getting there? Campus targets with their progress, and the
+ *      initiatives under way with what they have saved so far.
+ * The full waste panels live on their own page (Wastage.jsx).
  */
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api/client";
 import { PATHS } from "../../routes";
+import { useAuth } from "../../auth/useAuth";
 import { addMonths, rangeLabel } from "./periods";
+import { normalizeStatus } from "./audit/auditShared";
 import overviewCss from "./overview.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
 
+/** Each card loads on its own; a failed call only empties that card. */
+const failed = (res) => res.status === "rejected" || !Array.isArray(res.value);
+
 export default function SustainabilityOverview() {
+  const { user } = useAuth();
   const [summary, setSummary] = useState(null);
   const [targets, setTargets] = useState({});
-  const [activeInitiatives, setActiveInitiatives] = useState(null);
+  const [targetList, setTargetList] = useState(null); // every active campus target, for the Targets card
+  const [initiatives, setInitiatives] = useState(null);
+  const [signals, setSignals] = useState(null);
+  const [cases, setCases] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const [loading, setLoading] = useState(true);
@@ -26,8 +40,14 @@ export default function SustainabilityOverview() {
   const loadData = useCallback(() => {
     let active = true;
 
-    Promise.allSettled([api.get("/sustainability-metrics/summary"), api.get("/initiatives"), api.get("/targets")])
-      .then(([summaryRes, initsRes, targetsRes]) => {
+    Promise.allSettled([
+      api.get("/sustainability-metrics/summary"),
+      api.get("/initiatives"),
+      api.get("/targets"),
+      api.get("/wastage-reports/signals"),
+      api.get("/wastage-reports"),
+    ])
+      .then(([summaryRes, initsRes, targetsRes, signalsRes, casesRes]) => {
         if (!active) return;
 
         if (summaryRes.status === "rejected") {
@@ -38,22 +58,17 @@ export default function SustainabilityOverview() {
           setError(null);
         }
 
-        // Active means not completed and not rejected
-        if (initsRes.status === "fulfilled" && Array.isArray(initsRes.value)) {
-          setActiveInitiatives(initsRes.value.filter((i) => i.status !== "completed" && i.status !== "rejected").length);
-        } else {
-          setActiveInitiatives(null);
-        }
+        setInitiatives(failed(initsRes) ? null : initsRes.value);
         // Active, campus-wide targets, by metric.
-        if (targetsRes.status === "fulfilled" && Array.isArray(targetsRes.value)) {
-          setTargets(
-            Object.fromEntries(
-              targetsRes.value
-                .filter((t) => t.status === "active" && t.building_ids.length === 0)
-                .map((t) => [t.metric, t]),
-            ),
-          );
+        if (!failed(targetsRes)) {
+          const campus = targetsRes.value.filter((t) => t.status === "active" && t.building_ids.length === 0);
+          setTargets(Object.fromEntries(campus.map((t) => [t.metric, t])));
+          setTargetList(campus);
+        } else {
+          setTargetList(null);
         }
+        setSignals(failed(signalsRes) ? null : signalsRes.value);
+        setCases(failed(casesRes) ? null : casesRes.value);
         setLastUpdated(new Date());
       })
       .finally(() => {
@@ -86,6 +101,9 @@ export default function SustainabilityOverview() {
         : "—";
   const bigEnergy = (totals?.energy_mwh ?? 0) >= 1000;
   const factors = summary?.emission_factors;
+  const series = summary?.series || [];
+  const firstName = (user?.name || "").trim().split(/\s+/)[0];
+  const activeInitiatives = initiatives ? initiatives.filter((i) => i.status !== "completed" && i.status !== "rejected").length : null;
 
   // Which months the figures cover and what the changes compare against,
   // straight from the server's answer rather than from a literal.
@@ -105,8 +123,9 @@ export default function SustainabilityOverview() {
       unit: bigEnergy ? "GWh" : "MWh",
       delta: change?.energy_pct,
       target: "energy_kwh",
+      field: "energy_mwh",
     },
-    { id: "val-water", label: "Water", value: show(totals?.water_kl), unit: "kL", delta: change?.water_pct, target: "water_kl" },
+    { id: "val-water", label: "Water", value: show(totals?.water_kl), unit: "kL", delta: change?.water_pct, target: "water_kl", field: "water_kl" },
     {
       id: "val-emissions",
       label: "Emissions",
@@ -114,8 +133,9 @@ export default function SustainabilityOverview() {
       unit: "t CO₂e",
       delta: change?.emissions_pct,
       target: "emissions_kg",
+      field: "emissions_t",
     },
-    { id: "val-food-wastage", label: "Food waste", value: show(totals?.food_kg), unit: "kg", delta: change?.food_pct, target: null },
+    { id: "val-food-wastage", label: "Food waste", value: show(totals?.food_kg), unit: "kg", delta: change?.food_pct, target: null, field: "food_kg" },
   ];
 
   return (
@@ -126,7 +146,7 @@ export default function SustainabilityOverview() {
 
       <header className="so-header">
         <div>
-          <h1 id="welcomeHeading">Overview</h1>
+          <h1 id="welcomeHeading">{firstName ? `Welcome back, ${firstName}` : "Overview"}</h1>
           <p>
             {period}
             {activeInitiatives != null && (
@@ -187,6 +207,7 @@ export default function SustainabilityOverview() {
                 <span id={s.id}>{s.value}</span> <small>{s.unit}</small>
               </p>
               <Change pct={s.delta} previous={previous} loading={loading} />
+              <Sparkline series={series} field={s.field} label={s.label} />
               <TargetLine metric={s.target} target={s.target ? targets[s.target] : null} label={s.label} />
             </div>
           ))}
@@ -214,7 +235,232 @@ export default function SustainabilityOverview() {
         </details>
       </section>
 
+      <div className="so-grid">
+        <AttentionCard signals={signals} cases={cases} initiatives={initiatives} loading={loading} />
+        <TargetsCard targets={targetList} loading={loading} />
+      </div>
+      <InitiativesCard initiatives={initiatives} loading={loading} />
     </div>
+  );
+}
+
+/**
+ * The figure month by month across the period, as a small line: enough to
+ * see the direction and the peaks. The last month is marked.
+ */
+function Sparkline({ series, field, label }) {
+  const values = series.map((m) => Number(m[field] || 0));
+  if (values.length < 2 || values.every((v) => v === 0)) return <div className="so-spark is-empty" aria-hidden="true" />;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const span = max - min || 1;
+  const W = 100;
+  const H = 32;
+  const x = (i) => (i / (values.length - 1)) * W;
+  const y = (v) => H - 3 - ((v - min) / span) * (H - 6);
+  const points = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const first = series[0]?.label;
+  const last = series[series.length - 1]?.label;
+  return (
+    <svg className="so-spark" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${label}, month by month from ${first} to ${last}`}>
+      <title>{`${label}: ${series.map((m) => `${m.label} ${Number(m[field] || 0).toLocaleString("en-GB")}`).join(", ")}`}</title>
+      <polygon className="so-spark-area" points={`0,${H} ${points} ${W},${H}`} />
+      <polyline className="so-spark-line" points={points} vectorEffect="non-scaling-stroke" />
+      <circle className="so-spark-end" cx={x(values.length - 1)} cy={y(values[values.length - 1])} r="2.2" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+/** A card with a heading, an optional link to the full page, and its body. */
+function Card({ title, link, linkLabel, children, className = "" }) {
+  return (
+    <section className={`so-card ${className}`} aria-label={title}>
+      <div className="so-card-head">
+        <h2>{title}</h2>
+        {link && (
+          <Link to={link} className="so-card-link">
+            {linkLabel} →
+          </Link>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * What is waiting on the officer, as counts that link to where the work is.
+ * Nothing is listed in full here; the Wastage and Initiatives pages do that.
+ */
+function AttentionCard({ signals, cases, initiatives, loading }) {
+  if (loading && !signals && !cases) return <Card title="Needs your attention"><p className="so-card-empty">Loading…</p></Card>;
+
+  const live = (cases || []).map((c) => ({ ...c, status: normalizeStatus(c.status) })).filter((c) => !c.details?.soArchived);
+  const count = (...statuses) => live.filter((c) => statuses.includes(c.status)).length;
+  const rows = [
+    signals && {
+      n: signals.filter((s) => s.hotspot && !s.case_id && !s.watched).length,
+      one: "Waste hotspot to look at",
+      many: "Waste hotspots to look at",
+      to: PATHS.sustainability.wastage,
+    },
+    cases && { n: count("Open"), one: "Case waiting for a remedy", many: "Cases waiting for a remedy", to: PATHS.sustainability.wastage },
+    cases && { n: count("Verify Target"), one: "Target to check", many: "Targets to check", to: PATHS.sustainability.wastage },
+    cases && {
+      n: count("Returned to SO", "Target Met", "Target Missed"),
+      one: "Case ready for your next step",
+      many: "Cases ready for your next step",
+      to: PATHS.sustainability.wastage,
+    },
+    cases && {
+      n: count("Forwarded to Finance", "Cost Impact Added"),
+      one: "Case with Finance",
+      many: "Cases with Finance",
+      to: PATHS.sustainability.wastage,
+      quiet: true, // waiting on someone else
+    },
+    initiatives && {
+      n: initiatives.filter((i) => i.status === "proposed").length,
+      one: "Initiative awaiting approval",
+      many: "Initiatives awaiting approval",
+      to: PATHS.sustainability.initiatives,
+      quiet: true, // the Org Admin decides
+    },
+  ].filter(Boolean);
+
+  const urgent = rows.filter((r) => !r.quiet && r.n > 0).length;
+  return (
+    <Card title="Needs your attention">
+      {rows.length === 0 ? (
+        <p className="so-card-empty">This could not be loaded. Refresh to try again.</p>
+      ) : (
+        <>
+          {urgent === 0 && <p className="so-allclear">All clear: nothing is waiting on you.</p>}
+          <ul className="so-attn">
+            {rows.map((r) => (
+              <li key={r.one} className={r.n === 0 ? "is-zero" : r.quiet ? "is-quiet" : "is-due"}>
+                <Link to={r.to}>
+                  <span className="so-attn-n">{r.n}</span>
+                  <span>{r.n === 1 ? r.one : r.many}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Card>
+  );
+}
+
+const TARGET_LABEL = { energy_kwh: "Energy", water_kl: "Water", emissions_kg: "Emissions", gas_m3: "Gas" };
+
+/** Every active campus target: how far along the cut is, and whether it is on track. */
+function TargetsCard({ targets, loading }) {
+  return (
+    <Card title="Targets" link={PATHS.sustainability.targets} linkLabel="All targets">
+      {loading && !targets ? (
+        <p className="so-card-empty">Loading…</p>
+      ) : !targets ? (
+        <p className="so-card-empty">Targets could not be loaded.</p>
+      ) : targets.length === 0 ? (
+        <p className="so-card-empty">
+          No active campus targets. <Link to={PATHS.sustainability.targets}>Set one</Link> to track progress here.
+        </p>
+      ) : (
+        <ul className="so-targets">
+          {targets.map((t) => {
+            const p = t.progress || {};
+            const achieved = Number(p.achieved_reduction_pct ?? 0);
+            const goal = Number(t.reduction_pct) || 0;
+            const fill = goal > 0 ? Math.max(0, Math.min(100, (achieved / goal) * 100)) : 0;
+            const tone = p.on_track == null ? (achieved >= goal ? "good" : "none") : p.on_track ? "good" : "warn";
+            const by = new Date(`${t.deadline}-01T00:00:00`).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+            const state =
+              p.on_track == null ? (p.months_compared ? "Not judged yet" : "Not measured yet") : p.on_track ? "On track" : "Behind";
+            return (
+              <li key={t.target_id}>
+                <div className="so-target-row">
+                  <strong>{TARGET_LABEL[t.metric] || t.metric}</strong>
+                  <span>
+                    −{goal}% by {by}
+                  </span>
+                </div>
+                <div className="so-bar" role="img" aria-label={`${achieved}% cut so far of a ${goal}% target`}>
+                  <span className={`so-bar-fill so-bar-fill--${tone}`} style={{ width: `${fill}%` }} />
+                </div>
+                <div className="so-target-row is-sub">
+                  <span>
+                    {achieved > 0 ? "−" : "+"}
+                    {Math.abs(achieved)}% so far
+                  </span>
+                  <span className={`so-dot so-dot--${tone}`}>{state}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+const INITIATIVE_STAGES = [
+  ["proposed", "Proposed"],
+  ["approved", "Approved"],
+  ["in-progress", "In progress"],
+  ["completed", "Completed"],
+];
+
+/** Where the initiatives stand, and what the ones under way have saved so far. */
+function InitiativesCard({ initiatives, loading }) {
+  const running = (initiatives || []).filter((i) => i.status === "in-progress").slice(0, 3);
+  return (
+    <Card title="Initiatives" link={PATHS.sustainability.initiatives} linkLabel="All initiatives" className="so-card--wide">
+      {loading && !initiatives ? (
+        <p className="so-card-empty">Loading…</p>
+      ) : !initiatives ? (
+        <p className="so-card-empty">Initiatives could not be loaded.</p>
+      ) : (
+        <>
+          <p className="so-stages">
+            {INITIATIVE_STAGES.map(([key, label]) => {
+              const n = initiatives.filter((i) => i.status === key).length;
+              return (
+                <span key={key} className={n === 0 ? "is-zero" : undefined}>
+                  <strong>{n}</strong> {label}
+                </span>
+              );
+            })}
+          </p>
+          {running.length === 0 ? (
+            <p className="so-card-empty">Nothing is in progress right now.</p>
+          ) : (
+            <ul className="so-running">
+              {running.map((i) => {
+                const perf = i.performance || {};
+                const openJobs = (i.jobs || []).filter((j) => !j.closed_at).length;
+                return (
+                  <li key={i.initiative_id}>
+                    <strong>{i.title}</strong>
+                    <span className="so-running-meta">
+                      {perf.measurable && perf.actual_saving_to_date != null ? (
+                        <>
+                          {Number(perf.actual_saving_to_date).toLocaleString("en-GB")} {perf.unit} saved so far
+                          {perf.expected_to_date ? ` (expected ${Number(perf.expected_to_date).toLocaleString("en-GB")})` : ""}
+                        </>
+                      ) : (
+                        perf.reason || "Savings not measured yet"
+                      )}
+                      {openJobs > 0 ? ` · ${openJobs} technician job${openJobs === 1 ? "" : "s"} open` : ""}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </>
+      )}
+    </Card>
   );
 }
 
