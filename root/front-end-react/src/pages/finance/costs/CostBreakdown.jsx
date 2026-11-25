@@ -48,7 +48,9 @@ export default function CostBreakdown({ costs, pending, onExportCsv, onExportPdf
 
   const actual = sum(costs, (r) => r.total);
   const budget = sum(costs, (r) => r.budget);
-  const variance = budget - actual;
+  // Over / under budget only counts records that have a budget.
+  const budgetedActual = sum(costs.filter((r) => r.budget > 0), (r) => r.total);
+  const variance = budget - budgetedActual;
   const data = chartData(costs, view);
   const maxValue = Math.max(...data.map((d) => d.value)) || 1;
 
@@ -167,7 +169,7 @@ export default function CostBreakdown({ costs, pending, onExportCsv, onExportPdf
           <strong>{pending ? "—" : formatCurrency(budget)}</strong>
           Approved monthly utility allocation for the selected department.
         </div>
-        <div className={pending || actual > budget ? "budget-card red" : "budget-card"}>
+        <div className={pending || budgetedActual > budget ? "budget-card red" : "budget-card"}>
           Actual Cost
           <strong>{pending ? "—" : formatCurrency(actual)}</strong>
           Current utility spend after retrieval and calculation.

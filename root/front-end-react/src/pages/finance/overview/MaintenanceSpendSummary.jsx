@@ -1,41 +1,28 @@
 /**
  * MaintenanceSpendSummary — compact panel for Finance Overview uniting
  * pending pre-work quotes and pending expense bill verifications.
+ * Both counts come from the Redux store, loaded when the panel appears.
  */
-import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import api from "../../../api/client";
 import { PATHS } from "../../../routes";
 import { formatCurrency } from "../financeUtils";
+import {
+  fetchExpenseBills,
+  selectPendingExpenseBills,
+} from "../../../store/slices/expenseBillsSlice";
+import { fetchWorkOrders, selectAllWorkOrders } from "../../../store/slices/workOrdersSlice";
+import { useLiveData } from "../../../store/useLiveData";
+
+// Loaded fresh each time the Overview opens; no polling.
+const LOADS = [fetchWorkOrders, fetchExpenseBills];
 
 export default function MaintenanceSpendSummary() {
-  const [quoteCount, setQuoteCount] = useState(0);
-  const [billCount, setBillCount] = useState(0);
-  const [billTotal, setBillTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      api.get("/work-orders").catch(() => []),
-      api.get("/expense-bills?status=submitted").catch(() => []),
-    ]).then(([wos, bills]) => {
-      if (cancelled) return;
-      const pendingQuotes = Array.isArray(wos)
-        ? wos.filter((w) => w.status === "approval")
-        : [];
-      const pendingBills = Array.isArray(bills) ? bills : [];
-      setQuoteCount(pendingQuotes.length);
-      setBillCount(pendingBills.length);
-      setBillTotal(
-        pendingBills.reduce((sum, b) => sum + Number(b.amount || 0), 0),
-      );
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { loading } = useLiveData(LOADS, { intervalMs: 0 });
+  const quoteCount = useSelector(selectAllWorkOrders).filter((w) => w.status === "approval").length;
+  const pendingBills = useSelector(selectPendingExpenseBills);
+  const billCount = pendingBills.length;
+  const billTotal = pendingBills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
 
   const totalPending = quoteCount + billCount;
 
