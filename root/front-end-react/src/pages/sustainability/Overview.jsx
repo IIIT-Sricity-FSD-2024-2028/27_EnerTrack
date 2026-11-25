@@ -11,11 +11,32 @@
  *      initiatives under way with what they have saved so far.
  * The full waste panels live on their own page (Wastage.jsx).
  */
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import api from "../../api/client";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchInitiatives, selectActiveInitiatives, selectBoardInitiatives, selectInitiativesStatus } from "../../store/slices/initiativesSlice";
+import {
+  fetchInitiatives,
+  selectActiveInitiatives,
+  selectBoardInitiatives,
+  selectInitiativesStatus,
+} from "../../store/slices/initiativesSlice";
+import {
+  fetchMetricsSummary,
+  selectMetricsSummary,
+  selectMetricsSummaryStatus,
+} from "../../store/slices/sustainabilityMetricsSlice";
+import {
+  fetchTargets,
+  selectAllTargets,
+  selectTargetsStatus,
+} from "../../store/slices/targetsSlice";
+import {
+  fetchWastageReports,
+  fetchWastageSignals,
+  selectAllWastageReports,
+  selectWastageReportsStatus,
+  selectWastageSignals,
+} from "../../store/slices/wastageReportsSlice";
 import { PATHS } from "../../routes";
 import { useAuth } from "../../auth/useAuth";
 import { addMonths, rangeLabel } from "./periods";
@@ -23,77 +44,45 @@ import { normalizeStatus } from "./audit/auditShared";
 import overviewCss from "./overview.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
 
-/** Each card loads on its own; a failed call only empties that card. */
-const failed = (res) => res.status === "rejected" || !Array.isArray(res.value);
-
 export default function SustainabilityOverview() {
   const { user } = useAuth();
-  const [summary, setSummary] = useState(null);
-  const [targets, setTargets] = useState({});
-  const [targetList, setTargetList] = useState(null); // every active campus target, for the Targets card
   const dispatch = useDispatch();
-  const board = useSelector(selectBoardInitiatives);
-  const count = useSelector(selectActiveInitiatives).length;
+  const summary = useSelector(selectMetricsSummary);
+  const summaryLoad = useSelector(selectMetricsSummaryStatus);
+  const boardInitiatives = useSelector(selectBoardInitiatives);
+  const activeCount = useSelector(selectActiveInitiatives).length;
   const initiativesStatus = useSelector(selectInitiativesStatus);
-  const initiatives = initiativesStatus === "succeeded" ? board : null;
-  const [signals, setSignals] = useState(null);
-  const [cases, setCases] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const targetRows = useSelector(selectAllTargets);
+  const targetsStatus = useSelector(selectTargetsStatus);
+  const caseRows = useSelector(selectAllWastageReports);
+  const casesStatus = useSelector(selectWastageReportsStatus);
+  const signals = useSelector(selectWastageSignals);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const initiatives = initiativesStatus === "succeeded" ? boardInitiatives : null;
+  const cases = casesStatus === "succeeded" ? caseRows : null;
+  const targetList = targetsStatus === "succeeded"
+    ? targetRows.filter((t) => t.status === "active" && t.building_ids.length === 0)
+    : null;
+  const targets = Object.fromEntries((targetList || []).map((t) => [t.metric, t]));
+  const loading = summaryLoad.status === "idle" || summaryLoad.status === "loading" || summaryLoad.refreshing;
+  const error = summaryLoad.error;
+  const lastUpdated = summaryLoad.updatedAt ? new Date(summaryLoad.updatedAt) : null;
 
+  // Each card can render its own data when a different request fails.
   const loadData = useCallback((force = false) => {
+    dispatch(fetchMetricsSummary({ force }));
     dispatch(fetchInitiatives({ force }));
-    let active = true;
-
-    Promise.allSettled([
-      api.get("/sustainability-metrics/summary"),
-      api.get("/targets"),
-      api.get("/wastage-reports/signals"),
-      api.get("/wastage-reports"),
-    ])
-      .then(([summaryRes, targetsRes, signalsRes, casesRes]) => {
-        if (!active) return;
-
-        if (summaryRes.status === "rejected") {
-          setError(summaryRes.reason?.message || "The metrics service did not respond.");
-          setSummary(null);
-        } else {
-          setSummary(summaryRes.value || null);
-          setError(null);
-        }
-
-        // Active, campus-wide targets, by metric.
-        if (!failed(targetsRes)) {
-          const campus = targetsRes.value.filter((t) => t.status === "active" && t.building_ids.length === 0);
-          setTargets(Object.fromEntries(campus.map((t) => [t.metric, t])));
-          setTargetList(campus);
-        } else {
-          setTargetList(null);
-        }
-        setSignals(failed(signalsRes) ? null : signalsRes.value);
-        setCases(failed(casesRes) ? null : casesRes.value);
-        setLastUpdated(new Date());
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
+    dispatch(fetchTargets({ force }));
+    // Wastage actions on the audit page still write directly to the backend.
+    dispatch(fetchWastageSignals({ force: true }));
+    dispatch(fetchWastageReports({ force: true }));
   }, [dispatch]);
 
   useEffect(() => {
-    const cleanup = loadData();
-    return cleanup;
+    loadData();
   }, [loadData]);
 
-  const handleRefresh = () => {
-    setLoading(true);
-    loadData(true);
-  };
+  const handleRefresh = () => loadData(true);
 
   const totals = summary?.totals;
   const change = summary?.change?.has_comparison ? summary.change : null;
@@ -108,7 +97,7 @@ export default function SustainabilityOverview() {
   const factors = summary?.emission_factors;
   const series = summary?.series || [];
   const firstName = (user?.name || "").trim().split(/\s+/)[0];
-  const activeInitiatives = initiatives ? count : null;
+  const activeInitiatives = initiatives ? activeCount : null;
 
   // Which months the figures cover and what the changes compare against,
   // straight from the server's answer rather than from a literal.
