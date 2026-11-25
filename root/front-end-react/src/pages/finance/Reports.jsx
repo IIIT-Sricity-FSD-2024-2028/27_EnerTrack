@@ -6,21 +6,30 @@
  *   <InvoicesSection>    utility invoices (manages its own state)
  *   <InitiativesSection> approved initiatives: cost, spent, saving, payback
  *   <MetricsCalculator>  ROI / NPV / payback calculator and viability banner
+ *
+ * Reports and invoices come from the Redux store (financialReportsSlice,
+ * invoicesSlice); saves update the store in place.
  */
 import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../auth/useAuth";
 import FinanceLayout from "./components/FinanceLayout";
 import ToastProvider from "./components/ToastProvider";
 import Modal from "./components/Modal";
 import { useToast } from "./components/toastContext";
+import { fetchBuildings } from "../../store/slices/buildingsSlice";
+import { fetchDepartments } from "../../store/slices/departmentsSlice";
+import { selectFinancePlaces } from "../../store/slices/energyCostsSlice";
 import {
-  loadDepartmentsAndBuildings,
-  loadReports,
-  normalizeReport,
-  saveLocalFinance,
-} from "./financeApi";
-import { generateId } from "./financeUtils";
+  createFinancialReport,
+  fetchFinancialReports,
+  removeFinancialReport,
+  selectReportRows,
+  updateFinancialReport,
+} from "../../store/slices/financialReportsSlice";
+import { fetchInvoices } from "../../store/slices/invoicesSlice";
+import { fetchUsers } from "../../store/slices/usersSlice";
+import { useLiveData } from "../../store/useLiveData";
 import InvoicesSection from "./reports/InvoicesSection";
 import InitiativesSection from "./reports/InitiativesSection";
 import MetricsCalculator from "./reports/MetricsCalculator";
@@ -33,38 +42,30 @@ import sharedCss from "../../styles/finance-analyst/finance_shared.css?inline";
 /** "" → undefined, "18.5" → 18.5 — empty number inputs are left out. */
 const toNumber = (value) => (value === "" || value == null ? undefined : Number(value));
 
+// Loaded fresh each time the page opens; no polling. Users give each report
+// its author's name; departments and buildings fill the scope dropdowns.
+const LOADS = [fetchFinancialReports, fetchInvoices, fetchUsers, fetchDepartments, fetchBuildings];
+
 function ReportsContent() {
   const { user } = useAuth();
   const showToast = useToast();
-  const [reports, setReports] = useState([]);
-  const [offline, setOffline] = useState(false);
-  const [places, setPlaces] = useState({ departments: [], buildings: [] });
+  const dispatch = useDispatch();
+  const reports = useSelector(selectReportRows);
+  const places = useSelector(selectFinancePlaces);
+  const { error } = useLiveData(LOADS, { intervalMs: 0 });
   const [modal, setModal] = useState(null); // e.g. { kind: "edit", report }
 
-  // Load the reports and the department/building lists once.
   useEffect(() => {
-    loadReports()
-      .then((result) => {
-        setReports(result.reports);
-        setOffline(result.offline);
-      })
-      .catch((error) => showToast(error.message, "error"));
-    loadDepartmentsAndBuildings().then(setPlaces);
-  }, [showToast]);
+    if (error) showToast(error, "error");
+  }, [error, showToast]);
 
-  function updateList(next) {
-    setReports(next);
-    if (offline) saveLocalFinance("financialReports", next);
-  }
-
-  /** Runs an API request (skipped when offline). Returns true on success. */
-  async function callApi(request, errorPrefix) {
-    if (offline) return true;
+  /** Runs one thunk. Returns true on success, or shows a toast and returns false. */
+  async function run(thunk, errorPrefix) {
     try {
-      await request();
+      await dispatch(thunk).unwrap();
       return true;
-    } catch (error) {
-      showToast(`${errorPrefix}: ${error.message}`, "error");
+    } catch (err) {
+      showToast(`${errorPrefix}: ${err.message}`, "error");
       return false;
     }
   }
@@ -88,20 +89,9 @@ function ReportsContent() {
       archived: false,
     };
 
-    let created = normalizeReport({ ...payload, id: generateId("rep") });
-    if (!offline) {
-      try {
-        const res = await api.post("/financial-reports", payload);
-        created = normalizeReport({ ...payload, ...res });
-      } catch (error) {
-        showToast("Error saving report to server: " + error.message, "error");
-        return;
-      }
-    }
-    created.generatedBy = user.name;
-    updateList([created, ...reports]);
+    if (!(await run(createFinancialReport(payload), "Error saving report to server"))) return;
     setModal(null);
-    showToast(`Report "${created.title}" created.`, "success");
+    showToast(`Report "${payload.title}" created.`, "success");
   }
 
   async function handleEdit(form) {
@@ -115,40 +105,29 @@ function ReportsContent() {
       status: form.status,
       notes: form.notes.trim(),
     };
-    const ok = await callApi(() => api.patch(`/financial-reports/${report.id}`, payload), "Error updating report");
+    const ok = await run(
+      updateFinancialReport({ id: report.id, changes: payload }),
+      "Error updating report",
+    );
     if (!ok) return;
-    const changes = {
-      title: payload.title,
-      roi: roi ?? null,
-      npv: payload.npv ?? null,
-      paybackYears: payload.payback_years ?? null,
-      status: payload.status,
-      notes: payload.notes,
-    };
-    updateList(reports.map((r) => (r.id === report.id ? { ...r, ...changes } : r)));
     setModal(null);
     showToast("Report updated.", "success");
   }
 
   async function handleArchive(report) {
-    const ok = await callApi(
-      () => api.patch(`/financial-reports/${report.id}`, { archived: true }),
+    const ok = await run(
+      updateFinancialReport({ id: report.id, changes: { archived: true } }),
       "Failed to archive report",
     );
     if (!ok) return;
-    updateList(reports.map((r) => (r.id === report.id ? { ...r, archived: true } : r)));
     setModal(null);
     showToast(`"${report.title}" archived successfully.`, "success");
   }
 
   async function handleDelete(report) {
-    const ok = await callApi(
-      () => api.delete(`/financial-reports/${report.id}`),
-      "Failed to delete report",
-    );
+    const ok = await run(removeFinancialReport(report.id), "Failed to delete report");
     setModal(null);
     if (!ok) return;
-    updateList(reports.filter((r) => r.id !== report.id));
     showToast("Report deleted.", "success");
   }
 
