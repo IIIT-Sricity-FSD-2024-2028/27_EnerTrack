@@ -5,17 +5,23 @@
  * There is no approve step: the Financial Analyst creates the invoice, and
  * marks it Paid (or Overdue) through Edit.
  *
- * It owns the invoice list in state and loads it with useEffect.
+ * The invoices come from the Redux store (invoicesSlice); the Reports page
+ * loads them. Saves update the store in place.
  * `modal` remembers which dialog is open: { kind: "edit", invoice }.
  */
-import { useEffect, useState } from "react";
-import api from "../../../api/client";
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../../auth/useAuth";
 import Badge from "../components/Badge";
 import Modal from "../components/Modal";
 import { useToast } from "../components/toastContext";
-import { loadInvoices, normalizeInvoice, saveLocalFinance } from "../financeApi";
-import { can, formatCurrency, formatDate, generateId } from "../financeUtils";
+import { can, formatCurrency, formatDate } from "../financeUtils";
+import {
+  createInvoice,
+  removeInvoice,
+  selectInvoiceRows,
+  updateInvoice,
+} from "../../../store/slices/invoicesSlice";
 import AttachDocumentModal from "./AttachDocumentModal";
 import InvoiceFormModal from "./InvoiceFormModal";
 import InvoicePdfModal from "./InvoicePdfModal";
@@ -24,35 +30,19 @@ import InvoiceViewModal from "./InvoiceViewModal";
 export default function InvoicesSection({ departments }) {
   const { user } = useAuth();
   const showToast = useToast();
-  const [invoices, setInvoices] = useState([]);
-  const [offline, setOffline] = useState(false);
+  const dispatch = useDispatch();
+  const invoices = useSelector(selectInvoiceRows);
   const [statusFilter, setStatusFilter] = useState("all");
   const [deptFilter, setDeptFilter] = useState("all");
   const [modal, setModal] = useState(null);
 
-  useEffect(() => {
-    loadInvoices()
-      .then((result) => {
-        setInvoices(result.invoices);
-        setOffline(result.offline);
-      })
-      .catch((error) => showToast(error.message, "error"));
-  }, [showToast]);
-
-  /** Puts the new list in state (and in localStorage when offline). */
-  function updateList(next) {
-    setInvoices(next);
-    if (offline) saveLocalFinance("invoices", next);
-  }
-
-  /** Calls the API unless offline. Returns false (after a toast) on failure. */
-  async function callApi(request, errorPrefix) {
-    if (offline) return true;
+  /** Runs one thunk. Returns true on success, or shows a toast and returns false. */
+  async function run(thunk, errorPrefix) {
     try {
-      await request();
+      await dispatch(thunk).unwrap();
       return true;
-    } catch (error) {
-      showToast(`${errorPrefix}: ${error.message}`, "error");
+    } catch (err) {
+      showToast(`${errorPrefix}: ${err.message}`, "error");
       return false;
     }
   }
@@ -70,19 +60,9 @@ export default function InvoicesSection({ departments }) {
       status: "pending",
       archived: false,
     };
-    let created = normalizeInvoice({ ...payload, id: generateId("inv") });
-    if (!offline) {
-      try {
-        const res = await api.post("/invoices", payload);
-        created = normalizeInvoice({ ...payload, ...res });
-      } catch (error) {
-        showToast("Error saving invoice to server: " + error.message, "error");
-        return;
-      }
-    }
-    updateList([...invoices, created]);
+    if (!(await run(createInvoice(payload), "Error saving invoice to server"))) return;
     setModal(null);
-    showToast(`Invoice ${created.invoiceNumber} added.`, "success");
+    showToast(`Invoice ${payload.invoice_number} added.`, "success");
   }
 
   async function handleEdit(form) {
@@ -97,35 +77,25 @@ export default function InvoicesSection({ departments }) {
       type: form.type,
       status: form.status,
     };
-    if (!(await callApi(() => api.patch(`/invoices/${id}`, payload), "Error updating invoice"))) return;
-    updateList(invoices.map((inv) => (inv.id === id ? normalizeInvoice({ ...inv, ...payload, id }) : inv)));
+    if (!(await run(updateInvoice({ id, changes: payload }), "Error updating invoice"))) return;
     setModal(null);
     showToast("Invoice updated.", "success");
   }
 
-  /** After a PDF upload: swap in the updated invoice so "View PDF" appears. */
-  function handleUploaded(saved) {
-    updateList(
-      invoices.map((i) => (i.id === saved.invoice_id ? normalizeInvoice({ ...i, ...saved }) : i)),
-    );
-  }
-
   async function handleArchive(inv) {
-    const ok = await callApi(() => api.patch(`/invoices/${inv.id}`, { archived: true }), "Failed to archive invoice");
+    const ok = await run(
+      updateInvoice({ id: inv.id, changes: { archived: true } }),
+      "Failed to archive invoice",
+    );
     if (!ok) return;
-    updateList(invoices.map((i) => (i.id === inv.id ? { ...i, archived: true } : i)));
     setModal(null);
     showToast(`Invoice ${inv.invoiceNumber} archived.`, "success");
   }
 
   async function handleDelete(inv) {
-    const ok = await callApi(
-      () => api.delete(`/invoices/${inv.id}`),
-      "Failed to delete invoice",
-    );
+    const ok = await run(removeInvoice(inv.id), "Failed to delete invoice");
     setModal(null);
     if (!ok) return;
-    updateList(invoices.filter((i) => i.id !== inv.id));
     showToast(`Invoice ${inv.invoiceNumber} deleted.`, "success");
   }
 
@@ -270,7 +240,7 @@ export default function InvoicesSection({ departments }) {
       )}
 
       {modal?.kind === "attach" && (
-        <AttachDocumentModal invoice={modal.invoice} onUploaded={handleUploaded} onClose={() => setModal(null)} />
+        <AttachDocumentModal invoice={modal.invoice} onClose={() => setModal(null)} />
       )}
 
       {modal?.kind === "pdf" && <InvoicePdfModal invoice={modal.invoice} onClose={() => setModal(null)} />}

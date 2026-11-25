@@ -5,13 +5,23 @@
  *   1. Financial reports that were archived on the Reports page
  *   2. Utility invoices that were archived on the Reports page
  *   3. Sustainability (wastage) reports the analyst returned with cost figures
+ *
+ * Reports and invoices come from the Redux store. The wastage reports still
+ * load through financeApi until the wastage workflow has its own slice.
  */
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { useAuth } from "../../auth/useAuth";
 import FinanceLayout from "./components/FinanceLayout";
 import ToastProvider from "./components/ToastProvider";
 import { useToast } from "./components/toastContext";
-import { loadInvoices, loadReports, loadWastageReports } from "./financeApi";
+import { loadWastageReports } from "./financeApi";
+import {
+  fetchFinancialReports,
+  selectArchivedReports,
+} from "../../store/slices/financialReportsSlice";
+import { fetchInvoices, selectArchivedInvoices } from "../../store/slices/invoicesSlice";
+import { useLiveData } from "../../store/useLiveData";
 import { sensorTitle, wastageSummary } from "./financeUtils";
 import InvoiceViewModal from "./reports/InvoiceViewModal";
 import ReportViewModal from "./reports/ReportViewModal";
@@ -274,20 +284,26 @@ function ArchivedWastageCard({ report: t }) {
   );
 }
 
+// Loaded fresh each time the page opens; no polling.
+const LOADS = [fetchFinancialReports, fetchInvoices];
+
 function ArchivesContent() {
   const { user } = useAuth();
   const showToast = useToast();
-  const [reports, setReports] = useState([]);
-  const [invoices, setInvoices] = useState([]);
+  const reports = useSelector(selectArchivedReports);
+  const invoices = useSelector(selectArchivedInvoices);
+  const { error } = useLiveData(LOADS, { intervalMs: 0 });
   const [wastage, setWastage] = useState([]);
   const [viewing, setViewing] = useState(null); // { kind: "report" | "invoice", item }
 
   useEffect(() => {
+    if (error) showToast(error, "error");
+  }, [error, showToast]);
+
+  useEffect(() => {
     async function load() {
       try {
-        const [r, i, w] = await Promise.all([loadReports(), loadInvoices(), loadWastageReports(user)]);
-        setReports(r.reports.filter((rep) => rep.archived));
-        setInvoices(i.invoices.filter((inv) => inv.archived));
+        const w = await loadWastageReports(user);
         setWastage(
           w
             .filter((t) => t.costImpact && DONE_STATUSES.includes(t.status))

@@ -4,9 +4,12 @@
  * Summary tiles, the energy cost records table (add / view / edit /
  * delete with scope and period filters), the "Retrieve & Calculate"
  * simulation and the cost breakdown charts.
+ *
+ * The records come from the Redux store (energyCostsSlice); saves update the
+ * store in place, so nothing is reloaded after them.
  */
 import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
 import Badge from "./components/Badge";
 import FinanceLayout from "./components/FinanceLayout";
 import ToastProvider from "./components/ToastProvider";
@@ -16,13 +19,18 @@ import { useAuth } from "../../auth/useAuth";
 import CostBreakdown from "./costs/CostBreakdown";
 import CostFormModal from "./costs/CostFormModal";
 import CostViewModal from "./costs/CostViewModal";
+import { can, formatCurrency, statusFromVariance } from "./financeUtils";
+import { fetchBuildings } from "../../store/slices/buildingsSlice";
+import { fetchDepartments } from "../../store/slices/departmentsSlice";
 import {
-  loadDepartmentsAndBuildings,
-  loadEnergyCosts,
-  normalizeCost,
-  saveLocalFinance,
-} from "./financeApi";
-import { can, formatCurrency, generateId, statusFromVariance } from "./financeUtils";
+  createEnergyCost,
+  fetchEnergyCosts,
+  removeEnergyCost,
+  selectEnergyCostRows,
+  selectFinancePlaces,
+  updateEnergyCost,
+} from "../../store/slices/energyCostsSlice";
+import { useLiveData } from "../../store/useLiveData";
 import costsCss from "../../styles/finance-analyst/finance_costs.css?inline";
 import sharedCss from "../../styles/finance-analyst/finance_shared.css?inline";
 
@@ -47,32 +55,48 @@ function amountsFromForm(form) {
   };
 }
 
+/** One record with every amount moved by `factor` (the simulation), totals redone. */
+function simulated(rec, factor) {
+  const vary = (value) => Math.round((Number(value) || 0) * factor);
+  return {
+    ...rec,
+    ...withTotals({
+      electricity: vary(rec.electricity),
+      gas: vary(rec.gas),
+      water: vary(rec.water),
+      wastewater: vary(rec.wastewater),
+      demand: vary(rec.demand),
+      budget: rec.budget,
+    }),
+  };
+}
+
+// Loaded fresh each time the page opens; no polling.
+const LOADS = [fetchEnergyCosts, fetchDepartments, fetchBuildings];
+
 function CostsContent() {
   const { user } = useAuth();
   const showToast = useToast();
-  const [costs, setCosts] = useState([]);
-  const [offline, setOffline] = useState(false);
-  const [places, setPlaces] = useState({ departments: [], buildings: [] });
+  const dispatch = useDispatch();
+  const savedCosts = useSelector(selectEnergyCostRows);
+  const places = useSelector(selectFinancePlaces);
+  const { error } = useLiveData(LOADS, { intervalMs: 0 });
   const [scopeFilter, setScopeFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("");
   const [modal, setModal] = useState(null); // { kind: "view" | "add" | "edit" | "delete", record }
   const [pending, setPending] = useState(true); // analytics wait for "Retrieve & Calculate"
   const [calculating, setCalculating] = useState(false);
+  // "Retrieve & Calculate" factors by record id. UI only: never saved.
+  const [factors, setFactors] = useState(null);
 
   useEffect(() => {
-    loadEnergyCosts()
-      .then((result) => {
-        setCosts(result.costs);
-        setOffline(result.offline);
-      })
-      .catch((error) => showToast(error.message, "error"));
-    loadDepartmentsAndBuildings().then(setPlaces);
-  }, [showToast]);
+    if (error) showToast(error, "error");
+  }, [error, showToast]);
 
-  function updateList(next) {
-    setCosts(next);
-    if (offline) saveLocalFinance("energyCosts", next);
-  }
+  // What the page shows: the saved records, with the simulation on top.
+  const costs = factors
+    ? savedCosts.map((rec) => (factors[rec.id] ? simulated(rec, factors[rec.id]) : rec))
+    : savedCosts;
 
   async function handleAdd(form) {
     const values = withTotals(amountsFromForm(form));
@@ -85,17 +109,12 @@ function CostsContent() {
       building_id: form.scopeType === "building" ? form.scopeRef : undefined,
     };
 
-    let created = normalizeCost({ ...payload, id: generateId("ec") });
-    if (!offline) {
-      try {
-        const res = await api.post("/energy-costs", payload);
-        created = normalizeCost({ ...payload, ...res });
-      } catch (error) {
-        showToast("Error saving cost record: " + error.message, "error");
-        return;
-      }
+    try {
+      await dispatch(createEnergyCost(payload)).unwrap();
+    } catch (error) {
+      showToast("Error saving cost record: " + error.message, "error");
+      return;
     }
-    updateList([...costs, created]);
     setModal(null);
     showToast("Energy cost record added.", "success");
   }
@@ -103,30 +122,31 @@ function CostsContent() {
   async function handleEdit(form) {
     const record = modal.record;
     const payload = withTotals(amountsFromForm(form));
-    if (!offline) {
-      try {
-        await api.patch(`/energy-costs/${record.id}`, payload);
-      } catch (error) {
-        showToast("Error updating cost record: " + error.message, "error");
-        return;
-      }
+    try {
+      await dispatch(updateEnergyCost({ id: record.id, changes: payload })).unwrap();
+    } catch (error) {
+      showToast("Error updating cost record: " + error.message, "error");
+      return;
     }
-    updateList(costs.map((c) => (c.id === record.id ? { ...c, ...payload } : c)));
+    // The saved figures replace any simulated ones for this record.
+    setFactors((current) => {
+      if (!current?.[record.id]) return current;
+      const next = { ...current };
+      delete next[record.id];
+      return next;
+    });
     setModal(null);
     showToast("Cost record updated.", "success");
   }
 
   async function handleDelete(record) {
     setModal(null);
-    if (!offline) {
-      try {
-        await api.delete(`/energy-costs/${record.id}`);
-      } catch (error) {
-        showToast("Failed to delete cost record: " + error.message, "error");
-        return;
-      }
+    try {
+      await dispatch(removeEnergyCost(record.id)).unwrap();
+    } catch (error) {
+      showToast("Failed to delete cost record: " + error.message, "error");
+      return;
     }
-    updateList(costs.filter((c) => c.id !== record.id));
     showToast("Cost record deleted.", "success");
   }
 
@@ -141,22 +161,9 @@ function CostsContent() {
     setTimeout(() => {
       showToast("Synchronizing with Building Management Systems...", "info", 1500);
       setTimeout(() => {
-        setCosts((current) =>
-          current.map((rec) => {
-            const factor = 1 + (Math.random() * 0.04 - 0.02); // 0.98 – 1.02
-            const vary = (value) => Math.round((Number(value) || 0) * factor);
-            return {
-              ...rec,
-              ...withTotals({
-                electricity: vary(rec.electricity),
-                gas: vary(rec.gas),
-                water: vary(rec.water),
-                wastewater: vary(rec.wastewater),
-                demand: vary(rec.demand),
-                budget: rec.budget,
-              }),
-            };
-          }),
+        // 0.98 – 1.02 for every record currently on file
+        setFactors(
+          Object.fromEntries(savedCosts.map((rec) => [rec.id, 1 + (Math.random() * 0.04 - 0.02)])),
         );
         setPending(false);
         setCalculating(false);
