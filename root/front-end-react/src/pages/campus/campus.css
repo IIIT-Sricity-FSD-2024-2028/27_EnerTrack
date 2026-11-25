@@ -1062,3 +1062,104 @@ body {
     grid-row: 1 / span 2;
   }
 }
+
+/* ── My Reports: open a report read-only, and "Still broken" ── */
+.ticket-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ticket-title,
+.ticket-open {
+  margin: 0 0 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #111827;
+  text-align: left;
+}
+
+.ticket-open {
+  cursor: pointer;
+}
+
+.ticket-open:hover,
+.ticket-open:focus-visible {
+  color: #047857;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ticket-actions {
+  display: flex;
+  gap: 8px;
+  flex-basis: 100%;
+}
+
+.still-broken {
+  flex-basis: 100%;
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.still-broken label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.still-broken textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.still-broken-photo {
+  display: grid;
+  gap: 4px;
+  font-weight: 500 !important;
+}
+
+.still-broken small {
+  color: #6b7280;
+}
+
+.still-broken .still-broken-error {
+  color: #b91c1c;
+}
+
+.still-broken-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.still-broken-actions .btn-submit {
+  width: auto;
+  padding: 9px 18px;
+  font-size: 14px;
+}
+
+/* The report form shown read-only: no fieldset chrome, chosen answers stand out. */
+.report-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.report-card--view .choice-btn:not(.selected) {
+  opacity: 0.45;
+}
+
+.report-card--view .report-fieldset input,
+.report-card--view .report-fieldset textarea,
+.report-card--view .report-fieldset button {
+  cursor: default;
+}

@@ -6,7 +6,7 @@
  *
  * Ported from selectWorkOrder() in js/technician/workOrdersPage.js.
  */
-import { capitalize, userName } from "../techUtils";
+import { capitalize, jobTypeLabel, userName } from "../techUtils";
 
 export default function SummaryCard({ wo, users }) {
   const details = wo.details || {};
@@ -31,8 +31,7 @@ export default function SummaryCard({ wo, users }) {
         <span className="summary-label">Status</span>
         <span>{wo.status}</span>
         <span className="summary-label">Type</span>
-        {/* Orders from the seed data have no type. */}
-        <span>{capitalize(details.type) || "Not set"}</span>
+        <span>{jobTypeLabel(details.type)}</span>
         <span className="summary-label">Priority</span>
         <span>{capitalize(wo.priority)}</span>
         <span className="summary-label">Technician</span>

@@ -68,6 +68,11 @@ export interface StudentTicketView {
   mine: boolean;
   /** A fixed issue the student can still confirm, or report as still broken. */
   can_respond: boolean;
+  /** The form as they filled it in (only for the person who filed it), for a read-only view. */
+  form: Record<string, unknown> | null;
+  /** Set on a "still broken" report: what they said was still wrong, and whether a photo came with it. */
+  reopen_reason: string | null;
+  has_reopen_photo: boolean;
 }
 
 export type SubmitOutcome =
@@ -107,7 +112,16 @@ export class IssueReportsService {
     this.recent.set(key, times);
   }
 
-  submit(userId: string | undefined, dto: CreateIssueReportDto): SubmitOutcome {
+  /**
+   * `reopen` is set when the reporter said a fixed issue is still broken: the
+   * new report carries their reason and photo, links to the fixed one, and is
+   * offered first to the technician who did the fix.
+   */
+  submit(
+    userId: string | undefined,
+    dto: CreateIssueReportDto,
+    reopen?: { from: ServiceRequest; reason: string; photo: string | null },
+  ): SubmitOutcome {
     const reporter = this.requireUser(userId);
     this.spend("report", reporter, reportLimit());
     const org = currentOrgId();
@@ -218,7 +232,15 @@ export class IssueReportsService {
       reporter_ids: [reporter],
       plus_one_ids: [],
       joined_reports: [],
-      reopened_from: priorFix?.service_request_id ?? null,
+      reopened_from: reopen?.from.service_request_id ?? priorFix?.service_request_id ?? null,
+      submitted_form: this.formSnapshot(dto),
+      ...(reopen
+        ? {
+            reopen_reason: reopen.reason,
+            reopen_photo: reopen.photo,
+            prefer_technician_id: this.dispatch.lastTechnicianOf(reopen.from),
+          }
+        : {}),
       ...(dto.other_text ? { other_text: dto.other_text.trim() } : {}),
     };
     this.database.serviceRequests.push(record);
@@ -258,7 +280,12 @@ export class IssueReportsService {
    * broken" files the same problem again as a new, linked report, which the
    * rules treat as having happened before (one level higher).
    */
-  respond(userId: string | undefined, id: string, fixed: boolean): StudentTicketView | SubmitOutcome {
+  respond(
+    userId: string | undefined,
+    id: string,
+    fixed: boolean,
+    stillBroken?: { reason?: string; photo?: string | null },
+  ): StudentTicketView | SubmitOutcome {
     const user = this.requireUser(userId);
     const ticket = scopeToTenant(this.database.serviceRequests).find((t) => t.service_request_id === id);
     if (!ticket || !this.isMine(ticket, user)) throw new NotFoundException("Issue not found.");
@@ -269,6 +296,9 @@ export class IssueReportsService {
     }
     if (ticket.item_id === OTHER_ITEM_ID)
       throw new BadRequestException("Please send a new report for this one.");
+    // Say what is still wrong, so the technician knows what to look at.
+    const reason = (stillBroken?.reason ?? "").trim();
+    if (reason.length < 3) throw new BadRequestException("Tell us what is still wrong (a few words).");
     return this.submit(user, {
       building_id: ticket.building_id!,
       floor: ticket.floor!,
@@ -281,7 +311,17 @@ export class IssueReportsService {
       answers: ticket.answers,
       in_danger: false,
       happened_before: true,
-    } as CreateIssueReportDto);
+      description: `Still broken: ${reason}`,
+    } as CreateIssueReportDto, { from: ticket, reason, photo: stillBroken?.photo ?? null });
+  }
+
+  /** Where the "still broken" photo of a report is on disk. A Campus Visitor only sees their own. */
+  reopenPhotoPath(userId: string | undefined, role: string | undefined, id: string): string {
+    const user = this.requireUser(userId);
+    const ticket = scopeToTenant(this.database.serviceRequests).find((t) => t.service_request_id === id);
+    if (!ticket || !ticket.reopen_photo) throw new NotFoundException("No photo for this report.");
+    if (role === UserRole.CAMPUS_VISITOR && !this.isMine(ticket, user)) throw new NotFoundException("No photo for this report.");
+    return ticket.reopen_photo;
   }
 
   /** All open issues in the caller's organisation. No names, no priority, no counts. */
@@ -297,7 +337,7 @@ export class IssueReportsService {
     const user = this.requireUser(userId);
     return scopeToTenant(this.database.serviceRequests)
       .filter((t) => this.isMine(t, user))
-      .map((t) => this.studentView(t, user));
+      .map((t) => this.studentView(t, user, true));
   }
 
   // ── Staff: priority override ───────────────────────────────────────────
@@ -481,7 +521,8 @@ export class IssueReportsService {
     return `${found?.item.label ?? r.itemId}${prob ? ` – ${prob.label}` : ""}`;
   }
 
-  private studentView(t: ServiceRequest, user: string): StudentTicketView {
+  /** `withForm`: include the filled-in form (My Reports only, never the campus list). */
+  private studentView(t: ServiceRequest, user: string, withForm = false): StudentTicketView {
     const building = this.database.buildings.find((b) => b.building_id === t.building_id);
     const floor = FLOORS.find((f) => f.id === t.floor)?.label ?? t.floor;
     const areaLabel = AREAS.find((a) => a.id === t.area)?.label ?? t.area;
@@ -505,7 +546,42 @@ export class IssueReportsService {
       reported_on: t.created_at ?? null,
       mine: this.isMine(t, user),
       can_respond: this.canRespond(t, user),
+      form: withForm ? this.formFor(t, user) : null,
+      reopen_reason: t.reopen_reason ?? null,
+      has_reopen_photo: !!t.reopen_photo,
     };
+  }
+
+  /** What the reporter sent, minus the "same problem?" answer (not part of the form). */
+  private formSnapshot(dto: CreateIssueReportDto): Record<string, unknown> {
+    const keys = ["building_id", "floor", "area", "part", "issue_type_id", "item_id", "problem_id", "how_many", "answers", "in_danger", "happened_before", "since", "how_bad", "other_text", "description"] as const;
+    const out: Record<string, unknown> = {};
+    for (const k of keys) if (dto[k] !== undefined && dto[k] !== null && dto[k] !== "") out[k] = dto[k];
+    return out;
+  }
+
+  /**
+   * The report form as the reporter filled it in, for a read-only view. Only
+   * for the person who filed it (someone who only pressed +1 filed nothing).
+   * Older tickets without a snapshot are rebuilt from what the ticket holds.
+   */
+  private formFor(t: ServiceRequest, user: string): Record<string, unknown> | null {
+    if (t.reporter_id !== user || !t.item_id) return null;
+    const fromTicket: Record<string, unknown> = {
+      building_id: t.building_id,
+      floor: t.floor,
+      area: t.area,
+      part: t.part,
+      issue_type_id: t.issue_type_id,
+      item_id: t.item_id,
+      problem_id: t.problem_id,
+      how_many: t.how_many,
+      answers: t.answers ?? {},
+      other_text: t.other_text,
+      description: t.description,
+    };
+    const merged = { ...fromTicket, ...(t.submitted_form ?? {}) };
+    return Object.fromEntries(Object.entries(merged).filter(([, v]) => v !== undefined && v !== null && v !== ""));
   }
 
   /** Fixed in the last week, theirs, not yet confirmed and not already re-reported. */

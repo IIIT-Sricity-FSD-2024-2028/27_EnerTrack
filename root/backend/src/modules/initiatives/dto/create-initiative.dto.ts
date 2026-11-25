@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsArray,
   IsIn,
+  IsObject,
   IsNumber,
   Min,
   Matches,
@@ -50,6 +51,8 @@ export class CreateInitiativeDto {
   // ── On-site work ──
   /** Does it need technicians on site? If true, teams and target_date are required. */
   @IsOptional() @IsBoolean() onsite_work?: boolean;
-  /** Technician types needed: electrician, plumber, hvac, cleaning. Start work sends one job to each, in parallel. */
+  /** Technician types needed: electrician, plumber, general, hvac. Approval sends one job to each, in parallel. */
   @IsOptional() @IsArray() @IsIn(TEAMS, { each: true }) teams?: string[];
+  /** What each type has to do, by team, e.g. { plumber: "Fit the tank…" }. Required for every type in teams. */
+  @IsOptional() @IsObject() team_tasks?: Record<string, string>;
 }

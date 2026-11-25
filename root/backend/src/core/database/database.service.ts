@@ -252,8 +252,15 @@ export interface User {
   team?: string | null;
   /** The person's own "Available today" switch. Missing means available. */
   available?: boolean;
+  /**
+   * YYYY-MM-DD the switch was turned off. "Available today" means today: on
+   * a later day the person counts as available again (and the switch reads on).
+   */
+  switched_off_on?: string | null;
   /** YYYY-MM-DD the person is off for (declined as sick, or missed an acknowledgement). */
   unavailable_on?: string | null;
+  /** Why they are off for that day: "sick" (declined as unwell) or "missed" (did not answer a job). */
+  unavailable_reason?: "sick" | "missed" | null;
   /** True for accounts an administrator provisioned: the first login must replace the issued password. */
   must_change_password?: boolean;
 }
@@ -433,6 +440,16 @@ export interface ServiceRequest {
   joined_reports?: { reporter_id: string; problem_id: string | null; description: string; at: string }[];
   /** Set on a re-report of an issue that was fixed and broke again. */
   reopened_from?: string | null;
+  /** The answers exactly as the reporter sent them, so My Reports can show the form back read-only. */
+  submitted_form?: Record<string, unknown> | null;
+  /** "Still broken": what the reporter says is still wrong (required), and an optional photo (path on disk). */
+  reopen_reason?: string | null;
+  reopen_photo?: string | null;
+  /**
+   * Try this technician first (the one who did the earlier fix). If they
+   * cannot take it, the job is ranked as usual and the coordinator is told.
+   */
+  prefer_technician_id?: string | null;
   /** Which progress notices the reporters already got (assigned, started, checking, fixed). */
   student_notified?: string[];
   /** Set when the job was raised from a monitoring fault, not by a student. */
@@ -448,6 +465,22 @@ export interface ServiceRequest {
   /** Initiative rework: the work order this job redoes, and why it was sent back. */
   rework_of?: string | null;
   rework_reason?: string | null;
+  /**
+   * The Sustainability Officer asked for this (closed) initiative job to be
+   * redone. The coordinator decides: send it (to the same person, the
+   * system's pick, or someone chosen) or decline with a note.
+   */
+  rework_request?: {
+    reason: string;
+    requested_by: string | null;
+    requested_at: string;
+    status: "pending" | "sent" | "declined";
+    decided_by?: string | null;
+    decided_at?: string | null;
+    note?: string | null;
+    /** The ticket of the rework job, once sent. */
+    rework_ticket_id?: string | null;
+  } | null;
   /** The reporter said the fix worked. */
   confirmed_fixed_at?: string;
   /** "Other" reports only: the few words the student typed. */
@@ -643,8 +676,12 @@ export interface Initiative {
   // ── On-site work (joins the technician workflow at Start work) ──
   /** True when the initiative needs technicians on site (installing, fitting…). */
   onsite_work?: boolean;
-  /** The technician types it needs (electrician, plumber, hvac, cleaning). One job each, in parallel. */
+  /** The technician types it needs (electrician, plumber, general, hvac). One job each, in parallel. */
   teams?: string[];
+  /** What each technician type has to do, by team: { plumber: "Fit the sump…", … }. Required per type. */
+  team_tasks?: Record<string, string>;
+  /** ISO. When it was proposed. */
+  created_at?: string | null;
 }
 export interface ActivityLog {
   activity_log_id: string;
@@ -2979,7 +3016,9 @@ export class DatabaseService {
       created_by_id: "550e8400-0005-4000-8000-000000000005",
       title: "Cafeteria Food Waste Composting",
       description: "Establish a dedicated composting stream for pre-consumer and post-consumer food waste in all main dining halls to divert organic waste from landfills.",
-      status: InitiativeStatus.APPROVED,
+      // Approval starts an initiative straight away, so nothing waits in "approved".
+      status: InitiativeStatus.IN_PROGRESS,
+      start_date: "2026-10-01",
       feasible: true,
       target_reduction: "40%",
       outcomes: [],
@@ -3070,14 +3109,16 @@ export class DatabaseService {
       archived_at: "2025-10-15T09:00:00.000Z",
     },
     {
-      // Approved and needing on-site work: "Start work" sends one job to a
-      // plumber and one to an electrician, in parallel.
+      // Proposed and needing on-site work: when the Organization Admin
+      // approves it, one job goes to a plumber and one to an electrician, in
+      // parallel, each with its own task.
       initiative_id: "iiii0000-0010-4000-8000-000000000000",
       organization_id: "org-001",
       created_by_id: "550e8400-0005-4000-8000-000000000005",
+      created_at: "2026-11-08T09:30:00.000Z",
       title: "Solar water heaters for Building 2",
       description: "Replace the electric geysers in Building 2 with rooftop solar water heaters: plumbing for the tanks and pipework, electrical for the backup heaters and isolation.",
-      status: InitiativeStatus.APPROVED,
+      status: InitiativeStatus.PROPOSED,
       feasible: true,
       target_reduction: "",
       outcomes: [],
@@ -3088,9 +3129,10 @@ export class DatabaseService {
       target_date: "2027-03-31",
       onsite_work: true,
       teams: ["plumber", "electrician"],
-      decided_by_id: "550e8400-0001-4000-8000-000000000001",
-      decided_at: "2026-11-10T10:00:00.000Z",
-      decision_note: null,
+      team_tasks: {
+        plumber: "Fit the rooftop tanks and run the hot and cold pipework to each floor's geyser points.",
+        electrician: "Wire the backup heaters, fit an isolator per tank and disconnect the old geysers.",
+      },
       archived_at: null,
     },
   ];

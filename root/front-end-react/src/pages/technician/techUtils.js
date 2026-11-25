@@ -33,6 +33,28 @@ export function formatId(id, prefix) {
 }
 
 /**
+ * What kind of job a work order is (details.type), in words. The server sets
+ * it from where the job came from: an initiative, a reported issue, a
+ * wastage report, an energy audit, or a monitoring fault ("scheduled");
+ * work orders made by hand use emergency / scheduled / preventive.
+ */
+const JOB_TYPES = {
+  initiative: "Initiative",
+  issue: "Reported issue",
+  wastage: "Wastage",
+  audit: "Audit",
+  scheduled: "Scheduled",
+  emergency: "Emergency",
+  preventive: "Preventive",
+};
+
+/** "initiative" -> "Initiative"; a missing type reads "Other". */
+export function jobTypeLabel(type) {
+  if (!type) return "Other";
+  return JOB_TYPES[type] || capitalize(type);
+}
+
+/**
  * "high" -> "High". Used for severity and status badges.
  */
 export function capitalize(text) {

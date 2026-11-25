@@ -234,6 +234,17 @@ describe('Stage 6: target follow-up and report sign-off (e2e)', () => {
       expect(notesFor(NotificationTargetType.REPORT, r.report_id).pop()!.message).toBe(`Your report "${r.title}" was published.`);
     });
 
+    it('sending a report back needs a note; an approval remark reaches the author', async () => {
+      const r = await create();
+      await status(SO, r.report_id, 'submitted').expect(200);
+      await status(ADMIN, r.report_id, 'draft').expect(400);
+      const ok = body(await status(ADMIN, r.report_id, 'approved', 'Good, publish on Monday').expect(200));
+      expect(ok.review_note).toBe('Good, publish on Monday');
+      expect(notesFor(NotificationTargetType.REPORT, r.report_id).pop()!.message).toBe(
+        `Your report "${r.title}" was approved: Good, publish on Monday`,
+      );
+    });
+
     it('the Org Admin can send a submitted report back with a note', async () => {
       const r = await create();
       await status(SO, r.report_id, 'submitted').expect(200);

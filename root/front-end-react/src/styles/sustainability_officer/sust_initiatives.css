@@ -297,7 +297,7 @@
 /* INITIATIVE PIPELINE */
 .pipeline-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -972,11 +972,36 @@
 }
 
 .init-teams {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 16px;
+  display: grid;
+  gap: 8px;
   margin-top: 10px;
+}
+
+/* One technician type: its tick box, and once ticked, what it must do. */
+.init-team {
+  display: grid;
+  gap: 4px;
+}
+
+.init-task {
+  position: relative;
+  max-width: 560px;
+  margin-left: 22px;
+}
+
+.init-task textarea {
+  width: 100%;
+  resize: vertical;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.init-task-count {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: right;
 }
 
 .init-teams-label {
@@ -1052,6 +1077,28 @@
   background: #d97706;
 }
 
+/* Being checked by the coordinator. */
+.init-work-status.perf--blue::before {
+  background: #2563eb;
+}
+
+.init-work-task {
+  color: #374151;
+}
+
+.init-rework {
+  padding-left: 8px;
+  border-left: 2px solid #e5e7eb;
+}
+
+.init-rework--amber {
+  border-left-color: #d97706;
+}
+
+.init-rework--red {
+  border-left-color: #dc2626;
+}
+
 .init-work .perf-note {
   margin-top: 2px;
 }
@@ -1075,4 +1122,59 @@
   margin: 0;
   font-size: 12px;
   color: #4b5563;
+}
+
+.init-decision {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.init-teams .init-task-label {
+  display: block;
+  white-space: normal;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.init-teams .init-task-label span {
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+/* Column header count: "In Progress 3". */
+.pipeline-count {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* "● Not measured · no measure chosen" on one line. */
+.perf--inline {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.perf--inline .perf-status {
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.perf--inline .perf-note {
+  margin: 0;
+}
+
+.perf--inline .perf-note::before {
+  content: "· ";
 }

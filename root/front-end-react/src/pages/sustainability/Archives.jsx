@@ -10,6 +10,7 @@ import ReportDocument from "./components/ReportDocument";
 import { periodName } from "./periods";
 import Toast from "./components/Toast";
 import "./archives.css";
+import { InitiativeSummary } from "./initiativeShared";
 import { normalizeStatus } from "./audit/auditShared";
 import { normalizeWastageReport } from "../finance/financeApi";
 import { reportRef, wastageSummary } from "../finance/financeUtils";
@@ -39,6 +40,9 @@ export default function SustainabilityArchives() {
   const [searchQuery, setSearchQuery] = useState("");
   const [reports, setReports] = useState([]);
   const [initiatives, setInitiatives] = useState([]);
+  // For naming an initiative's buildings and target in its record.
+  const [buildings, setBuildings] = useState([]);
+  const [targets, setTargets] = useState([]);
   const [wastage, setWastage] = useState([]);
   const [toast, setToast] = useState(null);
   const [loadErrors, setLoadErrors] = useState([]);
@@ -56,9 +60,13 @@ export default function SustainabilityArchives() {
       api.get("/initiatives"),
       api.get("/wastage-reports"),
       api.get("/users"),
+      api.get("/buildings"),
+      api.get("/targets"),
     ])
-      .then(([reportsRes, initsRes, wastageRes, usersRes]) => {
+      .then(([reportsRes, initsRes, wastageRes, usersRes, buildingsRes, targetsRes]) => {
         if (!active) return;
+        if (buildingsRes.status === "fulfilled" && Array.isArray(buildingsRes.value)) setBuildings(buildingsRes.value);
+        if (targetsRes.status === "fulfilled" && Array.isArray(targetsRes.value)) setTargets(targetsRes.value);
 
         // Say which sections failed to load rather than showing them as empty.
         const failed = [];
@@ -354,12 +362,6 @@ export default function SustainabilityArchives() {
                         <span className="arc-chip">{isRejected ? "Rejected" : "Completed"}</span>
                         <span>Archived on {archivedOn}</span>
                         {i.target_reduction && <span>Target {i.target_reduction}</span>}
-                        {typeof i.capex === "number" && <span>Cost {i.capex.toLocaleString("en-GB")}</span>}
-                        {i.verified_saving != null && (
-                          <span>
-                            Verified saving {Number(i.verified_saving).toLocaleString("en-GB")} {i.performance?.unit || ""}
-                          </span>
-                        )}
                       </p>
                     </div>
                     {canDeleteInitiative(i) && (
@@ -370,8 +372,9 @@ export default function SustainabilityArchives() {
                       </div>
                     )}
                   </div>
-                  {i.description && <p className="arc-card__desc">{i.description}</p>}
-                  {Array.isArray(i.outcomes) && i.outcomes.length > 0 && (
+                  {/* The full record: work, result, timeline and money. */}
+                  <InitiativeSummary init={i} buildings={buildings} targets={targets} />
+                  {!isRejected && Array.isArray(i.outcomes) && i.outcomes.length > 0 && (
                     <ul className="arc-card__outcomes">
                       {i.outcomes.map((o, idx) => (
                         <li key={idx}>{typeof o === "string" ? o : JSON.stringify(o)}</li>

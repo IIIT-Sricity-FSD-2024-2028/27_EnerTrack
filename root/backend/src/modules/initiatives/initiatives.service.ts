@@ -22,7 +22,8 @@ import { lastFullMonth, periodsBetween } from "../../core/utils/period";
 import { compareYoY } from "../../core/utils/period-compare";
 import { METRIC_INFO, metricMeasure } from "../../core/utils/metric-measure";
 import { pushNotifications, usersWithRole } from "../../core/utils/notify";
-import { DispatchService, endOfDay } from "../dispatch/dispatch.service";
+import { DispatchService } from "../dispatch/dispatch.service";
+import { teamLabel } from "../issue-catalogue/issue-catalogue";
 import { CreateInitiativeDto } from "./dto/create-initiative.dto";
 import { PutInitiativeDto } from "./dto/put-initiative.dto";
 
@@ -35,11 +36,14 @@ const ARCHIVABLE: InitiativeStatus[] = [
 ];
 
 /**
- * The approval gate. The Sustainability Officer proposes and then runs an
- * approved initiative; only the Organization Admin approves or rejects.
+ * The approval gate. The Sustainability Officer proposes; only the
+ * Organization Admin approves or rejects. Approving starts the work at once
+ * (status in-progress, on-site jobs sent), so "approved" is only a moment:
  *
- *   proposed ──(Org Admin)──► approved ──► in-progress ──► completed
- *       └─────(Org Admin)──► rejected
+ *   proposed ──(Org Admin approves)──► in-progress ──(officer)──► completed
+ *       └─────(Org Admin rejects, with a reason)──► rejected
+ *
+ * approved → in-progress stays allowed for any record still in "approved".
  */
 const RUN_MOVES = {
   [InitiativeStatus.APPROVED]: [InitiativeStatus.IN_PROGRESS],
@@ -77,14 +81,11 @@ const AGREED_TERMS = [
   // approved the plan knowing who it would use.
   "onsite_work",
   "teams",
+  "team_tasks",
 ] as const;
 
-const TEAM_LABEL: Record<string, string> = {
-  electrician: "Electrician",
-  plumber: "Plumber",
-  hvac: "HVAC",
-  cleaning: "Cleaning",
-};
+/** Longest task text for one technician type. */
+const TASK_MAX = 300;
 
 /** Today on the server's calendar (same clock as endOfDay), not UTC's. */
 const todayIso = () => {
@@ -92,11 +93,22 @@ const todayIso = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-/** Same value for an agreed term? Lists compare as sets; unset, null, false and [] are the same. */
+/**
+ * Same value for an agreed term? Lists compare as sets, objects by their
+ * entries; unset, null, false, [] and {} are the same.
+ */
 function sameTerm(a: unknown, b: unknown): boolean {
   const norm = (v: unknown) =>
-    Array.isArray(v) ? JSON.stringify([...v].sort()) : JSON.stringify(v ?? null);
-  const isEmpty = (v: unknown) => v == null || v === false || (Array.isArray(v) && v.length === 0);
+    Array.isArray(v)
+      ? JSON.stringify([...v].sort())
+      : v && typeof v === "object"
+        ? JSON.stringify(Object.entries(v as Record<string, unknown>).sort(([x], [y]) => x.localeCompare(y)))
+        : JSON.stringify(v ?? null);
+  const isEmpty = (v: unknown) =>
+    v == null ||
+    v === false ||
+    (Array.isArray(v) && v.length === 0) ||
+    (typeof v === "object" && !Array.isArray(v) && Object.keys(v as object).length === 0);
   if (isEmpty(a) && isEmpty(b)) return true;
   return norm(a) === norm(b);
 }
@@ -128,6 +140,7 @@ export class InitiativesService {
       ...work,
       status: InitiativeStatus.PROPOSED,
       created_by_id: userId ?? null,
+      created_at: new Date().toISOString(),
       archived_at: null,
       organization_id: currentOrgId() ?? createDto.organization_id ?? null,
     };
@@ -174,6 +187,7 @@ export class InitiativesService {
     const to = (putDto.status ?? existing.status) as InitiativeStatus;
     assertMove(INITIATIVE_MOVES, role, existing.status, to, "an initiative");
     const work = this.onsiteWork(putDto);
+    this.assertDecision(existing, to, undefined, putDto.target_date ?? null);
     this.assertCanMove({ ...existing, ...putDto, ...work } as Initiative, existing.status, to);
     this.assertWorkChange(existing, { ...existing, ...putDto, ...work, status: to } as Initiative);
     // A full replace still keeps who proposed it, the decision and whether it
@@ -184,6 +198,7 @@ export class InitiativesService {
       ...work,
       status: to,
       created_by_id: existing.created_by_id,
+      created_at: existing.created_at ?? null,
       archived_at: existing.archived_at ?? null,
       decided_by_id: existing.decided_by_id ?? null,
       decided_at: existing.decided_at ?? null,
@@ -227,6 +242,7 @@ export class InitiativesService {
     assertMove(INITIATIVE_MOVES, role, existing.status, to, "an initiative");
     this.assertScope({ ...existing, ...changes });
     const work = this.onsiteWork({ ...existing, ...changes });
+    this.assertDecision(existing, to, note, changes.target_date ?? existing.target_date ?? null);
     this.assertCanMove({ ...existing, ...changes, ...work } as Initiative, existing.status, to);
     this.assertWorkChange(existing, { ...existing, ...changes, ...work, status: to } as Initiative);
     this.database.initiatives[index] = {
@@ -298,13 +314,35 @@ export class InitiativesService {
   ) {
     if (from === to) return;
     const today = new Date().toISOString().slice(0, 10);
-    // Starting work without a start date: it starts today.
-    if (to === InitiativeStatus.IN_PROGRESS && !record.start_date) record.start_date = today;
-    // Starting work on an initiative that needs technicians on site sends one
-    // job per technician type into dispatch, all at once (in parallel).
-    if (from === InitiativeStatus.APPROVED && to === InitiativeStatus.IN_PROGRESS && record.onsite_work) {
-      this.dispatch.sendInitiative(record);
+    const remark = note?.trim() || null;
+    if (from === InitiativeStatus.PROPOSED) {
+      record.decided_by_id = userId ?? null;
+      record.decided_at = new Date().toISOString();
+      record.decision_note = remark;
     }
+    // Approval is the go-ahead: the initiative starts there and then.
+    if (from === InitiativeStatus.PROPOSED && to === InitiativeStatus.APPROVED) {
+      record.status = InitiativeStatus.IN_PROGRESS;
+      to = InitiativeStatus.IN_PROGRESS;
+      from = InitiativeStatus.APPROVED;
+      const sent = this.startWork(record, today);
+      this.notify(
+        record,
+        [record.created_by_id],
+        `Your initiative "${record.title}" was approved${remark ? `: ${remark}` : "."} ${
+          sent.length
+            ? `Work has started: ${sent.length} job${sent.length === 1 ? "" : "s"} sent to ${sent.map((t) => teamLabel(t.team)).join(", ")}.`
+            : "It is now in progress."
+        }`,
+      );
+      return;
+    }
+    if (from === InitiativeStatus.PROPOSED && to === InitiativeStatus.REJECTED) {
+      this.notify(record, [record.created_by_id], `Your initiative "${record.title}" was not approved: ${remark}`);
+      return;
+    }
+    // Any record still sitting in "approved" (from before approval started work) starts the same way.
+    if (from === InitiativeStatus.APPROVED && to === InitiativeStatus.IN_PROGRESS) this.startWork(record, today);
     // Completing it records what it actually saved up to now.
     if (to === InitiativeStatus.COMPLETED) {
       record.completed_at = new Date().toISOString();
@@ -312,18 +350,25 @@ export class InitiativesService {
       record.verified_saving = perf.measurable && perf.months_compared > 0 ? perf.actual_saving_to_date : null;
       record.verified_at = record.verified_saving === null ? null : record.completed_at;
     }
-    if (from === InitiativeStatus.PROPOSED) {
-      record.decided_by_id = userId ?? null;
-      record.decided_at = new Date().toISOString();
-      record.decision_note = note ?? null;
-      this.notify(
-        record,
-        [record.created_by_id],
-        to === InitiativeStatus.APPROVED
-          ? `Your initiative "${record.title}" was approved.`
-          : `Your initiative "${record.title}" was not approved${note ? `: ${note}` : "."}`,
-      );
-    }
+  }
+
+  /** Starts the work: start date today (unless set), and one job per technician type for on-site work. */
+  private startWork(record: Initiative, today: string) {
+    if (!record.start_date) record.start_date = today;
+    return record.onsite_work ? this.dispatch.sendInitiative(record) : [];
+  }
+
+  /**
+   * The Organization Admin's decision on a proposal: a rejection needs a
+   * reason (the proposer sees it); an approval starts the work, so it is
+   * refused once the target date has passed (move the date, then approve).
+   */
+  private assertDecision(existing: Initiative, to: InitiativeStatus, note: string | undefined, targetDate: string | null) {
+    if (existing.status !== InitiativeStatus.PROPOSED || to === existing.status) return;
+    if (to === InitiativeStatus.REJECTED && !(note ?? "").trim())
+      throw new BadRequestException("Give a reason for rejecting it (decision_note); the proposer sees it.");
+    if (to === InitiativeStatus.APPROVED && targetDate && targetDate < todayIso())
+      throw new BadRequestException(`The target date (${targetDate}) has passed; move it first, then approve.`);
   }
 
   private notify(record: Initiative, userIds: (string | null | undefined)[], message: string) {
@@ -336,36 +381,48 @@ export class InitiativesService {
     });
   }
 
+  /**
+   * The record plus what every screen needs to tell its story: measured
+   * performance, its jobs (with spend), who proposed and decided it, and the
+   * money (cost, spent, expected saving, payback).
+   */
   private withPerformance(record: Initiative) {
+    const jobs = record.onsite_work ? this.dispatch.initiativeJobs(record.initiative_id) : [];
+    const spent = jobs.reduce((n, j) => n + j.spent, 0);
+    const pending = jobs.reduce((n, j) => n + j.spend_pending, 0);
+    const name = (id: string | null | undefined) => (id ? this.database.users.find((u) => u.user_id === id)?.name ?? null : null);
+    // A yearly saving in money: given (audit findings) or from the tariff for electricity.
+    const org = this.database.organizations.find((o) => o.organization_id === record.organization_id);
+    const tariff = Number((org as any)?.tariff_rate) || null;
+    const savingMoney =
+      record.expected_saving_amount ??
+      (record.metric === "energy_kwh" && record.expected_saving != null && tariff ? Math.round(record.expected_saving * tariff) : null);
     return {
       ...record,
+      team_labels: (record.teams ?? []).map((t) => teamLabel(t)),
+      created_by_name: name(record.created_by_id),
+      decided_by_name: name(record.decided_by_id),
       performance: this.measure(record),
-      jobs: record.onsite_work ? this.dispatch.initiativeJobs(record.initiative_id) : [],
+      jobs,
+      money: {
+        cost: record.capex ?? null,
+        /** Approved expense bills on its jobs. */
+        spent,
+        /** Bills still waiting for Finance. */
+        spend_pending: pending,
+        expected_saving_per_year: savingMoney,
+        payback_years: savingMoney && savingMoney > 0 && record.capex ? Math.round((record.capex / savingMoney) * 10) / 10 : null,
+      },
     };
   }
 
   /**
-   * The officer checked finished work and it is not right: one closed job
-   * goes back to the same technician type as a new job, with the reason and
-   * a new finish date. The initiative cannot be completed until it is closed.
+   * The officer checked a closed job and it is not right: they ask for
+   * rework with a reason. The coordinator decides who redoes it and by when.
    */
-  sendBack(id: string, workOrderId: string, reason: string | undefined, finishBy: string | undefined) {
+  requestRework(id: string, workOrderId: string, reason: string | undefined, userId?: string) {
     const record = this.database.initiatives[this.indexOf(id)];
-    if (!record.onsite_work) throw new BadRequestException("This initiative has no on-site work to send back.");
-    if (record.status !== InitiativeStatus.IN_PROGRESS)
-      throw new BadRequestException(`Work can only be sent back while the initiative is in progress (it is ${record.status}).`);
-    const job = this.dispatch.initiativeJobs(id).find((j) => j.work_order_id === workOrderId);
-    if (!job) throw new NotFoundException(`This initiative has no job ${workOrderId}.`);
-    if (job.open) throw new BadRequestException("That job is still open. Send work back once it has been closed.");
-    if (this.dispatch.initiativeJobs(id).some((j) => j.rework_of === workOrderId))
-      throw new ConflictException(
-        "This job was already sent back. If the rework is not right either, send back the rework job instead.",
-      );
-    const why = (reason ?? "").trim();
-    if (why.length < 3) throw new BadRequestException("Say what needs redoing (at least 3 characters).");
-    if (!finishBy || !/^\d{4}-\d{2}-\d{2}$/.test(finishBy) || finishBy < todayIso())
-      throw new BadRequestException("Give a new finish date (YYYY-MM-DD), today or later.");
-    this.dispatch.sendInitiativeJob(record, job.team!, endOfDay(finishBy), { of: workOrderId, reason: why });
+    this.dispatch.requestRework(record, workOrderId, reason, userId);
     return this.withPerformance(record);
   }
 
@@ -373,14 +430,25 @@ export class InitiativesService {
    * On-site work, cleaned up: "no" keeps no technician types; "yes" needs at
    * least one type and a target date (the jobs' finish date).
    */
-  private onsiteWork(dto: { onsite_work?: boolean | null; teams?: string[] | null; target_date?: string | null }) {
-    if (!dto.onsite_work) return { onsite_work: false, teams: [] as string[] };
+  private onsiteWork(
+    dto: { onsite_work?: boolean | null; teams?: string[] | null; team_tasks?: Record<string, string> | null; target_date?: string | null },
+  ) {
+    if (!dto.onsite_work) return { onsite_work: false, teams: [] as string[], team_tasks: {} as Record<string, string> };
     const teams = [...new Set(dto.teams ?? [])];
     if (!teams.length)
       throw new BadRequestException("Pick at least one technician type the on-site work needs.");
     if (!dto.target_date)
       throw new BadRequestException("Initiatives with on-site work need a target date: it is the technicians' finish date.");
-    return { onsite_work: true, teams };
+    // What each type has to do: an optional short task per ticked type, nothing for the others.
+    const given = dto.team_tasks ?? {};
+    const team_tasks: Record<string, string> = {};
+    for (const t of teams) {
+      const task = typeof given[t] === "string" ? given[t].trim() : "";
+      if (task.length > TASK_MAX)
+        throw new BadRequestException(`The ${teamLabel(t)} task is too long (at most ${TASK_MAX} characters).`);
+      if (task) team_tasks[t] = task;
+    }
+    return { onsite_work: true, teams, team_tasks };
   }
 
   /**
@@ -395,16 +463,22 @@ export class InitiativesService {
         `The target date (${record.target_date}) has passed. Move it first: it becomes the technicians' finish date.`,
       );
     if (to === InitiativeStatus.COMPLETED) {
-      const open = this.dispatch.initiativeJobs(record.initiative_id).filter((j) => j.open);
+      const jobs = this.dispatch.initiativeJobs(record.initiative_id);
+      const open = jobs.filter((j) => j.open);
       if (open.length)
         throw new ConflictException(
           `${open.length} job${open.length === 1 ? " is" : "s are"} still open (${this.teamNames(open)}). The initiative can be completed once all its work is closed.`,
+        );
+      const asked = jobs.filter((j) => j.rework_request?.status === "pending");
+      if (asked.length)
+        throw new ConflictException(
+          `Rework is waiting for the coordinator's decision (${this.teamNames(asked)}). The initiative can be completed once that is settled.`,
         );
     }
   }
 
   private teamNames(jobs: { team: string | null }[]) {
-    return [...new Set(jobs.map((j) => TEAM_LABEL[j.team ?? ""] ?? j.team))].join(", ");
+    return [...new Set(jobs.map((j) => teamLabel(j.team)))].join(", ");
   }
 
   /**
@@ -417,7 +491,8 @@ export class InitiativesService {
   private assertWorkChange(existing: Initiative, next: Initiative) {
     const jobs = existing.onsite_work ? this.dispatch.initiativeJobs(existing.initiative_id) : [];
     if (jobs.length) {
-      const typesChanged = !sameTerm(existing.teams, next.teams) || !sameTerm(existing.onsite_work, next.onsite_work);
+      const typesChanged =
+        !sameTerm(existing.teams, next.teams) || !sameTerm(existing.onsite_work, next.onsite_work) || !sameTerm(existing.team_tasks, next.team_tasks);
       if (existing.status === InitiativeStatus.COMPLETED && typesChanged)
         throw new ConflictException("This initiative is completed; its on-site work can no longer change.");
       if (!next.onsite_work)
@@ -427,7 +502,7 @@ export class InitiativesService {
       const dropped = (existing.teams ?? []).filter((t) => !(next.teams ?? []).includes(t) && jobs.some((j) => j.team === t));
       if (dropped.length)
         throw new ConflictException(
-          `${dropped.map((t) => TEAM_LABEL[t] ?? t).join(", ")} already ${dropped.length === 1 ? "has a job" : "have jobs"} for this initiative, so ${dropped.length === 1 ? "it" : "they"} cannot be removed. Close the job through the coordinator if it is not needed.`,
+          `${dropped.map((t) => teamLabel(t)).join(", ")} already ${dropped.length === 1 ? "has a job" : "have jobs"} for this initiative, so ${dropped.length === 1 ? "it" : "they"} cannot be removed. Close the job through the coordinator if it is not needed.`,
         );
     }
     if (

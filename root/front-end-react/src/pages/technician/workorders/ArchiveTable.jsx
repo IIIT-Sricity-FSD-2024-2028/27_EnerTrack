@@ -7,8 +7,8 @@
  * Ported from renderArchive() in js/technician/workOrdersPage.js.
  */
 import {
-  capitalize,
   formatId,
+  jobTypeLabel,
   priorityBadgeClass,
   userName,
 } from "../techUtils";
@@ -40,19 +40,18 @@ export default function ArchiveTable({ workOrders, users }) {
           {workOrders.map((wo) => {
             const details = wo.details || {};
 
-            // Coloured by priority, labelled by type — as before. An order
-            // made through the API without details has no type, so say so
-            // plainly rather than show an empty pill.
-            let typeCell;
-            if (details.type) {
-              typeCell = (
-                <span className={"badge " + priorityBadgeClass(wo.priority)}>
-                  {capitalize(details.type)}
-                </span>
-              );
-            } else {
-              typeCell = <span className="sub">Not set</span>;
-            }
+            // Labelled by where the job came from. Initiative jobs get their
+            // own colour; the rest are coloured by priority, as before.
+            const typeCell = (
+              <span
+                className={
+                  "badge " +
+                  (details.type === "initiative" ? "badge-initiative" : priorityBadgeClass(wo.priority))
+                }
+              >
+                {jobTypeLabel(details.type)}
+              </span>
+            );
 
             return (
               <tr key={wo.work_order_id}>

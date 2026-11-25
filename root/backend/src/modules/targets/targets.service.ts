@@ -168,12 +168,17 @@ export class TargetsService {
     assertMove(TARGET_MOVES, role, target.status, dto.status, "a target");
     if (target.status === dto.status) return this.withProgress(target);
 
+    const note = dto.note?.trim() || null;
+    // Rejecting needs a reason the proposer can act on; an approval remark is optional.
+    if (dto.status === TargetStatus.REJECTED && !note)
+      throw new BadRequestException("Give a reason for rejecting it (note); the proposer sees it.");
     const now = new Date().toISOString();
     if (dto.status === TargetStatus.ACTIVE) {
       target.approved_by_id = userId ?? null;
       target.approved_at = now;
+      target.decision_note = note;
     }
-    if (dto.status === TargetStatus.REJECTED) target.decision_note = dto.note ?? null;
+    if (dto.status === TargetStatus.REJECTED) target.decision_note = note;
     if (dto.status === TargetStatus.MET || dto.status === TargetStatus.MISSED) {
       target.closed_at = now;
       target.final_reduction_pct = this.computeProgress(target).achieved_reduction_pct;
@@ -182,8 +187,8 @@ export class TargetsService {
     target.status = dto.status;
 
     const messages: Partial<Record<TargetStatus, string>> = {
-      [TargetStatus.ACTIVE]: `Your target to ${this.describe(target)} was approved and is now being tracked.`,
-      [TargetStatus.REJECTED]: `Your target to ${this.describe(target)} was not approved${dto.note ? `: ${dto.note}` : "."}`,
+      [TargetStatus.ACTIVE]: `Your target to ${this.describe(target)} was approved and is now being tracked.${note ? ` Remark: ${note}` : ""}`,
+      [TargetStatus.REJECTED]: `Your target to ${this.describe(target)} was not approved: ${note}`,
       [TargetStatus.MET]: `The target to ${this.describe(target)} was closed as met.`,
       [TargetStatus.MISSED]: `The target to ${this.describe(target)} was closed as missed.`,
     };

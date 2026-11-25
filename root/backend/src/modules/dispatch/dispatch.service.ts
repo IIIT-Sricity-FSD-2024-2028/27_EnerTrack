@@ -28,6 +28,7 @@ import {
   DatabaseService,
   FindingStatus,
   DeclineReason,
+  ExpenseBillStatus,
   FaultStatus,
   Initiative,
   NotificationTargetType,
@@ -40,8 +41,8 @@ import {
   WorkOrderStatus,
 } from "../../core/database/database.service";
 import { assertTenantOwns, currentOrgId } from "../../core/tenancy/tenant-context";
-import { OTHER_ITEM_ID } from "../issue-catalogue/issue-catalogue";
-import type { Size, Team } from "../issue-catalogue/issue-catalogue";
+import { AREAS, FLOORS, OTHER_ITEM_ID, PARTS, teamLabel, teamWorkLabel } from "../issue-catalogue/issue-catalogue";
+import type { AreaId, Size, Team } from "../issue-catalogue/issue-catalogue";
 import { Clock } from "./clock";
 import { SlaService } from "./sla.service";
 import {
@@ -66,19 +67,34 @@ export const WEEKLY_DECLINE_FLAG = 3;
 const WEEK_MS = 7 * 86_400_000;
 const SWEEP_EVERY_MS = 60_000;
 
-/** "Plumbing work for … is done": the kind of work each technician type does. */
-const TEAM_WORK: Record<string, string> = {
-  electrician: "Electrical",
-  plumber: "Plumbing",
-  hvac: "HVAC",
-  cleaning: "Cleaning",
-};
-
 const CLOSED_STATUSES = ["closed", "resolved", "completed"];
 const isOpenTicket = (t: ServiceRequest) => !CLOSED_STATUSES.includes(String(t.status).toLowerCase());
 
 /** "2027-03-31" → the end of that day, as an ISO time. */
 export const endOfDay = (date: string) => new Date(`${date.slice(0, 10)}T23:59:59`).toISOString();
+
+/**
+ * "Available today" means today: a switch turned off on an earlier day counts
+ * as on again (a switch turned off before this rule, with no date, stays off).
+ */
+const isSwitchedOn = (u: User, now: Date) =>
+  u.available !== false || (!!u.switched_off_on && u.switched_off_on !== todayKey(now));
+
+/** "2027-03-31": a YYYY-MM-DD date that is today or later on the server's calendar. */
+const isDateFromToday = (d: unknown, now: Date) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= todayKey(now);
+
+/**
+ * The kind of job, for the "Type" column. The coordinator's own form sets
+ * emergency / scheduled / preventive; jobs the system raises get the kind of
+ * thing that raised them.
+ */
+export function jobTypeOf(t: ServiceRequest): string {
+  if (t.source_initiative) return "initiative";
+  if (t.source_wastage) return "wastage";
+  if (t.source_finding) return "audit";
+  if (t.source_fault_id) return "scheduled";
+  return "issue";
+}
 
 /** Where one initiative job is, in the officer's words. */
 function initiativeStage(t: ServiceRequest, wo: WorkOrder | undefined): string {
@@ -262,7 +278,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     }
     d.history.push({ at: now.toISOString(), event: "declined", user_id: userId, reason });
     d.tried.push(userId);
-    if (reason === "sick") this.markOffToday(userId, now);
+    if (reason === "sick") this.markOffToday(userId, now, "sick");
 
     const ticket = this.ticketOf(wo);
     this.release(wo);
@@ -274,10 +290,14 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return this.workOrderView(wo);
   }
 
-  /** Technician's "Available today" switch. */
+  /**
+   * Technician's "Available today" switch. Off lasts for today only: from
+   * tomorrow they are available again without touching it.
+   */
   setAvailability(userId: string, available: boolean, now = this.clock.now()) {
     const user = this.requireTechnician(userId, undefined);
     user.available = available;
+    user.switched_off_on = available ? null : todayKey(now);
     // A "marked off today" flag (sick, or an unanswered job) stays until the
     // day ends: flipping the switch is not a way to clear it.
     if (available) this.retryQueued(now);
@@ -290,11 +310,17 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   }
 
   availabilityOf(user: User, now = this.clock.now()) {
-    const c = this.candidateOf(user);
+    const c = this.candidateOf(user, now);
+    const switchedOn = isSwitchedOn(user, now);
+    const offToday = user.unavailable_on === todayKey(now);
     return {
-      available: user.available !== false && user.unavailable_on !== todayKey(now),
-      switched_on: user.available !== false,
-      off_for_today: user.unavailable_on === todayKey(now),
+      available: switchedOn && !offToday,
+      switched_on: switchedOn,
+      off_for_today: offToday,
+      /** Why they are off for today: "sick" (declined as unwell) or "missed" (did not answer a job in time). */
+      off_reason: offToday ? (user.unavailable_reason ?? null) : null,
+      /** Without a team the system never sends them jobs, whatever the switch says. */
+      has_team: !!c.team,
       team: c.team,
       open_points: c.openPoints,
       open_jobs: c.openJobs ?? 0,
@@ -469,11 +495,12 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   // ── Initiatives with on-site work ──────────────────────────────────────
 
   /**
-   * An initiative that needs technicians on site joins the same engine at
-   * "Start work": one job per technician type it needs, all sent now, so they
-   * run in parallel and never wait for each other. Each job's finish date is
-   * the initiative's target date, not the priority × size table. A type that
-   * already has an open job is skipped, so calling this twice sends nothing new.
+   * An initiative that needs technicians on site joins the same engine when
+   * the Organization Admin approves it: one job per technician type it needs,
+   * all sent now, so they run in parallel and never wait for each other. Each
+   * job's finish date is the initiative's target date, not the priority ×
+   * size table. A type that already has an open job is skipped, so calling
+   * this twice sends nothing new.
    */
   sendInitiative(initiative: Initiative, now = this.clock.now()): ServiceRequest[] {
     const finishBy = endOfDay(initiative.target_date!);
@@ -485,17 +512,28 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return sent;
   }
 
-  /** One technician type's job for an initiative; `rework` when the officer sent a closed job back. */
+  /**
+   * One technician type's job for an initiative. Its description is that
+   * type's task (what the officer said this trade has to do), with the
+   * initiative's description underneath for context. `rework` when the
+   * coordinator sends a closed job back; `assigneeId` when they choose who.
+   */
   sendInitiativeJob(
     initiative: Initiative,
     team: string,
     finishBy: string,
     rework: { of: string; reason: string } | null,
     now = this.clock.now(),
+    assigneeId: string | null = null,
   ): ServiceRequest {
     const ids = initiative.building_ids ?? [];
     const names = ids.map((id) => this.database.buildings.find((b) => b.building_id === id)?.name ?? id);
-    const description = [initiative.description, rework ? `Sent back by the Sustainability Officer: ${rework.reason}` : ""]
+    const task = initiative.team_tasks?.[team]?.trim();
+    const description = [
+      rework ? `Rework requested: ${rework.reason}` : "",
+      task ? `Your task: ${task}` : "",
+      initiative.description ? `About the initiative: ${initiative.description}` : "",
+    ]
       .filter(Boolean)
       .join("\n\n");
     const ticket: ServiceRequest = {
@@ -504,7 +542,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       reporter_id: "system",
       assigned_to_id: null,
       category: "Initiative",
-      issue_type: `${rework ? "Rework: " : "Initiative: "}${initiative.title} (${TEAM_WORK[team] ?? team})`,
+      issue_type: `${rework ? "Rework: " : "Initiative: "}${initiative.title} (${teamWorkLabel(team)})`,
       status: "open",
       created_at: now.toISOString(),
       description,
@@ -528,20 +566,29 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       plus_one_ids: [],
     };
     this.database.serviceRequests.push(ticket);
-    this.dispatch(ticket, now);
+    if (assigneeId) this.manualAssign(ticket.service_request_id, assigneeId, now);
+    else this.dispatch(ticket, now);
     return ticket;
   }
 
   /** Every job (open or closed, first try or rework) for an initiative, oldest first. */
   initiativeJobs(initiativeId: string) {
+    const initiative = this.database.initiatives.find((i) => i.initiative_id === initiativeId);
     return this.initiativeTickets(initiativeId).map((t) => {
-      const wo = this.database.workOrders
-        .filter((w) => w.source_request_id === t.service_request_id)
-        .sort((a, b) => String(b.dispatch?.assigned_at ?? "").localeCompare(String(a.dispatch?.assigned_at ?? "")))[0];
+      const wo = this.latestWorkOrder(t);
+      const bills = wo ? this.database.expenseBills.filter((b) => b.work_order_id === wo.work_order_id) : [];
+      const sum = (status: ExpenseBillStatus) =>
+        bills.filter((b) => b.status === status).reduce((n, b) => n + Number(b.amount || 0), 0);
+      const r = t.rework_request;
+      const reworkTicket = r?.rework_ticket_id ? this.database.serviceRequests.find((x) => x.service_request_id === r.rework_ticket_id) : undefined;
+      const reworkWo = reworkTicket ? this.latestWorkOrder(reworkTicket) : undefined;
       return {
         ticket_id: t.service_request_id,
         work_order_id: wo?.work_order_id ?? null,
         team: t.team ?? null,
+        team_label: teamLabel(t.team),
+        task: initiative?.team_tasks?.[t.team ?? ""] ?? null,
+        technician_id: wo?.assigned_to_id ?? null,
         technician_name: wo?.assigned_to_id ? this.nameOf(wo.assigned_to_id) : null,
         stage: initiativeStage(t, wo),
         open: isOpenTicket(t),
@@ -549,14 +596,144 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         closed_at: t.closed_at ?? null,
         rework_of: t.rework_of ?? null,
         rework_reason: t.rework_reason ?? null,
+        /** Approved expense bills on this job (what it cost), and bills still waiting for Finance. */
+        spent: sum(ExpenseBillStatus.APPROVED),
+        spend_pending: sum(ExpenseBillStatus.SUBMITTED),
+        rework_request: r
+          ? {
+              status: r.status,
+              reason: r.reason,
+              requested_at: r.requested_at,
+              decided_at: r.decided_at ?? null,
+              decided_by_name: r.decided_by ? this.nameOf(r.decided_by) : null,
+              note: r.note ?? null,
+              rework_technician_name: reworkWo?.assigned_to_id ? this.nameOf(reworkWo.assigned_to_id) : null,
+              rework_finish_by: reworkTicket?.finish_by ?? null,
+            }
+          : null,
       };
     });
   }
 
   /**
+   * The officer checked a closed job and it is not right. They only ask: the
+   * coordinator, who runs the technicians, decides who redoes it and by when
+   * (or declines). One open request per job.
+   */
+  requestRework(initiative: Initiative, workOrderId: string, reason: string | undefined, userId: string | undefined, now = this.clock.now()) {
+    if (!initiative.onsite_work) throw new BadRequestException("This initiative has no on-site work to redo.");
+    if (initiative.status !== "in-progress")
+      throw new BadRequestException(`Rework can only be requested while the initiative is in progress (it is ${initiative.status}).`);
+    const ticket = this.initiativeTickets(initiative.initiative_id).find((t) => this.latestWorkOrder(t)?.work_order_id === workOrderId);
+    if (!ticket) throw new NotFoundException(`This initiative has no job ${workOrderId}.`);
+    if (isOpenTicket(ticket)) throw new BadRequestException("That job is still open. Ask for rework once it has been closed.");
+    if (ticket.rework_request?.status === "pending")
+      throw new ConflictException("Rework was already requested for this job; the coordinator has not decided yet.");
+    if (ticket.rework_request?.status === "sent" || this.initiativeTickets(initiative.initiative_id).some((t) => t.rework_of === workOrderId))
+      throw new ConflictException("This job was already redone once. If the rework is not right either, request rework on the rework job.");
+    const why = (reason ?? "").trim();
+    if (why.length < 3) throw new BadRequestException("Say what needs redoing (at least 3 characters).");
+    ticket.rework_request = { reason: why, requested_by: userId ?? null, requested_at: now.toISOString(), status: "pending" };
+    this.notifyCoordinators(
+      initiative.organization_id,
+      `Rework requested on "${ticket.issue_type}": ${why}. Decide who redoes it, or decline.`,
+      ticket.service_request_id,
+      NotificationTargetType.REQUEST,
+    );
+  }
+
+  /**
+   * The coordinator's answer to a rework request: send it to the same
+   * technician who did the job, let the system pick, hand-pick someone (all
+   * with a finish date), or decline with a note to the officer.
+   */
+  decideRework(
+    ticketId: string,
+    dto: { decision: string; assignee_id?: string; finish_by?: string; note?: string },
+    userId: string | undefined,
+    now = this.clock.now(),
+  ) {
+    const ticket = assertTenantOwns(this.database.serviceRequests.find((t) => t.service_request_id === ticketId));
+    if (!ticket || !ticket.source_initiative) throw new NotFoundException("Rework request not found.");
+    const request = ticket.rework_request;
+    if (!request || request.status !== "pending") throw new BadRequestException("There is no rework request waiting on this job.");
+    const initiative = this.database.initiatives.find((i) => i.initiative_id === ticket.source_initiative);
+    if (!initiative || initiative.status !== "in-progress")
+      throw new BadRequestException("The initiative is no longer in progress.");
+    const original = this.latestWorkOrder(ticket);
+    const note = (dto.note ?? "").trim();
+    const officers = this.officersOf(initiative);
+    const job = `${teamWorkLabel(ticket.team)} work on "${initiative.title}"`;
+
+    if (dto.decision === "decline") {
+      if (note.length < 3) throw new BadRequestException("Say why the rework is declined (at least 3 characters); the officer sees it.");
+      Object.assign(request, { status: "declined", decided_by: userId ?? null, decided_at: now.toISOString(), note });
+      for (const id of officers) this.notify(id, initiative.organization_id, initiative.initiative_id, `Rework on ${job} was declined: ${note}`, NotificationTargetType.INITIATIVE);
+      return request;
+    }
+
+    if (!["same", "auto", "pick"].includes(dto.decision))
+      throw new BadRequestException("decision must be same, auto, pick or decline.");
+    if (!isDateFromToday(dto.finish_by, now)) throw new BadRequestException("Give the rework a finish date (YYYY-MM-DD), today or later.");
+    let assignee: string | null = null;
+    if (dto.decision === "same") {
+      assignee = original?.assigned_to_id ?? null;
+      if (!assignee) throw new BadRequestException("Nobody is recorded on the original job; pick a technician instead.");
+    } else if (dto.decision === "pick") {
+      if (!dto.assignee_id) throw new BadRequestException("Choose the technician to send the rework to.");
+      assignee = dto.assignee_id;
+    }
+    if (assignee) this.requireTechnician(assignee, initiative.organization_id);
+
+    const reworkTicket = this.sendInitiativeJob(
+      initiative,
+      ticket.team!,
+      endOfDay(dto.finish_by!),
+      { of: original?.work_order_id ?? ticket.service_request_id, reason: request.reason },
+      now,
+      assignee,
+    );
+    Object.assign(request, {
+      status: "sent",
+      decided_by: userId ?? null,
+      decided_at: now.toISOString(),
+      note: note || null,
+      rework_ticket_id: reworkTicket.service_request_id,
+    });
+    const who = reworkTicket.assigned_to_id ? this.nameOf(reworkTicket.assigned_to_id) : "the next free technician";
+    for (const id of officers)
+      this.notify(id, initiative.organization_id, initiative.initiative_id, `Rework on ${job} was sent to ${who}, finish by ${dto.finish_by}.`, NotificationTargetType.INITIATIVE);
+    return request;
+  }
+
+  /** Rework requests waiting for the coordinator, for the "Needs you" strip. */
+  pendingReworkRequests(orgId: string | null) {
+    return this.database.serviceRequests
+      .filter((t) => t.source_initiative && t.rework_request?.status === "pending" && (!orgId || t.organization_id === orgId))
+      .map((t) => {
+        const initiative = this.database.initiatives.find((i) => i.initiative_id === t.source_initiative);
+        const wo = this.latestWorkOrder(t);
+        return {
+          ticket_id: t.service_request_id,
+          initiative_id: t.source_initiative,
+          initiative_title: initiative?.title ?? "",
+          job_title: t.issue_type,
+          team: t.team ?? null,
+          team_label: teamLabel(t.team),
+          reason: t.rework_request!.reason,
+          requested_at: t.rework_request!.requested_at,
+          requested_by_name: t.rework_request!.requested_by ? this.nameOf(t.rework_request!.requested_by) : null,
+          original_technician_id: wo?.assigned_to_id ?? null,
+          original_technician_name: wo?.assigned_to_id ? this.nameOf(wo.assigned_to_id) : null,
+          target_date: initiative?.target_date ?? null,
+        };
+      });
+  }
+
+  /**
    * The initiative's target date moved: its open first-try jobs move with it
-   * (their technicians are told). Rework jobs keep the date the officer gave
-   * them when sending the work back.
+   * (their technicians are told). Rework jobs keep the date the coordinator
+   * gave them.
    */
   retimeInitiative(initiative: Initiative, now = this.clock.now()) {
     const finishBy = endOfDay(initiative.target_date!);
@@ -577,6 +754,27 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
   }
 
+  /** A ticket's work order, open or closed (the newest, if it was ever re-created). */
+  private latestWorkOrder(t: ServiceRequest): WorkOrder | undefined {
+    return this.database.workOrders
+      .filter((w) => w.source_request_id === t.service_request_id)
+      .sort((a, b) => String(b.dispatch?.assigned_at ?? "").localeCompare(String(a.dispatch?.assigned_at ?? "")))[0];
+  }
+
+  /** Who hears about an initiative's work: whoever proposed it, and every Sustainability Officer. */
+  private officersOf(initiative: Initiative): string[] {
+    return [
+      ...new Set(
+        [
+          initiative.created_by_id,
+          ...this.database.users
+            .filter((u) => u.role === UserRole.SUSTAINABILITY_OFFICER && u.organization_id === initiative.organization_id)
+            .map((u) => u.user_id),
+        ].filter(Boolean) as string[],
+      ),
+    ];
+  }
+
   /**
    * A job for an initiative was closed. Tell the officer; when it was the
    * last open one, ask them to check the work and complete the initiative.
@@ -587,18 +785,11 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     const initiative = this.database.initiatives.find((i) => i.initiative_id === ticket.source_initiative);
     if (!initiative) return;
     const stillOpen = this.initiativeTickets(initiative.initiative_id).filter(isOpenTicket);
-    const work = TEAM_WORK[ticket.team ?? ""] ?? "The";
     const message = stillOpen.length
-      ? `${work} work for "${initiative.title}" is done. ${stillOpen.length} job${stillOpen.length === 1 ? " is" : "s are"} still open.`
-      : `All work for "${initiative.title}" is done. Check it, then mark the initiative completed or send a job back.`;
-    const people = new Set([
-      initiative.created_by_id,
-      ...this.database.users
-        .filter((u) => u.role === UserRole.SUSTAINABILITY_OFFICER && u.organization_id === initiative.organization_id)
-        .map((u) => u.user_id),
-    ]);
-    for (const id of people)
-      if (id) this.notify(id, initiative.organization_id, initiative.initiative_id, message, NotificationTargetType.INITIATIVE);
+      ? `${teamWorkLabel(ticket.team)} work for "${initiative.title}" is done. ${stillOpen.length} job${stillOpen.length === 1 ? " is" : "s are"} still open.`
+      : `All work for "${initiative.title}" is done. Check it, then mark the initiative completed or request rework.`;
+    for (const id of this.officersOf(initiative))
+      this.notify(id, initiative.organization_id, initiative.initiative_id, message, NotificationTargetType.INITIATIVE);
   }
 
   private ticketLabel(t: ServiceRequest) {
@@ -828,7 +1019,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         const slow = wo.assigned_to_id;
         d.history.push({ at: now.toISOString(), event: "missed", user_id: slow, reason: "no response in time" });
         d.tried.push(slow);
-        this.markOffToday(slow, now);
+        this.markOffToday(slow, now, "missed");
         const ticket = this.ticketOf(wo);
         this.release(wo);
         this.notifyCoordinators(wo.organization_id, `${this.nameOf(slow)} did not respond to "${wo.title}" in time. It was sent on.`, wo.work_order_id);
@@ -915,11 +1106,17 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         declines_this_week: this.countEvents(u.user_id, "declined", weekAgo),
         missed_this_week: this.countEvents(u.user_id, "missed", weekAgo),
         available: this.availabilityOf(u, now).available,
-        open_points: this.candidateOf(u).openPoints,
+        open_points: this.candidateOf(u, now).openPoints,
       }))
       .filter((r) => r.declines_this_week || r.missed_this_week);
 
-    return { queued, declines, team_status: this.teamStatus(org, now), ...this.sla.overview(org, now) };
+    return {
+      queued,
+      declines,
+      team_status: this.teamStatus(org, now),
+      rework_requests: this.pendingReworkRequests(org),
+      ...this.sla.overview(org, now),
+    };
   }
 
   // ── Internals ──────────────────────────────────────────────────────────
@@ -986,6 +1183,8 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       title: ticket.source_fault_id ? `Fault: ${ticket.issue_type}` : `${ticket.issue_type} – ${this.locationOf(ticket)}`,
       priority: (ticket.priority ?? "low") as WorkOrderPriority,
       status: WorkOrderStatus.NEW,
+      // The "Type" column: what raised the job (a fault's own type is set by sendFault).
+      details: { type: jobTypeOf(ticket) },
       dispatch,
     };
     this.database.workOrders.push(wo);
@@ -996,7 +1195,23 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   private assign(ticket: ServiceRequest, wo: WorkOrder, exclude: string[], now: Date, fromQueue = false) {
     const job = this.jobOf(ticket, wo);
     const people = this.candidates(ticket.organization_id);
-    let pick = rankCandidates(job, people, { now, exclude })[0];
+    const ranked = rankCandidates(job, people, { now, exclude });
+    let pick = ranked[0];
+    // A "still broken" report goes back first to whoever did the earlier fix,
+    // when they can take it under the usual rules. Asked once: after that
+    // (they declined, or could not take it) the job is ranked as usual.
+    const preferId = ticket.prefer_technician_id;
+    if (preferId) {
+      ticket.prefer_technician_id = null;
+      const preferred = ranked.find((r) => r.userId === preferId);
+      if (preferred) pick = preferred;
+      else
+        this.notifyCoordinators(
+          ticket.organization_id,
+          `"${wo.title}" came back as still broken. ${this.nameOf(preferId)}, who fixed it before, ${this.whyNotFree(preferId, job.team, job.points, now)}, so it was ranked as usual. Reassign it if you want.`,
+          wo.work_order_id,
+        );
+    }
     let fallback = false;
     if (!pick && job.priority === "immediate") {
       pick = criticalFallback(job, people, { now, exclude }) ?? undefined;
@@ -1036,6 +1251,23 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     if (fallback) {
       this.notifyCoordinators(ticket.organization_id, `Critical job "${wo.title}" went to ${this.nameOf(pick.userId)} above the usual load cap, because no one else on the team was free.`, wo.work_order_id);
     }
+  }
+
+  /** Why a technician could not be given a job right now, in a few words. */
+  private whyNotFree(userId: string, team: string | undefined, points: number, now: Date): string {
+    const u = this.database.users.find((x) => x.user_id === userId);
+    if (!u || u.role !== UserRole.TECHNICIAN) return "is no longer a technician here";
+    const c = this.candidateOf(u, now);
+    if (c.team !== team) return `is no longer on the ${teamLabel(team)} team`;
+    if (u.unavailable_on === todayKey(now)) return "is off for today";
+    if (!isSwitchedOn(u, now)) return "is not available today";
+    if (c.openPoints + points > MAX_LOAD) return "is full";
+    return "could not take it";
+  }
+
+  /** Who did the work on a ticket (the technician on its latest work order). */
+  lastTechnicianOf(ticket: ServiceRequest): string | null {
+    return this.latestWorkOrder(ticket)?.assigned_to_id ?? null;
   }
 
   private reassign(ticket: ServiceRequest, wo: WorkOrder, now: Date, why: "declined" | "missed") {
@@ -1086,7 +1318,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       .map((u) => this.candidateOf(u));
   }
 
-  private candidateOf(u: User): Candidate {
+  private candidateOf(u: User, now = this.clock.now()): Candidate {
     const mine = this.database.workOrders.filter((w) => w.dispatch && w.assigned_to_id === u.user_id);
     // Load is work still on the technician's hands. A job waiting for the
     // coordinator's check or for Finance no longer holds them back.
@@ -1101,7 +1333,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return {
       userId: u.user_id,
       team: teamOfUser(u),
-      available: u.available !== false,
+      available: isSwitchedOn(u, now),
       unavailableOn: u.unavailable_on ?? null,
       openPoints: open.reduce((n, w) => n + w.dispatch!.points, 0),
       openJobs: open.length,
@@ -1124,9 +1356,33 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return new Date(now.getTime() + ackWindowMinutes(priority) * 60_000).toISOString();
   }
 
-  private markOffToday(userId: string, now: Date) {
+  private markOffToday(userId: string, now: Date, reason: "sick" | "missed") {
     const u = this.database.users.find((x) => x.user_id === userId);
-    if (u) u.unavailable_on = todayKey(now);
+    if (u) {
+      u.unavailable_on = todayKey(now);
+      u.unavailable_reason = reason;
+    }
+  }
+
+  /**
+   * The coordinator puts a technician back on duty: clears "off for today"
+   * (declined as unwell by mistake, or a missed answer) and switches them
+   * available. Jobs waiting in the queue are offered again.
+   */
+  backOnDuty(userId: string, coordinatorId: string | undefined, now = this.clock.now()) {
+    const user = this.requireTechnician(userId, currentOrgId());
+    user.unavailable_on = null;
+    user.unavailable_reason = null;
+    user.available = true;
+    user.switched_off_on = null;
+    this.notify(
+      user.user_id,
+      user.organization_id,
+      user.user_id,
+      `${coordinatorId ? this.nameOf(coordinatorId) : "Your coordinator"} put you back on duty. You can be sent new jobs again today.`,
+    );
+    this.retryQueued(now);
+    return { user_id: user.user_id, name: user.name, ...this.availabilityOf(user, now) };
   }
 
   private countEvents(userId: string, event: string, sinceMs: number): number {
@@ -1187,9 +1443,15 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return this.database.users.find((u) => u.user_id === userId)?.name ?? "A technician";
   }
 
+  /** "Building 1, floor 3, restroom, near lift": the place in words, never raw ids. */
   private locationOf(t: ServiceRequest) {
     const b = this.database.buildings.find((x) => x.building_id === t.building_id)?.name ?? "";
-    return [b, t.floor ? `floor ${t.floor}` : "", t.part].filter(Boolean).join(", ");
+    const floorLabel = FLOORS.find((f) => f.id === t.floor)?.label ?? t.floor;
+    const floor =
+      !t.floor || t.floor === "whole_building" ? (t.floor ? "whole building" : "") : t.floor === "outside" ? "outside" : `floor ${floorLabel}`;
+    const area = t.area && !["whole_building", "outside"].includes(t.area) ? AREAS.find((a) => a.id === t.area)?.label.toLowerCase() : "";
+    const part = PARTS[t.area as AreaId]?.find((x) => x.id === t.part)?.label.toLowerCase() ?? t.part;
+    return [b, floor, area, part].filter(Boolean).join(", ");
   }
 
   /** Where the technician's cost estimate stands, so their inbox can say so. */
@@ -1222,6 +1484,8 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       ticket_id: wo.source_request_id,
       location: t ? this.locationOf(t) : "",
       description: t?.description ?? "",
+      /** A "still broken" report: the reporter's photo can be fetched from /service-requests/:ticket_id/reopen-photo. */
+      has_reopen_photo: !!t?.reopen_photo,
       sla: this.sla.view(wo),
       estimate: this.estimateView(wo),
     };

@@ -3,7 +3,8 @@
  *
  * Jobs are PUSHED to one person by the system. There is no list to browse
  * and nothing to pick, so this component only offers three things:
- *   - the "Available today" switch (off = the system sends nothing new)
+ *   - the "Available today" switch (off = the system sends nothing new
+ *     today; locked while the coordinator's "off for today" applies)
  *   - Acknowledge a job that was given to me
  *   - Decline it with a reason (it then moves to the next person)
  *
@@ -28,6 +29,8 @@ import {
   selectAllNotifications,
 } from "../../store/slices/notificationsSlice";
 import { capitalize } from "../technician/techUtils";
+import ReopenPhoto from "../technician/components/ReopenPhoto";
+import "./technician-jr.css";
 
 const LOADS = [fetchAvailability, fetchMyJobs, fetchNotifications];
 
@@ -37,6 +40,80 @@ const REASONS = [
   { value: "no_tools", label: "I do not have the tools or parts" },
   { value: "other", label: "Another reason" },
 ];
+
+const OFF_REASON = {
+  sick: "you declined a job as unwell",
+  missed: "a job was not answered in time",
+};
+
+/**
+ * "Available today": whether the system may send me new jobs today. Switching
+ * off lasts until midnight. Being marked off for today (declined as unwell,
+ * or missed answering a job) also lasts until midnight and only the
+ * coordinator can undo it, so the switch is locked then. Without a team the
+ * system never sends jobs, so there is no switch at all.
+ */
+function AvailabilitySwitch({ state, busy, acceptedUnstarted, onSet }) {
+  if (!state.has_team)
+    return (
+      <div className="avail avail--none" role="status">
+        <strong>No team set.</strong> The system cannot send you jobs until your admin gives you a team.
+      </div>
+    );
+
+  if (state.off_for_today)
+    return (
+      <div className="avail avail--amber" role="status">
+        <span className="avail-dot" aria-hidden="true" />
+        <div className="avail-text">
+          <strong>Off for today</strong>
+          <small>
+            Because {OFF_REASON[state.off_reason] || "you were marked unavailable"}, no new jobs will be sent until
+            midnight. If that was a mistake, ask your coordinator to put you back on duty.
+          </small>
+        </div>
+        <button type="button" className="btn btn-light" disabled>
+          Locked until midnight
+        </button>
+      </div>
+    );
+
+  const on = state.switched_on;
+  function toggle() {
+    if (on && acceptedUnstarted.length) {
+      const n = acceptedUnstarted.length;
+      const ok = window.confirm(
+        `You have accepted ${n} job${n === 1 ? "" : "s"} you have not started. Switching off sends ${n === 1 ? "it" : "them"} to someone else, and each counts as a decline. Switch off for today?`,
+      );
+      if (!ok) return;
+    }
+    onSet(!on);
+  }
+  return (
+    <div className={`avail ${on ? "avail--on" : "avail--off"}`}>
+      <span className="avail-dot" aria-hidden="true" />
+      <div className="avail-text">
+        <strong>{on ? "Available today" : "Not available today"}</strong>
+        <small>
+          {on
+            ? "The system can send you new jobs."
+            : "No new jobs will be sent to you today. You are back on automatically tomorrow."}
+        </small>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label="Available today"
+        className={on ? "btn btn-light" : "btn btn-green"}
+        disabled={busy}
+        onClick={toggle}
+      >
+        {on ? "Switch off for today" : "Switch on"}
+      </button>
+    </div>
+  );
+}
 
 function minutesLeft(dueAt) {
   if (!dueAt) return null;
@@ -74,6 +151,8 @@ export default function DispatchInbox() {
 
   const pending = jobs.filter((j) => j.ack_status === "pending");
   const active = jobs.filter((j) => j.ack_status === "acknowledged" && j.sla);
+  // Accepted but not started: switching off hands these to someone else.
+  const acceptedUnstarted = jobs.filter((j) => j.ack_status === "acknowledged" && j.status === "new");
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
@@ -85,29 +164,17 @@ export default function DispatchInbox() {
             with a reason and it goes to the next.
           </small>
         </div>
-        {state && (
-          <button
-            type="button"
-            className={state.switched_on ? "btn btn-green" : "btn btn-light"}
-            disabled={busy}
-            onClick={() =>
-              run(setAvailability(!state.switched_on)).catch(() => {})
-            }
-          >
-            {state.switched_on ? "Available today" : "Not available"}
-          </button>
-        )}
       </div>
 
-      {state && state.switched_on && state.off_for_today && (
-        <p className="sub">
-          You were marked unavailable for today, so no new jobs will be sent
-          until tomorrow. Tell your coordinator if this was a mistake.
-        </p>
+      {state && (
+        <AvailabilitySwitch
+          state={state}
+          busy={busy}
+          acceptedUnstarted={acceptedUnstarted}
+          onSet={(on) => run(setAvailability(on)).catch(() => {})}
+        />
       )}
-      {state && !state.switched_on && (
-        <p className="sub">You will not be sent new jobs while this is off.</p>
-      )}
+
       {error && <p className="sub" style={{ color: "#b91c1c" }}>{error}</p>}
 
       {pending.length === 0 && (
@@ -121,8 +188,9 @@ export default function DispatchInbox() {
             <span className="up-next-title" style={{ flex: 1, minWidth: 220 }}>
               {job.title}
               {job.description ? (
-                <small style={{ display: "block" }}>{job.description}</small>
+                <small style={{ display: "block", whiteSpace: "pre-line" }}>{job.description}</small>
               ) : null}
+              {job.has_reopen_photo && <ReopenPhoto ticketId={job.ticket_id} />}
             </span>
             <span className={"priority-tag priority-" + job.priority}>
               {job.priority === "immediate" ? "Critical" : capitalize(job.priority)}
@@ -244,6 +312,8 @@ function ActiveJob({ job, run, busy }) {
             <span className={`priority-tag priority-${job.priority}`}>{LEVEL_NAME[job.priority] || "Medium"}</span>
             <strong className="job-card-title">{job.title}</strong>
           </div>
+          {job.description && <p className="job-card-desc">{job.description}</p>}
+          {job.has_reopen_photo && <ReopenPhoto ticketId={job.ticket_id} />}
           <p className={"job-card-due" + (late ? " late" : "")}>
             Finish by {fmtDue(sla.deadline_at)}
             <span>{leftIn(sla.hours_left)}</span>

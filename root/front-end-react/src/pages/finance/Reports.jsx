@@ -1,9 +1,10 @@
 /**
  * Reports — /finance/reports (was finance_reports.html).
  *
- * Three parts, top to bottom:
+ * Four parts, top to bottom:
  *   <ReportsTable>       financial reports (state + handlers live here)
  *   <InvoicesSection>    utility invoices (manages its own state)
+ *   <InitiativesSection> approved initiatives: cost, spent, saving, payback
  *   <MetricsCalculator>  ROI / NPV / payback calculator and viability banner
  */
 import { useEffect, useState } from "react";
@@ -21,6 +22,7 @@ import {
 } from "./financeApi";
 import { generateId } from "./financeUtils";
 import InvoicesSection from "./reports/InvoicesSection";
+import InitiativesSection from "./reports/InitiativesSection";
 import MetricsCalculator from "./reports/MetricsCalculator";
 import ReportFormModal from "./reports/ReportFormModal";
 import ReportsTable from "./reports/ReportsTable";
@@ -168,6 +170,8 @@ function ReportsContent() {
       />
 
       <InvoicesSection departments={places.departments} />
+
+      <InitiativesSection />
 
       <MetricsCalculator latestReport={latestReport} />
 

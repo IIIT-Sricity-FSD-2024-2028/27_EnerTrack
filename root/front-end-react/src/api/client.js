@@ -149,11 +149,13 @@ async function _apiFetch(path, options = {}) {
  *
  * @param {string} path       API path, e.g. '/invoices/<id>/document'
  * @param {string} fieldName  Form field the backend expects ('file' or 'files')
- * @param {File|File[]} files One File, or an array of them
+ * @param {File|File[]} files One File, or an array of them (none is fine when fields carry the data)
+ * @param {Object} [fields]   Plain text fields sent alongside, e.g. { reason: "..." }
  */
-function _apiUpload(path, fieldName, files) {
+function _apiUpload(path, fieldName, files, fields = {}) {
   const formData = new FormData();
-  const list = Array.isArray(files) ? files : [files];
+  Object.entries(fields).forEach(([key, value]) => formData.append(key, value));
+  const list = Array.isArray(files) ? files : files ? [files] : [];
   list.forEach((file) => formData.append(fieldName, file));
 
   return _apiFetch(path, {

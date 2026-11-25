@@ -51,6 +51,16 @@ const STAFF_ONLY_FIELDS = [
   "assigned_to_id",
 ];
 
+/**
+ * What any reader gets: the "still broken" photo's place on disk is never
+ * sent, only whether there is one (GET /service-requests/:id/reopen-photo
+ * streams it).
+ */
+function withoutFilePaths<T extends { reopen_photo?: string | null }>(record: T): Omit<T, "reopen_photo"> & { has_reopen_photo: boolean } {
+  const { reopen_photo, ...rest } = record;
+  return { ...rest, has_reopen_photo: !!reopen_photo };
+}
+
 function stripStaffFields<T extends object>(record: T): T {
   const copy: any = { ...record };
   for (const field of STAFF_ONLY_FIELDS) delete copy[field];
@@ -130,7 +140,7 @@ export class ServiceRequestsService {
   /** Campus Visitors (and their Department Head equivalent) only ever see their own reports. */
   findAll(userId?: string, role?: string) {
     const all = scopeToTenant(this.database.serviceRequests);
-    if (role !== "Campus Visitor" && role !== "Department Head") return all;
+    if (role !== "Campus Visitor" && role !== "Department Head") return all.map(withoutFilePaths);
     return all
       .filter(
         (t) =>
@@ -138,7 +148,8 @@ export class ServiceRequestsService {
           !!t.reporter_ids?.includes(userId) ||
           !!t.plus_one_ids?.includes(userId),
       )
-      .map(stripStaffFields);
+      .map(stripStaffFields)
+      .map(withoutFilePaths);
   }
 
   findOne(id: string) {
@@ -147,7 +158,7 @@ export class ServiceRequestsService {
     ));
     if (!record)
       throw new NotFoundException(`ServiceRequest with ID ${id} not found`);
-    return record;
+    return withoutFilePaths(record);
   }
 
   put(id: string, putDto: PutServiceRequestDto) {

@@ -28,6 +28,14 @@ export default function Dashboard() {
   const [nearby, setNearby] = useState([]);
   const [toast, setToast] = useState({ text: "", error: false, show: false });
   const [loadError, setLoadError] = useState("");
+  // A submitted report opened from My Reports, shown read-only in place of the form.
+  const [viewing, setViewing] = useState(null);
+
+  function viewReport(ticket) {
+    setViewing(ticket);
+    setNearby([]);
+    document.getElementById("report-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   const loadTickets = useCallback(
     () =>
@@ -71,14 +79,31 @@ export default function Dashboard() {
   }
 
   // The "Already reported here" row: open issues on the chosen floor.
-  // "It is fixed" / "Still broken" on a fixed issue.
-  async function respond(id, fixed) {
+  // "It is fixed" on a fixed issue. Returns true when it went through.
+  async function confirmFixed(id) {
     try {
-      await api.post(`/service-requests/${id}/${fixed ? "confirm-fixed" : "still-broken"}`, {});
-      show(fixed ? "Thanks for letting us know." : "Sent again. We have marked it as a repeat.");
+      await api.post(`/service-requests/${id}/confirm-fixed`, {});
+      show("Thanks for letting us know.");
       await loadTickets();
+      return true;
     } catch (e) {
       show(e.message, true);
+      return false;
+    }
+  }
+
+  // "Still broken": what is still wrong (required) and an optional photo.
+  // It goes back to the technician who fixed it, if they are free.
+  async function stillBroken(id, reason, photo) {
+    try {
+      if (photo) await api.upload(`/service-requests/${id}/still-broken`, "photo", photo, { reason });
+      else await api.post(`/service-requests/${id}/still-broken`, { reason });
+      show("Sent back. We have asked the technician who fixed it to look again.");
+      await loadTickets();
+      return true;
+    } catch (e) {
+      show(e.message, true);
+      return false;
     }
   }
 
@@ -142,6 +167,9 @@ export default function Dashboard() {
         <div>
           {catalogue ? (
             <ReportForm
+              key={viewing ? viewing.id : "new"}
+              viewing={viewing}
+              onNew={() => setViewing(null)}
               email={user.email}
               catalogue={catalogue}
               buildings={buildings}
@@ -157,7 +185,13 @@ export default function Dashboard() {
         <InfoPanel />
       </div>
 
-      <MyReports tickets={tickets} onRespond={respond} />
+      <MyReports
+        tickets={tickets}
+        viewingId={viewing?.id}
+        onView={viewReport}
+        onConfirm={confirmFixed}
+        onStillBroken={stillBroken}
+      />
 
       <WasteOutcomes />
 

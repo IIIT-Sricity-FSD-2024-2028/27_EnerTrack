@@ -4,7 +4,7 @@ import { InitiativesService } from "./initiatives.service";
 import { CreateInitiativeDto } from "./dto/create-initiative.dto";
 import { PutInitiativeDto } from "./dto/put-initiative.dto";
 import { UpdateInitiativeDto } from "./dto/update-initiative.dto";
-import { SendBackDto } from "./dto/send-back.dto";
+import { ReworkRequestDto } from "./dto/rework-request.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
 
 @ApiTags("initiatives")
@@ -26,11 +26,11 @@ export class InitiativesController {
   }
 
   @Get()
-  @ApiOperation({ summary: "List All Initiatives", description: "Retrieves all initiatives. Sustainability Officer and Organization Admin can view." })
+  @ApiOperation({ summary: "List All Initiatives", description: "Retrieves all initiatives, each with its jobs, spend (money.spent from approved expense bills) and payback. Sustainability Officer, Organization Admin and Financial Analyst can view." })
   @ApiResponse({ status: 200, description: "Array of records returned." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "Organization Admin")
+  @Roles("Sustainability Officer", "Organization Admin", "Financial Analyst")
   findAll() {
     return this.initiativesService.findAll();
   }
@@ -41,7 +41,7 @@ export class InitiativesController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Sustainability Officer", "Organization Admin")
+  @Roles("Sustainability Officer", "Organization Admin", "Financial Analyst")
   findOne(@Param("id") id: string) {
     return this.initiativesService.findOne(id);
   }
@@ -52,7 +52,7 @@ export class InitiativesController {
     description:
       "Measured saving since start_date: each month against the same month a year earlier on the initiative's meters (meter_ids, else its metric's meters in building_ids, else the whole organisation), counting only months with readings on both sides. Returns months_compared, actual_saving_to_date, expected_to_date (expected_saving pro rata), on_track and a green/amber/red rating. measurable=false without a metric or start date.",
   })
-  @Roles("Sustainability Officer", "Organization Admin")
+  @Roles("Sustainability Officer", "Organization Admin", "Financial Analyst")
   performance(@Param("id") id: string) {
     return this.initiativesService.performance(id);
   }
@@ -89,18 +89,21 @@ export class InitiativesController {
     return this.initiativesService.update(id, updateDto, role, userId);
   }
 
-  @Post(":id/jobs/:workOrderId/send-back")
+  @Post(":id/jobs/:workOrderId/rework-request")
   @ApiOperation({
-    summary: "Send initiative work back",
+    summary: "Ask for rework on an initiative job",
     description:
-      "For an in-progress initiative with on-site work: one of its closed jobs was not done properly. Creates a new job for the same technician type through normal dispatch, with the reason (shown to the technician) and finish_by (YYYY-MM-DD, today or later) as its finish date. The initiative cannot be completed until that job is closed too. 400 if the job is still open, the reason is under 3 characters or the date is missing or past.",
+      "For an in-progress initiative with on-site work: one of its closed jobs was not done as required. Records a rework request with the reason and notifies the coordinators, who decide who redoes it and by when, or decline (POST /dispatch/rework-requests/:ticketId). One open request per job; the initiative cannot be completed while it is pending. 400 if the job is still open or the reason is under 3 characters; 409 if already requested or redone.",
   })
-  @ApiResponse({ status: 201, description: "Rework job created; returns the initiative with its jobs." })
-  @ApiResponse({ status: 400, description: "Job still open, initiative not in progress, or bad reason/date." })
-  @ApiResponse({ status: 404, description: "Initiative or job not found." })
+  @ApiResponse({ status: 201, description: "Request recorded; returns the initiative with its jobs." })
   @Roles("Sustainability Officer", "Organization Admin")
-  sendBack(@Param("id") id: string, @Param("workOrderId") workOrderId: string, @Body() dto: SendBackDto) {
-    return this.initiativesService.sendBack(id, workOrderId, dto.reason, dto.finish_by);
+  requestRework(
+    @Param("id") id: string,
+    @Param("workOrderId") workOrderId: string,
+    @Body() dto: ReworkRequestDto,
+    @Headers("x-user-id") userId?: string,
+  ) {
+    return this.initiativesService.requestRework(id, workOrderId, dto.reason, userId);
   }
 
   @Patch(":id/archive")

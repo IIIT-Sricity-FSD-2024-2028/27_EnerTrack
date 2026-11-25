@@ -35,7 +35,9 @@ import {
 } from "../../store/slices/buildingsSlice";
 import {
   assignTicket,
+  backOnDuty,
   decideExtension,
+  decideRework,
   fetchDispatchQueue,
   selectDispatchQueue,
   setJobDeadline,
@@ -49,6 +51,7 @@ import { BellIcon, CheckIcon, ClipboardIcon, WarningIcon } from "./components/ic
 import NeedsYou from "./overview/NeedsYou";
 import IssueBoard from "./overview/IssueBoard";
 import TeamPanel from "./overview/TeamPanel";
+import ReworkRequests from "./overview/ReworkRequests";
 import { buildRows } from "./overview/issueStage";
 import { faultsAwaitingDiagnosis, firstName, userName } from "./techUtils";
 
@@ -156,6 +159,15 @@ export default function TechnicianOverview() {
       approve ? "Request approved." : "Request refused.",
     );
 
+  const reworkDecision = (req, { decision, assigneeId, finishBy, note }) =>
+    act(
+      decideRework({ ticketId: req.ticket_id, decision, assigneeId, finishBy, note }),
+      decision === "decline" ? "Rework declined. The officer has been told." : "Rework sent. The officer has been told.",
+    );
+
+  const putBackOnDuty = (person) =>
+    act(backOnDuty({ userId: person.user_id }), `${person.name} is back on duty and can be sent jobs today.`);
+
   const rows = useMemo(
     () =>
       ready
@@ -191,6 +203,7 @@ export default function TechnicianOverview() {
       unsafe: open.filter((r) => r.clock?.unsafe).length,
       late: open.filter((r) => r.clock?.late).length,
       verify: workOrders.filter((w) => w.status === "review").length,
+      rework: (queue.rework_requests || []).length,
     };
 
     // Numbers for the slim stats row.
@@ -208,6 +221,13 @@ export default function TechnicianOverview() {
 
         <NeedsYou counts={counts} filter={filter} onFilter={setFilter} />
 
+        <ReworkRequests
+          requests={queue.rework_requests || []}
+          people={queue.team_status || []}
+          busy={busy}
+          onDecide={reworkDecision}
+        />
+
         <IssueBoard
           rows={rows}
           people={queue.team_status || []}
@@ -222,7 +242,7 @@ export default function TechnicianOverview() {
           onDeadline={setDeadline}
         />
 
-        <TeamPanel queue={queue} busy={busy} onSweep={sweepNow} />
+        <TeamPanel queue={queue} busy={busy} onSweep={sweepNow} onBackOnDuty={putBackOnDuty} />
 
         <h2 className="section-title stats-title">Around the campus</h2>
         <div className="stats-grid">
