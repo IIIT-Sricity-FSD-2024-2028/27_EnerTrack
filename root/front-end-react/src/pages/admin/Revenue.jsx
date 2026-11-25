@@ -7,8 +7,13 @@
  * over its seat allowance is already paying extra, or about to, which makes
  * it the next sales conversation.
  */
-import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchRevenueSummary,
+  selectRevenueStatus,
+  selectRevenueSummary,
+} from "../../store/slices/platformInvoicesSlice";
 import AdminPage from "./AdminPage";
 import { formatCurrency } from "./adminHelpers";
 
@@ -20,18 +25,18 @@ const gridStyle = {
 };
 
 export default function Revenue() {
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const summary = useSelector(selectRevenueSummary);
+  const status = useSelector(selectRevenueStatus);
+  // A summary from an earlier visit stays shown while the new one loads.
+  const loading = !summary && (status === "idle" || status === "loading");
 
-  // Load the summary when the page opens. If it fails, summary stays null
-  // and the page says so (as the original did).
+  // Load the summary every time the page opens: it is computed from live
+  // contracts and staff counts. If it fails and there is no earlier one,
+  // the page says so (as the original did).
   useEffect(() => {
-    api
-      .get("/platform-invoices/revenue-summary")
-      .then((data) => setSummary(data))
-      .catch(() => setSummary(null))
-      .finally(() => setLoading(false));
-  }, []);
+    dispatch(fetchRevenueSummary());
+  }, [dispatch]);
 
   return (
     <AdminPage

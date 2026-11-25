@@ -35,6 +35,9 @@ import {
 } from "./slices/dispatchSlice";
 // Person 2: admin / auditor
 import notifications from "./slices/notificationsSlice";
+import subscriptionPlans from "./slices/subscriptionPlansSlice";
+import subscriptions from "./slices/subscriptionsSlice";
+import platformInvoices from "./slices/platformInvoicesSlice";
 // Person 4: sustainability
 import initiatives from "./slices/initiativesSlice";
 import sustainabilityReports from "./slices/sustainabilityReportsSlice";
@@ -69,8 +72,11 @@ const reducers = {
   dispatchQueue,
   myJobs,
   availability,
-  // Person 2: admin / auditor          (+ subscriptionPlans, subscriptions, platformInvoices, auditRequests, energyAudits)
+  // Person 2: admin / auditor          (+ auditRequests, energyAudits)
   notifications,
+  subscriptionPlans,
+  subscriptions,
+  platformInvoices,
   // Person 4: sustainability
   initiatives,
   targets,

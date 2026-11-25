@@ -5,9 +5,23 @@
  * saved. (Not the same as Utility Costs, which is the electricity bill.)
  * Four cards: plan, usage against allowances, savings, and invoices.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import api from "../../api/client";
+import {
+  fetchSubscriptionByOrg,
+  selectSubscriptionByOrg,
+} from "../../store/slices/subscriptionsSlice";
+import {
+  fetchPlatformInvoices,
+  selectAllPlatformInvoices,
+} from "../../store/slices/platformInvoicesSlice";
+import { fetchUsers, selectAllUsers } from "../../store/slices/usersSlice";
+import { fetchCampuses, selectAllCampuses } from "../../store/slices/campusSlice";
+import {
+  fetchOrganizationSavings,
+  selectOrganizationSavings,
+} from "../../store/slices/organizationsSlice";
 import { PATHS } from "../../routes";
 import { useAuth } from "../../auth/useAuth";
 import FinanceLayout from "./components/FinanceLayout";
@@ -261,44 +275,55 @@ function InvoicesCard({ invoices }) {
 
 export default function FinanceSubscription() {
   const { user } = useAuth();
-  // status: "loading" | "error" | "ready"
-  const [state, setState] = useState({ status: "loading" });
+  const dispatch = useDispatch();
   const orgId = user.organization_id;
+  // Page status (UI only): "loading" | "error" | "ready". The data itself
+  // lives in the store.
+  const [load, setLoad] = useState({ status: "loading" });
+
+  const subscription = useSelector((state) => selectSubscriptionByOrg(state, orgId));
+  const invoices = useSelector(selectAllPlatformInvoices);
+  const users = useSelector(selectAllUsers);
+  const campuses = useSelector(selectAllCampuses);
+  const savings = useSelector((state) => selectOrganizationSavings(state, orgId));
+
+  const counts = useMemo(() => {
+    const orgUsers = users.filter((u) => u.organization_id === orgId);
+    return {
+      // Every user except a Campus Visitor takes a seat — the rule the backend bills on.
+      staffCount: orgUsers.filter((u) => u.role !== "Campus Visitor").length,
+      visitorCount: orgUsers.filter((u) => u.role === "Campus Visitor").length,
+      campusCount: campuses.filter((c) => c.organization_id === orgId).length,
+    };
+  }, [users, campuses, orgId]);
 
   useEffect(() => {
     if (!orgId) return; // EnerTrack staff have no organisation → nothing to load
 
     let cancelled = false; // ignore the result if the user leaves the page first
-    async function load() {
-      try {
-        const subscription = await api.get(`/subscriptions/by-organization/${orgId}`);
-        const [invoices, users, campuses, savings] = await Promise.all([
-          api.get("/platform-invoices").catch(() => []),
-          api.get("/users").catch(() => []),
-          api.get("/campus").catch(() => []),
-          api.get(`/organizations/${orgId}/savings?from=${SAVINGS_FROM}&to=${SAVINGS_TO}`).catch(() => null),
-        ]);
-        if (cancelled) return;
-        const orgUsers = (Array.isArray(users) ? users : []).filter((u) => u.organization_id === orgId);
-        setState({
-          status: "ready",
-          subscription,
-          savings,
-          invoices: Array.isArray(invoices) ? invoices : [],
-          // Every user except a Campus Visitor takes a seat — the rule the backend bills on.
-          staffCount: orgUsers.filter((u) => u.role !== "Campus Visitor").length,
-          visitorCount: orgUsers.filter((u) => u.role === "Campus Visitor").length,
-          campusCount: (Array.isArray(campuses) ? campuses : []).filter((c) => c.organization_id === orgId).length,
-        });
-      } catch (error) {
-        if (!cancelled) setState({ status: "error", message: error.message });
-      }
-    }
-    load();
+    // The subscription is required (no live one → explain how to get one).
+    // The rest is best effort: a failed list just shows as empty, and failed
+    // savings as "no data", as before.
+    dispatch(fetchSubscriptionByOrg(orgId))
+      .unwrap()
+      .then(() =>
+        Promise.all([
+          dispatch(fetchPlatformInvoices()),
+          dispatch(fetchUsers()),
+          dispatch(fetchCampuses()),
+          dispatch(fetchOrganizationSavings({ orgId, from: SAVINGS_FROM, to: SAVINGS_TO })),
+        ]),
+      )
+      .then(() => {
+        if (!cancelled) setLoad({ status: "ready" });
+      })
+      .catch((error) => {
+        if (!cancelled) setLoad({ status: "error", message: error.message });
+      });
     return () => {
       cancelled = true;
     };
-  }, [orgId]);
+  }, [dispatch, orgId]);
 
   let body;
   if (!ALLOWED.includes(user.role)) {
@@ -315,13 +340,13 @@ export default function FinanceSubscription() {
         <p>This account belongs to EnerTrack rather than to a client, so it has no subscription of its own.</p>
       </div>
     );
-  } else if (state.status === "loading") {
+  } else if (load.status === "loading" || (load.status === "ready" && !subscription)) {
     body = <div className="sub" style={{ padding: "24px 0" }}>Loading your subscription…</div>;
-  } else if (state.status === "error") {
+  } else if (load.status === "error") {
     body = (
       <div className="sub-card">
         <h2>No active subscription</h2>
-        <p>{state.message}</p>
+        <p>{load.message}</p>
         {/* A subscription starts when a proposal is accepted, so the way
             forward for an organisation without one is the audit. */}
         {user?.role === "Organization Admin" && (
@@ -338,15 +363,15 @@ export default function FinanceSubscription() {
   } else {
     body = (
       <>
-        <PlanCard subscription={state.subscription} />
+        <PlanCard subscription={subscription} />
         <UsageCard
-          subscription={state.subscription}
-          staffCount={state.staffCount}
-          campusCount={state.campusCount}
-          visitorCount={state.visitorCount}
+          subscription={subscription}
+          staffCount={counts.staffCount}
+          campusCount={counts.campusCount}
+          visitorCount={counts.visitorCount}
         />
-        <SavingsCard savings={state.savings} invoices={state.invoices} />
-        <InvoicesCard invoices={state.invoices} />
+        <SavingsCard savings={savings} invoices={invoices} />
+        <InvoicesCard invoices={invoices} />
       </>
     );
   }
