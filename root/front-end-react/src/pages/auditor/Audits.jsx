@@ -12,8 +12,14 @@
  * page is the one place the audit list is kept.
  */
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useLocation } from "react-router-dom";
 import api from "../../api/client";
+import {
+  fetchBuildings,
+  selectAllBuildings,
+} from "../../store/slices/buildingsSlice";
+import { fetchMeters, selectAllMeters } from "../../store/slices/metersSlice";
 
 import ToastStack from "../technician/components/ToastStack";
 import { useToast } from "../technician/components/useToast";
@@ -36,21 +42,18 @@ import "./auditor.css";
  *
  * Only the audits call is required. If any of the others fail, the page
  * still works with what it has (ids instead of names, an empty tier list).
+ * Buildings and meters come from the shared Redux slices instead.
  */
 async function fetchWorkspace() {
-  const [audits, orgs, buildings, meters, plans] = await Promise.all([
+  const [audits, orgs, plans] = await Promise.all([
     api.get("/energy-audits"),
     api.get("/organizations").catch(() => []),
-    api.get("/buildings").catch(() => []),
-    api.get("/meters").catch(() => []),
     api.get("/subscription-plans").catch(() => []),
   ]);
 
   return {
     audits: audits || [],
     orgs: orgs || [],
-    buildings: buildings || [],
-    meters: meters || [],
     // Only live tiers can be proposed; a retired one is refused by the server.
     plans: (plans || []).filter((p) => p.is_active),
   };
@@ -59,11 +62,14 @@ async function fetchWorkspace() {
 export default function AuditorAudits() {
   const location = useLocation();
   const { toasts, showToast } = useToast();
+  const dispatch = useDispatch();
+  // Shared with the infrastructure manager below: a building it adds shows
+  // up in the recommendation form at once.
+  const buildings = useSelector(selectAllBuildings);
+  const meters = useSelector(selectAllMeters);
 
   const [audits, setAudits] = useState([]);
   const [orgs, setOrgs] = useState([]);
-  const [buildings, setBuildings] = useState([]);
-  const [meters, setMeters] = useState([]);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -79,8 +85,6 @@ export default function AuditorAudits() {
         setError("");
         setAudits(data.audits);
         setOrgs(data.orgs);
-        setBuildings(data.buildings);
-        setMeters(data.meters);
         setPlans(data.plans);
         setLoading(false);
       })
@@ -92,19 +96,9 @@ export default function AuditorAudits() {
 
   useEffect(() => {
     loadData();
-  }, []);
-
-  /** Called by the infrastructure manager after it saves or deletes. */
-  function reloadBuildingsAndMeters() {
-    Promise.all([api.get("/buildings"), api.get("/meters")])
-      .then(([newBuildings, newMeters]) => {
-        setBuildings(newBuildings || []);
-        setMeters(newMeters || []);
-      })
-      .catch(() => {
-        // Keep the old lists; the manager has already shown any error.
-      });
-  }
+    dispatch(fetchBuildings());
+    dispatch(fetchMeters());
+  }, [dispatch]);
 
   // ── Which audit is open ──────────────────────────────
   // The one picked, else the first still open, else the first of all.
@@ -238,14 +232,12 @@ export default function AuditorAudits() {
               </div>
             </div>
 
-            {/* key= gives each client a fresh manager. onChange reloads
-                the buildings and meters this page uses, so a building
-                added here shows up in the recommendation form at once. */}
+            {/* key= gives each client a fresh manager. It saves through
+                the shared slices, so this page sees its changes at once. */}
             <div style={{ marginTop: "14px" }}>
               <InfrastructureManager
                 key={audit.organization_id}
                 orgId={audit.organization_id}
-                onChange={reloadBuildingsAndMeters}
                 showBudget={false}
               />
             </div>

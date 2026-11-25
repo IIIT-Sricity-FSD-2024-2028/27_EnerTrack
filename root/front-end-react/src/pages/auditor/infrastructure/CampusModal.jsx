@@ -9,7 +9,8 @@
  * to set (the server requires a number).
  */
 import { useState } from "react";
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
+import { createCampus, updateCampus } from "../../../store/slices/campusSlice";
 import Modal from "../../technician/components/Modal";
 import { formatCurrency } from "../auditorUtils";
 import { minCampusBudget } from "./budgetRules";
@@ -23,6 +24,7 @@ export default function CampusModal({
   onClose,
   showToast,
 }) {
+  const dispatch = useDispatch();
   const [name, setName] = useState(campus ? campus.name : "");
   const [location, setLocation] = useState(campus ? campus.location || "" : "");
   const [budget, setBudget] = useState(campus ? campus.total_budget : 0);
@@ -64,9 +66,12 @@ export default function CampusModal({
 
     let request;
     if (campus) {
-      request = api.patch("/campus/" + campus.campus_id, body);
+      // The update thunk resolves to { id, changes, row }: hand on the row.
+      request = dispatch(updateCampus({ id: campus.campus_id, changes: body }))
+        .unwrap()
+        .then((result) => result.row);
     } else {
-      request = api.post("/campus", body);
+      request = dispatch(createCampus(body)).unwrap();
     }
 
     request

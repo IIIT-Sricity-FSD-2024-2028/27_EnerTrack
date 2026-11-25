@@ -71,25 +71,20 @@ const reducers = {
   availability,
   // Person 2: admin / auditor          (+ subscriptionPlans, subscriptions, platformInvoices, auditRequests, energyAudits)
   notifications,
-  // Person 3: finance                  (energyCosts, financialReports, invoices)
   // Person 4: sustainability
   initiatives,
   targets,
-  // Person 5: wastage / campus
   sustainabilityReports,
   sustainabilityMetrics,
-  targets,
-  // Person 5: wastage / campus
-  wastageReports,
-  wastageSignals,
   // Person 3: finance
   energyCosts,
   financialReports,
   invoices,
   expenseBills,
   expenseSettings,
-  // Person 4: sustainability           (initiatives, sustainabilityReports, sustainabilityMetrics)
-  // Person 5: wastage / campus         (+ wastageReports)
+  // Person 5: wastage / campus
+  wastageReports,
+  wastageSignals,
   serviceRequests,
   serviceCatalogue,
 };
