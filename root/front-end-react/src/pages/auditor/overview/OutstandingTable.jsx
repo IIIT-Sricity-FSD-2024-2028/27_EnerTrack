@@ -7,18 +7,8 @@
 import Badge from "../components/Badge";
 import { formatCurrency } from "../auditorUtils";
 
-export default function OutstandingTable({ audits, orgName }) {
-  // Collect the open findings from every audit into one list, remembering
-  // which client each one belongs to.
-  const rows = [];
-  for (const audit of audits) {
-    for (const finding of audit.findings || []) {
-      if (finding.status === "proposed" || finding.status === "accepted") {
-        rows.push({ finding: finding, orgId: audit.organization_id });
-      }
-    }
-  }
-
+/** `rows` is [{ finding, orgId }]: see selectOutstandingFindings. */
+export default function OutstandingTable({ rows, orgName }) {
   return (
     <div className="card">
       <h2>Still to be done</h2>

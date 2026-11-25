@@ -11,10 +11,17 @@
  * deny); only the screen uses the plainer words.
  */
 import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  decideAuditRequest,
+  fetchAuditRequests,
+  selectAuditRequestsStatus,
+  selectDecidedAuditRequests,
+  selectPendingAuditRequests,
+} from "../../store/slices/auditRequestsSlice";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
-import { addToast } from "./adminHelpers";
+import { addToast, loadFailed } from "./adminHelpers";
 
 const STATUS_LABELS = { approved: "Approved", denied: "Rejected" };
 
@@ -29,32 +36,30 @@ function formatDay(iso) {
 }
 
 export default function Registrations() {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  // Waiting requests oldest first (a queue), decided ones newest first.
+  const pending = useSelector(selectPendingAuditRequests);
+  const decided = useSelector(selectDecidedAuditRequests);
+  const status = useSelector(selectAuditRequestsStatus);
+  const loading = status === "idle" || status === "loading";
   const [toasts, setToasts] = useState([]);
   // The open popup: null, or { kind: "approve" | "deny", request }
   const [decision, setDecision] = useState(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
-  function loadRequests() {
-    return api
-      .get("/audit-requests")
-      .then((rows) => setRequests(Array.isArray(rows) ? rows : []))
-      .catch((err) =>
+  // Load every time the page opens: new registrations arrive at any time.
+  useEffect(() => {
+    dispatch(fetchAuditRequests({ force: true })).then((result) => {
+      if (loadFailed(result)) {
         addToast(
           setToasts,
-          err.message || "Could not load registrations.",
+          result.error.message || "Could not load registrations.",
           "error",
-        ),
-      )
-      .finally(() => setLoading(false));
-  }
-
-  // Load once, when the page opens.
-  useEffect(() => {
-    loadRequests();
-  }, []);
+        );
+      }
+    });
+  }, [dispatch]);
 
   function openDecision(kind, request) {
     setNote("");
@@ -70,7 +75,10 @@ export default function Registrations() {
 
     setBusy(true);
     try {
-      await api.patch(`/audit-requests/${request.request_id}/${kind}`, body);
+      // Approving also reloads the organisations and users it created.
+      await dispatch(
+        decideAuditRequest({ id: request.request_id, kind, body }),
+      ).unwrap();
       addToast(
         setToasts,
         kind === "approve"
@@ -79,18 +87,14 @@ export default function Registrations() {
         "success",
       );
     } catch (err) {
-      // For example "already decided", or the name was taken in the meantime.
+      // For example "already decided", or the name was taken in the
+      // meantime: re-read the list so it shows where things really stand.
       addToast(setToasts, err.message, "error");
+      dispatch(fetchAuditRequests({ force: true }));
     }
     setBusy(false);
     setDecision(null);
-    await loadRequests();
   }
-
-  // The backend sends newest first. Waiting requests read better oldest
-  // first, like a queue.
-  const pending = requests.filter((r) => r.status === "pending").reverse();
-  const decided = requests.filter((r) => r.status !== "pending");
 
   return (
     <AdminPage

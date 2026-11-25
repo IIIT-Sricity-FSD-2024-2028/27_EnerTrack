@@ -6,10 +6,12 @@
  * it "changes-requested", "accepted" or "declined". (The old page had a
  * "Mark completed" button, but the backend no longer has that status.)
  */
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
+import { updateEnergyAudit } from "../../../store/slices/energyAuditsSlice";
 import { label } from "../auditorUtils";
 
-export default function StatusCard({ audit, onSaved, showToast }) {
+export default function StatusCard({ audit, showToast }) {
+  const dispatch = useDispatch();
   const manual = audit.status === "scheduled" || audit.status === "in-progress";
 
   function setStatus(status) {
@@ -20,10 +22,9 @@ export default function StatusCard({ audit, onSaved, showToast }) {
       body.conducted_on = new Date().toISOString().slice(0, 10);
     }
 
-    api
-      .patch("/energy-audits/" + audit.audit_id, body)
-      .then((updated) => {
-        onSaved(updated);
+    dispatch(updateEnergyAudit({ id: audit.audit_id, changes: body }))
+      .unwrap()
+      .then(() => {
         showToast("Engagement marked " + label(status) + ".", "success");
       })
       .catch((err) => {
