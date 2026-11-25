@@ -111,7 +111,7 @@ function EstimateActions({ busy, onApprove, onReject }) {
 
 const ESTIMATE = { label: "Estimate to approve", tone: "action" };
 
-export default function MaintenanceApprovals() {
+export default function MaintenanceApprovals({ onChange } = {}) {
   const showToast = useToast();
   const [workOrders, setWorkOrders] = useState([]);
   const [busyId, setBusyId] = useState(null);
@@ -131,6 +131,7 @@ export default function MaintenanceApprovals() {
       await api.patch(`${path}/${id}`, body);
       showToast(successMessage, successType);
       setReloadKey((k) => k + 1);
+      if (onChange) onChange();
     } catch (error) {
       showToast(error.message || "Failed to update", "warning");
     }

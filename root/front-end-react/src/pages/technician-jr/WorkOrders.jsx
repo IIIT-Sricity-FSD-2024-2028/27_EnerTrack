@@ -217,7 +217,18 @@ export default function TechnicianJrWorkOrders() {
 
     detail = (
       <div className="card">
-        <h2>Selected Work Order — {formatId(id, "WO")}</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+          <h2 style={{ margin: 0 }}>Selected Work Order — {formatId(id, "WO")}</h2>
+          {["inprogress", "review"].includes(selected.status) && (
+            <Link
+              to={`${PATHS.technicianJr.expenses}?wo=${selected.work_order_id}`}
+              className="btn btn-secondary"
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              Upload Expense Bill
+            </Link>
+          )}
+        </div>
         <div className="grid2 mt-16">
           {/* key={id} on the cards with forms: a different order gets
               fresh, empty forms. */}

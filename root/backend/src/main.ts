@@ -205,6 +205,7 @@ async function bootstrap() {
     .addTag('initiatives', 'Sustainability initiative proposals and lifecycle')
     .addTag('activity-logs', 'System-wide audit log')
     .addTag('sustainability-reports', 'Sustainability report generation and archiving')
+    .addTag('expense-bills', 'Technician expense bills and finance verification')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Token from POST /api/users/login' },
       'bearer',
@@ -235,7 +236,8 @@ async function bootstrap() {
     CreateFinancialReportDto: db.financialReports[0], UpdateFinancialReportDto: db.financialReports[0],
     CreateInitiativeDto: db.initiatives[0], UpdateInitiativeDto: db.initiatives[0],
     CreateActivityLogDto: db.activityLogs[0], UpdateActivityLogDto: db.activityLogs[0],
-    CreateSustainabilityReportDto: db.sustainabilityReports[0], UpdateSustainabilityReportDto: db.sustainabilityReports[0]
+    CreateSustainabilityReportDto: db.sustainabilityReports[0], UpdateSustainabilityReportDto: db.sustainabilityReports[0],
+    CreateExpenseBillDto: db.expenseBills[0], UpdateExpenseBillDto: db.expenseBills[0]
   };
 
   if (document.components && document.components.schemas) {
@@ -244,7 +246,7 @@ async function bootstrap() {
       'meter_id', 'reading_id', 'wastage_report_id', 'alert_id', 'fault_id',
       'service_request_id', 'work_order_id', 'energy_cost_id', 'invoice_id',
       'financial_report_id', 'sustainability_metric_id', 'initiative_id',
-      'activity_log_id', 'report_id'
+      'activity_log_id', 'report_id', 'expense_bill_id'
     ];
     
     for (const [schemaName, schema] of Object.entries(document.components.schemas)) {

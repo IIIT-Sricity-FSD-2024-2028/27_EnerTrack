@@ -40,6 +40,7 @@ import FinanceReports from "./pages/finance/Reports";
 import FinanceCosts from "./pages/finance/Costs";
 import FinanceSubscription from "./pages/finance/Subscription";
 import FinanceArchives from "./pages/finance/Archives";
+import FinanceExpenses from "./pages/finance/Expenses";
 
 import SustainabilityOverview from "./pages/sustainability/Overview";
 import SustainabilityMonitoring from "./pages/sustainability/Monitoring";
@@ -56,6 +57,7 @@ import TechnicianWorkOrders from "./pages/technician/WorkOrders";
 
 import TechnicianJrOverview from "./pages/technician-jr/Overview";
 import TechnicianJrWorkOrders from "./pages/technician-jr/WorkOrders";
+import TechnicianJrExpenses from "./pages/technician-jr/Expenses";
 
 import AuditorOverview from "./pages/auditor/Overview";
 import AuditorAudits from "./pages/auditor/Audits";
@@ -125,12 +127,17 @@ export default function App() {
             path={PATHS.admin.subscription}
             element={<FinanceSubscription />}
           />
+          <Route
+            path={PATHS.admin.expenses}
+            element={<FinanceExpenses />}
+          />
         </Route>
       </Route>
 
       <Route element={<RequireRole area="finance" />}>
         <Route element={<DashboardLayout />}>
           <Route path={PATHS.finance.overview} element={<FinanceOverview />} />
+          <Route path={PATHS.finance.expenses} element={<FinanceExpenses />} />
           <Route path={PATHS.finance.reports} element={<FinanceReports />} />
           <Route path={PATHS.finance.costs} element={<FinanceCosts />} />
           <Route
@@ -208,6 +215,10 @@ export default function App() {
           <Route
             path={PATHS.technicianJr.workOrders}
             element={<TechnicianJrWorkOrders />}
+          />
+          <Route
+            path={PATHS.technicianJr.expenses}
+            element={<TechnicianJrExpenses />}
           />
         </Route>
       </Route>

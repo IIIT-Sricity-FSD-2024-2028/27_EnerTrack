@@ -30,9 +30,11 @@ export const PATHS = {
     registrations: "/admin/registrations",
     infrastructure: "/admin/infrastructure",
     sustainabilityApprovals: "/admin/sustainability-approvals",
+    expenses: "/admin/expenses",
   },
   finance: {
     overview: "/finance/overview",
+    expenses: "/finance/expenses",
     reports: "/finance/reports",
     costs: "/finance/costs",
     subscription: "/finance/subscription",
@@ -57,6 +59,7 @@ export const PATHS = {
   technicianJr: {
     overview: "/technician-jr/overview",
     workOrders: "/technician-jr/work-orders",
+    expenses: "/technician-jr/expenses",
   },
   auditor: {
     overview: "/auditor/overview",
@@ -189,6 +192,11 @@ export const NAV = {
       roles: ["Organization Admin"],
     },
     {
+      label: "Maintenance Spend",
+      to: PATHS.admin.expenses,
+      roles: ["Organization Admin"],
+    },
+    {
       label: "Your Plan",
       to: PATHS.admin.subscription,
       roles: ["Organization Admin"],
@@ -196,6 +204,7 @@ export const NAV = {
   ],
   finance: [
     { label: "Overview", to: PATHS.finance.overview },
+    { label: "Maintenance Spend", to: PATHS.finance.expenses },
     { label: "Financial Reports & Impact", to: PATHS.finance.reports },
     { label: "Utility Costs", to: PATHS.finance.costs },
     { label: "Your EnerTrack Subscription", to: PATHS.finance.subscription },
@@ -222,6 +231,7 @@ export const NAV = {
   technicianJr: [
     { label: "Overview", to: PATHS.technicianJr.overview },
     { label: "My Work Orders", to: PATHS.technicianJr.workOrders },
+    { label: "Expense Bills", to: PATHS.technicianJr.expenses },
   ],
   auditor: [
     { label: "Overview", to: PATHS.auditor.overview },

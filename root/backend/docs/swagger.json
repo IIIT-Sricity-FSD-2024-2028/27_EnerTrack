@@ -9956,6 +9956,503 @@
           "sustainability-reports"
         ]
       }
+    },
+    "/api/expense-bills": {
+      "post": {
+        "operationId": "ExpenseBillsController_create",
+        "summary": "Create Expense Bill",
+        "description": "Submits a new expense bill linked to an inprogress or review work order.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExpenseBillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Expense bill created successfully."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "get": {
+        "operationId": "ExpenseBillsController_findAll",
+        "summary": "List Expense Bills",
+        "description": "Returns expense bills scoped to the organization. Technicians see only their submitted bills.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "work_order_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of expense bills."
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
+    },
+    "/api/expense-bills/{id}/attachments": {
+      "post": {
+        "operationId": "ExpenseBillsController_uploadAttachments",
+        "summary": "Upload Expense Bill Receipts",
+        "description": "Uploads up to 5 receipts/invoices (.pdf, .jpg, .jpeg, .png up to 10MB each) for an expense bill.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Files attached successfully."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
+    },
+    "/api/expense-bills/{id}/attachments/{filename}": {
+      "get": {
+        "operationId": "ExpenseBillsController_getAttachment",
+        "summary": "Download or preview Expense Bill Attachment",
+        "description": "Streams an expense bill attachment file.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File content."
+          },
+          "404": {
+            "description": "Attachment not found."
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "delete": {
+        "operationId": "ExpenseBillsController_removeAttachment",
+        "summary": "Delete Expense Bill Attachment",
+        "description": "Removes an attachment from a non-approved expense bill.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attachment removed successfully."
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
+    },
+    "/api/expense-bills/settings": {
+      "get": {
+        "operationId": "ExpenseBillsController_getSettings",
+        "summary": "Get Expense Auto-Approve Settings",
+        "description": "Returns the organization's cumulative per-Work-Order minor expense cap and max auto-approvals per WO.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense settings."
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "patch": {
+        "operationId": "ExpenseBillsController_updateSettings",
+        "summary": "Update Expense Auto-Approve Cap",
+        "description": "Updates the organization's cumulative per-Work-Order auto-approve cap (set 0 to disable auto-approval).",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExpenseSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expense settings updated."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
+    },
+    "/api/expense-bills/{id}": {
+      "get": {
+        "operationId": "ExpenseBillsController_findOne",
+        "summary": "Get Expense Bill Details",
+        "description": "Returns an enriched expense bill with variance calculations.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense bill details."
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "patch": {
+        "operationId": "ExpenseBillsController_update",
+        "summary": "Update / Review Expense Bill",
+        "description": "Edit bill details, resubmit rejected bill, or approve/reject bill.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExpenseBillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expense bill updated successfully."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "delete": {
+        "operationId": "ExpenseBillsController_remove",
+        "summary": "Delete Expense Bill",
+        "description": "Deletes a non-approved expense bill.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense bill deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
     }
   },
   "info": {
@@ -10044,6 +10541,10 @@
     {
       "name": "sustainability-reports",
       "description": "Sustainability report generation and archiving"
+    },
+    {
+      "name": "expense-bills",
+      "description": "Technician expense bills and finance verification"
     }
   ],
   "servers": [],
@@ -10068,7 +10569,8 @@
           "floor_area_sqm": 42000,
           "tariff_rate": 8.5,
           "contract_start": "2025-01-01",
-          "email_domain": null
+          "email_domain": null,
+          "expense_auto_approve_cap": 1500
         }
       },
       "PutOrganizationDto": {
@@ -10086,7 +10588,8 @@
           "floor_area_sqm": 42000,
           "tariff_rate": 8.5,
           "contract_start": "2025-01-01",
-          "email_domain": null
+          "email_domain": null,
+          "expense_auto_approve_cap": 1500
         }
       },
       "CreateSubscriptionPlanDto": {
@@ -10247,7 +10750,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$ou0hbW/rotbW6KNfYTA8ze8FioKtSuKvjE.ddw2oWCkm7UXL8.Cly",
+          "password": "$2b$08$3SjVv0XTuHOqYLnAdR19Ze5C3acDZkKuhP0c.U6vLK0JDi3pqhfme",
           "role": "Organization Admin"
         }
       },
@@ -10263,7 +10766,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$ou0hbW/rotbW6KNfYTA8ze8FioKtSuKvjE.ddw2oWCkm7UXL8.Cly",
+          "password": "$2b$08$3SjVv0XTuHOqYLnAdR19Ze5C3acDZkKuhP0c.U6vLK0JDi3pqhfme",
           "role": "Organization Admin"
         }
       },
@@ -10862,6 +11365,74 @@
       "UpdateReportStatusDto": {
         "type": "object",
         "properties": {}
+      },
+      "CreateExpenseBillDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "organization_id": "org-001",
+          "work_order_id": "660e8600-0002-4000-8000-000000000000",
+          "submitted_by_id": "550e8400-0004-4000-8000-000000000004",
+          "title": "Replacement Solar Inverter Cables & Connectors",
+          "vendor": "Sri City Electricals",
+          "category": "materials",
+          "bill_date": "2026-11-20",
+          "bill_number": "SCE-2026-901",
+          "amount": 4200,
+          "notes": "Heavy-duty UV resistant cables and MC4 connectors for Roof Level 3 array inspection repair.",
+          "attachments": [],
+          "status": "submitted",
+          "auto_approved": false,
+          "reviewed_by_id": null,
+          "reviewed_at": null,
+          "rejection_reason": null,
+          "created_at": "2026-11-20T10:15:00.000Z",
+          "updated_at": "2026-11-20T10:15:00.000Z",
+          "history": [
+            {
+              "at": "2026-11-20T10:15:00.000Z",
+              "by": "550e8400-0004-4000-8000-000000000004",
+              "role": "Technician",
+              "action": "submitted"
+            }
+          ]
+        }
+      },
+      "UpdateExpenseSettingsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateExpenseBillDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "organization_id": "org-001",
+          "work_order_id": "660e8600-0002-4000-8000-000000000000",
+          "submitted_by_id": "550e8400-0004-4000-8000-000000000004",
+          "title": "Replacement Solar Inverter Cables & Connectors",
+          "vendor": "Sri City Electricals",
+          "category": "materials",
+          "bill_date": "2026-11-20",
+          "bill_number": "SCE-2026-901",
+          "amount": 4200,
+          "notes": "Heavy-duty UV resistant cables and MC4 connectors for Roof Level 3 array inspection repair.",
+          "attachments": [],
+          "status": "submitted",
+          "auto_approved": false,
+          "reviewed_by_id": null,
+          "reviewed_at": null,
+          "rejection_reason": null,
+          "created_at": "2026-11-20T10:15:00.000Z",
+          "updated_at": "2026-11-20T10:15:00.000Z",
+          "history": [
+            {
+              "at": "2026-11-20T10:15:00.000Z",
+              "by": "550e8400-0004-4000-8000-000000000004",
+              "role": "Technician",
+              "action": "submitted"
+            }
+          ]
+        }
       }
     }
   },

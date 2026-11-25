@@ -65,6 +65,7 @@ export enum NotificationTargetType {
   TARGET = "target",
   INITIATIVE = "initiative",
   REPORT = "report",
+  EXPENSE = "expense",
 }
 
 export enum TargetStatus {
@@ -154,6 +155,63 @@ export enum InvoiceStatus {
   PAID = "paid",
 }
 
+export enum ExpenseBillStatus {
+  SUBMITTED = "submitted",
+  APPROVED = "approved",
+  REJECTED = "rejected",
+}
+
+export enum ExpenseCategory {
+  MATERIALS = "materials",
+  TOOLS = "tools",
+  LABOUR = "labour",
+  OTHER = "other",
+}
+
+export interface ExpenseAttachment {
+  /** Randomized filename stored on disk (used in the download URL). */
+  filename: string;
+  /** Original client filename for display/download. */
+  original_name: string;
+  mime_type: string;
+  size: number;
+  uploaded_at: string;
+  /** Server-side absolute path — MUST be stripped before sending over API. */
+  disk_path: string;
+}
+
+export interface ExpenseBillHistoryEntry {
+  at: string;
+  by: string;
+  role: string;
+  action: "submitted" | "resubmitted" | "approved" | "auto_approved" | "rejected" | "revoked";
+  note?: string;
+}
+
+export interface ExpenseBill {
+  expense_bill_id: string;
+  organization_id: string;
+  work_order_id: string;
+  submitted_by_id: string;
+  title: string;
+  vendor: string;
+  category: ExpenseCategory;
+  bill_date: string; // YYYY-MM-DD
+  bill_number?: string | null;
+  amount: number;
+  notes?: string | null;
+  attachments: ExpenseAttachment[];
+  status: ExpenseBillStatus;
+  /** True when the bill was auto-approved under the org's cumulative WO cap. */
+  auto_approved?: boolean;
+  reviewed_by_id: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  history: ExpenseBillHistoryEntry[];
+}
+
 export enum InitiativeStatus {
   PROPOSED = "proposed",
   IN_PROGRESS = "in-progress",
@@ -177,6 +235,8 @@ export interface Organization {
   contract_start: string | null;
   /** Mail domain of this organisation's people (e.g. iiits.in). When set, every account created for the organisation must use it. */
   email_domain?: string | null;
+  /** Cumulative per-Work-Order amount (₹) below which minor bills auto-approve. 0 disables auto-approval. */
+  expense_auto_approve_cap?: number;
 }
 
 export interface User {
@@ -1201,6 +1261,7 @@ export class DatabaseService {
       tariff_rate: 8.5,
       contract_start: "2025-01-01",
       email_domain: null,
+      expense_auto_approve_cap: 1500,
     },
     {
       organization_id: "org-002",
@@ -2193,7 +2254,10 @@ export class DatabaseService {
     },
   ];
   public serviceRequests: ServiceRequest[] = [];
-  public workOrders: WorkOrder[] = [
+  public workOrders: WorkOrder[] =
+    process.env.CLEAN_SLATE === "true"
+      ? []
+      : [
     {
       work_order_id: "660e8600-0001-4000-8000-000000000000",
       organization_id: "org-001",
@@ -2290,7 +2354,7 @@ export class DatabaseService {
       status: WorkOrderStatus.CLOSED,
       details: { description: "Smart Meter – Energy Lab", type: "emergency", estimateRequired: false },
     },
-  ];
+        ];
 
   public energyCosts: EnergyCost[] = [
     {
@@ -2592,6 +2656,142 @@ export class DatabaseService {
       archived: false,
     },
   ];
+
+  public expenseBills: ExpenseBill[] =
+    process.env.CLEAN_SLATE === "true" || process.env.CLEAN_EXPENSE_SEEDS === "true"
+      ? []
+      : [
+    {
+      expense_bill_id: "eb000000-0001-4000-8000-000000000001",
+      organization_id: "org-001",
+      work_order_id: "660e8600-0002-4000-8000-000000000000",
+      submitted_by_id: "550e8400-0004-4000-8000-000000000004",
+      title: "Replacement Solar Inverter Cables & Connectors",
+      vendor: "Sri City Electricals",
+      category: ExpenseCategory.MATERIALS,
+      bill_date: "2026-11-20",
+      bill_number: "SCE-2026-901",
+      amount: 4200,
+      notes: "Heavy-duty UV resistant cables and MC4 connectors for Roof Level 3 array inspection repair.",
+      attachments: [],
+      status: ExpenseBillStatus.SUBMITTED,
+      auto_approved: false,
+      reviewed_by_id: null,
+      reviewed_at: null,
+      rejection_reason: null,
+      created_at: "2026-11-20T10:15:00.000Z",
+      updated_at: "2026-11-20T10:15:00.000Z",
+      history: [
+        {
+          at: "2026-11-20T10:15:00.000Z",
+          by: "550e8400-0004-4000-8000-000000000004",
+          role: "Technician",
+          action: "submitted",
+        },
+      ],
+    },
+    {
+      expense_bill_id: "eb000000-0002-4000-8000-000000000002",
+      organization_id: "org-001",
+      work_order_id: "660e8600-0004-4000-8000-000000000000",
+      submitted_by_id: "550e8400-0004-4000-8000-000000000004",
+      title: "Diesel Fuel & Synthetic Engine Oil Top-Up",
+      vendor: "Apex Fuel & Lubricants",
+      category: ExpenseCategory.MATERIALS,
+      bill_date: "2026-11-18",
+      bill_number: "AFL-44021",
+      amount: 6850,
+      notes: "Emergency generator maintenance and load testing run fuel replenishment.",
+      attachments: [],
+      status: ExpenseBillStatus.APPROVED,
+      auto_approved: false,
+      reviewed_by_id: "550e8400-0002-4000-8000-000000000002",
+      reviewed_at: "2026-11-19T14:30:00.000Z",
+      rejection_reason: null,
+      created_at: "2026-11-18T16:00:00.000Z",
+      updated_at: "2026-11-19T14:30:00.000Z",
+      history: [
+        {
+          at: "2026-11-18T16:00:00.000Z",
+          by: "550e8400-0004-4000-8000-000000000004",
+          role: "Technician",
+          action: "submitted",
+        },
+        {
+          at: "2026-11-19T14:30:00.000Z",
+          by: "550e8400-0002-4000-8000-000000000002",
+          role: "Financial Analyst",
+          action: "approved",
+        },
+      ],
+    },
+    {
+      expense_bill_id: "eb000000-0003-4000-8000-000000000003",
+      organization_id: "org-001",
+      work_order_id: "660e8600-0003-4000-8000-000000000000",
+      submitted_by_id: "550e8400-0004-4000-8000-000000000004",
+      title: "Circuit Breakers 16A & Conduit Pipe",
+      vendor: "Metro Hardware Stores",
+      category: ExpenseCategory.MATERIALS,
+      bill_date: "2026-11-19",
+      bill_number: "MHS-8821",
+      amount: 3150,
+      notes: "Replacement breakers for corridor B2 distribution board.",
+      attachments: [],
+      status: ExpenseBillStatus.REJECTED,
+      auto_approved: false,
+      reviewed_by_id: "550e8400-0002-4000-8000-000000000002",
+      reviewed_at: "2026-11-20T09:10:00.000Z",
+      rejection_reason: "Receipt photo is blurry; please re-upload a clear invoice showing GST breakdown.",
+      created_at: "2026-11-19T11:45:00.000Z",
+      updated_at: "2026-11-20T09:10:00.000Z",
+      history: [
+        {
+          at: "2026-11-19T11:45:00.000Z",
+          by: "550e8400-0004-4000-8000-000000000004",
+          role: "Technician",
+          action: "submitted",
+        },
+        {
+          at: "2026-11-20T09:10:00.000Z",
+          by: "550e8400-0002-4000-8000-000000000002",
+          role: "Financial Analyst",
+          action: "rejected",
+          note: "Receipt photo is blurry; please re-upload a clear invoice showing GST breakdown.",
+        },
+      ],
+    },
+    {
+      expense_bill_id: "eb000000-0004-4000-8000-000000000004",
+      organization_id: "org-001",
+      work_order_id: "660e8600-0002-4000-8000-000000000000",
+      submitted_by_id: "550e8400-0004-4000-8000-000000000004",
+      title: "UV Weatherproof Insulating Tape & Cable Clips",
+      vendor: "Sri City Hardware",
+      category: ExpenseCategory.MATERIALS,
+      bill_date: "2026-11-21",
+      bill_number: "SCH-1104",
+      amount: 450,
+      notes: "Minor fasteners and weatherproof insulation tape for roof conduit securing.",
+      attachments: [],
+      status: ExpenseBillStatus.APPROVED,
+      auto_approved: true,
+      reviewed_by_id: null,
+      reviewed_at: "2026-11-21T08:30:00.000Z",
+      rejection_reason: null,
+      created_at: "2026-11-21T08:30:00.000Z",
+      updated_at: "2026-11-21T08:30:00.000Z",
+      history: [
+        {
+          at: "2026-11-21T08:30:00.000Z",
+          by: "550e8400-0004-4000-8000-000000000004",
+          role: "Technician",
+          action: "auto_approved",
+          note: "Auto-approved under cumulative Work Order cap (₹450 / ₹1500)",
+        },
+      ],
+    },
+        ];
   public financialReports: FinancialReport[] = [
     {
       financial_report_id: "pppp0000-0001-4000-8000-000000000000",
