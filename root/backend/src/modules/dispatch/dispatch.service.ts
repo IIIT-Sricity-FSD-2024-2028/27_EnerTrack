@@ -26,6 +26,7 @@ import {
 import {
   AlertStatus,
   DatabaseService,
+  ExpenseBillStatus,
   FindingStatus,
   DeclineReason,
   FaultStatus,
@@ -315,17 +316,46 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return this.workOrderView(wo);
   }
 
-  /** The technician says the work is done. It goes to the coordinator to verify and close. */
+  /**
+   * The technician says the work is done. It goes to the coordinator to
+   * verify and close, except a quick waste fix (see closesOnFinish), which
+   * closes at once: the reporter can still say "Still broken".
+   */
   finish(userId: string, workOrderId: string, notes?: string, now = this.clock.now()) {
     const wo = this.ownAcknowledged(userId, workOrderId);
     if (wo.status !== WorkOrderStatus.INPROGRESS) throw new BadRequestException("Start the job before marking it done.");
-    wo.status = WorkOrderStatus.REVIEW;
+    const quick = this.closesOnFinish(wo);
+    wo.status = quick ? WorkOrderStatus.CLOSED : WorkOrderStatus.REVIEW;
     const text = (notes ?? "").trim();
     if (text) wo.details = { ...(wo.details ?? {}), resolution_notes: text };
     wo.dispatch!.history.push({ at: now.toISOString(), event: "finished", user_id: userId });
     this.onStatusChange(wo, now);
-    this.notifyCoordinators(wo.organization_id, `${this.nameOf(userId)} finished "${wo.title}". Please verify and close it.`, wo.work_order_id);
+    if (!quick) {
+      this.notifyCoordinators(wo.organization_id, `${this.nameOf(userId)} finished "${wo.title}". Please verify and close it.`, wo.work_order_id);
+    }
     return this.workOrderView(wo);
+  }
+
+  /**
+   * A small General Maintenance job from the "Energy, water or food being
+   * wasted" list (a light left on, a tap left running) needs no checking:
+   * nothing was repaired. Anything Critical, grown past size S, or with an
+   * expense bill still waiting for Finance goes to the coordinator as usual.
+   */
+  private closesOnFinish(wo: WorkOrder): boolean {
+    const ticket = this.ticketOf(wo);
+    if (!ticket) return false;
+    const unsettledBills = this.database.expenseBills.some(
+      (b) => b.work_order_id === wo.work_order_id && b.status !== ExpenseBillStatus.APPROVED,
+    );
+    return (
+      ticket.issue_type_id === "waste" &&
+      ticket.item_id !== OTHER_ITEM_ID &&
+      ticket.team === "general" &&
+      wo.dispatch!.size === "S" &&
+      wo.priority !== WorkOrderPriority.IMMEDIATE &&
+      !unsettledBills
+    );
   }
 
   /**

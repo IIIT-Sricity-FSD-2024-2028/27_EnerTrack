@@ -106,13 +106,15 @@ export default function TechnicianJrWorkOrders() {
    * A job the system sent goes through the dispatch routes, the same ones
    * the Overview inbox uses, so this page and the inbox never disagree.
    */
+  // `message` may be a function of the server's reply, for when the outcome
+  // depends on it (a quick waste fix closes instead of going to review).
   async function dispatchAction(id, action, body, message) {
     setBusyId(id);
     let ok = false;
     try {
       // Reloads the work orders and my jobs by itself.
-      await dispatch(jobAction({ id, action, body })).unwrap();
-      showToast(message, "success");
+      const result = await dispatch(jobAction({ id, action, body })).unwrap();
+      showToast(typeof message === "function" ? message(result) : message, "success");
       ok = true;
     } catch (err) {
       showToast(err.message, "error");
@@ -167,7 +169,10 @@ export default function TechnicianJrWorkOrders() {
         wo.work_order_id,
         "finish",
         { notes },
-        `Work order ${formatId(wo.work_order_id, "WO")} submitted for review.`,
+        (result) =>
+          result?.status === "closed"
+            ? `Work order ${formatId(wo.work_order_id, "WO")} is done and closed.`
+            : `Work order ${formatId(wo.work_order_id, "WO")} submitted for review.`,
       );
     }
     return updateWorkOrder(
