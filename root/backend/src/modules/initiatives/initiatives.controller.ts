@@ -4,6 +4,7 @@ import { InitiativesService } from "./initiatives.service";
 import { CreateInitiativeDto } from "./dto/create-initiative.dto";
 import { PutInitiativeDto } from "./dto/put-initiative.dto";
 import { UpdateInitiativeDto } from "./dto/update-initiative.dto";
+import { SendBackDto } from "./dto/send-back.dto";
 import { Roles } from "../../core/decorators/roles.decorator";
 
 @ApiTags("initiatives")
@@ -73,7 +74,7 @@ export class InitiativesController {
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update Initiative", description: "Partially updates an initiative. Status changes follow the approval gate: only the Organization Admin moves proposed→approved|rejected (optional decision_note, sent to the proposer); the Sustainability Officer (or Admin) moves approved→in-progress→completed. Anything else is 403." })
+  @ApiOperation({ summary: "Update Initiative", description: "Partially updates an initiative. Status changes follow the approval gate: only the Organization Admin moves proposed→approved|rejected (optional decision_note, sent to the proposer); the Sustainability Officer (or Admin) moves approved→in-progress→completed. Anything else is 403. With onsite_work: approved→in-progress sends one job per technician type in teams into dispatch, all at once, each due on the target date (400 if that date has passed); in-progress→completed is refused (409) while any of its jobs is open." })
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })
@@ -86,6 +87,20 @@ export class InitiativesController {
     @Headers("x-user-id") userId?: string,
   ) {
     return this.initiativesService.update(id, updateDto, role, userId);
+  }
+
+  @Post(":id/jobs/:workOrderId/send-back")
+  @ApiOperation({
+    summary: "Send initiative work back",
+    description:
+      "For an in-progress initiative with on-site work: one of its closed jobs was not done properly. Creates a new job for the same technician type through normal dispatch, with the reason (shown to the technician) and finish_by (YYYY-MM-DD, today or later) as its finish date. The initiative cannot be completed until that job is closed too. 400 if the job is still open, the reason is under 3 characters or the date is missing or past.",
+  })
+  @ApiResponse({ status: 201, description: "Rework job created; returns the initiative with its jobs." })
+  @ApiResponse({ status: 400, description: "Job still open, initiative not in progress, or bad reason/date." })
+  @ApiResponse({ status: 404, description: "Initiative or job not found." })
+  @Roles("Sustainability Officer", "Organization Admin")
+  sendBack(@Param("id") id: string, @Param("workOrderId") workOrderId: string, @Body() dto: SendBackDto) {
+    return this.initiativesService.sendBack(id, workOrderId, dto.reason, dto.finish_by);
   }
 
   @Patch(":id/archive")

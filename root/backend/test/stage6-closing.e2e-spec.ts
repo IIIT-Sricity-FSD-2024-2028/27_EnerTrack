@@ -180,6 +180,16 @@ describe('Stage 6: target follow-up and report sign-off (e2e)', () => {
       await setTarget(id, 95, '2099-01-01', '2026-02-10T00:00:00.000Z');
       await move(id, 'Verify Target').expect(200);
     });
+
+    it.each(['Closed', 'Finalized', 'Delivered'])(
+      'a case with a target cannot close without the check (Target Set → %s is 403)',
+      async (next) => {
+        const id = await fileLinked();
+        await setTarget(id, 95, '2099-01-01', '2026-02-10T00:00:00.000Z');
+        const res = await move(id, next).expect(403);
+        expect(res.body.message).toContain("Allowed next: 'Verify Target'");
+      },
+    );
   });
 
   // ─────────────────────── T15 report sign-off ───────────────────────

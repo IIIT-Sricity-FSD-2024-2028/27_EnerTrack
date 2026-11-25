@@ -203,14 +203,11 @@ export const NAV = {
   ],
   sustainability: [
     { label: "Overview", to: PATHS.sustainability.overview },
+    { label: "Initiatives", to: PATHS.sustainability.initiatives },
     { label: "Monitoring", to: PATHS.sustainability.monitoring },
     { label: "Wastage", to: PATHS.sustainability.wastage },
     { label: "Targets", to: PATHS.sustainability.targets },
     { label: "Reports", to: PATHS.sustainability.report },
-    {
-      label: "Initiatives",
-      to: PATHS.sustainability.initiatives,
-    },
     { label: "Archives", to: PATHS.sustainability.archives },
   ],
   technician: [

@@ -129,8 +129,12 @@ export default function IssueRow({
     : ticket.source_finding
       ? "From an audit recommendation"
       : ticket.source_wastage
-        ? "From a wastage report"
-        : row.reports > 1
+        ? "From a wastage case"
+        : ticket.source_initiative
+          ? ticket.rework_of
+            ? "From an initiative, sent back for rework"
+            : "From an initiative"
+          : row.reports > 1
           ? `${row.reports} reports`
           : "";
   const tags = [source, row.plusOnes > 0 ? `${row.plusOnes} more say the same` : ""].filter(Boolean);

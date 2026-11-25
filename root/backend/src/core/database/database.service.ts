@@ -381,6 +381,13 @@ export interface ServiceRequest {
   source_finding?: string;
   /** Set when the job was raised from a validated wastage report: its id. */
   source_wastage?: string;
+  /** Set when the job is one technician type's share of an initiative's on-site work: its id. */
+  source_initiative?: string;
+  /** ISO. A fixed finish date (initiatives use their target date) instead of the priority × size table. */
+  finish_by?: string;
+  /** Initiative rework: the work order this job redoes, and why it was sent back. */
+  rework_of?: string | null;
+  rework_reason?: string | null;
   /** The reporter said the fix worked. */
   confirmed_fixed_at?: string;
   /** "Other" reports only: the few words the student typed. */
@@ -429,6 +436,8 @@ export interface WorkOrderDispatch {
   /** Everyone who already declined or missed this job, so it never goes back to them. */
   tried: string[];
   history: DispatchEvent[];
+  /** ISO. When set, the deadline is this date rather than the priority × size table (initiative work). */
+  fixed_deadline_at?: string | null;
   /** Deadline and clock state. Starts when the job is first sent to a person. */
   sla?: Sla;
 }
@@ -570,6 +579,12 @@ export interface Initiative {
   verified_at?: string | null;
   /** "<audit_id>:<finding_id>" when created from an accepted audit finding. */
   source_finding?: string | null;
+
+  // ── On-site work (joins the technician workflow at Start work) ──
+  /** True when the initiative needs technicians on site (installing, fitting…). */
+  onsite_work?: boolean;
+  /** The technician types it needs (electrician, plumber, hvac, cleaning). One job each, in parallel. */
+  teams?: string[];
 }
 export interface ActivityLog {
   activity_log_id: string;
@@ -2853,6 +2868,30 @@ export class DatabaseService {
       start_date: "2025-06-01",
       target_date: "2025-09-30",
       archived_at: "2025-10-15T09:00:00.000Z",
+    },
+    {
+      // Approved and needing on-site work: "Start work" sends one job to a
+      // plumber and one to an electrician, in parallel.
+      initiative_id: "iiii0000-0010-4000-8000-000000000000",
+      organization_id: "org-001",
+      created_by_id: "550e8400-0005-4000-8000-000000000005",
+      title: "Solar water heaters for Building 2",
+      description: "Replace the electric geysers in Building 2 with rooftop solar water heaters: plumbing for the tanks and pipework, electrical for the backup heaters and isolation.",
+      status: InitiativeStatus.APPROVED,
+      feasible: true,
+      target_reduction: "",
+      outcomes: [],
+      metric: TargetMetric.ENERGY_KWH,
+      building_ids: ["660e8800-0002-4000-8000-000000000000"],
+      expected_saving: 24000,
+      capex: 450000,
+      target_date: "2027-03-31",
+      onsite_work: true,
+      teams: ["plumber", "electrician"],
+      decided_by_id: "550e8400-0001-4000-8000-000000000001",
+      decided_at: "2026-11-10T10:00:00.000Z",
+      decision_note: null,
+      archived_at: null,
     },
   ];
   public activityLogs: ActivityLog[] = [

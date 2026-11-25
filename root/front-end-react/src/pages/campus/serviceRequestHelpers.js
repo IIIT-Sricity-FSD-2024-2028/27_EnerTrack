@@ -27,17 +27,8 @@ export function splitDescription(raw) {
   return { description: text, location, issueType };
 }
 
-// The steps a student sees. Status only: never priority, dates or names.
-export const TIMELINE_STEPS = [
-  { num: 1, label: "Reported", desc: "We have your report. It is sent to the right team automatically." },
-  { num: 2, label: "On its way", desc: "A technician has been given the job." },
-  { num: 3, label: "Work started", desc: "Someone has started working on it." },
-  { num: 4, label: "Waiting for check", desc: "The work is done and is being checked." },
-  { num: 5, label: "Fixed", desc: "The work is done. If it is still broken, tell us." },
-];
-
-// The status words the server sends a student -> timeline step, pill style, and wording.
-const STATUS_STEP = { Reported: 1, Assigned: 2, Visited: 3, Checking: 4, Fixed: 5 };
+// The status words the server sends a student -> pill style and wording.
+// Status only: never priority, dates or names.
 const STATUS_CLASS = {
   Reported: "status-reported",
   Assigned: "status-dispatched",
@@ -47,7 +38,7 @@ const STATUS_CLASS = {
 };
 const STATUS_LABEL = {
   Reported: "Reported",
-  Assigned: "On its way",
+  Assigned: "Technician assigned",
   Visited: "Work started",
   Checking: "Waiting for check",
   Fixed: "Fixed",
@@ -55,10 +46,6 @@ const STATUS_LABEL = {
 
 export function statusLabel(status) {
   return STATUS_LABEL[status] || status;
-}
-
-export function statusStep(status) {
-  return STATUS_STEP[status] || 1;
 }
 
 export function statusClass(status) {

@@ -5,7 +5,7 @@
  * This is the parent. It:
  *   - loads the question lists, the buildings and the visitor's reports
  *   - gives <ReportForm> a function to call on submit
- *   - shows the status-only list and the 4-step timeline
+ *   - shows the status-only list and a few tips
  *
  * The server decides priority, team and duplicates and takes the reporter
  * from the login, so there is no offline fallback here: a report that did not
@@ -17,11 +17,7 @@ import { useAuth } from "../../auth/useAuth";
 import ReportForm from "./ReportForm";
 import MyReports from "./MyReports";
 import WasteOutcomes from "./WasteOutcomes";
-import {
-  TIMELINE_STEPS,
-  formatReportedOn,
-  statusStep,
-} from "./serviceRequestHelpers";
+import { formatReportedOn } from "./serviceRequestHelpers";
 import campusCss from "./campus.css?inline";
 
 export default function Dashboard() {
@@ -30,7 +26,6 @@ export default function Dashboard() {
   const [buildings, setBuildings] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [nearby, setNearby] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
   const [toast, setToast] = useState({ text: "", error: false, show: false });
   const [loadError, setLoadError] = useState("");
 
@@ -66,8 +61,6 @@ export default function Dashboard() {
       window.removeEventListener("focus", onFocus);
     };
   }, [loadTickets]);
-
-  const selected = tickets.find((t) => t.id === selectedId) || null;
 
   function show(text, error = false) {
     setToast({ text, error, show: true });
@@ -161,15 +154,10 @@ export default function Dashboard() {
             !loadError && <p>Loading the form…</p>
           )}
         </div>
-        <InfoPanel ticket={selected} />
+        <InfoPanel />
       </div>
 
-      <MyReports
-        tickets={tickets}
-        selectedId={selectedId}
-        onSelect={(t) => setSelectedId(t.id === selectedId ? null : t.id)}
-        onRespond={respond}
-      />
+      <MyReports tickets={tickets} onRespond={respond} />
 
       <WasteOutcomes />
 
@@ -186,15 +174,7 @@ export default function Dashboard() {
   );
 }
 
-/* ── Right-hand panel: the status steps and a few tips. ── */
-
-function stepState(num, ticket) {
-  const step = ticket ? statusStep(ticket.status) : 1;
-  if (step >= 5) return "done";
-  if (num < step) return "done";
-  if (num === step) return "active";
-  return "pending";
-}
+/* ── Right-hand panel: a few tips. ── */
 
 const TIPS = [
   {
@@ -233,31 +213,9 @@ const TIPS = [
   },
 ];
 
-function InfoPanel({ ticket }) {
+function InfoPanel() {
   return (
     <div className="right-panel">
-      <div className="info-card">
-        <h3>What Happens Next</h3>
-        {ticket && (
-          <div className="trail-label">
-            Showing progress for <strong>{ticket.summary}</strong>
-          </div>
-        )}
-        <ul className="timeline">
-          {TIMELINE_STEPS.map((step) => (
-            <li key={step.num}>
-              <div className={`tl-dot ${stepState(step.num, ticket)}`}>
-                {step.num}
-              </div>
-              <div>
-                <p className="tl-label">{step.label}</p>
-                <p className="tl-desc">{step.desc}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
       <div className="info-card">
         <h3>Tips for a Good Report</h3>
         {TIPS.map((tip) => (

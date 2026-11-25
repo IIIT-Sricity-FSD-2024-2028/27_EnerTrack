@@ -8935,7 +8935,7 @@
       "patch": {
         "operationId": "InitiativesController_update",
         "summary": "Update Initiative",
-        "description": "Partially updates an initiative. Status changes follow the approval gate: only the Organization Admin moves proposed→approved|rejected (optional decision_note, sent to the proposer); the Sustainability Officer (or Admin) moves approved→in-progress→completed. Anything else is 403.",
+        "description": "Partially updates an initiative. Status changes follow the approval gate: only the Organization Admin moves proposed→approved|rejected (optional decision_note, sent to the proposer); the Sustainability Officer (or Admin) moves approved→in-progress→completed. Anything else is 403. With onsite_work: approved→in-progress sends one job per technician type in teams into dispatch, all at once, each due on the target date (400 if that date has passed); in-progress→completed is refused (409) while any of its jobs is open.",
         "parameters": [
           {
             "name": "id",
@@ -9045,6 +9045,55 @@
         "responses": {
           "200": {
             "description": ""
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      }
+    },
+    "/api/initiatives/{id}/jobs/{workOrderId}/send-back": {
+      "post": {
+        "operationId": "InitiativesController_sendBack",
+        "summary": "Send initiative work back",
+        "description": "For an in-progress initiative with on-site work: one of its closed jobs was not done properly. Creates a new job for the same technician type through normal dispatch, with the reason (shown to the technician) and finish_by (YYYY-MM-DD, today or later) as its finish date. The initiative cannot be completed until that job is closed too. 400 if the job is still open, the reason is under 3 characters or the date is missing or past.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "workOrderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendBackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Rework job created; returns the initiative with its jobs."
+          },
+          "400": {
+            "description": "Job still open, initiative not in progress, or bad reason/date."
+          },
+          "404": {
+            "description": "Initiative or job not found."
           }
         },
         "tags": [
@@ -10198,7 +10247,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$WZoAEDcCVk7oeitZpf3l8.B87ILFVU8CtxlxRA4GgrNFWRZ7w1VTW",
+          "password": "$2b$08$ou0hbW/rotbW6KNfYTA8ze8FioKtSuKvjE.ddw2oWCkm7UXL8.Cly",
           "role": "Organization Admin"
         }
       },
@@ -10214,7 +10263,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$WZoAEDcCVk7oeitZpf3l8.B87ILFVU8CtxlxRA4GgrNFWRZ7w1VTW",
+          "password": "$2b$08$ou0hbW/rotbW6KNfYTA8ze8FioKtSuKvjE.ddw2oWCkm7UXL8.Cly",
           "role": "Organization Admin"
         }
       },
@@ -10725,6 +10774,10 @@
             "Decreased maintenance costs for replacements"
           ]
         }
+      },
+      "SendBackDto": {
+        "type": "object",
+        "properties": {}
       },
       "CreateTargetDto": {
         "type": "object",

@@ -294,6 +294,33 @@ describe('Targets and approvals (e2e)', () => {
       expect(res.title).toBe('Chiller retune (phase 1)');
     });
 
+    it('after approval the SO cannot change what was approved (409); the Admin can', async () => {
+      const i = body(
+        await http()
+          .post('/api/initiatives')
+          .set(SO)
+          .send({ ...base, metric: 'energy_kwh', expected_saving: 12000, capex: 50000 })
+          .expect(201),
+      );
+      // Before approval the proposer can still shape it.
+      await patch(SO, i.initiative_id, { expected_saving: 10000 }).expect(200);
+      await patch(ADMIN, i.initiative_id, { status: 'approved' }).expect(200);
+
+      const refused = await patch(SO, i.initiative_id, { expected_saving: 2000 }).expect(409);
+      expect(refused.body.message).toContain('expected_saving');
+      await patch(SO, i.initiative_id, { capex: 1 }).expect(409);
+      await patch(SO, i.initiative_id, { metric: 'water_kl' }).expect(409);
+
+      // Re-sending the same values (as the edit form does) and editing the wording is fine.
+      const ok = body(
+        await patch(SO, i.initiative_id, { title: 'Chiller retune v2', metric: 'energy_kwh', expected_saving: 10000, capex: 50000 }).expect(200),
+      );
+      expect(ok.title).toBe('Chiller retune v2');
+
+      const changed = body(await patch(ADMIN, i.initiative_id, { expected_saving: 8000 }).expect(200));
+      expect(changed.expected_saving).toBe(8000);
+    });
+
     it('a full replace (PUT) cannot skip the gate', async () => {
       const i = await create();
       await http().put(`/api/initiatives/${i.initiative_id}`).set(ADMIN).send({ ...base, status: 'completed' }).expect(403);

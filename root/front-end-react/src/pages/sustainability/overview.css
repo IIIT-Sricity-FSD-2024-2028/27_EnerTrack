@@ -1,12 +1,14 @@
 /*
  * overview.css — Sustainability Officer overview (/sustainability/overview).
- * Same tokens as the Monitoring and Initiatives pages: white panels with a
- * #d8dde2 hairline, 8px radius, one green accent (#059669), grey ink scale.
+ * Same look as the campus pages: white panels with a #d8dde2 hairline and a
+ * 12px radius, grey secondary text, statuses as a coloured dot with plain
+ * text, one filled button per row and plain secondary buttons.
  * Everything is prefixed so-* so it cannot collide with the legacy sust_*.css.
+ * The dialogs in audit/AuditModals.jsx also use .so-btn and .so-check.
  */
 
-.sustainability-overview-page :is(button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid #059669;
+.sustainability-overview-page :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid #047857;
   outline-offset: 2px;
 }
 
@@ -18,7 +20,7 @@
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .so-header h1 {
@@ -34,6 +36,16 @@
   color: #4b5563;
 }
 
+.so-header p a {
+  color: #047857;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.so-header p a:hover {
+  text-decoration: underline;
+}
+
 .so-header-controls {
   display: flex;
   align-items: center;
@@ -46,41 +58,213 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Metrics row ──────────────────────────────────── */
-
-.so-metrics {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+.so-alert {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 16px;
+  margin-bottom: 20px;
+  padding: 14px 20px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 14px;
+}
+
+/* ── Campus totals: one panel, four columns ───────── */
+
+.so-summary {
   margin-bottom: 24px;
+  background: #ffffff;
+  border: 1px solid #d8dde2;
+  border-radius: 12px;
 }
 
-@media (max-width: 1280px) {
-  .so-metrics {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
+.so-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-/* Phones: two cards per row, without the empty space a tall card leaves. */
-@media (max-width: 640px) {
-  .so-metrics {
+.so-stat {
+  padding: 20px 24px;
+  min-width: 0;
+}
+
+.so-stat + .so-stat {
+  border-left: 1px solid #eef0f2;
+}
+
+.so-stat-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #374151;
+}
+
+.so-stat-value {
+  margin: 8px 0 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.so-stat-value small {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.so-stat-change {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* All four figures are better when they go down. */
+.so-delta {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.so-delta--down {
+  color: #047857;
+}
+
+.so-delta--up {
+  color: #b91c1c;
+}
+
+.so-delta--flat {
+  color: #374151;
+}
+
+.so-stat-target {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+  font-size: 13px;
+  color: #374151;
+  text-decoration: none;
+}
+
+a.so-stat-target:hover > span:first-child {
+  text-decoration: underline;
+}
+
+.so-stat-target.is-muted {
+  color: #6b7280;
+}
+
+/* "How these are measured": folded away until asked for. */
+.so-how {
+  border-top: 1px solid #eef0f2;
+  padding: 12px 24px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.so-how summary {
+  cursor: pointer;
+  width: fit-content;
+  font-weight: 600;
+  color: #374151;
+}
+
+.so-how ul {
+  margin: 10px 0 2px;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+.so-how strong {
+  color: #374151;
+}
+
+@media (max-width: 1100px) {
+  .so-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
   }
 
-  .so-metrics > * {
-    min-height: 0 !important;
-    padding: 14px !important;
+  .so-stat:nth-child(3) {
+    border-left: none;
+  }
+
+  .so-stat:nth-child(n + 3) {
+    border-top: 1px solid #eef0f2;
   }
 }
 
-/* ── Panel ────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .so-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .so-stat + .so-stat {
+    border-left: none;
+    border-top: 1px solid #eef0f2;
+  }
+
+  .so-stat,
+  .so-how {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
+/* ── Status dots (campus pages use the same pattern) ─ */
+
+.so-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.so-dot::before {
+  content: "";
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+
+.so-dot--good::before,
+.so-dot--ready::before {
+  background: #16a34a;
+}
+
+.so-dot--warn::before,
+.so-dot--action::before,
+.so-dot--aging::before {
+  background: #d97706;
+}
+
+.so-dot--old::before,
+.so-dot--high::before {
+  background: #dc2626;
+}
+
+.so-dot--finance::before,
+.so-dot--none::before {
+  background: #9ca3af;
+}
+
+/* ── Wastage reports panel ────────────────────────── */
 
 .so-panel {
   background: #ffffff;
   border: 1px solid #d8dde2;
-  border-radius: 8px;
-  padding: 20px 24px 8px;
+  border-radius: 12px;
+  padding: 20px 24px 6px;
   margin-bottom: 24px;
 }
 
@@ -95,7 +279,7 @@
 
 .so-panel-head h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: #111827;
 }
@@ -111,14 +295,14 @@
   display: inline-flex;
   background: #f3f4f6;
   padding: 3px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .so-tabs button {
   background: transparent;
-  color: #6b7280;
+  color: #4b5563;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 500;
@@ -140,169 +324,112 @@
   color: #6b7280;
 }
 
-/* ── Report row ───────────────────────────────────── */
+/* ── One report ───────────────────────────────────── */
 
 .so-report {
   padding: 18px 0;
   border-top: 1px solid #eef0f2;
 }
 
-.so-report-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
+/* Text on the left, the step's buttons on the right. */
+.so-report-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px 32px;
+}
+
+.so-report-main {
+  min-width: 0;
 }
 
 .so-report-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  font-size: 14px;
+  margin: 0;
+  font-size: 15px;
   color: #111827;
 }
 
 .so-report-title strong {
   font-weight: 600;
-  white-space: nowrap;
 }
 
-.so-report-title span {
+.so-place {
   color: #6b7280;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.so-type-icon {
-  display: inline-flex;
-  flex-shrink: 0;
-}
-
-/* Desktop: sensor column on the right, spanning the text and the buttons.
-   Narrow: text, then sensor, then buttons last. */
-.so-report-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
-  grid-template-areas:
-    "main sensor"
-    "actions sensor";
-  column-gap: 24px;
-}
-
-.so-report-main {
-  grid-area: main;
-  min-width: 0;
-}
-
-.so-report-body .so-sensor {
-  grid-area: sensor;
-  align-self: start;
-}
-
-.so-report-body .so-actions {
-  grid-area: actions;
-}
-
-@media (max-width: 760px) {
-  .so-report-body {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "main"
-      "sensor"
-      "actions";
-  }
-
-  .so-report-body .so-sensor {
-    margin-top: 12px;
-  }
 }
 
 .so-observation {
-  margin: 0 0 8px 0;
+  margin: 4px 0 0;
   font-size: 14px;
   line-height: 1.5;
   color: #374151;
   max-width: 70ch;
 }
 
+/* "Teja · 20 Nov 2026, 13:35 · 4 days ago · Low priority · WR-1F9WRL" */
 .so-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
-  font-size: 12px;
+  margin: 6px 0 0;
+  font-size: 12.5px;
   color: #6b7280;
 }
 
-.so-meta .high {
-  color: #b91c1c;
+.so-meta > span + span::before {
+  content: "·";
+  margin: 0 6px;
+  color: #9ca3af;
+}
+
+.so-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #374151;
+}
+
+/* The sensor evidence, in one line. Only the anomaly is coloured. */
+.so-evidence {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.so-evidence strong {
   font-weight: 600;
-}
-
-/* Sensor reading column */
-.so-sensor {
-  border-left: 1px solid #eef0f2;
-  padding-left: 20px;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-@media (max-width: 760px) {
-  .so-sensor {
-    border-left: none;
-    padding-left: 0;
-  }
-}
-
-.so-sensor-value {
-  margin: 2px 0;
-  font-size: 18px;
-  font-weight: 700;
   color: #111827;
   font-variant-numeric: tabular-nums;
 }
 
-.so-sensor-value small {
-  font-size: 12px;
-  font-weight: 500;
-  color: #6b7280;
-}
-
-.so-sensor .anomaly {
+.so-evidence .anomaly {
   color: #b91c1c;
   font-weight: 600;
 }
 
-.so-sensor .normal {
-  color: #065f46;
+.so-evidence .normal {
+  color: #047857;
   font-weight: 600;
 }
 
-/* Status chip on wastage report cards */
-.so-status {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
+.so-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 340px;
 }
 
-.so-status.action {
-  background: #fef3c7;
-  color: #92400e;
-}
+@media (max-width: 760px) {
+  .so-report-row {
+    grid-template-columns: 1fr;
+  }
 
-.so-status.finance {
-  background: #f3f4f6;
-  color: #4b5563;
-}
-
-.so-status.ready {
-  background: #ecfdf5;
-  color: #065f46;
+  .so-actions {
+    justify-content: flex-start;
+    max-width: none;
+  }
 }
 
 /* Finance figures + target, once they exist */
@@ -313,7 +440,7 @@
   margin-top: 14px;
   padding: 12px 14px;
   background: #f9fafb;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 12px;
   color: #6b7280;
 }
@@ -356,59 +483,36 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Notes on the decision (Finance's and the officer's), set apart from the
-   figures and the target */
-.so-notes {
-  margin-top: 12px;
-  padding: 2px 14px;
-  border: 1px solid #eef0f2;
-  border-radius: 6px;
-}
-
-.so-notes .so-comment + .so-comment {
-  border-top: 1px solid #f3f4f6;
-}
-
-.so-note-label {
-  color: #6b7280;
-}
-
-/* Actions row */
-.so-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.so-actions .so-link {
-  margin-left: 8px;
-}
+/* ── Buttons ──────────────────────────────────────── */
 
 .so-btn {
   padding: 7px 14px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
   background: #ffffff;
-  color: #374151;
+  color: #111827;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .so-btn:hover:not(:disabled) {
+  border-color: #9ca3af;
   background: #f9fafb;
 }
 
+/* #047857 keeps white text above 4.5:1 (#059669 did not). */
 .so-btn.primary {
-  border-color: #059669;
-  background: #059669;
+  border-color: #047857;
+  background: #047857;
   color: #ffffff;
+  font-weight: 600;
 }
 
 .so-btn.primary:hover:not(:disabled) {
-  background: #047857;
+  border-color: #065f46;
+  background: #065f46;
 }
 
 .so-btn.danger {
@@ -429,26 +533,15 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 16px;
-  font-size: 14px;
 }
 
 .so-waiting {
-  font-size: 12px;
+  font-size: 13px;
   color: #6b7280;
 }
 
-.so-link {
-  background: none;
-  border: none;
-  padding: 4px 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #059669;
-  cursor: pointer;
-}
+/* ── Comment thread ───────────────────────────────── */
 
-/* Comment thread */
 .so-comments {
   margin-top: 12px;
   padding-top: 4px;
@@ -483,7 +576,7 @@
 
 .so-comment time {
   margin-left: 8px;
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 11px;
 }
 
@@ -504,23 +597,6 @@
   font-family: inherit;
 }
 
-/* Narrow screens: let row titles wrap and drop the chip under them,
-   instead of truncating the location to a few letters. */
-@media (max-width: 560px) {
-  .so-report-top {
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-
-  .so-report-title {
-    flex-wrap: wrap;
-  }
-
-  .so-report-title span {
-    white-space: normal;
-  }
-}
-
 @keyframes so-spin {
   to {
     transform: rotate(360deg);
@@ -533,46 +609,8 @@
   }
 }
 
-/* "Target −10% vs 2025 by Dec 2026 · on track" under a metric card. */
-.so-target-line {
-  color: #1b3a2b;
-  font-size: 12px;
-  text-decoration: none;
-}
+/* ── Target check dialog (audit/AuditModals.jsx) ──── */
 
-.so-target-line:hover {
-  text-decoration: underline;
-}
-
-/* Age badge on reports still waiting for the officer: amber at 7 days, red at 14. */
-.so-report-chips {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.so-age {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  background: #f3f4f6;
-  color: #4b5563;
-}
-
-.so-age--aging {
-  background: #fef3c7;
-  color: #78350f;
-}
-
-.so-age--old {
-  background: #fee2e2;
-  color: #7f1d1d;
-}
-
-/* Target check dialog */
 .so-check {
   display: grid;
   gap: 10px;

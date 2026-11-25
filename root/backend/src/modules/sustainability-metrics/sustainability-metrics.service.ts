@@ -369,7 +369,12 @@ export class SustainabilityMetricsService {
         });
         const prevEnergy = Math.round(sum(elec, prevPeriods));
         // Same months a year earlier, like for like (shared with targets).
-        const yoy = compareYoY(meterSum(this.database, elec), periods);
+        // Decommissioned meters are left out, as targets and savings do: a
+        // meter that stopped reporting would otherwise read as a saving.
+        const liveElec = meters
+          .filter((m) => m.meter_type === MeterType.ELECTRICITY && m.status !== MeterStatus.DECOMMISSIONED)
+          .map((m) => m.meter_id);
+        const yoy = compareYoY(meterSum(this.database, liveElec), periods);
         const active = meters.filter((m) => m.status === MeterStatus.ACTIVE);
         return {
           building_id: b.building_id,

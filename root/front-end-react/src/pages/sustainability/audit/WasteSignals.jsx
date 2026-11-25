@@ -130,7 +130,7 @@ export default function WasteSignals({ reloadKey = 0, onChanged, showToast }) {
               </div>
               <div className="so-signal-actions">
                 {s.case_id ? (
-                  <span className="so-status ready">Case open</span>
+                  <span className="so-dot so-dot--ready">Case open</span>
                 ) : (
                   <>
                     <button type="button" className={`so-btn${s.hotspot ? " primary" : ""}`} onClick={() => setOpening({ signal: s })}>

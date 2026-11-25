@@ -50,16 +50,22 @@ export class SlaService {
 
   // ── Lifecycle hooks used by dispatch ───────────────────────────────────
 
-  /** The clock starts the first time the job is sent to a person. */
+  /**
+   * The clock starts the first time the job is sent to a person. Initiative
+   * work brings its own finish date (the initiative's target date); it is
+   * treated like a date the coordinator fixed, so a priority change never
+   * recomputes it.
+   */
   start(wo: WorkOrder, now = this.clock.now()) {
     const d = wo.dispatch;
     if (!d || d.sla) return;
-    const deadline = deadlineFrom(now, wo.priority, d.size).toISOString();
+    const fixed = d.fixed_deadline_at && new Date(d.fixed_deadline_at).getTime() > now.getTime() ? d.fixed_deadline_at : null;
+    const deadline = fixed ?? deadlineFrom(now, wo.priority, d.size).toISOString();
     d.sla = {
       started_at: now.toISOString(),
       deadline_at: deadline,
       original_deadline_at: deadline,
-      fixed_by_coordinator: false,
+      fixed_by_coordinator: !!fixed,
       safe_by: wo.priority === "immediate" ? safeBy(now).toISOString() : null,
       made_safe_at: null,
       paused_since: null,

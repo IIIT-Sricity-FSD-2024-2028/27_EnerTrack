@@ -156,7 +156,12 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
   const place = report.details?.location || "";
   const unit = isFood ? METRIC_UNITS.Food : sd.readingUnit || METRIC_UNITS[metricType] || "units";
   const existing = report.metricTarget || {};
-  const today = new Date().toISOString().split("T")[0];
+  // The check compares whole months of meter readings after the month the
+  // target is set, so the earliest deadline that can be measured is the last
+  // day of next month (UTC, like the readings). Day 0 of the month after
+  // next is the last day of next month.
+  const now = new Date();
+  const earliest = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0)).toISOString().slice(0, 10);
   const show = (n) => (Number.isFinite(n) ? n : "—");
 
   // Food: the current figure is the last 30 days of weigh-ins for the place.
@@ -193,7 +198,8 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
     const num = Number(value);
     if (!value.trim() || isNaN(num) || num <= 0) return setError("Please enter a valid positive target value.");
     if (!deadline) return setError("Please select a target deadline.");
-    if (deadline < today) return setError("The deadline cannot be in the past.");
+    if (deadline < earliest)
+      return setError(`Pick ${earliest} or later: the result is measured over at least one full month of readings.`);
     onSubmit({ value: num, unit, deadline });
   }
 
@@ -276,8 +282,11 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
         </div>
         <div>
           <label style={labelStyle} htmlFor="mt-deadline">Target Deadline *</label>
-          <input id="mt-deadline" type="date" min={today} value={deadline} onChange={(e) => setDeadline(e.target.value)} style={inputStyle} />
-          <div style={hintStyle}>Pick a date by which this target should be met and verified in the next audit cycle.</div>
+          <input id="mt-deadline" type="date" min={earliest} value={deadline} onChange={(e) => setDeadline(e.target.value)} style={inputStyle} />
+          <div style={hintStyle}>
+            Pick a date by which this target should be met. The earliest is {earliest}, so there is at least one full month of
+            readings to check it against.
+          </div>
         </div>
       </div>
       <FormError message={error} />

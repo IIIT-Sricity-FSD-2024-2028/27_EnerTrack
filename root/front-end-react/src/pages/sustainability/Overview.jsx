@@ -1,18 +1,20 @@
+/**
+ * Overview — /sustainability/overview, the Sustainability Officer's home page.
+ *
+ * How is campus doing? One summary panel: energy, water, emissions and
+ * food waste, each with its change on the previous period and its
+ * campus-wide target. How each figure is measured sits in a fold below.
+ * Waste signals and wastage cases have their own page (Wastage.jsx).
+ */
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api/client";
 import { PATHS } from "../../routes";
-import { useAuth } from "../../auth/useAuth";
-import MetricCard from "./components/MetricCard";
 import { addMonths, rangeLabel } from "./periods";
 import overviewCss from "./overview.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
 
-const ICON_PROPS = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 };
-
 export default function SustainabilityOverview() {
-  const { user } = useAuth();
-
   const [summary, setSummary] = useState(null);
   const [targets, setTargets] = useState({});
   const [activeInitiatives, setActiveInitiatives] = useState(null);
@@ -42,7 +44,7 @@ export default function SustainabilityOverview() {
         } else {
           setActiveInitiatives(null);
         }
-        // Active, campus-wide targets, by metric, for the card footers.
+        // Active, campus-wide targets, by metric.
         if (targetsRes.status === "fulfilled" && Array.isArray(targetsRes.value)) {
           setTargets(
             Object.fromEntries(
@@ -73,7 +75,6 @@ export default function SustainabilityOverview() {
     loadData();
   };
 
-  const firstName = (user?.name || "").trim().split(/\s+/)[0];
   const totals = summary?.totals;
   const change = summary?.change?.has_comparison ? summary.change : null;
   // Same number formats as Monitoring: one decimal for MWh and tonnes.
@@ -86,35 +87,36 @@ export default function SustainabilityOverview() {
   const bigEnergy = (totals?.energy_mwh ?? 0) >= 1000;
   const factors = summary?.emission_factors;
 
-  /** "Target −10% vs 2025 by Dec 2026 · on track (−10.4%)", or nothing. */
-  const targetLine = (metric) => {
-    const t = targets[metric];
-    if (!t) return null;
-    const p = t.progress || {};
-    const by = new Date(`${t.deadline}-01T00:00:00`).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
-    const base = t.baseline_from.slice(0, 4) === t.baseline_to.slice(0, 4) ? t.baseline_from.slice(0, 4) : `${t.baseline_from}–${t.baseline_to}`;
-    const state =
-      p.on_track == null
-        ? "not measured yet"
-        : `${p.on_track ? "on track" : "behind"} (${p.achieved_reduction_pct > 0 ? "−" : "+"}${Math.abs(p.achieved_reduction_pct)}% so far)`;
-    return (
-      <Link to={PATHS.sustainability.targets} className="so-target-line">
-        Target −{t.reduction_pct}% vs {base} by {by} · {state}
-      </Link>
-    );
-  };
-
-  // Say which months the cards cover and what the deltas compare against,
+  // Which months the figures cover and what the changes compare against,
   // straight from the server's answer rather than from a literal.
-  let periodNote = "Campus totals for the reporting period";
+  let period = "Campus totals for the reporting period";
+  let previous = "the previous period";
   if (summary?.from && summary?.to) {
     const months = summary.series?.length || 1;
-    const prevFrom = addMonths(summary.from, -months);
-    const prevTo = addMonths(summary.from, -1);
-    periodNote = `Campus totals for ${rangeLabel(summary.from, summary.to)}${
-      change ? `, compared with ${rangeLabel(prevFrom, prevTo)}` : ""
-    }`;
+    previous = rangeLabel(addMonths(summary.from, -months), addMonths(summary.from, -1));
+    period = `Campus totals for ${rangeLabel(summary.from, summary.to)}${change ? `, compared with ${previous}` : ""}`;
   }
+
+  const stats = [
+    {
+      id: "val-energy",
+      label: "Energy",
+      value: bigEnergy ? show((totals?.energy_mwh ?? 0) / 1000, 2) : show(totals?.energy_mwh, 1),
+      unit: bigEnergy ? "GWh" : "MWh",
+      delta: change?.energy_pct,
+      target: "energy_kwh",
+    },
+    { id: "val-water", label: "Water", value: show(totals?.water_kl), unit: "kL", delta: change?.water_pct, target: "water_kl" },
+    {
+      id: "val-emissions",
+      label: "Emissions",
+      value: show(totals?.emissions_t, 1),
+      unit: "t CO₂e",
+      delta: change?.emissions_pct,
+      target: "emissions_kg",
+    },
+    { id: "val-food-wastage", label: "Food waste", value: show(totals?.food_kg), unit: "kg", delta: change?.food_pct, target: null },
+  ];
 
   return (
     <div className="sustainability-overview-page" style={{ width: "100%" }}>
@@ -124,8 +126,18 @@ export default function SustainabilityOverview() {
 
       <header className="so-header">
         <div>
-          <h1 id="welcomeHeading">{firstName ? `Welcome back, ${firstName}` : "Overview"}</h1>
-          <p>{periodNote}.</p>
+          <h1 id="welcomeHeading">Overview</h1>
+          <p>
+            {period}
+            {activeInitiatives != null && (
+              <>
+                {" · "}
+                <Link to={PATHS.sustainability.initiatives} id="val-initiatives">
+                  {activeInitiatives} active initiative{activeInitiatives === 1 ? "" : "s"}
+                </Link>
+              </>
+            )}
+          </p>
         </div>
         <div className="so-header-controls">
           {lastUpdated && (
@@ -135,8 +147,8 @@ export default function SustainabilityOverview() {
           )}
           <button type="button" className="so-btn so-btn-refresh" onClick={handleRefresh} disabled={loading}>
             <svg
-              width="15"
-              height="15"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -156,107 +168,102 @@ export default function SustainabilityOverview() {
       </header>
 
       {error && !loading && (
-        <div
-          role="alert"
-          style={{
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            color: "#991b1b",
-            padding: "14px 20px",
-            borderRadius: "8px",
-            marginBottom: "24px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "16px",
-            fontSize: "14px",
-          }}
-        >
+        <div className="so-alert" role="alert">
           <div>
-            <strong>Campus totals could not be loaded.</strong> {error} Wastage reports below are unaffected.
+            <strong>Campus totals could not be loaded.</strong> {error}
           </div>
-          <button type="button" className="so-btn danger" onClick={handleRefresh}>
+          <button type="button" className="so-btn" onClick={handleRefresh}>
             Retry
           </button>
         </div>
       )}
 
-      <section className="so-metrics" aria-label="Campus totals">
-        <MetricCard
-          id="val-energy"
-          title="Energy"
-          value={bigEnergy ? show((totals?.energy_mwh ?? 0) / 1000, 2) : show(totals?.energy_mwh, 1)}
-          unit={bigEnergy ? "GWh" : "MWh"}
-          delta={change ? change.energy_pct : null}
-          description="Grid electricity used."
-          footer={targetLine("energy_kwh")}
-          icon={
-            <svg {...ICON_PROPS}>
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-          }
-        />
-        <MetricCard
-          id="val-water"
-          title="Water"
-          value={show(totals?.water_kl)}
-          unit="kL"
-          delta={change ? change.water_pct : null}
-          description="Metered water intake."
-          footer={targetLine("water_kl")}
-          icon={
-            <svg {...ICON_PROPS}>
-              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
-            </svg>
-          }
-        />
-        <MetricCard
-          id="val-emissions"
-          title="Emissions"
-          value={show(totals?.emissions_t, 1)}
-          unit="t CO₂e"
-          delta={change ? change.emissions_pct : null}
-          description={
-            factors
-              ? `Gas at ${factors.gas_kg_per_m3} kg/m³ (Scope 1) + electricity at ${factors.grid_kg_per_kwh} kg/kWh (Scope 2).`
-              : "Gas (Scope 1) + grid electricity (Scope 2)."
-          }
-          footer={targetLine("emissions_kg")}
-          icon={
-            <svg {...ICON_PROPS}>
-              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-            </svg>
-          }
-        />
-        <MetricCard
-          id="val-food-wastage"
-          title="Food waste"
-          value={show(totals?.food_kg)}
-          unit="kg"
-          delta={change ? change.food_pct : null}
-          description="Weighed by General Maintenance."
-          icon={
-            <svg {...ICON_PROPS}>
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-            </svg>
-          }
-        />
-        <MetricCard
-          id="val-initiatives"
-          title="Active initiatives"
-          value={loading ? "…" : activeInitiatives ?? "—"}
-          description="Proposed, approved or in progress."
-          icon={
-            <svg {...ICON_PROPS}>
-              <line x1="9" y1="18" x2="15" y2="18" />
-              <line x1="10" y1="22" x2="14" y2="22" />
-              <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
-            </svg>
-          }
-        />
+      <section className="so-summary" aria-label="Campus totals">
+        <div className="so-stats">
+          {stats.map((s) => (
+            <div className="so-stat" key={s.id}>
+              <p className="so-stat-label">{s.label}</p>
+              <p className="so-stat-value">
+                <span id={s.id}>{s.value}</span> <small>{s.unit}</small>
+              </p>
+              <Change pct={s.delta} previous={previous} loading={loading} />
+              <TargetLine metric={s.target} target={s.target ? targets[s.target] : null} label={s.label} />
+            </div>
+          ))}
+        </div>
+
+        <details className="so-how">
+          <summary>How these are measured</summary>
+          <ul>
+            <li>
+              <strong>Energy:</strong> grid electricity used.
+            </li>
+            <li>
+              <strong>Water:</strong> metered water intake.
+            </li>
+            <li>
+              <strong>Emissions:</strong>{" "}
+              {factors
+                ? `gas at ${factors.gas_kg_per_m3} kg/m³ (Scope 1) + electricity at ${factors.grid_kg_per_kwh} kg/kWh (Scope 2).`
+                : "gas (Scope 1) + grid electricity (Scope 2)."}
+            </li>
+            <li>
+              <strong>Food waste:</strong> food-waste bins weighed by General Maintenance.
+            </li>
+          </ul>
+        </details>
       </section>
 
     </div>
+  );
+}
+
+/** "↓ 9.9% vs Mar–Dec 2025". All four figures are better when lower. */
+function Change({ pct, previous, loading }) {
+  if (loading) return <p className="so-stat-change">&nbsp;</p>;
+  if (typeof pct !== "number") return <p className="so-stat-change">No earlier period to compare</p>;
+  const dir = pct < 0 ? "down" : pct > 0 ? "up" : "flat";
+  const arrow = pct < 0 ? "↓" : pct > 0 ? "↑" : "→";
+  return (
+    <p className="so-stat-change">
+      <span
+        className={`so-delta so-delta--${dir}`}
+        aria-label={`${dir === "down" ? "Down" : dir === "up" ? "Up" : "No change,"} ${Math.abs(pct)}%`}
+      >
+        {arrow} {Math.abs(pct)}%
+      </span>{" "}
+      vs {previous}
+    </p>
+  );
+}
+
+/** The campus-wide target for this figure, or why there is none. */
+function TargetLine({ metric, target, label }) {
+  if (!metric) return <p className="so-stat-target is-muted">Targets don&apos;t cover {label.toLowerCase()}</p>;
+  if (!target) {
+    return (
+      <Link to={PATHS.sustainability.targets} className="so-stat-target is-muted">
+        No active campus target
+      </Link>
+    );
+  }
+  const p = target.progress || {};
+  const by = new Date(`${target.deadline}-01T00:00:00`).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+  const base =
+    target.baseline_from.slice(0, 4) === target.baseline_to.slice(0, 4)
+      ? target.baseline_from.slice(0, 4)
+      : `${target.baseline_from}–${target.baseline_to}`;
+  const tone = p.on_track == null ? "none" : p.on_track ? "good" : "warn";
+  const state =
+    p.on_track == null
+      ? "Not measured yet"
+      : `${p.on_track ? "On track" : "Behind"}, ${p.achieved_reduction_pct > 0 ? "−" : "+"}${Math.abs(p.achieved_reduction_pct)}% so far`;
+  return (
+    <Link to={PATHS.sustainability.targets} className="so-stat-target">
+      <span>
+        Target −{target.reduction_pct}% vs {base} by {by}
+      </span>
+      <span className={`so-dot so-dot--${tone}`}>{state}</span>
+    </Link>
   );
 }
