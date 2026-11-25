@@ -76,6 +76,11 @@
   border-radius: 10px;
 }
 
+/* Archives: Work, Result and Timeline only. */
+.isum-grid--no-money {
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.25fr);
+}
+
 .isum-grid section {
   padding: 12px 14px;
   min-width: 0;

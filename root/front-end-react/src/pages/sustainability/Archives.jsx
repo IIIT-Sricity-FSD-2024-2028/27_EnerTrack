@@ -372,8 +372,8 @@ export default function SustainabilityArchives() {
                       </div>
                     )}
                   </div>
-                  {/* The full record: work, result, timeline and money. */}
-                  <InitiativeSummary init={i} buildings={buildings} targets={targets} />
+                  {/* The full record: work, result and timeline. Money is left out of archives. */}
+                  <InitiativeSummary init={i} buildings={buildings} targets={targets} showMoney={false} />
                   {!isRejected && Array.isArray(i.outcomes) && i.outcomes.length > 0 && (
                     <ul className="arc-card__outcomes">
                       {i.outcomes.map((o, idx) => (
