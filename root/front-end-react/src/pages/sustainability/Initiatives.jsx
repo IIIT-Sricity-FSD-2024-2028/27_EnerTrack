@@ -1,6 +1,26 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  archiveInitiative,
+  createInitiative,
+  fetchInitiatives,
+  removeInitiative,
+  requestInitiativeRework,
+  selectBoardInitiatives,
+  selectInitiativesByStatus,
+  selectInitiativesError,
+  selectInitiativesStatus,
+  updateInitiative,
+} from "../../store/slices/initiativesSlice";
+import {
+  fetchBuildings,
+  selectAllBuildings,
+} from "../../store/slices/buildingsSlice";
+import {
+  fetchTargets,
+  selectAllTargets,
+} from "../../store/slices/targetsSlice";
 import initiativesCss from "../../styles/sustainability_officer/sust_initiatives.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
 import { SpendLine } from "./initiativeShared";
@@ -11,7 +31,6 @@ import { useTeams, rupees } from "./initiativeUtils";
  * an older record still marked approved is shown under In Progress.
  */
 const STATE_ORDER = ["proposed", "in-progress", "completed"];
-const columnOf = (status) => (status === "approved" ? "in-progress" : status);
 /** Statuses the server lets an initiative be archived from. */
 const ARCHIVABLE = ["completed", "rejected"];
 
@@ -37,12 +56,6 @@ function formatStatus(status) {
     rejected: "Rejected",
   };
   return map[status] || status;
-}
-
-/** Lower-cases and dashes a status; an unknown one is kept as-is, never relabelled. */
-function normalizeStatus(status) {
-  if (!status) return "proposed";
-  return status.toLowerCase().replace(/_/g, "-");
 }
 
 const formatDate = (d) =>
@@ -361,10 +374,16 @@ function Performance({ init }) {
 }
 
 export default function SustainabilityInitiatives() {
-  const [initiatives, setInitiatives] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
-  const [reloadKey, setReloadKey] = useState(0);
+  const dispatch = useDispatch();
+  const live = useSelector(selectBoardInitiatives);
+  const status = useSelector(selectInitiativesStatus);
+  const loadError = useSelector(selectInitiativesError);
+  const loading = status === "idle" || status === "loading";
+  const proposed = useSelector((state) => selectInitiativesByStatus(state, "proposed"));
+  const inProgress = useSelector((state) => selectInitiativesByStatus(state, "in-progress"));
+  const completed = useSelector((state) => selectInitiativesByStatus(state, "completed"));
+  const columns = { proposed, "in-progress": inProgress, completed };
+  const rejected = useSelector((state) => selectInitiativesByStatus(state, "rejected"));
   const [toast, setToast] = useState(null);
 
   // New initiative form fields
@@ -377,8 +396,8 @@ export default function SustainabilityInitiatives() {
   const [newBuildings, setNewBuildings] = useState(() =>
     searchParams.get("building") ? [searchParams.get("building")] : [],
   );
-  const [buildings, setBuildings] = useState([]);
-  const [targets, setTargets] = useState([]);
+  const buildings = useSelector(selectAllBuildings);
+  const targets = useSelector(selectAllTargets);
   const [newTargetId, setNewTargetId] = useState("");
   const [newCost, setNewCost] = useState("");
   const [newTargetDate, setNewTargetDate] = useState("");
@@ -398,51 +417,12 @@ export default function SustainabilityInitiatives() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  // Everything shown comes from the server. If it cannot be reached the page
-  // says so; it never fills in example initiatives or keeps local copies.
+  // Load the board and the optional reference data for the form and cards.
   useEffect(() => {
-    let active = true;
-
-    api
-      .get("/initiatives")
-      .then((res) => {
-        if (!active) return;
-        const data = Array.isArray(res) ? res : res?.data;
-        setInitiatives(
-          (Array.isArray(data) ? data : []).map((item) => ({
-            ...item,
-            status: normalizeStatus(item.status),
-          })),
-        );
-        setLoadError(null);
-      })
-      .catch((err) => {
-        if (active) setLoadError(err.message || "Initiatives could not be loaded.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [reloadKey]);
-
-  useEffect(() => {
-    let active = true;
-    api
-      .get("/buildings")
-      .then((res) => active && setBuildings(Array.isArray(res) ? res : []))
-      .catch(() => {});
-    // Targets an initiative can count towards (optional, for the form and cards).
-    api
-      .get("/targets")
-      .then((res) => active && setTargets(Array.isArray(res) ? res : []))
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
+    dispatch(fetchInitiatives());
+    dispatch(fetchBuildings());
+    dispatch(fetchTargets());
+  }, [dispatch]);
 
   const buildingName = (id) => buildings.find((b) => b.building_id === id)?.name || "a building";
   const targetSummary = (id) => targets.find((t) => t.target_id === id)?.summary;
@@ -450,30 +430,14 @@ export default function SustainabilityInitiatives() {
     (t) => t.metric === newMetric && (t.status === "active" || t.status === "proposed"),
   );
 
-  const retryLoad = () => {
-    setLoading(true);
-    setReloadKey((k) => k + 1);
-  };
+  const retryLoad = () => dispatch(fetchInitiatives({ force: true }));
 
-  const replaceInit = (id, next) =>
-    setInitiatives((prev) => prev.map((i) => (idOf(i) === id ? next : i)));
-
-  // Archived initiatives live in Archives; the board shows the rest.
-  const live = initiatives.filter((i) => !i.archived_at);
-  const rejected = live.filter((i) => i.status === "rejected");
-
-  // State advancement
+  // Wait for the server to validate the move and return its current jobs.
   const handleMoveState = async (id, nextState) => {
-    const prevInit = initiatives.find((i) => idOf(i) === id);
-    if (!prevInit) return;
-    replaceInit(id, { ...prevInit, status: nextState });
     try {
-      // The server's answer carries the jobs Start work just sent.
-      const saved = await api.patch(`/initiatives/${id}`, { status: nextState });
-      if (saved && typeof saved === "object") replaceInit(id, { ...saved, status: normalizeStatus(saved.status) });
+      await dispatch(updateInitiative({ id, changes: { status: nextState } })).unwrap();
       showToast(`Moved to ${formatStatus(nextState)}`, "success");
     } catch (err) {
-      replaceInit(id, prevInit);
       showToast(err.message || "Failed to move initiative. Nothing was changed.", "error");
     }
   };
@@ -496,8 +460,7 @@ export default function SustainabilityInitiatives() {
   // coordinator for rework. They decide who redoes it and by when.
   const handleRequestRework = async (init, job, reason) => {
     try {
-      const saved = await api.post(`/initiatives/${idOf(init)}/jobs/${job.work_order_id}/rework-request`, { reason });
-      if (saved && typeof saved === "object") replaceInit(idOf(init), { ...saved, status: normalizeStatus(saved.status) });
+      await dispatch(requestInitiativeRework({ id: idOf(init), workOrderId: job.work_order_id, reason })).unwrap();
       showToast(`Rework requested on the ${teamLabel(job.team)} job. The coordinator will decide who redoes it.`, "success");
       return true;
     } catch (err) {
@@ -557,12 +520,7 @@ export default function SustainabilityInitiatives() {
 
     setIsProposing(true);
     try {
-      const created = await api.post("/initiatives", payload);
-      if (created?.initiative_id) {
-        setInitiatives((prev) => [{ ...created, status: normalizeStatus(created.status) }, ...prev]);
-      } else {
-        retryLoad();
-      }
+      await dispatch(createInitiative(payload)).unwrap();
       showToast("Initiative proposed. The Organization Admin has been asked to approve it.", "success");
       resetForm();
     } catch (err) {
@@ -577,8 +535,7 @@ export default function SustainabilityInitiatives() {
     const id = idOf(init);
     if (!window.confirm(`Delete "${init.title}" permanently? This cannot be undone.`)) return;
     try {
-      await api.delete(`/initiatives/${id}`);
-      setInitiatives((prev) => prev.filter((i) => idOf(i) !== id));
+      await dispatch(removeInitiative(id)).unwrap();
       showToast("Initiative deleted.", "success");
     } catch (err) {
       showToast(err.message || "Failed to delete initiative.", "error");
@@ -590,13 +547,7 @@ export default function SustainabilityInitiatives() {
   const handleArchive = async (init) => {
     const id = idOf(init);
     try {
-      const archived = await api.patch(`/initiatives/${id}/archive`);
-      replaceInit(id, {
-        ...init,
-        ...(archived && typeof archived === "object" ? archived : {}),
-        status: init.status,
-        archived_at: archived?.archived_at || new Date().toISOString(),
-      });
+      await dispatch(archiveInitiative(id)).unwrap();
       showToast("Initiative moved to Archives.", "success");
     } catch (err) {
       showToast(err.message || "Failed to archive initiative.", "error");
@@ -658,13 +609,7 @@ export default function SustainabilityInitiatives() {
     };
 
     try {
-      const saved = await api.patch(`/initiatives/${id}`, patch);
-      const prev = initiatives.find((i) => idOf(i) === id) || {};
-      replaceInit(id, {
-        ...prev,
-        ...(saved && typeof saved === "object" ? saved : patch),
-        status: normalizeStatus((saved && saved.status) || patch.status),
-      });
+      await dispatch(updateInitiative({ id, changes: patch })).unwrap();
       setEditingInit(null);
       showToast("Initiative updated", "success");
     } catch (err) {
@@ -909,7 +854,7 @@ export default function SustainabilityInitiatives() {
 
           <div className="pipeline-grid">
             {STATE_ORDER.map((statusKey) => {
-              const colItems = live.filter((i) => columnOf(i.status) === statusKey);
+              const colItems = columns[statusKey];
 
               return (
                 <div key={statusKey} className="pipeline-col">
@@ -919,7 +864,7 @@ export default function SustainabilityInitiatives() {
                   <div id={`col-${statusKey}`}>
                     {colItems.map((init) => {
                       const id = idOf(init);
-                      const next = SO_NEXT[columnOf(init.status)];
+                      const next = SO_NEXT[statusKey];
                       const openJobs = (init.jobs || []).filter((j) => j.open).length;
                       const reworkPending = (init.jobs || []).some((j) => j.rework_request?.status === "pending");
 

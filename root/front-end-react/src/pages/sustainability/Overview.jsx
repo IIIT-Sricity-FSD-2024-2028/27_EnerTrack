@@ -14,6 +14,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchInitiatives, selectActiveInitiatives, selectBoardInitiatives, selectInitiativesStatus } from "../../store/slices/initiativesSlice";
 import { PATHS } from "../../routes";
 import { useAuth } from "../../auth/useAuth";
 import { addMonths, rangeLabel } from "./periods";
@@ -29,7 +31,11 @@ export default function SustainabilityOverview() {
   const [summary, setSummary] = useState(null);
   const [targets, setTargets] = useState({});
   const [targetList, setTargetList] = useState(null); // every active campus target, for the Targets card
-  const [initiatives, setInitiatives] = useState(null);
+  const dispatch = useDispatch();
+  const board = useSelector(selectBoardInitiatives);
+  const count = useSelector(selectActiveInitiatives).length;
+  const initiativesStatus = useSelector(selectInitiativesStatus);
+  const initiatives = initiativesStatus === "succeeded" ? board : null;
   const [signals, setSignals] = useState(null);
   const [cases, setCases] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -37,17 +43,17 @@ export default function SustainabilityOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadData = useCallback(() => {
+  const loadData = useCallback((force = false) => {
+    dispatch(fetchInitiatives({ force }));
     let active = true;
 
     Promise.allSettled([
       api.get("/sustainability-metrics/summary"),
-      api.get("/initiatives"),
       api.get("/targets"),
       api.get("/wastage-reports/signals"),
       api.get("/wastage-reports"),
     ])
-      .then(([summaryRes, initsRes, targetsRes, signalsRes, casesRes]) => {
+      .then(([summaryRes, targetsRes, signalsRes, casesRes]) => {
         if (!active) return;
 
         if (summaryRes.status === "rejected") {
@@ -58,7 +64,6 @@ export default function SustainabilityOverview() {
           setError(null);
         }
 
-        setInitiatives(failed(initsRes) ? null : initsRes.value);
         // Active, campus-wide targets, by metric.
         if (!failed(targetsRes)) {
           const campus = targetsRes.value.filter((t) => t.status === "active" && t.building_ids.length === 0);
@@ -78,7 +83,7 @@ export default function SustainabilityOverview() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     const cleanup = loadData();
@@ -87,7 +92,7 @@ export default function SustainabilityOverview() {
 
   const handleRefresh = () => {
     setLoading(true);
-    loadData();
+    loadData(true);
   };
 
   const totals = summary?.totals;
@@ -103,7 +108,7 @@ export default function SustainabilityOverview() {
   const factors = summary?.emission_factors;
   const series = summary?.series || [];
   const firstName = (user?.name || "").trim().split(/\s+/)[0];
-  const activeInitiatives = initiatives ? initiatives.filter((i) => i.status !== "completed" && i.status !== "rejected").length : null;
+  const activeInitiatives = initiatives ? count : null;
 
   // Which months the figures cover and what the changes compare against,
   // straight from the server's answer rather than from a literal.
