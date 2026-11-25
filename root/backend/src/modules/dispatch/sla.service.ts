@@ -370,6 +370,7 @@ export class SlaService {
       target_id: wo.work_order_id,
       message,
       is_read: false,
+      created_at: new Date().toISOString(),
     });
   }
 }

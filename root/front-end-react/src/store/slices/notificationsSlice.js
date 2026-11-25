@@ -67,10 +67,10 @@ export const {
 } = notifications.selectors;
 
 /**
- * Newest first. Not every notification has a created_at: the dispatch, SLA
- * and audit services create theirs without one. The server lists those
- * after the dated ones, in the order they were made, so between two undated
- * rows the later one in the list is the newer.
+ * Newest first, by created_at (set by the server on every notification).
+ * Rows created before that have none; the server lists those after the
+ * dated ones in the order they were made, so between two undated rows (or
+ * two made in the same millisecond) the later one in the list is the newer.
  */
 export const selectAllNotifications = createSelector(
   [notifications.selectors.selectAll],
