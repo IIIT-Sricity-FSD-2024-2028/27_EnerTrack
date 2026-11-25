@@ -72,6 +72,8 @@ const reducers = {
   // Person 3: finance                  (energyCosts, financialReports, invoices)
   // Person 4: sustainability
   initiatives,
+  targets,
+  // Person 5: wastage / campus
   sustainabilityReports,
   targets,
   // Person 5: wastage / campus
