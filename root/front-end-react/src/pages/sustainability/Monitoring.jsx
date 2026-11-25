@@ -1,5 +1,19 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchMetricsSeries,
+  selectMetricsSeries,
+  selectMetricsSeriesStatus,
+} from "../../store/slices/sustainabilityMetricsSlice";
+import {
+  fetchBuildings,
+  selectAllBuildings,
+} from "../../store/slices/buildingsSlice";
+import {
+  createAlert,
+  fetchAlerts,
+  selectAllAlerts,
+} from "../../store/slices/alertsSlice";
 import Toast from "./components/Toast";
 import MetricCard from "./components/MetricCard";
 import BuildingsTable from "./components/BuildingsTable";
@@ -8,11 +22,6 @@ import monitorCss from "../../styles/sustainability_officer/sust_monitor.css?inl
 import sustLayoutCss from "./sustainability.css?inline";
 
 const PERIOD_KEYS = ["month", "quarter", "year"];
-
-/** Readings are monthly totals, so the chart is always one bar per month. */
-function summaryUrl(period) {
-  return `/sustainability-metrics/summary?from=${period.from}&to=${period.to}&granularity=month&groupBy=building`;
-}
 
 function formatChartLabel(label) {
   if (!label) return "";
@@ -46,9 +55,7 @@ function useWidth(ref, fallback) {
 }
 
 export default function SustainabilityMonitoring() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
 
   // Built once per mount from today's date, so the windows never go stale.
   const periods = useMemo(() => monitoringPeriods(), []);
@@ -56,27 +63,20 @@ export default function SustainabilityMonitoring() {
   const [selectedMetric, setSelectedMetric] = useState("energy");
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  // Readings are monthly totals, so each chart query requests monthly bars.
+  const config = useMemo(() => ({ ...periods[activePeriod], granularity: "month" }), [periods, activePeriod]);
+  const data = useSelector((state) => selectMetricsSeries(state, config));
+  const seriesLoad = useSelector((state) => selectMetricsSeriesStatus(state, config));
+  const loading = seriesLoad.status === "idle" || seriesLoad.status === "loading";
+  const isRefreshing = seriesLoad.refreshing;
+  const error = seriesLoad.error;
+  const lastUpdated = seriesLoad.updatedAt ? new Date(seriesLoad.updatedAt) : null;
   const [raisingAlert, setRaisingAlert] = useState(null);
-  // Meters that already have an open alert, so they are not reported twice.
-  const [openAlerts, setOpenAlerts] = useState(() => new Set());
 
-  useEffect(() => {
-    let ignore = false;
-    api
-      .get("/alerts")
-      .then((res) => {
-        if (ignore || !Array.isArray(res)) return;
-        setOpenAlerts(new Set(res.filter((a) => a.status !== "resolved").map((a) => a.meter_id)));
-      })
-      .catch(() => {});
-    return () => {
-      ignore = true;
-    };
-  }, []);
-  // building_id → name, for listing silent meters by where they are.
-  const [buildingNames, setBuildingNames] = useState({});
+  const alerts = useSelector(selectAllAlerts);
+  const buildings = useSelector(selectAllBuildings);
+  const openAlerts = new Set(alerts.filter((alert) => alert.status !== "resolved").map((alert) => alert.meter_id));
+  const buildingNames = Object.fromEntries(buildings.map((building) => [building.building_id, building.name]));
 
   const [toast, setToast] = useState(null);
   const showToast = useCallback((msg, type = "success") => {
@@ -87,63 +87,26 @@ export default function SustainabilityMonitoring() {
     setToast(null);
   }, []);
 
-  // Fetch data on period change without synchronous setState inside the effect body
+  // Switching to a previously loaded period uses the existing cache entry.
   useEffect(() => {
-    let ignore = false;
+    dispatch(fetchMetricsSeries(config));
+  }, [dispatch, config]);
 
-    api
-      .get(summaryUrl(periods[activePeriod]))
-      .then((res) => {
-        if (!ignore) {
-          setData(res);
-          setLastUpdated(new Date());
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        if (!ignore) {
-          setError(err.message || "Failed to fetch sustainability metrics summary");
-        }
-      })
-      .finally(() => {
-        if (!ignore) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [activePeriod, periods]);
-
-  // Building names are only decoration for the silent-meter list; if they
-  // fail to load, the list falls back to showing the meter code alone.
   useEffect(() => {
-    let ignore = false;
-    api
-      .get("/buildings")
-      .then((res) => {
-        const list = Array.isArray(res) ? res : res?.data;
-        if (ignore || !Array.isArray(list)) return;
-        setBuildingNames(Object.fromEntries(list.map((b) => [b.building_id, b.name])));
-      })
-      .catch(() => {});
-    return () => {
-      ignore = true;
-    };
-  }, []);
+    dispatch(fetchAlerts());
+    dispatch(fetchBuildings());
+  }, [dispatch]);
 
   // Report a silent or faulty meter to the technicians (their Alerts page).
   const handleRaiseAlert = async (meter, building) => {
     setRaisingAlert(meter.meter_id);
     try {
-      await api.post("/alerts", {
+      await dispatch(createAlert({
         meter_id: meter.meter_id,
         title: `${meter.meter_code} (${building.name}) ${meter.issue}: ${periods[activePeriod].label}`,
         severity: meter.status === "faulty" ? "high" : "medium",
         status: "open",
-      });
-      setOpenAlerts((set) => new Set(set).add(meter.meter_id));
+      })).unwrap();
       showToast(`Alert raised for ${meter.meter_code}. It is now on the technicians' Alerts page.`, "success");
     } catch (err) {
       showToast(err.message || "The alert could not be raised.", "error");
@@ -152,26 +115,15 @@ export default function SustainabilityMonitoring() {
     }
   };
 
-  const handlePeriodChange = (periodKey) => {
-    setActivePeriod(periodKey);
-    setLoading(true);
-  };
+  const handlePeriodChange = (periodKey) => setActivePeriod(periodKey);
 
+  // A deliberate refresh replaces the cached results for the visible period.
   const handleManualRefresh = async () => {
-    setIsRefreshing(true);
-    setError(null);
-    try {
-      const res = await api.get(summaryUrl(periods[activePeriod]));
-      setData(res);
-      setLastUpdated(new Date());
+    const result = await dispatch(fetchMetricsSeries({ ...config, force: true }));
+    if (fetchMetricsSeries.fulfilled.match(result)) {
       showToast("Readings reloaded.", "success");
-    } catch (err) {
-      const msg = err.message || "Failed to fetch sustainability metrics summary";
-      setError(msg);
-      showToast(msg, "error");
-    } finally {
-      setIsRefreshing(false);
-      setLoading(false);
+    } else if (!result.meta.condition) {
+      showToast(result.error.message || "Failed to fetch sustainability metrics summary", "error");
     }
   };
 
