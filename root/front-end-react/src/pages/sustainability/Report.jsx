@@ -1,6 +1,12 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  createSustainabilityReport,
+  draftCleared,
+  generateSustainabilityReport,
+  selectSustainabilityReportDraft,
+} from "../../store/slices/sustainabilityReportsSlice";
 import { PATHS } from "../../routes";
 import ReportDocument from "./components/ReportDocument";
 import { lastFullMonth, periodName } from "./periods";
@@ -68,7 +74,12 @@ export default function SustainabilityReport() {
   const [customFrom, setCustomFrom] = useState(defaults.customFrom);
   const [customTo, setCustomTo] = useState(defaults.customTo);
 
-  const [preview, setPreview] = useState(null);
+  const dispatch = useDispatch();
+  const preview = useSelector(selectSustainabilityReportDraft);
+  // An unsaved preview belongs to this page visit.
+  useEffect(() => () => {
+    dispatch(draftCleared());
+  }, [dispatch]);
   const [isBuilding, setIsBuilding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -79,7 +90,7 @@ export default function SustainabilityReport() {
   // what would be saved) always matches the selection on the left.
   const change = (setter) => (e) => {
     setter(e.target.value);
-    setPreview(null);
+    dispatch(draftCleared());
     setError(null);
     setSaved(null);
   };
@@ -89,7 +100,7 @@ export default function SustainabilityReport() {
     setType(next);
     // A quarter defaults to the last complete one, which can be last year's.
     if (next === "quarterly") setYear(defaults.quarterYear);
-    setPreview(null);
+    dispatch(draftCleared());
     setError(null);
     setSaved(null);
   };
@@ -98,6 +109,7 @@ export default function SustainabilityReport() {
   const label = type === "quarterly" ? `${quarter} ${year}` : periodName(range.from, range.to);
   const incomplete = range.to > defaults.last;
 
+  // Validate the selected range before requesting an unsaved draft.
   const handleBuild = async (e) => {
     e.preventDefault();
     setError(null);
@@ -112,13 +124,12 @@ export default function SustainabilityReport() {
     }
     setIsBuilding(true);
     try {
-      const res = await api.post("/sustainability-reports/generate", {
+      await dispatch(generateSustainabilityReport({
         period: label,
         from: range.from,
         to: range.to,
         title: `Sustainability report: ${label}`,
-      });
-      setPreview(res);
+      })).unwrap();
       // On small screens the report is below the form; bring it into view.
       if (window.matchMedia("(max-width: 900px)").matches) {
         requestAnimationFrame(() => sheetRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -137,14 +148,14 @@ export default function SustainabilityReport() {
     setIsSaving(true);
     setError(null);
     try {
-      const res = await api.post("/sustainability-reports", {
+      const res = await dispatch(createSustainabilityReport({
         title: preview.title,
         period: preview.period,
         from: preview.from,
         to: preview.to,
-      });
+      })).unwrap();
       setSaved(res || { title: preview.title });
-      setPreview(null);
+      dispatch(draftCleared());
     } catch (err) {
       setError(`Not saved: ${err.message || "the server did not respond"}. Try again.`);
     } finally {
@@ -152,6 +163,7 @@ export default function SustainabilityReport() {
     }
   };
 
+  // Use the selected period in the browser print title.
   const handlePrint = () => {
     const original = document.title;
     document.title = `Sustainability report - ${label}`;
@@ -160,7 +172,7 @@ export default function SustainabilityReport() {
   };
 
   const startOver = () => {
-    setPreview(null);
+    dispatch(draftCleared());
     setSaved(null);
     setError(null);
   };
