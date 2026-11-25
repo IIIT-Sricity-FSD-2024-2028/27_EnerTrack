@@ -3,7 +3,7 @@
  * home page.
  *
  * This is the parent. It:
- *   - loads the question lists, the buildings and the visitor's reports
+ *   - loads the question lists, the buildings and the visitor's reports via Redux
  *   - gives <ReportForm> a function to call on submit
  *   - shows the status-only list and a few tips
  *
@@ -11,9 +11,22 @@
  * from the login, so there is no offline fallback here: a report that did not
  * reach the server is not a report, and the visitor is told so.
  */
-import { useCallback, useEffect, useState } from "react";
-import api from "../../api/client";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../auth/useAuth";
+import { fetchBuildings, selectAllBuildings } from "../../store/slices/buildingsSlice";
+import {
+  confirmFixed as confirmFixedThunk,
+  fetchCampusIssues,
+  fetchMyServiceRequests,
+  fetchServiceCatalogue,
+  plusOneServiceRequest,
+  selectCampusIssues,
+  selectMyServiceRequests,
+  selectServiceCatalogue,
+  stillBroken as stillBrokenThunk,
+  submitServiceReport,
+} from "../../store/slices/serviceRequestsSlice";
 import ReportForm from "./ReportForm";
 import MyReports from "./MyReports";
 import WasteOutcomes from "./WasteOutcomes";
@@ -21,42 +34,40 @@ import { formatReportedOn } from "./serviceRequestHelpers";
 import campusCss from "./campus.css?inline";
 
 export default function Dashboard() {
+  const dispatch = useDispatch();
   const { user } = useAuth();
-  const [catalogue, setCatalogue] = useState(null);
-  const [buildings, setBuildings] = useState([]);
-  const [tickets, setTickets] = useState([]);
-  const [nearby, setNearby] = useState([]);
+  const catalogue = useSelector(selectServiceCatalogue);
+  const buildings = useSelector(selectAllBuildings);
+  const myTickets = useSelector(selectMyServiceRequests);
+  const campusIssues = useSelector(selectCampusIssues);
+
+  const [showNearby, setShowNearby] = useState(false);
   const [toast, setToast] = useState({ text: "", error: false, show: false });
   const [loadError, setLoadError] = useState("");
   // A submitted report opened from My Reports, shown read-only in place of the form.
   const [viewing, setViewing] = useState(null);
 
+  const tickets = useMemo(() => [...myTickets].reverse(), [myTickets]);
+  const nearby = showNearby ? campusIssues : [];
+
   function viewReport(ticket) {
     setViewing(ticket);
-    setNearby([]);
+    setShowNearby(false);
     document.getElementById("report-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   const loadTickets = useCallback(
-    () =>
-      api
-        .get("/service-requests/mine")
-        .then((list) =>
-          setTickets(Array.isArray(list) ? [...list].reverse() : []),
-        )
-        .catch(() => setTickets([])),
-    [],
+    () => dispatch(fetchMyServiceRequests()),
+    [dispatch],
   );
 
   useEffect(() => {
-    Promise.all([api.get("/service-requests/catalogue"), api.get("/buildings")])
-      .then(([cat, b]) => {
-        setCatalogue(cat);
-        setBuildings(Array.isArray(b) ? b : []);
-      })
-      .catch((e) => setLoadError(e.message));
+    Promise.all([
+      dispatch(fetchServiceCatalogue()).unwrap(),
+      dispatch(fetchBuildings()).unwrap(),
+    ]).catch((e) => setLoadError(e.message));
     loadTickets();
-  }, [loadTickets]);
+  }, [dispatch, loadTickets]);
 
   // Keep the list current without a refresh: every 30 seconds, and when the
   // student comes back to this tab.
@@ -78,13 +89,11 @@ export default function Dashboard() {
     );
   }
 
-  // The "Already reported here" row: open issues on the chosen floor.
   // "It is fixed" on a fixed issue. Returns true when it went through.
   async function confirmFixed(id) {
     try {
-      await api.post(`/service-requests/${id}/confirm-fixed`, {});
+      await dispatch(confirmFixedThunk(id)).unwrap();
       show("Thanks for letting us know.");
-      await loadTickets();
       return true;
     } catch (e) {
       show(e.message, true);
@@ -96,10 +105,8 @@ export default function Dashboard() {
   // It goes back to the technician who fixed it, if they are free.
   async function stillBroken(id, reason, photo) {
     try {
-      if (photo) await api.upload(`/service-requests/${id}/still-broken`, "photo", photo, { reason });
-      else await api.post(`/service-requests/${id}/still-broken`, { reason });
+      await dispatch(stillBrokenThunk({ id, reason, photo })).unwrap();
       show("Sent back. We have asked the technician who fixed it to look again.");
-      await loadTickets();
       return true;
     } catch (e) {
       show(e.message, true);
@@ -108,19 +115,17 @@ export default function Dashboard() {
   }
 
   async function loadNearby(buildingId, floor) {
-    if (!buildingId || !floor) return setNearby([]);
+    if (!buildingId || !floor) return setShowNearby(false);
     try {
-      const list = await api.get(
-        `/service-requests/campus-issues?building_id=${buildingId}&floor=${floor}`,
-      );
-      setNearby(Array.isArray(list) ? list : []);
+      await dispatch(fetchCampusIssues({ buildingId, floor })).unwrap();
+      setShowNearby(true);
     } catch {
-      setNearby([]);
+      setShowNearby(false);
     }
   }
 
   async function handleSubmit(payload) {
-    const result = await api.post("/service-requests/reports", payload);
+    const result = await dispatch(submitServiceReport(payload)).unwrap();
     if (result.outcome === "covered") return result; // the form asks "same problem?"
     const when = result.ticket?.reported_on
       ? ` Reported on ${formatReportedOn(result.ticket.reported_on)}.`
@@ -132,19 +137,14 @@ export default function Dashboard() {
           ? "You've already reported this one."
           : `Report submitted.${when}`,
     );
-    await loadTickets();
-    setNearby([]);
+    setShowNearby(false);
     return result;
   }
 
   async function handlePlusOne(id) {
     try {
-      await api.post(`/service-requests/${id}/plus-one`, {});
+      await dispatch(plusOneServiceRequest(id)).unwrap();
       show("Added. Thanks, you're counted as affected.");
-      await loadTickets();
-      setNearby((list) =>
-        list.map((t) => (t.id === id ? { ...t, mine: true } : t)),
-      );
     } catch (e) {
       show(e.message, true);
     }

@@ -12,7 +12,7 @@ import Toast from "./components/Toast";
 import "./archives.css";
 import { InitiativeSummary } from "./initiativeShared";
 import { normalizeStatus } from "./audit/auditShared";
-import { normalizeWastageReport } from "../finance/financeApi";
+import { normalizeWastageReport } from "../../store/slices/wastageReportsSlice";
 import { reportRef, wastageSummary } from "../finance/financeUtils";
 
 export default function SustainabilityArchives() {

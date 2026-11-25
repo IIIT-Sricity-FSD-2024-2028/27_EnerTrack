@@ -9,13 +9,15 @@
  * Reports and invoices come from the Redux store. The wastage reports still
  * load through financeApi until the wastage workflow has its own slice.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import { useAuth } from "../../auth/useAuth";
 import FinanceLayout from "./components/FinanceLayout";
 import ToastProvider from "./components/ToastProvider";
 import { useToast } from "./components/toastContext";
-import { loadWastageReports } from "./financeApi";
+import {
+  fetchWastageReports,
+  selectWastageRows,
+} from "../../store/slices/wastageReportsSlice";
 import {
   fetchFinancialReports,
   selectArchivedReports,
@@ -285,39 +287,30 @@ function ArchivedWastageCard({ report: t }) {
 }
 
 // Loaded fresh each time the page opens; no polling.
-const LOADS = [fetchFinancialReports, fetchInvoices];
+const LOADS = [fetchFinancialReports, fetchInvoices, fetchWastageReports];
 
 function ArchivesContent() {
-  const { user } = useAuth();
   const showToast = useToast();
   const reports = useSelector(selectArchivedReports);
   const invoices = useSelector(selectArchivedInvoices);
+  const wastageRows = useSelector(selectWastageRows);
   const { error } = useLiveData(LOADS, { intervalMs: 0 });
-  const [wastage, setWastage] = useState([]);
   const [viewing, setViewing] = useState(null); // { kind: "report" | "invoice", item }
 
   useEffect(() => {
     if (error) showToast(error, "error");
   }, [error, showToast]);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const w = await loadWastageReports(user);
-        setWastage(
-          w
-            .filter((t) => t.costImpact && DONE_STATUSES.includes(t.status))
-            .sort(
-              (a, b) =>
-                new Date(b.returnedAt || b.timestamp) - new Date(a.returnedAt || a.timestamp),
-            ),
-        );
-      } catch (error) {
-        showToast(error.message, "error");
-      }
-    }
-    load();
-  }, [user, showToast]);
+  const wastage = useMemo(
+    () =>
+      wastageRows
+        .filter((t) => t.costImpact && DONE_STATUSES.includes(t.status))
+        .sort(
+          (a, b) =>
+            new Date(b.returnedAt || b.timestamp) - new Date(a.returnedAt || a.timestamp),
+        ),
+    [wastageRows],
+  );
 
   return (
     <FinanceLayout styles={[overviewCss, sharedCss, archivesCss]}>

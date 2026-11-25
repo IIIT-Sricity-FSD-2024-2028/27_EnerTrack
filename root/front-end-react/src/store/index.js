@@ -43,6 +43,7 @@ import invoices from "./slices/invoicesSlice";
 import serviceRequests, {
   serviceCatalogueReducer as serviceCatalogue,
 } from "./slices/serviceRequestsSlice";
+import wastageReports from "./slices/wastageReportsSlice";
 
 const reducers = {
   auth,
@@ -69,9 +70,10 @@ const reducers = {
   financialReports,
   invoices,
   // Person 4: sustainability           (initiatives, sustainabilityReports, sustainabilityMetrics)
-  // Person 5: wastage / campus         (+ wastageReports)
+  // Person 5: wastage / campus
   serviceRequests,
   serviceCatalogue,
+  wastageReports,
 };
 
 const appReducer = combineReducers(reducers);

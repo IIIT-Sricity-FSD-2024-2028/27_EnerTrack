@@ -7,13 +7,7 @@
  * ({ id, scopeLabel, ... }), so each "normalize" function converts one row.
  * The finance slices (store/slices/energyCostsSlice, financialReportsSlice,
  * invoicesSlice) keep the raw rows and call these in their selectors.
- *
- * The wastage functions at the bottom still call the API themselves. They
- * belong to the wastage workflow (Person 5) and move to wastageReportsSlice
- * with it; the finance and sustainability pages import them from here until
- * then.
  */
-import api from "../../api/client";
 import { statusFromRoi, statusFromVariance } from "./financeUtils";
 
 /* ── ENERGY COSTS ─────────────────────────────────── */
@@ -114,72 +108,4 @@ export function normalizeInvoice(inv) {
     documentName: inv.document_original_name || inv.documentName || null,
     archived: inv.archived === true || inv.archived === "true",
   };
-}
-
-/* ── WASTAGE REPORTS (Sustainability workflow) ────── */
-
-export function normalizeWastageReport(r, user) {
-  const d = r.details || {};
-  const isMine = user && r.reporter_id === user.user_id;
-  return {
-    id: r.wastage_report_id || r.id,
-    type: r.type,
-    status: r.status,
-    reporterId: r.reporter_id,
-    reporterName: isMine ? user.name : r.reporterName || "Unknown",
-    specificData: d.specificData || r.specificData || {},
-    systemData: d.systemData || r.systemData || {},
-    costImpact: d.costImpact || r.costImpact || null,
-    metricTarget: d.metricTarget || r.metricTarget || null,
-    priority: d.priority || r.priority || "Low",
-    comments: d.comments || r.comments || [],
-    // The backend keeps the time it was reported inside details.
-    timestamp: r.created_at || r.timestamp || d.timestamp || new Date().toISOString(),
-    validatedAt: d.validatedAt || r.validatedAt,
-    revisionRequest: d.revisionRequest || r.revisionRequest,
-    returnedAt: d.returnedAt || r.returnedAt,
-    // The waste reports a case grew out of.
-    sourceRequestIds: r.source_request_ids || [],
-    details: d,
-  };
-}
-
-export async function loadWastageReports(user) {
-  const rows = await api.get("/wastage-reports");
-  return (Array.isArray(rows) ? rows : []).map((r) => normalizeWastageReport(r, user));
-}
-
-/**
- * Saves changes to one wastage report. `changes` holds the new status and
- * the fields that live inside `details` (costImpact, comments, returnedAt).
- * Throws if the server refuses, so the page can show an error.
- */
-export async function updateWastageReport(report, changes) {
-  const { status, ...detailChanges } = changes;
-  // The backend replaces `details` with what we send, so send all of it.
-  const details = { ...report.details, ...detailChanges };
-  const updated = { ...report, ...changes, details };
-
-  // The server decides whether the move is allowed (403 otherwise) and is the
-  // only record; if it cannot be reached the error goes to the caller rather
-  // than the change being kept in this browser and shown as saved.
-  await api.patch(`/wastage-reports/${report.id}`, {
-    status: status || report.status,
-    details,
-  });
-  return updated;
-}
-
-/**
- * Adds one comment to a wastage report through POST /wastage-reports/:id/comments.
- * The server appends it to the list itself, so a comment someone else posted
- * in the meantime (e.g. the occupant) is never overwritten, which re-sending
- * the whole list in a PATCH could do. The server records the role from the
- * signed-in token. Returns the report with its new comment list; throws if
- * the server refuses or cannot be reached (nothing is kept locally).
- */
-export async function addWastageComment(report, { author, text }) {
-  const saved = await api.post(`/wastage-reports/${report.id}/comments`, { author, text });
-  const details = saved?.details || report.details;
-  return { ...report, details, comments: details.comments || [] };
 }

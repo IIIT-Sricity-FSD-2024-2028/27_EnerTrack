@@ -16,7 +16,8 @@
  * onAction(name); the parent (WastageAuditQueue) does the saving.
  */
 import { useEffect, useState } from "react";
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
+import { fetchWastagePhotoUrl } from "../../../store/slices/wastageReportsSlice";
 import PhotoViewer from "../../../ui/PhotoViewer";
 import { ROLE_BADGES } from "./auditShared";
 import { formatCurrency, formatDateTime, wastageSummary } from "../../finance/financeUtils";
@@ -127,6 +128,7 @@ function ActionButtons({ status, remedy, busy, onAction }) {
  * Clicking a thumbnail opens it full size (see ui/PhotoViewer).
  */
 export function PhotoGallery({ urls }) {
+  const dispatch = useDispatch();
   const [srcs, setSrcs] = useState({});
   const key = urls.join("|");
 
@@ -134,8 +136,8 @@ export function PhotoGallery({ urls }) {
     let alive = true;
     const created = [];
     urls.forEach((url) => {
-      api
-        .getBlobUrl(url)
+      dispatch(fetchWastagePhotoUrl(url))
+        .unwrap()
         .then((blobUrl) => {
           created.push(blobUrl);
           if (alive) setSrcs((s) => ({ ...s, [url]: blobUrl }));
@@ -148,7 +150,7 @@ export function PhotoGallery({ urls }) {
       created.forEach((u) => URL.revokeObjectURL(u));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, dispatch]);
 
   return <PhotoViewer photos={urls.map((url, i) => ({ src: srcs[url], alt: `Evidence photo ${i + 1}` }))} />;
 }
