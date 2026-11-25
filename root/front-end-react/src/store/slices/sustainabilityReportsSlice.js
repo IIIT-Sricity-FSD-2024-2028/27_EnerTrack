@@ -12,6 +12,16 @@ export const submitSustainabilityReport = apiThunk("sustainabilityReports/submit
   api.patch(`/sustainability-reports/${id}/status`, { status: "submitted" }),
 );
 
+/**
+ * The Organization Admin's decision on a report: approve, send back to draft,
+ * or publish. PATCH /sustainability-reports/:id/status answers with the report.
+ */
+export const decideSustainabilityReport = apiThunk(
+  "sustainabilityReports/decide",
+  ({ id, status, note }) =>
+    api.patch(`/sustainability-reports/${id}/status`, { status, ...(note ? { note } : {}) }),
+);
+
 /** Create a corrected draft and link it to the original report. */
 export const restateSustainabilityReport = apiThunk("sustainabilityReports/restate", (id) =>
   api.post(`/sustainability-reports/${id}/restate`),
@@ -54,6 +64,9 @@ const reports = createCrudSlice({
         if (state.draftRequestId === meta.requestId) state.draftRequestId = null;
       })
       .addCase(submitSustainabilityReport.fulfilled, (state, { payload }) => {
+        if (isRow(payload)) adapter.upsertOne(state, payload);
+      })
+      .addCase(decideSustainabilityReport.fulfilled, (state, { payload }) => {
         if (isRow(payload)) adapter.upsertOne(state, payload);
       })
       .addCase(restateSustainabilityReport.fulfilled, (state, { payload, meta }) => {
