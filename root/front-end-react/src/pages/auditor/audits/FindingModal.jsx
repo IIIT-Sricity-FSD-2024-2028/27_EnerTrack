@@ -8,7 +8,11 @@
  * technician Modal, so it looks like every other popup in the app.
  */
 import { useState } from "react";
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
+import {
+  addFinding,
+  updateFinding,
+} from "../../../store/slices/energyAuditsSlice";
 import Modal from "../../technician/components/Modal";
 
 const SEVERITIES = ["low", "moderate", "high"];
@@ -18,10 +22,10 @@ export default function FindingModal({
   audit,
   finding,
   buildings,
-  onSaved,
   onClose,
   showToast,
 }) {
+  const dispatch = useDispatch();
   // When adding, every field starts empty.
   const [title, setTitle] = useState(finding ? finding.title : "");
   const [category, setCategory] = useState(finding ? finding.category : "");
@@ -65,20 +69,21 @@ export default function FindingModal({
     let request;
     if (finding) {
       body.status = status;
-      request = api.patch(
-        "/energy-audits/" + audit.audit_id + "/findings/" + finding.finding_id,
-        body,
+      request = dispatch(
+        updateFinding({
+          auditId: audit.audit_id,
+          findingId: finding.finding_id,
+          changes: body,
+        }),
       );
     } else {
-      request = api.post(
-        "/energy-audits/" + audit.audit_id + "/findings",
-        body,
-      );
+      request = dispatch(addFinding({ auditId: audit.audit_id, body }));
     }
 
+    // The thunk re-reads the audit, so the findings list updates itself.
     request
-      .then((saved) => {
-        onSaved(saved);
+      .unwrap()
+      .then(() => {
         if (finding) {
           showToast("Recommendation updated.", "success");
         } else {

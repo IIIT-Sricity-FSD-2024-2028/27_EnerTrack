@@ -9,12 +9,7 @@ import Badge from "../components/Badge";
 import FindingModal from "./FindingModal";
 import { formatCurrency, formatDate } from "../auditorUtils";
 
-export default function FindingsCard({
-  audit,
-  buildings,
-  onFindingSaved,
-  showToast,
-}) {
+export default function FindingsCard({ audit, buildings, showToast }) {
   // Which popup is open: null = none, "new" = adding, or the finding
   // being edited.
   const [editing, setEditing] = useState(null);
@@ -142,7 +137,6 @@ export default function FindingsCard({
           audit={audit}
           finding={editing === "new" ? null : editing}
           buildings={buildings}
-          onSaved={onFindingSaved}
           onClose={() => setEditing(null)}
           showToast={showToast}
         />

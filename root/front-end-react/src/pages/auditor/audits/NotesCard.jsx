@@ -6,16 +6,22 @@
  * the textarea starts again from the new audit's notes.
  */
 import { useState } from "react";
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
+import { updateEnergyAudit } from "../../../store/slices/energyAuditsSlice";
 
-export default function NotesCard({ audit, onSaved, showToast }) {
+export default function NotesCard({ audit, showToast }) {
+  const dispatch = useDispatch();
   const [notes, setNotes] = useState(audit.summary || "");
 
   function handleSave() {
-    api
-      .patch("/energy-audits/" + audit.audit_id, { summary: notes.trim() })
-      .then((updated) => {
-        onSaved(updated);
+    dispatch(
+      updateEnergyAudit({
+        id: audit.audit_id,
+        changes: { summary: notes.trim() },
+      }),
+    )
+      .unwrap()
+      .then(() => {
         showToast("Notes saved.", "success");
       })
       .catch((err) => {

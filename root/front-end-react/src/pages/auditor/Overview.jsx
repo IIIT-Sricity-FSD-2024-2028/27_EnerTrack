@@ -10,80 +10,59 @@
  *
  * Read-only. All editing happens on the Audits page.
  */
-import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useCallback, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  loadAuditPortfolio,
+  selectAllEnergyAudits,
+  selectAuditCounts,
+  selectEnergyAuditsError,
+  selectEnergyAuditsStatus,
+  selectImpactWithSavings,
+  selectOutstandingFindings,
+} from "../../store/slices/energyAuditsSlice";
+import {
+  fetchOrganizations,
+  selectAllOrganizations,
+} from "../../store/slices/organizationsSlice";
 
 import Kpi from "./components/Kpi";
 import ImpactTable from "./overview/ImpactTable";
 import Pipeline from "./overview/Pipeline";
 import OutstandingTable from "./overview/OutstandingTable";
-import { impactClients, hasComparison } from "./overview/impact";
+import { hasComparison } from "./overview/impact";
 import { formatCurrency, formatKwh } from "./auditorUtils";
 
 import "../../styles/shared/tech_shared.css";
 import "../../styles/shared/platform_shared.css";
 import "./auditor.css";
 
-/**
- * Gets everything the page shows. Only fetches — it does not touch React
- * state, so it lives outside the component.
- *
- * If the audits call fails the whole thing fails (there is nothing to
- * show). If the organisations call fails we carry on and show ids instead
- * of names. A failed savings call just leaves that client without a
- * comparison.
- */
-async function fetchPortfolio() {
-  const [audits, orgs] = await Promise.all([
-    api.get("/energy-audits"),
-    api.get("/organizations").catch(() => []),
-  ]);
-
-  // Each client is measured over their own window: from the month after
-  // their first implemented measure (see overview/impact.js). A client with
-  // no window has nothing to measure yet, so no call is made for them.
-  const clients = impactClients(audits || []);
-  const impact = await Promise.all(
-    clients.map((client) => {
-      if (!client.window) return { ...client, savings: null };
-      const { from, to } = client.window;
-      return api
-        .get(`/organizations/${client.organization_id}/savings?from=${from}&to=${to}`)
-        .catch(() => null)
-        .then((savings) => ({ ...client, savings }));
-    }),
-  );
-
-  return { audits: audits || [], orgs: orgs || [], impact };
-}
-
 export default function AuditorOverview() {
-  const [audits, setAudits] = useState([]);
-  const [orgs, setOrgs] = useState([]);
-  const [impact, setImpact] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const dispatch = useDispatch();
+  const audits = useSelector(selectAllEnergyAudits);
+  // Names only: if they fail, ids are shown instead.
+  const orgs = useSelector(selectAllOrganizations);
+  const counts = useSelector(selectAuditCounts);
+  const outstanding = useSelector(selectOutstandingFindings);
+  // Each client is measured over their own window: from the month after
+  // their first implemented measure (see overview/impact.js). `savings` is
+  // undefined until that client's call answers, null if it failed.
+  const impact = useSelector(selectImpactWithSavings);
+  const status = useSelector(selectEnergyAuditsStatus);
+  const error = useSelector(selectEnergyAuditsError);
 
-  // Same pattern as the technician pages: setState only inside the
-  // .then / .catch callbacks (the lint rules require it).
-  function loadData() {
-    return fetchPortfolio()
-      .then((data) => {
-        setError("");
-        setAudits(data.audits);
-        setOrgs(data.orgs);
-        setImpact(data.impact);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }
+  // Wait for every measurable client's savings too, so the KPI cards and
+  // the "Did it work?" table never show half-loaded figures.
+  const savingsPending = impact.some((c) => c.window && c.savings === undefined);
+  const loading =
+    status === "idle" || status === "loading" || (status === "succeeded" && savingsPending);
 
+  // Audits (then savings) are re-read each time the page opens.
+  const loadData = useCallback(() => dispatch(loadAuditPortfolio()), [dispatch]);
   useEffect(() => {
     loadData();
-  }, []);
+    dispatch(fetchOrganizations());
+  }, [dispatch, loadData]);
 
   /** An organisation's name, or its id if we could not load the names. */
   function orgName(id) {
@@ -96,20 +75,7 @@ export default function AuditorOverview() {
 
   // ── KPI numbers ──────────────────────────────────────
   // Open = the client has not said yes or no to the proposal yet.
-  const openCount = audits.filter(
-    (a) => a.status !== "accepted" && a.status !== "declined",
-  ).length;
-
-  let findingCount = 0;
-  let implementedCount = 0;
-  for (const audit of audits) {
-    for (const finding of audit.findings || []) {
-      findingCount++;
-      if (finding.status === "implemented") {
-        implementedCount++;
-      }
-    }
-  }
+  const { open: openCount, findings: findingCount, implemented: implementedCount } = counts;
 
   // Summed from the same rows "Did it work?" shows, so the cards and the
   // table always agree. A client that used more counts as 0, not a negative.
@@ -130,7 +96,7 @@ export default function AuditorOverview() {
         <p className="muted">Loading portfolio…</p>
       </div>
     );
-  } else if (error) {
+  } else if (status === "failed") {
     content = (
       <div className="card">
         <h2>Backend unavailable</h2>
@@ -170,7 +136,7 @@ export default function AuditorOverview() {
 
         <ImpactTable impact={impact} orgName={orgName} />
         <Pipeline audits={audits} orgName={orgName} />
-        <OutstandingTable audits={audits} orgName={orgName} />
+        <OutstandingTable rows={outstanding} orgName={orgName} />
       </div>
     );
   }

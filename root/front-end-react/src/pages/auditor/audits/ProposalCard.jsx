@@ -13,17 +13,13 @@
  * resets the form to the new audit's values.
  */
 import { useState } from "react";
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
+import { submitProposal } from "../../../store/slices/energyAuditsSlice";
 import Badge from "../components/Badge";
 import { formatCurrency, formatDate } from "../auditorUtils";
 
-export default function ProposalCard({
-  audit,
-  org,
-  plans,
-  onSaved,
-  showToast,
-}) {
+export default function ProposalCard({ audit, org, plans, showToast }) {
+  const dispatch = useDispatch();
   const proposal = audit.proposal;
 
   // Start the form from the last proposal sent, if there was one.
@@ -57,10 +53,9 @@ export default function ProposalCard({
       estimated_campuses: Number(campuses) || 1,
     };
 
-    api
-      .post("/energy-audits/" + audit.audit_id + "/proposal", body)
-      .then((updated) => {
-        onSaved(updated);
+    dispatch(submitProposal({ auditId: audit.audit_id, body }))
+      .unwrap()
+      .then(() => {
         showToast(
           "Proposal sent. Their Organization Admin has been notified.",
           "success",
