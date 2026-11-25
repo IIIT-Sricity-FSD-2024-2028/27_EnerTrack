@@ -19,6 +19,7 @@
  *   nearby    open issues on the chosen building and floor (status only)
  */
 import { useMemo, useState } from "react";
+import Dropdown from "./Dropdown";
 import { Link } from "react-router-dom";
 import { PATHS } from "../../routes";
 
@@ -104,14 +105,13 @@ function Select({ id, label, value, onChange, options, placeholder }) {
   return (
     <div className="form-group">
       <label htmlFor={id}>{label}</label>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">{placeholder || "Select…"}</option>
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      <Dropdown
+        id={id}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder || "Select…"}
+        options={options.map((o) => ({ value: o.id, label: o.label }))}
+      />
     </div>
   );
 }
@@ -337,17 +337,20 @@ export default function ReportForm({
                 id="rf"
                 type="text"
                 inputMode="text"
-                list="floor-names"
                 autoComplete="off"
-                placeholder="Floor number (e.g. 3), basement, roof, outside…"
+                placeholder="Floor number (e.g. 3), or pick one below"
                 value={form.floor}
                 onChange={(e) => set("floor", e.target.value)}
               />
-              <datalist id="floor-names">
-                {catalogue.floors.map((f) => (
-                  <option key={f.id} value={f.label} />
-                ))}
-              </datalist>
+              {/* Quick picks in the page, not a <datalist>: Chrome draws a
+                  datalist as its own pop-up bubble, which looks out of place. */}
+              <div style={{ marginTop: 8 }}>
+                <Choice
+                  value={catalogue.floors.find((f) => f.label.toLowerCase() === form.floor.trim().toLowerCase())?.label}
+                  onChange={(label) => set("floor", label)}
+                  options={catalogue.floors.map((f) => ({ value: f.label, label: f.label }))}
+                />
+              </div>
               {form.floor.trim() && !floor && (
                 <small style={{ color: "#b91c1c" }}>
                   Type a floor number (1 to {MAX_FLOOR}), or basement, ground, roof, outside, whole building.
@@ -359,31 +362,21 @@ export default function ReportForm({
           {floor && floor !== "whole_building" && (
             <div className="form-group">
               <label htmlFor="ra">Which place?</label>
-              <select id="ra" value={placeValue} onChange={(e) => pickPlace(e.target.value)}>
-                <option value="">Select…</option>
-                {floor === "outside"
-                  ? (catalogue.parts.outside || []).map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.label}
-                      </option>
-                    ))
-                  : catalogue.areas.map((a) => {
-                      const sub = catalogue.parts[a.id];
-                      return sub ? (
-                        <optgroup key={a.id} label={a.label}>
-                          {sub.map((p) => (
-                            <option key={p.id} value={`${a.id}:${p.id}`}>
-                              {a.label}: {p.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ) : (
-                        <option key={a.id} value={a.id}>
-                          {a.label}
-                        </option>
-                      );
-                    })}
-              </select>
+              <Dropdown
+                id="ra"
+                value={placeValue}
+                onChange={pickPlace}
+                options={
+                  floor === "outside"
+                    ? (catalogue.parts.outside || []).map((p) => ({ value: p.id, label: p.label }))
+                    : catalogue.areas.map((a) => {
+                        const sub = catalogue.parts[a.id];
+                        return sub
+                          ? { group: a.label, options: sub.map((p) => ({ value: `${a.id}:${p.id}`, label: `${a.label}: ${p.label}` })) }
+                          : { value: a.id, label: a.label };
+                      })
+                }
+              />
               {(needsRoom || needsTypedPart) && (
                 <input
                   id="rp"
@@ -435,11 +428,18 @@ export default function ReportForm({
           {issueType && (
             <Select
               id="ri"
-              label="What's broken"
+              label={issueType.id === "waste" ? "What did you see" : "What's broken"}
               value={form.item_id}
               onChange={(v) => set("item_id", v)}
               options={[...items, { id: OTHER_ITEM, label: "Other (type)" }]}
             />
+          )}
+
+          {item?.alertsOfficer && (
+            <div className="report-note" role="note">
+              General Maintenance will be sent to deal with it, and the Sustainability Officer is told too, since this usually needs
+              a longer-term fix. You'll hear what came of it.
+            </div>
           )}
 
           {item && asksHowMany && (

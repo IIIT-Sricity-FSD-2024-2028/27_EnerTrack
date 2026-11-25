@@ -1,8 +1,10 @@
 /**
- * WastageReviewQueue — "Sustainability Reports — Pending Cost Review".
+ * WastageReviewQueue — wastage cases waiting for a cost review.
  *
- * Workflow 2, steps 9–12: the Sustainability Officer forwards a wastage
- * report → the Financial Analyst adds its cost impact → and returns it.
+ * The Sustainability Officer sends a case here only when its remedy needs
+ * spending (new fittings, sensors, equipment); free fixes never come to
+ * Finance. The Financial Analyst adds the cost impact (loss, cost to fix,
+ * savings, payback) and returns it, and the officer then sets a target.
  * This component owns the list (state) and the save logic; each report is
  * drawn by <WastageReportCard>, which reports clicks back through props.
  */
@@ -103,14 +105,14 @@ export default function WastageReviewQueue() {
     <section className="fo-panel" aria-labelledby="costReviewTitle">
       <div className="fo-panel-head">
         <div>
-          <h2 id="costReviewTitle">Wastage reports for cost review</h2>
-          <p>Reports the Sustainability Officer validated. Add the cost impact, then return them.</p>
+          <h2 id="costReviewTitle">Wastage fixes to cost</h2>
+          <p>Remedies that need spending. Work out the cost and payback, then return them to the Sustainability Officer.</p>
         </div>
         <span className={actionable.length ? "fo-count has-items" : "fo-count"}>{actionable.length} pending</span>
       </div>
 
       {actionable.length === 0 ? (
-        <div className="fo-empty">No reports waiting for cost review. Forwarded reports will appear here.</div>
+        <div className="fo-empty">Nothing to cost. Only wastage fixes that need spending come here.</div>
       ) : (
         actionable.map((report) => (
           <WastageReportCard

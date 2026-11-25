@@ -753,3 +753,12 @@ textarea {
     display: none;
   }
 }
+
+/* Finance's reason for sending an estimate back */
+.cost-reason {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--dark);
+}

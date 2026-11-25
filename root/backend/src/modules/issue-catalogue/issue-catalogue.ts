@@ -14,12 +14,19 @@ export type Seriousness = "A" | "B" | "C";
 export type Tag = "DANGER" | "HEALTH" | "WASTE";
 /** Hidden job size. Drives load points and deadline length, nothing else. */
 export type Size = "S" | "M" | "L";
-export type Team = "electrician" | "plumber" | "cleaning" | "hvac";
+/**
+ * "general" is General Maintenance: cleaning, garbage, and day-to-day waste
+ * such as lights or taps left on — jobs that need hands, not a trade.
+ */
+export type Team = "electrician" | "plumber" | "general" | "hvac";
 
 /** Every team a technician can belong to. The user form and validation use this list. */
-export const TEAMS: Team[] = ["electrician", "plumber", "cleaning", "hvac"];
+export const TEAMS: Team[] = ["electrician", "plumber", "general", "hvac"];
 
 export const SIZE_POINTS: Record<Size, number> = { S: 1, M: 2, L: 4 };
+
+/** The kinds of waste a report or a wastage case can be about. */
+export type WasteKind = "Energy" | "Water" | "Food" | "Emissions";
 
 export type AreaId =
   | "inside_room"
@@ -55,6 +62,16 @@ export interface ItemDef {
   areas?: AreaId[];
   /** Only offered on these floors (e.g. flooding). Omitted = any floor. */
   floors?: string[];
+  /**
+   * A one-off fix does not stop it (food thrown away, smoke): it is still a
+   * normal job for the item's team (General Maintenance acknowledges it,
+   * clears and weighs the food, gets an idling engine switched off), and the
+   * Sustainability Officer is also told at once and sees it as a hotspot
+   * straight away, since the real fix is usually a longer-term one.
+   */
+  alertsOfficer?: true;
+  /** What kind of waste it is, when not obvious from the issue type. */
+  wasteKind?: WasteKind;
   problems: ProblemDef[];
 }
 
@@ -289,6 +306,8 @@ export const ISSUE_TYPES: IssueTypeDef[] = [
       {
         id: "washing_machine",
         label: "Washing machine",
+        // Its waste is water (a leak), though the item sits under electricity.
+        wasteKind: "Water",
         team: "electrician",
         size: "M",
         areas: ["laundry_room"],
@@ -462,7 +481,7 @@ export const ISSUE_TYPES: IssueTypeDef[] = [
       {
         id: "room_cleaning",
         label: "Room cleaning",
-        team: "cleaning",
+        team: "general",
         size: "S",
         areas: ["inside_room"],
         problems: [
@@ -473,7 +492,7 @@ export const ISSUE_TYPES: IssueTypeDef[] = [
       {
         id: "floor_cleaning",
         label: "Floor, corridor or stairs",
-        team: "cleaning",
+        team: "general",
         size: "S",
         areas: ["corridor", "stairs", "common_area", "laundry_room", "outside", "whole_floor", "other"],
         problems: [
@@ -485,7 +504,7 @@ export const ISSUE_TYPES: IssueTypeDef[] = [
       {
         id: "restroom_cleaning",
         label: "Restroom cleaning",
-        team: "cleaning",
+        team: "general",
         size: "S",
         areas: ["restroom"],
         problems: [
@@ -497,7 +516,7 @@ export const ISSUE_TYPES: IssueTypeDef[] = [
       {
         id: "garbage_bins",
         label: "Garbage bins",
-        team: "cleaning",
+        team: "general",
         size: "S",
         problems: [
           p("overflowing", "Overflowing / not collected", "B", ["HEALTH"]),
@@ -505,9 +524,21 @@ export const ISSUE_TYPES: IssueTypeDef[] = [
         ],
       },
       {
+        // Someone can be sent to put it out and clear it: a cleaning job,
+        // not a waste signal for the Sustainability Officer.
+        id: "garbage_burning",
+        label: "Garbage or leaves being burned",
+        team: "general",
+        size: "S",
+        problems: [
+          p("burning_now", "Burning right now", "B", ["HEALTH"]),
+          p("burned_often", "Burned here often (not right now)", "C", ["HEALTH"]),
+        ],
+      },
+      {
         id: "one_off_mess",
         label: "One-off mess",
-        team: "cleaning",
+        team: "general",
         size: "S",
         problems: [
           p("vomit", "Vomit", "B", ["HEALTH"]),
@@ -517,7 +548,76 @@ export const ISSUE_TYPES: IssueTypeDef[] = [
       },
     ],
   },
+  {
+    id: "waste",
+    // Named for what is being wasted, so it is not mistaken for garbage
+    // (that is "Cleaning & Garbage", handled by General Maintenance alone).
+    label: "Energy, water or food being wasted",
+    items: [
+      {
+        id: "left_on",
+        label: "Lights, fans or AC left on",
+        team: "general",
+        size: "S",
+        wasteKind: "Energy",
+        problems: [
+          p("empty_room", "On in an empty room", "C", ["WASTE"]),
+          p("after_hours", "On after hours or overnight", "C", ["WASTE"]),
+          p("ac_doors_open", "AC on with doors or windows open", "C", ["WASTE"]),
+        ],
+      },
+      {
+        id: "water_left_on",
+        label: "Tap, shower or hose left running",
+        team: "general",
+        size: "S",
+        wasteKind: "Water",
+        problems: [
+          p("left_open", "Left running, nobody using it", "C", ["WASTE"]),
+          p("hose_sprinkler", "Garden hose or sprinkler left on", "C", ["WASTE"]),
+        ],
+      },
+      {
+        id: "food_waste",
+        label: "Food being thrown away",
+        team: "general",
+        size: "S",
+        alertsOfficer: true,
+        wasteKind: "Food",
+        problems: [
+          p("uneaten", "Lots of uneaten food thrown away", "C", ["WASTE"]),
+          p("unserved", "Cooked food dumped without being served", "C", ["WASTE"]),
+          p("spoiled", "Food spoiled in storage", "C", ["WASTE", "HEALTH"]),
+        ],
+      },
+      {
+        id: "smoke",
+        label: "Smoke or exhaust",
+        team: "general",
+        size: "S",
+        alertsOfficer: true,
+        wasteKind: "Emissions",
+        problems: [
+          p("generator_smoke", "Generator giving off heavy smoke", "B", ["WASTE"]),
+          p("idling", "Vehicles left idling", "C", ["WASTE"]),
+        ],
+      },
+    ],
+  },
 ];
+
+/** The waste kind behind an item, from the item itself or its issue type. */
+export function wasteKindOf(issueTypeId?: string | null, itemId?: string | null): WasteKind | null {
+  const found = itemId ? findItem(itemId) : undefined;
+  if (found?.item.wasteKind) return found.item.wasteKind;
+  const type = found?.type.id ?? issueTypeId;
+  return type === "electricity" ? "Energy" : type === "water" ? "Water" : null;
+}
+
+/** True when a report of this item is also sent straight to the Sustainability Officer. */
+export function alertsOfficer(itemId?: string | null): boolean {
+  return !!(itemId && findItem(itemId)?.item.alertsOfficer);
+}
 
 export const FOLLOW_UPS: FollowUpDef[] = [
   {
@@ -710,6 +810,8 @@ export function publicCatalogue() {
         areas: i.areas ?? null,
         floors: i.floors ?? null,
         problems: i.problems.map((x) => ({ id: x.id, label: x.label })),
+        // The form tells the reporter the Sustainability Officer is told too.
+        alertsOfficer: !!i.alertsOfficer,
         followUps: FOLLOW_UPS.filter((f) => f.when.item === i.id).map((f) => ({
           id: f.id,
           problems: f.when.problem === undefined ? null : [].concat(f.when.problem as any),

@@ -30,6 +30,7 @@ import { DepartmentsModule } from "./modules/departments/departments.module";
 import { MetersModule } from "./modules/meters/meters.module";
 import { MeterReadingsModule } from "./modules/meter-readings/meter-readings.module";
 import { WastageReportsModule } from "./modules/wastage-reports/wastage-reports.module";
+import { FoodWasteLogsModule } from "./modules/food-waste-logs/food-waste-logs.module";
 import { AlertsModule } from "./modules/alerts/alerts.module";
 import { FaultsModule } from "./modules/faults/faults.module";
 import { ServiceRequestsModule } from "./modules/service-requests/service-requests.module";
@@ -43,6 +44,7 @@ import { InitiativesModule } from "./modules/initiatives/initiatives.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { ActivityLogsModule } from "./modules/activity-logs/activity-logs.module";
 import { SustainabilityReportsModule } from "./modules/sustainability-reports/sustainability-reports.module";
+import { ExpenseBillsModule } from "./modules/expense-bills/expense-bills.module";
 
 @Module({
   imports: [
@@ -61,6 +63,7 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
     MetersModule,
     MeterReadingsModule,
     WastageReportsModule,
+    FoodWasteLogsModule,
     AlertsModule,
     FaultsModule,
     ServiceRequestsModule,
@@ -74,6 +77,7 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
     TargetsModule,
     ActivityLogsModule,
     SustainabilityReportsModule,
+    ExpenseBillsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -142,6 +146,7 @@ export class AppModule implements NestModule {
       .forRoutes(
         { path: "invoices/:id/document", method: RequestMethod.POST },
         { path: "wastage-reports/:id/photos", method: RequestMethod.POST },
+        { path: "expense-bills/:id/attachments", method: RequestMethod.POST },
       );
   }
 }

@@ -3414,7 +3414,7 @@
       "post": {
         "operationId": "UsersController_create",
         "summary": "Create User",
-        "description": "Creates a new user account in the system. Only the Organization Admin can register new users by providing name, email, password, role, and optional phone/specialization fields. Send a POST request with a CreateUserDto JSON body containing all required user fields.",
+        "description": "Creates a new user account in the system. Only the Organization Admin can register new users by providing name, email, password, role, and optional phone and team fields. Send a POST request with a CreateUserDto JSON body containing all required user fields.",
         "parameters": [
           {
             "name": "x-role",
@@ -3566,7 +3566,7 @@
       "patch": {
         "operationId": "UsersController_update",
         "summary": "Update User",
-        "description": "Partially updates specific fields of an existing user record (e.g., role, specialization, contact info). Only the Organization Admin can modify user details. Send a PATCH request with the user_id in the URL and an UpdateUserDto JSON body containing only the fields to change.",
+        "description": "Partially updates specific fields of an existing user record (e.g., role, team, contact info). Only the Organization Admin can modify user details. Send a PATCH request with the user_id in the URL and an UpdateUserDto JSON body containing only the fields to change.",
         "parameters": [
           {
             "name": "id",
@@ -5519,8 +5519,8 @@
     "/api/wastage-reports": {
       "post": {
         "operationId": "WastageReportsController_create",
-        "summary": "Create Wastage Report",
-        "description": "Submits a new wastage report. Any authenticated user (including Campus Visitor) can report wastage. Send a POST with a CreateWastageReportDto JSON body.",
+        "summary": "Open Wastage Case",
+        "description": "Opens a wastage case for a pattern of waste (a hotspot of repeated waste issues, or something seen on the meters). Only the Sustainability Officer or Organization Admin opens cases; occupants report single incidents as issues (POST /service-requests/reports). source_request_ids links the issue reports behind the case. A case starts as 'Open'.",
         "parameters": [
           {
             "name": "x-user-id",
@@ -5552,10 +5552,13 @@
         },
         "responses": {
           "201": {
-            "description": "Wastage report created successfully."
+            "description": "Wastage case opened."
           },
           "403": {
             "description": "Forbidden (RBAC)"
+          },
+          "404": {
+            "description": "A linked issue report does not exist."
           }
         },
         "tags": [
@@ -5564,8 +5567,8 @@
       },
       "get": {
         "operationId": "WastageReportsController_findAll",
-        "summary": "List All Wastage Reports",
-        "description": "Retrieves all wastage reports. Any authenticated user can view them (the frontend filters by reporter).",
+        "summary": "List Wastage Cases",
+        "description": "Staff see the organisation's cases. A Campus Visitor sees only the cases that grew out of an issue they reported.",
         "parameters": [
           {
             "name": "x-user-id",
@@ -5613,10 +5616,18 @@
             }
           },
           {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
             "schema": {
               "type": "string"
             }
@@ -5683,10 +5694,18 @@
             }
           },
           {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
             "schema": {
               "type": "string"
             }
@@ -5701,6 +5720,92 @@
           },
           "404": {
             "description": "Wastage report not found, or no matching photo attached."
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
+    "/api/wastage-reports/signals": {
+      "get": {
+        "operationId": "WastageReportsController_signals",
+        "summary": "Waste signals",
+        "description": "What the Sustainability Officer opens cases from. Waste issue reports grouped by place and kind over 30 days (hotspot at 3 or more, or at once for a food or smoke report), places whose logged food waste rose this week, and meters more than 10% above the same month last year. Every group is returned; hotspot marks the ones the rule flags, watched the ones the officer chose to watch, case_id the ones an active case already covers.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
+    "/api/wastage-reports/signals/watch": {
+      "post": {
+        "operationId": "WastageReportsController_watch",
+        "summary": "Watch a waste signal",
+        "description": "Keeps an eye on a signal instead of opening a case. It comes back as active when a new report arrives. Body: { key }.",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "wastage-reports"
+        ]
+      }
+    },
+    "/api/wastage-reports/signals/unwatch": {
+      "post": {
+        "operationId": "WastageReportsController_unwatch",
+        "summary": "Stop watching a waste signal",
+        "description": "Body: { key }.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
           }
         },
         "tags": [
@@ -5831,7 +5936,7 @@
       "patch": {
         "operationId": "WastageReportsController_update",
         "summary": "Update Wastage Report",
-        "description": "Partially updates a wastage report. A status change must follow the workflow: Sustainability Officer (and Organization Admin) Reported→Validated|Dismissed, Validated→Forwarded to Finance|Target Set|Dismissed, Returned to SO→Target Set|Forwarded to Finance, Target Set→Finalized, Finalized→Delivered; Financial Analyst (and Organization Admin) Forwarded to Finance→Cost Impact Added, Cost Impact Added→Returned to SO. Any other move returns 403. Saving the same status with other changes is allowed. Each move notifies the people concerned.",
+        "description": "Partially updates a wastage case. A status change must follow the workflow: Sustainability Officer (and Organization Admin) Open→Target Set|Forwarded to Finance|Dismissed, Returned to SO→Target Set|Forwarded to Finance|Dismissed, Target Set→Verify Target, Verify Target→Target Met|Target Missed, Target Met→Closed, Target Missed→Closed|Target Set; Financial Analyst (and Organization Admin) Forwarded to Finance→Cost Impact Added, Cost Impact Added→Returned to SO. Leaving Open needs details.remedy: a 'no_cost' remedy goes straight to Target Set, a 'spend' remedy (with estimate > 0) must go through Finance first. Any other move returns 403 (400 when no remedy is given). Saving the same status with other changes is allowed. Closing a case tells the reporters of its linked issues what came of it.",
         "parameters": [
           {
             "name": "id",
@@ -5937,6 +6042,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -5980,10 +6093,18 @@
             }
           },
           {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
             "schema": {
               "type": "string"
             }
@@ -6008,8 +6129,8 @@
     "/api/wastage-reports/{id}/work-order": {
       "post": {
         "operationId": "WastageReportsController_raiseWorkOrder",
-        "summary": "Raise a work order from a validated report",
-        "description": "Sends the job through the same assignment as every other job: team from the kind of wastage, one ranked technician, a deadline. One per report.",
+        "summary": "Raise a work order from a case",
+        "description": "For a remedy that needs physical work. Sends the job through the same assignment as every other job: team from the kind of wastage, one ranked technician, a deadline. One per case; only while the case is active.",
         "parameters": [
           {
             "name": "id",
@@ -6039,6 +6160,161 @@
         },
         "tags": [
           "wastage-reports"
+        ]
+      }
+    },
+    "/api/food-waste-logs": {
+      "post": {
+        "operationId": "FoodWasteLogsController_create",
+        "summary": "Log food waste",
+        "description": "Records the kg of food cleared from a place's food-waste bins on a day. Technicians may log only if they are on the General Maintenance team. The date defaults to today and cannot be in the future.",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": false,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFoodWasteLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Logged."
+          },
+          "403": {
+            "description": "Forbidden (role, or a technician not on General Maintenance)."
+          }
+        },
+        "tags": [
+          "food-waste-logs"
+        ]
+      },
+      "get": {
+        "operationId": "FoodWasteLogsController_findAll",
+        "summary": "List food waste logs",
+        "description": "Newest first. Filter by place and date range (YYYY-MM-DD).",
+        "parameters": [
+          {
+            "name": "location",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "food-waste-logs"
+        ]
+      }
+    },
+    "/api/food-waste-logs/summary": {
+      "get": {
+        "operationId": "FoodWasteLogsController_summary",
+        "summary": "Food waste by place",
+        "description": "kg a day over the last 7 and 30 days for each place, and whether the last week is rising.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "food-waste-logs"
+        ]
+      }
+    },
+    "/api/food-waste-logs/{id}": {
+      "delete": {
+        "operationId": "FoodWasteLogsController_remove",
+        "summary": "Delete a food waste log",
+        "description": "Removes a mistaken entry.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "food-waste-logs"
         ]
       }
     },
@@ -8691,7 +8967,7 @@
       "patch": {
         "operationId": "InitiativesController_update",
         "summary": "Update Initiative",
-        "description": "Partially updates an initiative. Status changes follow the approval gate: only the Organization Admin moves proposed→approved|rejected (optional decision_note, sent to the proposer); the Sustainability Officer (or Admin) moves approved→in-progress→completed. Anything else is 403.",
+        "description": "Partially updates an initiative. Status changes follow the approval gate: only the Organization Admin moves proposed→approved|rejected (optional decision_note, sent to the proposer); the Sustainability Officer (or Admin) moves approved→in-progress→completed. Anything else is 403. With onsite_work: approved→in-progress sends one job per technician type in teams into dispatch, all at once, each due on the target date (400 if that date has passed); in-progress→completed is refused (409) while any of its jobs is open.",
         "parameters": [
           {
             "name": "id",
@@ -8801,6 +9077,55 @@
         "responses": {
           "200": {
             "description": ""
+          }
+        },
+        "tags": [
+          "initiatives"
+        ]
+      }
+    },
+    "/api/initiatives/{id}/jobs/{workOrderId}/send-back": {
+      "post": {
+        "operationId": "InitiativesController_sendBack",
+        "summary": "Send initiative work back",
+        "description": "For an in-progress initiative with on-site work: one of its closed jobs was not done properly. Creates a new job for the same technician type through normal dispatch, with the reason (shown to the technician) and finish_by (YYYY-MM-DD, today or later) as its finish date. The initiative cannot be completed until that job is closed too. 400 if the job is still open, the reason is under 3 characters or the date is missing or past.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "workOrderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendBackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Rework job created; returns the initiative with its jobs."
+          },
+          "400": {
+            "description": "Job still open, initiative not in progress, or bad reason/date."
+          },
+          "404": {
+            "description": "Initiative or job not found."
           }
         },
         "tags": [
@@ -9663,6 +9988,503 @@
           "sustainability-reports"
         ]
       }
+    },
+    "/api/expense-bills": {
+      "post": {
+        "operationId": "ExpenseBillsController_create",
+        "summary": "Create Expense Bill",
+        "description": "Submits a new expense bill linked to an inprogress or review work order.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExpenseBillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Expense bill created successfully."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "get": {
+        "operationId": "ExpenseBillsController_findAll",
+        "summary": "List Expense Bills",
+        "description": "Returns expense bills scoped to the organization. Technicians see only their submitted bills.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "work_order_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of expense bills."
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
+    },
+    "/api/expense-bills/{id}/attachments": {
+      "post": {
+        "operationId": "ExpenseBillsController_uploadAttachments",
+        "summary": "Upload Expense Bill Receipts",
+        "description": "Uploads up to 5 receipts/invoices (.pdf, .jpg, .jpeg, .png up to 10MB each) for an expense bill.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Files attached successfully."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
+    },
+    "/api/expense-bills/{id}/attachments/{filename}": {
+      "get": {
+        "operationId": "ExpenseBillsController_getAttachment",
+        "summary": "Download or preview Expense Bill Attachment",
+        "description": "Streams an expense bill attachment file.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File content."
+          },
+          "404": {
+            "description": "Attachment not found."
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "delete": {
+        "operationId": "ExpenseBillsController_removeAttachment",
+        "summary": "Delete Expense Bill Attachment",
+        "description": "Removes an attachment from a non-approved expense bill.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attachment removed successfully."
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
+    },
+    "/api/expense-bills/settings": {
+      "get": {
+        "operationId": "ExpenseBillsController_getSettings",
+        "summary": "Get Expense Auto-Approve Settings",
+        "description": "Returns the organization's cumulative per-Work-Order minor expense cap and max auto-approvals per WO.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense settings."
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "patch": {
+        "operationId": "ExpenseBillsController_updateSettings",
+        "summary": "Update Expense Auto-Approve Cap",
+        "description": "Updates the organization's cumulative per-Work-Order auto-approve cap (set 0 to disable auto-approval).",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExpenseSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expense settings updated."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
+    },
+    "/api/expense-bills/{id}": {
+      "get": {
+        "operationId": "ExpenseBillsController_findOne",
+        "summary": "Get Expense Bill Details",
+        "description": "Returns an enriched expense bill with variance calculations.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense bill details."
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "patch": {
+        "operationId": "ExpenseBillsController_update",
+        "summary": "Update / Review Expense Bill",
+        "description": "Edit bill details, resubmit rejected bill, or approve/reject bill.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExpenseBillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expense bill updated successfully."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      },
+      "delete": {
+        "operationId": "ExpenseBillsController_remove",
+        "summary": "Delete Expense Bill",
+        "description": "Deletes a non-approved expense bill.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": true,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "description": "User ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense bill deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "expense-bills"
+        ]
+      }
     }
   },
   "info": {
@@ -9751,6 +10573,10 @@
     {
       "name": "sustainability-reports",
       "description": "Sustainability report generation and archiving"
+    },
+    {
+      "name": "expense-bills",
+      "description": "Technician expense bills and finance verification"
     }
   ],
   "servers": [],
@@ -9775,7 +10601,8 @@
           "floor_area_sqm": 42000,
           "tariff_rate": 8.5,
           "contract_start": "2025-01-01",
-          "email_domain": null
+          "email_domain": null,
+          "expense_auto_approve_cap": 1500
         }
       },
       "PutOrganizationDto": {
@@ -9793,7 +10620,8 @@
           "floor_area_sqm": 42000,
           "tariff_rate": 8.5,
           "contract_start": "2025-01-01",
-          "email_domain": null
+          "email_domain": null,
+          "expense_auto_approve_cap": 1500
         }
       },
       "CreateSubscriptionPlanDto": {
@@ -9954,9 +10782,8 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$DK5LZVAYa1RTovJO0jt4nefmYnuq6rhMldIBT0D5pTg0LVEf6KhIK",
-          "role": "Organization Admin",
-          "specialization": null
+          "password": "$2b$08$2I2HbSDaDOHrZSwG.xtv6.C0IvurjF.zf/O8VN3ZG94Q6ni97Yrm2",
+          "role": "Organization Admin"
         }
       },
       "PutUserDto": {
@@ -9971,23 +10798,13 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$DK5LZVAYa1RTovJO0jt4nefmYnuq6rhMldIBT0D5pTg0LVEf6KhIK",
-          "role": "Organization Admin",
-          "specialization": null
+          "password": "$2b$08$2I2HbSDaDOHrZSwG.xtv6.C0IvurjF.zf/O8VN3ZG94Q6ni97Yrm2",
+          "role": "Organization Admin"
         }
       },
       "CreateNotificationDto": {
         "type": "object",
-        "properties": {},
-        "example": {
-          "organization_id": "org-001",
-          "user_id": "550e8400-0005-4000-8000-000000000005",
-          "target_type": "wastage",
-          "target_id": "wwww0000-0001-4000-8000-000000000000",
-          "message": "New water wastage report WR-3N2A8Z at Main Courtyard, East Wing.",
-          "is_read": true,
-          "created_at": "2026-11-12T09:15:00.000Z"
-        }
+        "properties": {}
       },
       "PutNotificationDto": {
         "type": "object",
@@ -9995,16 +10812,7 @@
       },
       "UpdateNotificationDto": {
         "type": "object",
-        "properties": {},
-        "example": {
-          "organization_id": "org-001",
-          "user_id": "550e8400-0005-4000-8000-000000000005",
-          "target_type": "wastage",
-          "target_id": "wwww0000-0001-4000-8000-000000000000",
-          "message": "New water wastage report WR-3N2A8Z at Main Courtyard, East Wing.",
-          "is_read": true,
-          "created_at": "2026-11-12T09:15:00.000Z"
-        }
+        "properties": {}
       },
       "CreateCampusDto": {
         "type": "object",
@@ -10136,27 +10944,23 @@
         "type": "object",
         "properties": {},
         "example": {
-          "created_at": "2026-11-12T09:15:00.000Z",
+          "created_at": "2026-11-18T13:40:00.000Z",
           "organization_id": "org-001",
-          "reporter_id": "550e8400-0002-4000-8000-000000000002",
-          "type": "Water",
-          "status": "pending",
+          "reporter_id": "550e8400-0005-4000-8000-000000000005",
+          "type": "Food",
+          "status": "Open",
+          "source_request_ids": [],
           "details": {
-            "specificData": {
-              "nature": "Sprinkler system leaking heavily near the pathway.",
-              "location": "Main Courtyard, East Wing"
-            },
-            "priority": "High",
-            "systemData": {
-              "sensorId": "FLOW-CW-01",
-              "readingValue": 45.5,
-              "readingUnit": "L/min",
-              "baselineValue": 20,
-              "confidence": "High",
-              "status": "abnormal"
-            }
+            "origin": "food_log",
+            "signalKey": "food_log|north campus cafeteria",
+            "signalReasons": [
+              "34 kg a day over 30 days"
+            ],
+            "title": "Food thrown away at North Campus Cafeteria",
+            "location": "North Campus Cafeteria",
+            "notes": "General Maintenance weigh around 34 kg of food from the cafeteria bins every day."
           },
-          "sensor_reading_id": "rrrr0000-0001-4000-8000-000000000000"
+          "sensor_reading_id": null
         }
       },
       "PutWastageReportDto": {
@@ -10171,28 +10975,28 @@
         "type": "object",
         "properties": {},
         "example": {
-          "created_at": "2026-11-12T09:15:00.000Z",
+          "created_at": "2026-11-18T13:40:00.000Z",
           "organization_id": "org-001",
-          "reporter_id": "550e8400-0002-4000-8000-000000000002",
-          "type": "Water",
-          "status": "pending",
+          "reporter_id": "550e8400-0005-4000-8000-000000000005",
+          "type": "Food",
+          "status": "Open",
+          "source_request_ids": [],
           "details": {
-            "specificData": {
-              "nature": "Sprinkler system leaking heavily near the pathway.",
-              "location": "Main Courtyard, East Wing"
-            },
-            "priority": "High",
-            "systemData": {
-              "sensorId": "FLOW-CW-01",
-              "readingValue": 45.5,
-              "readingUnit": "L/min",
-              "baselineValue": 20,
-              "confidence": "High",
-              "status": "abnormal"
-            }
+            "origin": "food_log",
+            "signalKey": "food_log|north campus cafeteria",
+            "signalReasons": [
+              "34 kg a day over 30 days"
+            ],
+            "title": "Food thrown away at North Campus Cafeteria",
+            "location": "North Campus Cafeteria",
+            "notes": "General Maintenance weigh around 34 kg of food from the cafeteria bins every day."
           },
-          "sensor_reading_id": "rrrr0000-0001-4000-8000-000000000000"
+          "sensor_reading_id": null
         }
+      },
+      "CreateFoodWasteLogDto": {
+        "type": "object",
+        "properties": {}
       },
       "CreateAlertDto": {
         "type": "object",
@@ -10320,8 +11124,7 @@
             "type": "scheduled",
             "estimateRequired": true,
             "estimate": {
-              "materials": 18000,
-              "labor": 6500,
+              "materials": 24500,
               "total": 24500,
               "type": "repair"
             }
@@ -10348,8 +11151,7 @@
             "type": "scheduled",
             "estimateRequired": true,
             "estimate": {
-              "materials": 18000,
-              "labor": 6500,
+              "materials": 24500,
               "total": 24500,
               "type": "repair"
             }
@@ -10508,6 +11310,10 @@
           ]
         }
       },
+      "SendBackDto": {
+        "type": "object",
+        "properties": {}
+      },
       "CreateTargetDto": {
         "type": "object",
         "properties": {}
@@ -10591,6 +11397,74 @@
       "UpdateReportStatusDto": {
         "type": "object",
         "properties": {}
+      },
+      "CreateExpenseBillDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "organization_id": "org-001",
+          "work_order_id": "660e8600-0002-4000-8000-000000000000",
+          "submitted_by_id": "550e8400-0004-4000-8000-000000000004",
+          "title": "Replacement Solar Inverter Cables & Connectors",
+          "vendor": "Sri City Electricals",
+          "category": "materials",
+          "bill_date": "2026-11-20",
+          "bill_number": "SCE-2026-901",
+          "amount": 4200,
+          "notes": "Heavy-duty UV resistant cables and MC4 connectors for Roof Level 3 array inspection repair.",
+          "attachments": [],
+          "status": "submitted",
+          "auto_approved": false,
+          "reviewed_by_id": null,
+          "reviewed_at": null,
+          "rejection_reason": null,
+          "created_at": "2026-11-20T10:15:00.000Z",
+          "updated_at": "2026-11-20T10:15:00.000Z",
+          "history": [
+            {
+              "at": "2026-11-20T10:15:00.000Z",
+              "by": "550e8400-0004-4000-8000-000000000004",
+              "role": "Technician",
+              "action": "submitted"
+            }
+          ]
+        }
+      },
+      "UpdateExpenseSettingsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateExpenseBillDto": {
+        "type": "object",
+        "properties": {},
+        "example": {
+          "organization_id": "org-001",
+          "work_order_id": "660e8600-0002-4000-8000-000000000000",
+          "submitted_by_id": "550e8400-0004-4000-8000-000000000004",
+          "title": "Replacement Solar Inverter Cables & Connectors",
+          "vendor": "Sri City Electricals",
+          "category": "materials",
+          "bill_date": "2026-11-20",
+          "bill_number": "SCE-2026-901",
+          "amount": 4200,
+          "notes": "Heavy-duty UV resistant cables and MC4 connectors for Roof Level 3 array inspection repair.",
+          "attachments": [],
+          "status": "submitted",
+          "auto_approved": false,
+          "reviewed_by_id": null,
+          "reviewed_at": null,
+          "rejection_reason": null,
+          "created_at": "2026-11-20T10:15:00.000Z",
+          "updated_at": "2026-11-20T10:15:00.000Z",
+          "history": [
+            {
+              "at": "2026-11-20T10:15:00.000Z",
+              "by": "550e8400-0004-4000-8000-000000000004",
+              "role": "Technician",
+              "action": "submitted"
+            }
+          ]
+        }
       }
     }
   },

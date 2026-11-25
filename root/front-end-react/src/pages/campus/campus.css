@@ -91,10 +91,11 @@ body {
 .report-card {
   background: white;
   border-radius: 16px;
-  overflow: hidden;
+  /* Not overflow: hidden, so a form dropdown can open past the card's edge. */
 }
 
 .report-card-header {
+  border-radius: 16px 16px 0 0;
   background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
   padding: 24px 28px;
   color: white;
@@ -827,6 +828,97 @@ body {
 .btn-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+
+/* ── Dropdown (report form pickers; always opens below) ── */
+.dd {
+  position: relative;
+}
+
+.dd-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--dark);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.dd-button:focus-visible,
+.dd-button.is-open {
+  outline: none;
+  border-color: var(--dark);
+}
+
+.dd-button svg {
+  flex-shrink: 0;
+  color: #6b7280;
+  transition: transform 0.15s;
+}
+
+.dd-button.is-open svg {
+  transform: rotate(180deg);
+}
+
+.dd-placeholder {
+  color: #9ca3af;
+}
+
+.dd-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.12);
+}
+
+.dd-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dd-group {
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6b7280;
+}
+
+.dd-option {
+  padding: 8px 14px;
+  font-size: 14px;
+  color: var(--dark);
+  cursor: pointer;
+}
+
+.dd-option.is-active {
+  background: #f3f4f6;
+}
+
+.dd-option.is-selected {
+  font-weight: 600;
 }
 
 /* ── Campus issues: one list per kind of problem ── */

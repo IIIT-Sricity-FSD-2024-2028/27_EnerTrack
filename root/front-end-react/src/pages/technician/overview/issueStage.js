@@ -11,7 +11,7 @@
  */
 
 /** The six steps of the progress rail, in order. */
-export const STEPS = ["Reported", "Assigned", "Accepted", "Working", "Review", "Fixed"];
+export const STEPS = ["Reported", "Sent", "Accepted", "Working", "Review", "Fixed"];
 
 const LEVEL_RANK = { immediate: 0, high: 1, medium: 2, low: 3 };
 const CLOSED = ["closed", "resolved", "completed"];
@@ -27,6 +27,9 @@ export const levelLabel = (level) =>
   level === "immediate" ? "Critical" : level ? level[0].toUpperCase() + level.slice(1) : "Low";
 
 const isClosed = (status) => CLOSED.includes(String(status || "").toLowerCase());
+
+/** ₹2,400 style amount, or "a cost" when none was given. */
+export const money = (n) => (Number.isFinite(Number(n)) && n !== null && n !== undefined ? `₹${Number(n).toLocaleString("en-IN")}` : "a cost");
 
 /** The work order made from a ticket: an open one if there is one, else the latest. */
 export function workOrderOf(ticket, workOrders) {
@@ -59,41 +62,86 @@ export function placeOf(ticket, buildings, catalogue) {
  * Where the issue stands. `step` is an index into STEPS; `needsYou` is true
  * when only the coordinator can move it on.
  */
-export function stageOf(ticket, wo, now = Date.now()) {
+export function stageOf(ticket, wo, now = Date.now(), who = "The technician") {
   if (isClosed(ticket.status) || wo?.status === "closed") {
     return { step: 5, label: "Fixed", needsYou: false, key: "fixed" };
   }
   if (!wo || ticket.dispatch_state === "queued" || !wo.assigned_to_id) {
     return {
       step: 0,
-      label: "Waiting for a person",
+      label: "Nobody has it yet",
       detail: QUEUE_REASON[ticket.queued_reason] || QUEUE_REASON.manual,
       needsYou: true,
       key: "queued",
     };
   }
   if (wo.status === "review") {
-    return { step: 4, label: "Ready to verify", needsYou: true, key: "verify" };
+    return {
+      step: 4,
+      label: "Finished",
+      detail: `${who} says the work is done. Check it and close the job.`,
+      needsYou: true,
+      key: "verify",
+    };
   }
   if (wo.status === "inprogress") {
-    return { step: 3, label: "Working", needsYou: false, key: "working" };
+    return { step: 3, label: "Work in progress", needsYou: false, key: "working" };
   }
   if (wo.status === "approval") {
-    return { step: 2, label: "Waiting for cost approval", needsYou: false, key: "approval" };
+    return {
+      step: 2,
+      label: "With Finance for approval",
+      detail: `${who} asked for ${money(wo.details?.estimate?.total)} for materials. Work waits for Finance to approve.`,
+      needsYou: false,
+      key: "approval",
+    };
+  }
+  // Finance answered "no": the estimate came back to the technician.
+  if (wo.status === "new" && wo.details?.estimate && wo.details?.decision?.result === "sent_back") {
+    return {
+      step: 2,
+      label: "Estimate sent back by Finance",
+      detail: `${who} needs to send a new estimate.${wo.details.decision.reason ? ` Finance says: ${wo.details.decision.reason}` : ""}`,
+      needsYou: false,
+      key: "sentback",
+    };
   }
   const d = wo.dispatch;
   if (d?.ack_status === "acknowledged") {
-    return { step: 2, label: "Accepted", needsYou: false, key: "accepted" };
+    return { step: 2, label: "Accepted, not started", detail: `${who} has taken it. Work has not started yet.`, needsYou: false, key: "accepted" };
   }
   const left = d?.ack_due_at ? Math.max(0, Math.round((new Date(d.ack_due_at) - now) / 60000)) : null;
   return {
     step: 1,
-    label: "Assigned",
-    detail: left === null ? "" : `${left} min left to accept`,
+    label: "Sent, not accepted yet",
+    detail:
+      left === null
+        ? `Waiting for ${who} to answer.`
+        : `${who} has ${left} min left to accept. With no answer it moves to the next person.`,
+    ackLeft: left,
     needsYou: false,
     key: "assigned",
   };
 }
+
+/**
+ * How the current holder got the job, from the history: "You" when the
+ * coordinator placed it, "System" when the assignment picked them.
+ */
+export function assignedBy(wo) {
+  const events = (wo?.dispatch?.history || []).filter((h) => ["assigned", "reassigned", "manual"].includes(h.event));
+  const last = events[events.length - 1];
+  if (!last) return null;
+  return last.event === "manual" ? "You placed it" : "Picked by the system";
+}
+
+export const initialsOf = (name) =>
+  String(name || "?")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
 
 /** Deadline facts for a row, from the stored job clock. */
 export function clockOf(wo, now = Date.now()) {
@@ -115,8 +163,8 @@ export function clockOf(wo, now = Date.now()) {
 
 /** "1 d 3 h left", "5 h left", "2 h overdue". */
 export function leftText(hours) {
-  const abs = Math.abs(hours);
-  const text = abs >= 24 ? `${Math.floor(abs / 24)} d ${Math.round(abs % 24)} h` : `${Math.round(abs)} h`;
+  const abs = Math.round(Math.abs(hours)); // round once, so 23.6 h cannot print as "1 d 24 h"
+  const text = abs >= 24 ? `${Math.floor(abs / 24)} d ${abs % 24} h` : `${abs} h`;
   return hours < 0 ? `${text} overdue` : `${text} left`;
 }
 
@@ -132,10 +180,14 @@ export function buildRows({ tickets, workOrders, queued, buildings, catalogue, u
     .filter((t) => t.item_id)
     .map((t) => {
       const wo = workOrderOf(t, workOrders);
-      const stage = stageOf(t, wo, now);
+      const holder = wo?.assigned_to_id ? users.find((u) => u.user_id === wo.assigned_to_id) : null;
+      const stage = stageOf(t, wo, now, holder?.name || "The technician");
       const clock = stage.key === "fixed" ? null : clockOf(wo, now);
       const level = waiting.get(t.service_request_id) || t.priority || "low";
       return {
+        holder,
+        how: holder ? assignedBy(wo) : null,
+        assignedAt: wo?.dispatch?.assigned_at || null,
         id: t.service_request_id,
         ticket: t,
         wo,
@@ -176,7 +228,9 @@ export function sortRows(rows) {
 export const FILTERS = [
   { id: "all", label: "All", test: () => true },
   { id: "needs", label: "Needs you", test: (r) => r.needsYou },
-  { id: "progress", label: "In progress", test: (r) => ["assigned", "accepted", "approval", "working"].includes(r.stage.key) },
+  { id: "unaccepted", label: "Not accepted yet", test: (r) => r.stage.key === "assigned" },
+  { id: "finance", label: "With Finance", test: (r) => r.stage.key === "approval" },
+  { id: "progress", label: "In progress", test: (r) => ["accepted", "sentback", "working"].includes(r.stage.key) },
   { id: "late", label: "Late", test: (r) => !!r.clock?.late },
   { id: "critical", label: "Critical", test: (r) => r.level === "immediate" },
   // Opened from the "Needs you" tiles; no chip of their own.
@@ -184,3 +238,11 @@ export const FILTERS = [
   { id: "requests", hidden: true, test: (r) => !!r.clock?.request },
   { id: "unsafe", hidden: true, test: (r) => !!r.clock?.unsafe },
 ];
+
+/** Load words and text, shared by the Team panel bar and the person pickers. */
+export const LOAD_LABEL = { light: "Light", busy: "Busy", full: "Full" };
+
+export const jobsText = (n) => (n === 0 ? "No open jobs" : n === 1 ? "1 open job" : `${n} open jobs`);
+
+/** "Busy (2 open jobs)", for places that can only show text, like a dropdown. */
+export const loadText = (p) => `${LOAD_LABEL[p.load] || "Light"} (${jobsText(p.open_jobs ?? 0)})`;

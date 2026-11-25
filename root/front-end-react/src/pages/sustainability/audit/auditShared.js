@@ -14,12 +14,13 @@ export const ROLE_BADGES = {
   "Financial Analyst": { label: "FA", color: "#6366f1" },
 };
 
-// The seed data and older clients store lowercase statuses ("pending",
-// "reported", "target set"); the workflow uses the capitalised ones.
+// Wastage cases. Older records may still say "pending", "Reported" or
+// "Validated" (all mean Open now) or "Finalized" / "Delivered" (Closed).
 const STATUS_ALIASES = {
-  pending: "Reported",
-  reported: "Reported",
-  validated: "Validated",
+  open: "Open",
+  pending: "Open",
+  reported: "Open",
+  validated: "Open",
   "forwarded to finance": "Forwarded to Finance",
   "cost impact added": "Cost Impact Added",
   "returned to so": "Returned to SO",
@@ -27,12 +28,13 @@ const STATUS_ALIASES = {
   "verify target": "Verify Target",
   "target met": "Target Met",
   "target missed": "Target Missed",
-  finalized: "Finalized",
+  finalized: "Closed",
   dismissed: "Dismissed",
-  delivered: "Delivered",
+  delivered: "Closed",
+  closed: "Closed",
 };
 
 export function normalizeStatus(status) {
-  if (!status) return "Reported";
+  if (!status) return "Open";
   return STATUS_ALIASES[String(status).trim().toLowerCase()] || status;
 }

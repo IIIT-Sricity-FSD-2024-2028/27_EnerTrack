@@ -233,6 +233,8 @@ export function normalizeWastageReport(r, user) {
     validatedAt: d.validatedAt || r.validatedAt,
     revisionRequest: d.revisionRequest || r.revisionRequest,
     returnedAt: d.returnedAt || r.returnedAt,
+    // The waste reports a case grew out of.
+    sourceRequestIds: r.source_request_ids || [],
     details: d,
   };
 }

@@ -22,3 +22,6 @@ coverage/
 *.bak
 *.orig
 *.tmp
+
+# Personal notes
+TESTING_GUIDE.md

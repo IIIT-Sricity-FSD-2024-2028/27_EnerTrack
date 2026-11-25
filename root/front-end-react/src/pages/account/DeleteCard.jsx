@@ -11,15 +11,17 @@
  * navigation comes first).
  */
 import { startTransition, useState } from "react";
+import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { PATHS } from "../../routes";
 import Modal from "../technician/components/Modal";
-import { deleteAccount } from "../auth/authFlow";
+import { deleteAccount } from "../../store/slices/authSlice";
 import Field from "./Field";
 
 export default function DeleteCard() {
   const { user, logout } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
@@ -42,7 +44,7 @@ export default function DeleteCard() {
 
     setDeleting(true);
     try {
-      await deleteAccount({ email: user.email, password });
+      await dispatch(deleteAccount({ email: user.email, password })).unwrap();
       navigate(PATHS.landing);
       startTransition(() => logout());
     } catch (err) {

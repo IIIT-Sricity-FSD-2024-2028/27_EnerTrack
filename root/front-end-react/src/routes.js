@@ -30,9 +30,11 @@ export const PATHS = {
     registrations: "/admin/registrations",
     infrastructure: "/admin/infrastructure",
     sustainabilityApprovals: "/admin/sustainability-approvals",
+    expenses: "/admin/expenses",
   },
   finance: {
     overview: "/finance/overview",
+    expenses: "/finance/expenses",
     reports: "/finance/reports",
     costs: "/finance/costs",
     subscription: "/finance/subscription",
@@ -42,6 +44,7 @@ export const PATHS = {
     overview: "/sustainability/overview",
     monitoring: "/sustainability/monitoring",
     targets: "/sustainability/targets",
+    wastage: "/sustainability/wastage",
     report: "/sustainability/report",
     initiatives: "/sustainability/initiatives",
     archives: "/sustainability/archives",
@@ -56,6 +59,7 @@ export const PATHS = {
   technicianJr: {
     overview: "/technician-jr/overview",
     workOrders: "/technician-jr/work-orders",
+    expenses: "/technician-jr/expenses",
   },
   auditor: {
     overview: "/auditor/overview",
@@ -64,6 +68,8 @@ export const PATHS = {
   campus: {
     dashboard: "/campus/dashboard",
     issues: "/campus/issues",
+    // Retired: waste is reported through "Report an Issue" now. Old links
+    // to this path land on the dashboard.
     wastage: "/campus/wastage",
     archives: "/campus/archives",
   },
@@ -186,6 +192,11 @@ export const NAV = {
       roles: ["Organization Admin"],
     },
     {
+      label: "Maintenance Spend",
+      to: PATHS.admin.expenses,
+      roles: ["Organization Admin"],
+    },
+    {
       label: "Your Plan",
       to: PATHS.admin.subscription,
       roles: ["Organization Admin"],
@@ -193,6 +204,7 @@ export const NAV = {
   ],
   finance: [
     { label: "Overview", to: PATHS.finance.overview },
+    { label: "Maintenance Spend", to: PATHS.finance.expenses },
     { label: "Financial Reports & Impact", to: PATHS.finance.reports },
     { label: "Utility Costs", to: PATHS.finance.costs },
     { label: "Your EnerTrack Subscription", to: PATHS.finance.subscription },
@@ -202,6 +214,7 @@ export const NAV = {
     { label: "Overview", to: PATHS.sustainability.overview },
     { label: "Initiatives", to: PATHS.sustainability.initiatives },
     { label: "Monitoring", to: PATHS.sustainability.monitoring },
+    { label: "Wastage", to: PATHS.sustainability.wastage },
     { label: "Targets", to: PATHS.sustainability.targets },
     { label: "Reports", to: PATHS.sustainability.report },
     { label: "Archives", to: PATHS.sustainability.archives },
@@ -218,6 +231,7 @@ export const NAV = {
   technicianJr: [
     { label: "Overview", to: PATHS.technicianJr.overview },
     { label: "My Work Orders", to: PATHS.technicianJr.workOrders },
+    { label: "Expense Bills", to: PATHS.technicianJr.expenses },
   ],
   auditor: [
     { label: "Overview", to: PATHS.auditor.overview },
@@ -226,7 +240,6 @@ export const NAV = {
   campus: [
     { label: "Report an Issue", to: PATHS.campus.dashboard },
     { label: "Campus Issues", to: PATHS.campus.issues },
-    { label: "Report Wastage", to: PATHS.campus.wastage },
     { label: "My Archives", to: PATHS.campus.archives },
   ],
 };

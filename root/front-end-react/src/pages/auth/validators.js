@@ -184,14 +184,6 @@ function emailDomain(value) {
   return "";
 }
 
-function specialization(value) {
-  const v = value.trim();
-  if (v === "") return "";
-  return PATTERNS.label.test(v)
-    ? ""
-    : "Use 2-60 characters: letters, spaces and & / -";
-}
-
 // Admin fields on the register form reuse the person rules, with their own
 // wording, and the email must match the organisation's domain when given.
 function adminEmail(value, values) {
@@ -240,7 +232,6 @@ export const validators = {
   currentPassword: loginPassword,
   newPassword,
   confirmNewPassword,
-  specialization,
   optionalPhone,
 };
 

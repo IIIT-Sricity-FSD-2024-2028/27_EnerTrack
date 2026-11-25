@@ -1,20 +1,16 @@
 /**
  * Overview — /sustainability/overview, the Sustainability Officer's home page.
  *
- * Two questions, in order:
- *   1. How is campus doing?  One summary panel: energy, water, emissions and
- *      food waste, each with its change on the previous period and its
- *      campus-wide target. How each figure is measured sits in a fold below.
- *   2. What do I need to do? The wastage reports waiting on the officer
- *      (<WastageAuditQueue>).
+ * How is campus doing? One summary panel: energy, water, emissions and
+ * food waste, each with its change on the previous period and its
+ * campus-wide target. How each figure is measured sits in a fold below.
+ * Waste signals and wastage cases have their own page (Wastage.jsx).
  */
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api/client";
 import { PATHS } from "../../routes";
-import Toast from "./components/Toast";
 import { addMonths, rangeLabel } from "./periods";
-import WastageAuditQueue from "./audit/WastageAuditQueue";
 import overviewCss from "./overview.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
 
@@ -22,20 +18,10 @@ export default function SustainabilityOverview() {
   const [summary, setSummary] = useState(null);
   const [targets, setTargets] = useState({});
   const [activeInitiatives, setActiveInitiatives] = useState(null);
-  const [queueReloadKey, setQueueReloadKey] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [toast, setToast] = useState(null);
-
-  const showToast = useCallback((msg, type = "success") => {
-    setToast({ msg, type });
-  }, []);
-
-  const closeToast = useCallback(() => {
-    setToast(null);
-  }, []);
 
   const loadData = useCallback(() => {
     let active = true;
@@ -87,7 +73,6 @@ export default function SustainabilityOverview() {
   const handleRefresh = () => {
     setLoading(true);
     loadData();
-    setQueueReloadKey((k) => k + 1);
   };
 
   const totals = summary?.totals;
@@ -138,7 +123,6 @@ export default function SustainabilityOverview() {
       <style>{overviewCss}</style>
       <style>{sustLayoutCss}</style>
 
-      <Toast toast={toast} onClose={closeToast} />
 
       <header className="so-header">
         <div>
@@ -186,7 +170,7 @@ export default function SustainabilityOverview() {
       {error && !loading && (
         <div className="so-alert" role="alert">
           <div>
-            <strong>Campus totals could not be loaded.</strong> {error} Wastage reports below are unaffected.
+            <strong>Campus totals could not be loaded.</strong> {error}
           </div>
           <button type="button" className="so-btn" onClick={handleRefresh}>
             Retry
@@ -224,13 +208,12 @@ export default function SustainabilityOverview() {
                 : "gas (Scope 1) + grid electricity (Scope 2)."}
             </li>
             <li>
-              <strong>Food waste:</strong> bin weights and wastage reports.
+              <strong>Food waste:</strong> food-waste bins weighed by General Maintenance.
             </li>
           </ul>
         </details>
       </section>
 
-      <WastageAuditQueue reloadKey={queueReloadKey} showToast={showToast} />
     </div>
   );
 }

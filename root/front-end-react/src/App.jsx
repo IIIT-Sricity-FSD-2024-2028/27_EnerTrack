@@ -40,10 +40,12 @@ import FinanceReports from "./pages/finance/Reports";
 import FinanceCosts from "./pages/finance/Costs";
 import FinanceSubscription from "./pages/finance/Subscription";
 import FinanceArchives from "./pages/finance/Archives";
+import FinanceExpenses from "./pages/finance/Expenses";
 
 import SustainabilityOverview from "./pages/sustainability/Overview";
 import SustainabilityMonitoring from "./pages/sustainability/Monitoring";
 import SustainabilityTargets from "./pages/sustainability/Targets";
+import SustainabilityWastage from "./pages/sustainability/Wastage";
 import SustainabilityReport from "./pages/sustainability/Report";
 import SustainabilityInitiatives from "./pages/sustainability/Initiatives";
 import SustainabilityArchives from "./pages/sustainability/Archives";
@@ -55,13 +57,13 @@ import TechnicianWorkOrders from "./pages/technician/WorkOrders";
 
 import TechnicianJrOverview from "./pages/technician-jr/Overview";
 import TechnicianJrWorkOrders from "./pages/technician-jr/WorkOrders";
+import TechnicianJrExpenses from "./pages/technician-jr/Expenses";
 
 import AuditorOverview from "./pages/auditor/Overview";
 import AuditorAudits from "./pages/auditor/Audits";
 
 import CampusDashboard from "./pages/campus/Dashboard";
 import CampusIssues from "./pages/campus/CampusIssues";
-import CampusWastage from "./pages/campus/Wastage";
 import CampusArchives from "./pages/campus/Archives";
 
 import NotFound from "./pages/NotFound";
@@ -125,12 +127,17 @@ export default function App() {
             path={PATHS.admin.subscription}
             element={<FinanceSubscription />}
           />
+          <Route
+            path={PATHS.admin.expenses}
+            element={<FinanceExpenses />}
+          />
         </Route>
       </Route>
 
       <Route element={<RequireRole area="finance" />}>
         <Route element={<DashboardLayout />}>
           <Route path={PATHS.finance.overview} element={<FinanceOverview />} />
+          <Route path={PATHS.finance.expenses} element={<FinanceExpenses />} />
           <Route path={PATHS.finance.reports} element={<FinanceReports />} />
           <Route path={PATHS.finance.costs} element={<FinanceCosts />} />
           <Route
@@ -162,6 +169,10 @@ export default function App() {
           <Route
             path={PATHS.sustainability.initiatives}
             element={<SustainabilityInitiatives />}
+          />
+          <Route
+            path={PATHS.sustainability.wastage}
+            element={<SustainabilityWastage />}
           />
           <Route
             path={PATHS.sustainability.archives}
@@ -205,6 +216,10 @@ export default function App() {
             path={PATHS.technicianJr.workOrders}
             element={<TechnicianJrWorkOrders />}
           />
+          <Route
+            path={PATHS.technicianJr.expenses}
+            element={<TechnicianJrExpenses />}
+          />
         </Route>
       </Route>
 
@@ -219,7 +234,7 @@ export default function App() {
         <Route element={<DashboardLayout />}>
           <Route path={PATHS.campus.dashboard} element={<CampusDashboard />} />
           <Route path={PATHS.campus.issues} element={<CampusIssues />} />
-          <Route path={PATHS.campus.wastage} element={<CampusWastage />} />
+          <Route path={PATHS.campus.wastage} element={<Navigate to={PATHS.campus.dashboard} replace />} />
           <Route path={PATHS.campus.archives} element={<CampusArchives />} />
         </Route>
       </Route>

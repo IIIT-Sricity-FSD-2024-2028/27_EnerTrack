@@ -9,7 +9,13 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { DatabaseService, ServiceRequest } from "../../core/database/database.service";
+import {
+  DatabaseService,
+  NotificationTargetType,
+  ServiceRequest,
+  UserRole,
+} from "../../core/database/database.service";
+import { pushNotifications, usersWithRole } from "../../core/utils/notify";
 import { currentOrgId, scopeToTenant } from "../../core/tenancy/tenant-context";
 import {
   AREAS,
@@ -22,6 +28,7 @@ import {
   findIssueType,
   findItem,
   findProblem,
+  alertsOfficer,
   normaliseFloor,
   publicCatalogue,
 } from "../issue-catalogue/issue-catalogue";
@@ -173,6 +180,7 @@ export class IssueReportsService {
     if (priorFix) priority.reasons.push("Reported again after it was marked fixed");
     const id = crypto.randomUUID();
     const typeLabel = findIssueType(resolved.issueTypeId)?.label ?? "General";
+    const tellOfficer = !resolved.isOther && alertsOfficer(resolved.itemId);
     const record: ServiceRequest = {
       service_request_id: id,
       organization_id: org ?? building.organization_id,
@@ -216,6 +224,18 @@ export class IssueReportsService {
     this.database.serviceRequests.push(record);
     // The system picks the person. Nobody chooses a job from a list.
     this.dispatch.dispatch(record, new Date(now));
+    if (tellOfficer) {
+      // Food thrown away or smoke: General Maintenance deals with it today,
+      // and the Sustainability Officer hears at once, since a one-off fix
+      // will not stop it happening again.
+      pushNotifications(this.database, {
+        organizationId: record.organization_id,
+        userIds: usersWithRole(this.database, record.organization_id, [UserRole.SUSTAINABILITY_OFFICER]),
+        targetType: NotificationTargetType.REQUEST,
+        targetId: id,
+        message: `Waste reported: ${record.issue_type} at ${this.studentView(record, reporter).location}. General Maintenance has the job.`,
+      });
+    }
     return { outcome: "created", ticket: this.studentView(record, reporter) };
   }
 

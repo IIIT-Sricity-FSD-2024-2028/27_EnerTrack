@@ -7,8 +7,9 @@
  *   <PasswordCard notify={showToast} />
  */
 import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { useAuth } from "../../auth/useAuth";
-import { changePassword } from "../auth/authFlow";
+import { changePassword } from "../../store/slices/authSlice";
 import { validateFields, validators } from "../auth/validators";
 import Field from "./Field";
 
@@ -17,6 +18,7 @@ const EMPTY = { currentPassword: "", newPassword: "", confirmNewPassword: "" };
 
 export default function PasswordCard({ notify }) {
   const { user, adoptSession } = useAuth();
+  const dispatch = useDispatch();
 
   const [values, setValues] = useState(EMPTY);
   const [errors, setErrors] = useState({});
@@ -51,11 +53,13 @@ export default function PasswordCard({ notify }) {
 
     setSaving(true);
     try {
-      const account = await changePassword({
-        email: user.email,
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword,
-      });
+      const account = await dispatch(
+        changePassword({
+          email: user.email,
+          currentPassword: values.currentPassword,
+          newPassword: values.newPassword,
+        }),
+      ).unwrap();
       adoptSession(account);
       setValues(EMPTY);
       notify("Your password was changed.", "success");

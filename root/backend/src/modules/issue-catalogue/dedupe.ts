@@ -20,7 +20,7 @@ export interface TicketLocation {
   /** Room number, dropdown choice or machine number; "" when there is none. */
   part: string;
   team: Team;
-  /** ISO timestamp the ticket was filed. Only cleaning uses it (one ticket per area per day). */
+  /** ISO timestamp the ticket was filed. Only General Maintenance uses it (one ticket per area per day). */
   created_at?: string;
 }
 
@@ -43,7 +43,7 @@ export function cleanPart(raw: string | undefined | null): string {
 const dayOf = (iso?: string) => (iso ? iso.slice(0, 10) : "");
 
 export function matchKey(t: TicketLocation, today?: string): string {
-  const day = t.team === "cleaning" ? (today ?? dayOf(t.created_at)) : "";
+  const day = t.team === "general" ? (today ?? dayOf(t.created_at)) : "";
   return [t.building_id, t.item_id, t.floor, t.area, cleanPart(t.part), day].join("|");
 }
 
@@ -59,8 +59,9 @@ export function classifyDuplicate<T extends TicketLocation>(
   const exact = open.find((t) => t.item_id !== OTHER_ITEM_ID && matchKey(t) === key);
   if (exact) return { kind: "exact", ticket: exact };
 
-  // Cleaning is one ticket per area per day, and never "covered" by a wider one.
-  if (candidate.team === "cleaning") return { kind: "none" };
+  // General Maintenance (cleaning, switch-off rounds) is one ticket per area
+  // per day, and never "covered" by a wider one.
+  if (candidate.team === "general") return { kind: "none" };
 
   const covering = open.find(
     (t) =>

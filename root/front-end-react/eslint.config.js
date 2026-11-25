@@ -49,14 +49,14 @@ export default defineConfig([
   },
 
   {
-    // ── Merge-gate rule: the session belongs to AuthContext ──
+    // ── Merge-gate rule: the session belongs to the auth slice ──
     //
-    // src/auth owns reading and writing the session, and src/api reads it to
-    // build the x-role / x-org-id headers. Everywhere else goes through
+    // store/slices/authSlice.js owns reading and writing the session, and
+    // src/api reads it to send the sign-in token. Everywhere else goes through
     // useAuth(), so that a page cannot quietly hold a copy of the user that
     // drifts out of sync with the one the API client is sending.
     files: ["src/**/*.{js,jsx}"],
-    ignores: ["src/auth/**", "src/api/**"],
+    ignores: ["src/auth/**", "src/api/**", "src/store/slices/authSlice.js"],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -68,7 +68,7 @@ export default defineConfig([
         {
           selector: "Literal[value='enertrack_impersonator']",
           message:
-            "Impersonation state belongs to AuthContext — use useAuth().impersonate / stopImpersonating.",
+            "Impersonation state belongs to the auth slice — use useAuth().impersonate / stopImpersonating.",
         },
       ],
     },

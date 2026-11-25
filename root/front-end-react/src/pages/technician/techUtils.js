@@ -191,6 +191,19 @@ export function estimateLabel(wo) {
 }
 
 /**
+ * The team a fault needs, from its type. Mirrors the server's rule, which is
+ * the one that decides; this only narrows the list so a wrong choice is not
+ * offered. Unknown means any technician may be chosen.
+ */
+export function teamForFault(faultType) {
+  const t = String(faultType || "").toLowerCase();
+  if (/hvac|cooling|chiller|air|ventilat|ac/.test(t)) return "hvac";
+  if (/plumb|water|pipe|leak|pump|drain/.test(t)) return "plumber";
+  if (/electr|power|voltage|wiring|circuit|transformer|meter|solar|lighting|electronic/.test(t)) return "electrician";
+  return null;
+}
+
+/**
  * The first word of a full name, for "Welcome back, Chirag".
  * Falls back to "there" while the session is still loading.
  */

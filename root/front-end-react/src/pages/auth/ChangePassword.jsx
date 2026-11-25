@@ -7,11 +7,12 @@
  * password later is done on the My account page (pages/account).
  */
 import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { PATHS, homeForRole } from "../../routes";
 import FormField from "../../ui/FormField";
-import { changePassword } from "./authFlow";
+import { changePassword } from "../../store/slices/authSlice";
 import { validateFields, validators } from "./validators";
 import "../../styles/sign_in/sign_in.css";
 import "../../styles/auth_page/auth_page.css";
@@ -21,6 +22,7 @@ const EMPTY = { currentPassword: "", newPassword: "", confirmNewPassword: "" };
 
 export default function ChangePassword() {
   const { user, adoptSession, logout } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const [values, setValues] = useState(EMPTY);
@@ -61,11 +63,13 @@ export default function ChangePassword() {
 
     setSubmitting(true);
     try {
-      const account = await changePassword({
-        email: user.email,
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword,
-      });
+      const account = await dispatch(
+        changePassword({
+          email: user.email,
+          currentPassword: values.currentPassword,
+          newPassword: values.newPassword,
+        }),
+      ).unwrap();
       adoptSession(account);
       navigate(homeForRole(account.role), { replace: true });
     } catch (err) {

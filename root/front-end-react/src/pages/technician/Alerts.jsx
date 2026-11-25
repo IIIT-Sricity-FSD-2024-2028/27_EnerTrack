@@ -18,9 +18,24 @@
  *
  * The "Action Taken" text is saved as a message on the alert's thread
  * (POST /alerts/:id/messages), because the alert itself has no field for it.
+ *
+ * Data comes from the Redux store (alerts, faults, meters, buildings),
+ * refreshed every 30 seconds by useLiveData.
  */
-import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useLiveData } from "../../store/useLiveData";
+import {
+  decideAlert as decideAlertThunk,
+  fetchAlerts,
+  selectAllAlerts,
+} from "../../store/slices/alertsSlice";
+import { fetchFaults, selectAllFaults } from "../../store/slices/faultsSlice";
+import { fetchMeters, selectAllMeters } from "../../store/slices/metersSlice";
+import {
+  fetchBuildings,
+  selectAllBuildings,
+} from "../../store/slices/buildingsSlice";
 
 import ToastStack from "./components/ToastStack";
 import { useToast } from "./components/useToast";
@@ -32,65 +47,25 @@ import "../../styles/shared/tech_shared.css";
 import "../../styles/technician/tech_alerts.css";
 import "./technician.css";
 
-/**
- * Gets every alert, the faults (to know which alerts already have one), and
- * the meters and buildings (to say which sensor raised an alert, and where).
- * Only fetches — it does not touch React state, so it lives outside the
- * component.
- */
-async function fetchAlerts() {
-  const alerts = await api.get("/alerts");
-  const faults = await api.get("/faults");
-  const meters = await api.get("/meters");
-  const buildings = await api.get("/buildings");
-  return {
-    alerts: alerts || [],
-    faults: faults || [],
-    meters: meters || [],
-    buildings: buildings || [],
-  };
-}
+// Every alert, the faults (to know which alerts already have one), and the
+// meters and buildings (to say which sensor raised an alert, and where).
+const LOADS = [fetchAlerts, fetchFaults, fetchMeters, fetchBuildings];
 
 export default function TechnicianAlerts() {
   const { toasts, showToast } = useToast();
+  const dispatch = useDispatch();
 
-  const [alerts, setAlerts] = useState([]);
-  const [faults, setFaults] = useState([]);
-  const [meters, setMeters] = useState([]);
-  const [buildings, setBuildings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const alerts = useSelector(selectAllAlerts);
+  const faults = useSelector(selectAllFaults);
+  const meters = useSelector(selectAllMeters);
+  const buildings = useSelector(selectAllBuildings);
+  const { loading, error, reload } = useLiveData(LOADS);
 
   // The alert the user clicked in the queue (null = none clicked yet).
   const [selectedId, setSelectedId] = useState(null);
 
   // The alert whose request is running, so its buttons are disabled.
   const [busyId, setBusyId] = useState(null);
-
-  // Same lint-safe pattern as Overview.jsx: setState only inside the
-  // .then / .catch callbacks.
-  function loadData() {
-    return fetchAlerts()
-      .then((result) => {
-        setError("");
-        setAlerts(result.alerts);
-        setFaults(result.faults);
-        setMeters(result.meters);
-        setBuildings(result.buildings);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }
-
-  // Load when the page opens, then refresh every 30 seconds.
-  useEffect(() => {
-    loadData();
-    const timer = setInterval(loadData, 30000);
-    return () => clearInterval(timer);
-  }, []);
 
   /** An unresolved fault already raised from this alert, if any. */
   function openFaultFor(alertId) {
@@ -106,11 +81,21 @@ export default function TechnicianAlerts() {
     try {
       // One step on the server: if the fault is refused the alert is left
       // untouched, and what was done is written to the alert log.
-      const result = await api.post(`/alerts/${id}/decide`, {
-        decision: decision === "fault" ? "fault" : decision === "monitor" ? "monitor" : "false_alarm",
-        ...(notes ? { notes } : {}),
-        ...(decision === "fault" ? { asset, fault_type: faultType } : {}),
-      });
+      // The alert and any new fault update in the store from the answer.
+      const result = await dispatch(
+        decideAlertThunk({
+          id,
+          decision:
+            decision === "fault"
+              ? "fault"
+              : decision === "monitor"
+                ? "monitor"
+                : "false_alarm",
+          notes,
+          asset,
+          faultType,
+        }),
+      ).unwrap();
       let message;
       if (decision === "fault") {
         message = `Alert ${id} acknowledged. ${result.fault.fault_id} is on Fault Detection & Diagnostics.`;
@@ -120,7 +105,6 @@ export default function TechnicianAlerts() {
         message = `Alert ${id} resolved as a false alarm.`;
       }
       showToast(message, "success");
-      await loadData();
     } catch (err) {
       showToast(err.message, "error");
     }
@@ -165,7 +149,7 @@ export default function TechnicianAlerts() {
     content = (
       <div className="empty-state">
         <p>{error}</p>
-        <button type="button" className="btn btn-dark" onClick={loadData}>
+        <button type="button" className="btn btn-dark" onClick={reload}>
           Retry
         </button>
       </div>

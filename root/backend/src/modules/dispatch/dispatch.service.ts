@@ -51,6 +51,8 @@ import {
   agedPriority,
   criticalFallback,
   levelOrder,
+  loadLevel,
+  MAX_LOAD,
   rankCandidates,
   teamOfUser,
   faultTeam,
@@ -200,6 +202,14 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     if (["closed", "resolved", "completed"].includes(String(ticket.status).toLowerCase()))
       throw new BadRequestException("This issue is already closed.");
     const user = this.requireTechnician(userId, ticket.organization_id);
+    // A job with a team goes to that team. A job with no team (an "Other"
+    // report) is the coordinator's call, so any technician may take it.
+    const userTeam = teamOfUser(user);
+    if (ticket.team && userTeam !== ticket.team) {
+      throw new BadRequestException(
+        `${user.name} ${userTeam ? `is on the ${userTeam} team` : "has no team"}, but this job needs the ${ticket.team} team. Choose someone on the ${ticket.team} team.`,
+      );
+    }
     const wo = this.workOrderFor(ticket) ?? this.createWorkOrder(ticket, now);
     const d = wo.dispatch!;
     const was = wo.assigned_to_id;
@@ -287,6 +297,9 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       off_for_today: user.unavailable_on === todayKey(now),
       team: c.team,
       open_points: c.openPoints,
+      open_jobs: c.openJobs ?? 0,
+      load: loadLevel(c.openPoints),
+      max_load: MAX_LOAD,
     };
   }
 
@@ -351,7 +364,10 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   sendWastage(report: { wastage_report_id: string; organization_id: string; type: string; details?: Record<string, any> }, now = this.clock.now()) {
     const existing = this.database.serviceRequests.find((t) => t.source_wastage === report.wastage_report_id);
     if (existing) throw new ConflictException("A work order was already raised for this report.");
-    const team: Team | undefined = report.type === "Water" ? "plumber" : report.type === "Energy" ? "electrician" : undefined;
+    // Food work (separate food-waste bins, a weighing scale) is General
+    // Maintenance's; Emissions has no team, so a coordinator decides.
+    const team: Team | undefined =
+      report.type === "Water" ? "plumber" : report.type === "Energy" ? "electrician" : report.type === "Food" ? "general" : undefined;
     const given = String(report.details?.priority ?? "").toLowerCase();
     const level = ["high", "medium", "low"].includes(given) ? given : "medium";
     const where = report.details?.specificData?.location ?? report.details?.location ?? "";
@@ -364,7 +380,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       issue_type: `Wastage: ${report.type}`,
       status: "open",
       created_at: now.toISOString(),
-      description: String(report.details?.specificData?.description ?? ""),
+      description: String(report.details?.specificData?.description ?? report.details?.remedy?.description ?? ""),
       item_id: "wastage",
       part: String(where),
       team,
@@ -373,7 +389,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       priority: level,
       priority_system: level,
       priority_override: null,
-      priority_reasons: ["Raised from a validated wastage report"],
+      priority_reasons: ["Raised from a wastage case"],
       source_wastage: report.wastage_report_id,
       reporter_ids: [],
       plus_one_ids: [],
@@ -693,12 +709,13 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * The cost-estimate loop between technician and Finance:
-   *  - an estimate must have non-negative materials and labour, and the total
-   *    is worked out here, not taken from the browser;
+   *  - an estimate is the cost of materials, a number of 0 or more, and the
+   *    total is worked out here, not taken from the browser;
    *  - while it waits for Finance the technician can neither edit it nor
    *    approve it themselves;
    *  - Finance can only answer an estimate that is waiting (approve = in
    *    progress, send back = new), and never starts other jobs;
+   *  - sending an estimate back needs a reason, which the technician sees;
    *  - every answer records who gave it and when.
    */
   private estimateRules(wo: WorkOrder, out: Record<string, any>, role: string | undefined, userId: string | undefined, now: Date) {
@@ -729,26 +746,34 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       const details = { ...(wo.details ?? {}), ...(out.details ?? {}) };
       const est = details.estimate;
       const materials = Number(est?.materials);
-      const labor = Number(est?.labor);
-      if (!est || !Number.isFinite(materials) || !Number.isFinite(labor) || materials < 0 || labor < 0)
-        throw new BadRequestException("Enter the estimate: materials and labour must be numbers of 0 or more.");
+      if (!est || est.materials === "" || est.materials === null || !Number.isFinite(materials) || materials < 0)
+        throw new BadRequestException("Enter the cost of the materials: a number of 0 or more.");
+      const { labor: _ignored, ...rest } = est; // labour is not part of an estimate
       out.details = {
         ...details,
-        estimate: { ...est, materials, labor, total: materials + labor, submitted_by: userId ?? null, submitted_at: now.toISOString() },
+        estimate: { ...rest, materials, total: materials, submitted_by: userId ?? null, submitted_at: now.toISOString() },
         decision: undefined,
       };
       delete out.details.decision;
+      delete out.details.decision_reason;
     }
 
-    // Answering one: record who decided.
+    // Answering one: record who decided, and why when it is sent back.
     if (waiting && out.status !== undefined && out.status !== WorkOrderStatus.APPROVAL) {
+      const approved = out.status === WorkOrderStatus.INPROGRESS;
+      const reason = String(out.details?.decision_reason ?? "").trim();
+      if (!approved && reason.length < 3) {
+        throw new BadRequestException("Say why the estimate is sent back, so the technician knows what to change.");
+      }
+      const details = { ...(wo.details ?? {}), ...(out.details ?? {}) };
+      delete details.decision_reason;
       out.details = {
-        ...(wo.details ?? {}),
-        ...(out.details ?? {}),
+        ...details,
         decision: {
-          result: out.status === WorkOrderStatus.INPROGRESS ? "approved" : "sent_back",
+          result: approved ? "approved" : "sent_back",
           by: userId ?? null,
           at: now.toISOString(),
+          ...(approved ? {} : { reason: reason.slice(0, 300) }),
         },
       };
     }
@@ -770,7 +795,9 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         wo.assigned_to_id,
         wo.organization_id,
         wo.work_order_id,
-        approved ? `Your estimate for "${wo.title}" was approved. You can start the work.` : `Your estimate for "${wo.title}" was sent back. Please revise it.`,
+        approved
+          ? `Your estimate for "${wo.title}" was approved. You can start the work.`
+          : `Your estimate for "${wo.title}" was sent back${wo.details?.decision?.reason ? `: ${wo.details.decision.reason}` : ""}. Please revise it.`,
       );
     }
   }
@@ -1077,6 +1104,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       available: u.available !== false,
       unavailableOn: u.unavailable_on ?? null,
       openPoints: open.reduce((n, w) => n + w.dispatch!.points, 0),
+      openJobs: open.length,
       openBuildings: open.map((w) => w.dispatch!.building_id).filter((b): b is string => !!b),
       past: history,
     };
@@ -1164,6 +1192,18 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return [b, t.floor ? `floor ${t.floor}` : "", t.part].filter(Boolean).join(", ");
   }
 
+  /** Where the technician's cost estimate stands, so their inbox can say so. */
+  private estimateView(wo: WorkOrder) {
+    const est = wo.details?.estimate;
+    if (!est) return null;
+    const sentBack = wo.status === WorkOrderStatus.NEW && wo.details?.decision?.result === "sent_back";
+    return {
+      total: est.total ?? null,
+      state: wo.status === WorkOrderStatus.APPROVAL ? "waiting" : sentBack ? "sent_back" : "approved",
+      reason: sentBack ? (wo.details?.decision?.reason ?? "") : "",
+    };
+  }
+
   private workOrderView(wo: WorkOrder) {
     const t = this.ticketOf(wo);
     const d = wo.dispatch!;
@@ -1183,6 +1223,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       location: t ? this.locationOf(t) : "",
       description: t?.description ?? "",
       sla: this.sla.view(wo),
+      estimate: this.estimateView(wo),
     };
   }
 

@@ -1,13 +1,12 @@
 /**
- * WastageArchive — the "Wastage Resolutions" tab of Sustainability Archives.
+ * WastageArchive — the "Wastage cases" tab of Sustainability Archives.
  *
- * A wastage report lands here once it is closed: sent to the occupant
- * (Delivered), dismissed with a reason, or archived by the officer. Each row
- * says what was reported, where, by whom and how it ended; "Show details"
- * opens the full record. For a delivered report that is the same outcome the
- * occupant received (<ReportResult>): Finance's figures and the target against
- * the sensor readings. For a dismissed one it is the reason given. Photos and
- * the comment thread follow in both cases.
+ * A case lands here once it is finished: closed (the people who reported
+ * the waste were told), dismissed with a reason, or archived by the officer.
+ * Each row says what the case was about, where, and how it ended; "Show
+ * details" opens the full record (<ReportResult>: the remedy, Finance's
+ * figures if it needed spending, and the target). For a dismissed one it is
+ * the reason given. Photos and the comment thread follow in both cases.
  *
  * The parent loads and normalises the reports (see Archives.jsx) and passes
  * the archived ones in, already filtered by the search box.
@@ -23,14 +22,17 @@ import archiveCss from "./wastageArchive.css?inline";
 /** Chip text and tone for each way a report can end. */
 function outcome(report) {
   if (report.status === "Dismissed") return { label: "Dismissed", tone: "dismissed" };
-  if (report.status === "Delivered") return { label: "Sent to occupant", tone: "delivered" };
+  if (report.status === "Closed") {
+    const result = report.details?.targetOutcome?.result;
+    return { label: result === "met" ? "Closed, target met" : result === "missed" ? "Closed, target missed" : "Closed", tone: "delivered" };
+  }
   return { label: "Archived", tone: "archived" };
 }
 
 /** When the report was closed, whichever way it ended. */
 function closedAt(report) {
   const d = report.details || {};
-  return d.deliveredAt || d.dismissedAt || d.soArchivedAt || d.archivedAt || null;
+  return d.closedAt || d.deliveredAt || d.dismissedAt || d.soArchivedAt || d.archivedAt || null;
 }
 
 /** "17 Oct 2026" */
@@ -55,8 +57,8 @@ export default function WastageArchive({ reports, totalCount, canDelete, onDelet
       {reports.length === 0 ? (
         <p className="sa-empty">
           {totalCount === 0
-            ? "No closed wastage reports yet. Reports appear here once they are sent to the occupant or dismissed."
-            : "No closed wastage reports match your search."}
+            ? "No finished wastage cases yet. Cases appear here once they are closed or dismissed."
+            : "No finished wastage cases match your search."}
         </p>
       ) : (
         <ul className="sa-list">
@@ -78,10 +80,14 @@ export default function WastageArchive({ reports, totalCount, canDelete, onDelet
                     <p className="sa-summary">{summary || "No description given."}</p>
                     <div className="sa-meta">
                       <span>WR-{r.shortId}</span>
-                      <span>Reported by {r.reporterName}</span>
-                      <span>Reported {day(r.timestamp)}</span>
+                      <span>Opened by {r.reporterName}</span>
+                      <span>Opened {day(r.timestamp)}</span>
                       {closed && <span>Closed {day(closed)}</span>}
-                      <span>{r.priority} priority</span>
+                      {r.sourceRequestIds?.length > 0 && (
+                        <span>
+                          {r.sourceRequestIds.length} waste report{r.sourceRequestIds.length === 1 ? "" : "s"}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="sa-actions">
@@ -110,16 +116,16 @@ export default function WastageArchive({ reports, totalCount, canDelete, onDelet
 
       {confirming && (
         <Modal
-          title="Delete wastage report"
-          confirmLabel="Delete report"
+          title="Delete wastage case"
+          confirmLabel="Delete case"
           danger
           busy={busy}
           onConfirm={confirmDelete}
           onClose={() => setConfirming(null)}
         >
           <p style={{ margin: 0, fontSize: 14, color: "#374151", lineHeight: 1.5 }}>
-            Delete <strong>WR-{confirming.shortId}</strong> ({confirming.type} wastage) for good? Its photos, figures and comments
-            go with it, and the occupant will no longer see it.
+            Delete <strong>WR-{confirming.shortId}</strong> ({confirming.type} waste) for good? Its figures and comments go with it. The
+            waste reports behind it are kept.
           </p>
         </Modal>
       )}
@@ -162,7 +168,7 @@ function ArchiveDetails({ report }) {
       <div className="sa-block">
         <h4 className="sa-heading">Comments</h4>
         {comments.length === 0 ? (
-          <p className="sa-text muted">No comments on this report.</p>
+          <p className="sa-text muted">No comments on this case.</p>
         ) : (
           <ul className="sa-comments">
             {comments.map((c, i) => {

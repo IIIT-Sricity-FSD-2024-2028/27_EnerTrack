@@ -21,7 +21,8 @@ export default function CostImpactModal({ report, onSave, onClose }) {
   const existing = report.costImpact || {};
   const [form, setForm] = useState({
     estimatedLoss: existing.estimatedLoss ?? "",
-    remediationCost: existing.remediationCost ?? "",
+    // Starts from the officer's rough estimate of the remedy.
+    remediationCost: existing.remediationCost ?? report.details?.remedy?.estimate ?? "",
     projectedSavings: existing.projectedSavings ?? "",
   });
   const [busy, setBusy] = useState(false);
