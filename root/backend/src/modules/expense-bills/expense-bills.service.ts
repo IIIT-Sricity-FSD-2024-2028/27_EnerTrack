@@ -13,15 +13,25 @@ import {
   ExpenseBillStatus,
   ExpenseCategory,
   NotificationTargetType,
+  ROLE_EQUIVALENTS,
   UserRole,
   WorkOrderStatus,
 } from "../../core/database/database.service";
+
 import { assertTenantOwns, currentOrgId, scopeToTenant } from "../../core/tenancy/tenant-context";
 import { pushNotifications, usersWithRole } from "../../core/utils/notify";
 import { assertMove, MoveTable } from "../../core/utils/transitions";
 import { CreateExpenseBillDto } from "./dto/create-expense-bill.dto";
 import { UpdateExpenseBillDto } from "./dto/update-expense-bill.dto";
 import { UpdateExpenseSettingsDto } from "./dto/update-expense-settings.dto";
+
+/**
+ * Technician, or a role the route guard lets in as one (Certified Energy
+ * Auditor). Such callers only ever see and change their own bills.
+ */
+function isFieldRole(role?: string): boolean {
+  return role === UserRole.TECHNICIAN || !!(role && ROLE_EQUIVALENTS[role]?.includes(UserRole.TECHNICIAN));
+}
 
 const DEFAULT_AUTO_APPROVE_CAP = 1500;
 const MAX_AUTO_APPROVED_PER_WO = 2;
@@ -105,7 +115,7 @@ export class ExpenseBillsService {
       );
     }
 
-    if (role === UserRole.TECHNICIAN && wo.assigned_to_id !== userId) {
+    if (isFieldRole(role) && wo.assigned_to_id !== userId) {
       throw new ForbiddenException(
         "You can only submit expense bills for work orders assigned to you.",
       );
@@ -195,7 +205,9 @@ export class ExpenseBillsService {
   ) {
     let list = scopeToTenant(this.database.expenseBills);
 
-    if (role === UserRole.TECHNICIAN && userId) {
+    if (isFieldRole(role)) {
+      // Fail closed: no user id means no bills, never everyone's.
+      if (!userId) throw new ForbiddenException("Sign in again to see your expense bills.");
       list = list.filter((b) => b.submitted_by_id === userId);
     }
 
@@ -222,7 +234,7 @@ export class ExpenseBillsService {
       throw new NotFoundException("Expense bill not found.");
     }
 
-    if (role === UserRole.TECHNICIAN && bill.submitted_by_id !== userId) {
+    if (isFieldRole(role) && bill.submitted_by_id !== userId) {
       throw new ForbiddenException("You can only access your own expense bills.");
     }
 
@@ -256,7 +268,7 @@ export class ExpenseBillsService {
       );
     }
 
-    if (role === UserRole.TECHNICIAN) {
+    if (isFieldRole(role)) {
       if (bill.submitted_by_id !== userId) {
         throw new ForbiddenException("You can only modify your own expense bills.");
       }
@@ -275,7 +287,7 @@ export class ExpenseBillsService {
     if (contentFieldsModified) {
       const canEditContent =
         !isRevokingAutoApproval &&
-        ((role === UserRole.TECHNICIAN && bill.submitted_by_id === userId) ||
+        ((isFieldRole(role) && bill.submitted_by_id === userId) ||
           role === UserRole.ORGANIZATION_ADMIN);
 
       if (!canEditContent) {
@@ -423,7 +435,7 @@ export class ExpenseBillsService {
       throw new NotFoundException("Expense bill not found.");
     }
 
-    if (role === UserRole.TECHNICIAN && bill.submitted_by_id !== userId) {
+    if (isFieldRole(role) && bill.submitted_by_id !== userId) {
       discardFiles();
       throw new ForbiddenException("You can only attach files to your own expense bills.");
     }
@@ -469,7 +481,7 @@ export class ExpenseBillsService {
       throw new NotFoundException("Expense bill not found.");
     }
 
-    if (role === UserRole.TECHNICIAN && bill.submitted_by_id !== userId) {
+    if (isFieldRole(role) && bill.submitted_by_id !== userId) {
       throw new ForbiddenException("You can only modify attachments on your own expense bills.");
     }
 
@@ -505,7 +517,7 @@ export class ExpenseBillsService {
       throw new NotFoundException("Expense bill not found.");
     }
 
-    if (role === UserRole.TECHNICIAN && bill.submitted_by_id !== userId) {
+    if (isFieldRole(role) && bill.submitted_by_id !== userId) {
       throw new ForbiddenException("You can only access attachments on your own expense bills.");
     }
 
@@ -534,7 +546,7 @@ export class ExpenseBillsService {
     }
     const index = this.database.expenseBills.indexOf(bill);
 
-    if (role === UserRole.TECHNICIAN) {
+    if (isFieldRole(role)) {
       if (bill.submitted_by_id !== userId || bill.status === ExpenseBillStatus.APPROVED) {
         throw new ForbiddenException(
           "Technicians can only delete their own non-approved expense bills.",
