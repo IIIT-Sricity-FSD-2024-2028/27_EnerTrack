@@ -5,12 +5,14 @@
  * in state from its onChange event instead.
  */
 import { useState } from "react";
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
 import Modal from "../components/Modal";
 import { useToast } from "../components/toastContext";
+import { uploadInvoiceDocument } from "../../../store/slices/invoicesSlice";
 
-export default function AttachDocumentModal({ invoice, onUploaded, onClose }) {
+export default function AttachDocumentModal({ invoice, onClose }) {
   const showToast = useToast();
+  const dispatch = useDispatch();
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,11 +24,10 @@ export default function AttachDocumentModal({ invoice, onUploaded, onClose }) {
     }
     setBusy(true);
     try {
-      // The server answers with the updated invoice (now with the file name),
-      // so the parent can show "View PDF" straight away.
-      const saved = await api.upload(`/invoices/${invoice.id}/document`, "file", file);
+      // The server answers with the updated invoice (now with the file name);
+      // the slice stores it, so "View PDF" shows straight away.
+      await dispatch(uploadInvoiceDocument({ id: invoice.id, file })).unwrap();
       showToast(`Document attached to ${invoice.invoiceNumber}.`, "success");
-      onUploaded(saved);
       onClose();
     } catch (err) {
       showToast("Failed to attach document: " + err.message, "error");

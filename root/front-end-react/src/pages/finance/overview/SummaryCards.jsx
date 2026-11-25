@@ -1,17 +1,26 @@
 /**
  * SummaryCards — the four KPI cards at the top of the Overview page.
- * Everything is calculated from the props, so the cards update by
- * themselves whenever the page passes in new data. Drawn with the same
- * MetricCard the Sustainability pages use, so the KPI rows match.
+ * Reads the latest period's cost records and the reports from the store, so
+ * the cards update by themselves whenever that data changes. Drawn with the
+ * same MetricCard the Sustainability pages use, so the KPI rows match.
  */
+import { useSelector } from "react-redux";
 import MetricCard from "../../sustainability/components/MetricCard";
-import { formatCurrency, latestPeriod, periodLabel } from "../financeUtils";
+import { formatCurrency, periodLabel } from "../financeUtils";
+import {
+  selectEnergyCostRows,
+  selectLatestCostPeriod,
+  selectLatestCostRows,
+} from "../../../store/slices/energyCostsSlice";
+import { selectReportRows } from "../../../store/slices/financialReportsSlice";
 
 const ICON_PROPS = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 };
 
-export default function SummaryCards({ costs, reports, loading }) {
-  const period = latestPeriod(costs);
-  const records = costs.filter((c) => c.period === period);
+export default function SummaryCards({ loading }) {
+  const costs = useSelector(selectEnergyCostRows);
+  const reports = useSelector(selectReportRows);
+  const period = useSelector(selectLatestCostPeriod);
+  const records = useSelector(selectLatestCostRows);
 
   const totalCost = records.reduce((sum, c) => sum + c.total, 0);
   const totalBudget = records.reduce((sum, c) => sum + c.budget, 0);

@@ -1,82 +1,20 @@
 /**
  * financeApi.js
- * Every backend call the Financial Analyst pages make goes through here.
+ * Turns backend rows into the shape the Financial Analyst pages use.
  *
  * The backend sends snake_case rows ({ energy_cost_id, scope_label, ... }).
  * The pages work with the camelCase shape the original front end used
  * ({ id, scopeLabel, ... }), so each "normalize" function converts one row.
+ * The finance slices (store/slices/energyCostsSlice, financialReportsSlice,
+ * invoicesSlice) keep the raw rows and call these in their selectors.
  *
- * Offline fallback: if the backend is not running, the loaders return the
- * demo data stored in universalDB (localStorage) instead, exactly like the
- * original pages did. They report this with `offline: true` so a page knows
- * to save its changes locally rather than calling the API.
+ * The wastage functions at the bottom still call the API themselves. They
+ * belong to the wastage workflow (Person 5) and move to wastageReportsSlice
+ * with it; the finance and sustainability pages import them from here until
+ * then.
  */
 import api from "../../api/client";
-import universalDB from "../../legacy/universalDB";
 import { statusFromRoi, statusFromVariance } from "./financeUtils";
-
-/* ── OFFLINE HELPERS ──────────────────────────────── */
-
-export function isNetworkError(error) {
-  return String(error?.message || "").startsWith("Cannot reach server");
-}
-
-/**
- * GETs a list from the API. When the server cannot be reached it returns
- * `localRows` instead. Any other error (e.g. 403) is passed on to the page.
- */
-async function getList(path, localRows) {
-  try {
-    const rows = await api.get(path);
-    return { rows: Array.isArray(rows) ? rows : [], offline: false };
-  } catch (error) {
-    if (!isNetworkError(error)) throw error;
-    console.warn(`[Finance] ${path} unavailable, using local data.`);
-    return { rows: localRows || [], offline: true };
-  }
-}
-
-/** Saves a finance list (energyCosts, invoices, ...) to localStorage. */
-export function saveLocalFinance(key, rows) {
-  universalDB.data.finance[key] = rows;
-  universalDB.save();
-}
-
-/* ── DEPARTMENTS & BUILDINGS ──────────────────────── */
-
-// The local demo data uses short ids ("dept-001") but the backend expects
-// UUIDs, so the original pages translated them with these two maps.
-const DEPT_UUID = {
-  "dept-001": "dddd0000-0001-4000-8000-000000000000",
-  "dept-002": "dddd0000-0002-4000-8000-000000000000",
-  "dept-003": "dddd0000-0003-4000-8000-000000000000",
-  "dept-004": "dddd0000-0004-4000-8000-000000000000",
-  "dept-005": "dddd0000-0005-4000-8000-000000000000",
-};
-const BLDG_UUID = {
-  "bldg-001": "660e8800-0001-4000-8000-000000000000",
-  "bldg-002": "660e8800-0002-4000-8000-000000000000",
-  "bldg-003": "660e8800-0003-4000-8000-000000000000",
-};
-
-/** Returns { departments: [{id, name}], buildings: [{id, name}] }. */
-export async function loadDepartmentsAndBuildings() {
-  const local = universalDB.data.finance;
-  const [depts, bldgs] = await Promise.all([
-    getList(
-      "/departments",
-      local.departments.map((d) => ({ department_id: DEPT_UUID[d.id], name: d.name })),
-    ).catch(() => ({ rows: [] })),
-    getList(
-      "/buildings",
-      local.buildings.map((b) => ({ building_id: BLDG_UUID[b.id], name: b.name })),
-    ).catch(() => ({ rows: [] })),
-  ]);
-  return {
-    departments: depts.rows.map((d) => ({ id: d.department_id, name: d.name })),
-    buildings: bldgs.rows.map((b) => ({ id: b.building_id, name: b.name })),
-  };
-}
 
 /* ── ENERGY COSTS ─────────────────────────────────── */
 
@@ -117,17 +55,6 @@ export function normalizeCost(rec, names = {}) {
   };
 }
 
-export async function loadEnergyCosts() {
-  const [{ rows, offline }, places] = await Promise.all([
-    getList("/energy-costs", universalDB.data.finance.energyCosts),
-    loadDepartmentsAndBuildings(),
-  ]);
-  // id → name lookup, so a record without a stored label still shows a name
-  const names = {};
-  [...places.departments, ...places.buildings].forEach((p) => (names[p.id] = p.name));
-  return { costs: rows.map((r) => normalizeCost(r, names)), offline };
-}
-
 /* ── FINANCIAL REPORTS ────────────────────────────── */
 
 export function normalizeReport(rep) {
@@ -164,14 +91,6 @@ export function normalizeReport(rep) {
   };
 }
 
-export async function loadReports() {
-  const { rows, offline } = await getList(
-    "/financial-reports",
-    universalDB.data.finance.financialReports,
-  );
-  return { reports: rows.map(normalizeReport), offline };
-}
-
 /* ── INVOICES ─────────────────────────────────────── */
 
 export function normalizeInvoice(inv) {
@@ -197,21 +116,7 @@ export function normalizeInvoice(inv) {
   };
 }
 
-export async function loadInvoices() {
-  const { rows, offline } = await getList("/invoices", universalDB.data.finance.invoices);
-  return { invoices: rows.map(normalizeInvoice), offline };
-}
-
 /* ── WASTAGE REPORTS (Sustainability workflow) ────── */
-
-/*
- * The backend is the source of truth for wastage reports. Local copies in
- * universalDB.data.workflow.wastageReports are only used when the backend
- * cannot be reached (offline demo mode).
- */
-function localWastageReports() {
-  return universalDB.data.workflow.wastageReports || [];
-}
 
 export function normalizeWastageReport(r, user) {
   const d = r.details || {};
@@ -240,9 +145,8 @@ export function normalizeWastageReport(r, user) {
 }
 
 export async function loadWastageReports(user) {
-  // Server rows when the backend is up; the local copies only when offline.
-  const { rows } = await getList("/wastage-reports", localWastageReports());
-  return rows.map((r) => normalizeWastageReport(r, user));
+  const rows = await api.get("/wastage-reports");
+  return (Array.isArray(rows) ? rows : []).map((r) => normalizeWastageReport(r, user));
 }
 
 /**
