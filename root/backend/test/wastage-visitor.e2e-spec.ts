@@ -9,10 +9,15 @@ import { RolesGuard } from '../src/core/guards/roles.guard';
 import { DatabaseService } from '../src/core/database/database.service';
 
 /**
- * What a Campus Visitor can do to a wastage case that grew out of an issue
- * they reported: add a comment and archive it once it is over. Both have
- * their own routes, so the visitor still cannot use PATCH
- * /wastage-reports/:id to change anything else.
+ * What a Campus Visitor can do with wastage records.
+ *
+ * Their own older reports (filed before waste went through Report an Issue):
+ * add a comment and archive it once it is over. Both have their own routes,
+ * so the visitor still cannot use PATCH /wastage-reports/:id to change
+ * anything else.
+ *
+ * A case the officer opened from an issue they reported: read only, and only
+ * what came of it — never Finance's figures, notes or comments.
  */
 describe('Wastage reports: visitor comments and archive (e2e)', () => {
   let app: INestApplication;
@@ -47,7 +52,44 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
       .post('/api/wastage-reports')
       .set(asOfficer)
       .send({ type: 'Water', source_request_ids: [ticket], details: { priority: 'Medium', remedy: { type: 'no_cost', description: 'Signage' } } });
-    return body(res).wastage_report_id as string;
+    const id = body(res).wastage_report_id as string;
+    // An older report the visitor filed themselves (the case record is reused).
+    db.wastageReports.find((r) => r.wastage_report_id === id)!.reporter_id = 'test-user';
+    return id;
+  };
+
+  /** A case behind an issue the visitor reported, opened by the officer. */
+  const linkedCase = async () => {
+    const ticket = `wv-linked-${++n}-${Date.now()}`;
+    db.serviceRequests.push({
+      service_request_id: ticket,
+      organization_id: ORG,
+      reporter_id: 'test-user',
+      reporter_ids: ['test-user'],
+      assigned_to_id: null,
+      category: 'Waste',
+      issue_type: 'Tap left open',
+      status: 'closed',
+      created_at: new Date().toISOString(),
+    } as any);
+    const other = `wv-other-${n}-${Date.now()}`;
+    db.serviceRequests.push({ ...db.serviceRequests[db.serviceRequests.length - 1], service_request_id: other, reporter_id: TRISHANK, reporter_ids: [TRISHANK] } as any);
+    const res = await http()
+      .post('/api/wastage-reports')
+      .set(asOfficer)
+      .send({
+        type: 'Water',
+        source_request_ids: [ticket, other],
+        details: {
+          title: 'Taps left open in Block B',
+          location: 'Block B',
+          notes: 'internal officer note',
+          remedy: { type: 'spend', description: 'Push taps', estimate: 9000 },
+          costImpact: { estimatedLoss: 1, remediationCost: 9000, projectedSavings: 5 },
+          comments: [{ author: 'Viksa', role: 'Sustainability Officer', text: 'internal comment' }],
+        },
+      });
+    return { id: body(res).wastage_report_id as string, ticket, other };
   };
 
   /**
@@ -180,6 +222,35 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
       await setStatus(id, 'Closed');
       const res = await http().patch(`/api/wastage-reports/${id}/archive`).set(asVisitor);
       expect(body(res).details.comments).toHaveLength(1);
+    });
+  });
+
+  describe('a case behind an issue the visitor reported', () => {
+    it('shows only what came of it: no figures, notes, comments or other people\'s reports', async () => {
+      const { id, ticket } = await linkedCase();
+      const one = body(await http().get(`/api/wastage-reports/${id}`).set(asVisitor).expect(200));
+      expect(one.details).toEqual({ title: 'Taps left open in Block B', location: 'Block B', remedy: { description: 'Push taps' } });
+      expect(one.source_request_ids).toEqual([ticket]);
+      const list = body(await http().get('/api/wastage-reports').set(asVisitor).expect(200)) as any[];
+      expect(JSON.stringify(list.find((r) => r.wastage_report_id === id))).not.toMatch(/costImpact|internal|estimate|9000/);
+    });
+
+    it.each([
+      ['comment', (id: string) => http().post(`/api/wastage-reports/${id}/comments`).set(asVisitor).send({ text: 'hi' })],
+      ['archive', (id: string) => http().patch(`/api/wastage-reports/${id}/archive`).set(asVisitor)],
+      ['view a photo', (id: string) => http().get(`/api/wastage-reports/${id}/photos/x.jpg`).set(asVisitor)],
+    ])('cannot %s on it (404, like a missing id)', async (_what, call) => {
+      const { id } = await linkedCase();
+      expect((await call(id)).status).toBe(404);
+    });
+
+    it('a Department Head (treated as a visitor) gets the same limited view', async () => {
+      const { id } = await linkedCase();
+      const asHead = { 'x-role': 'Department Head', 'x-org-id': ORG };
+      const list = body(await http().get('/api/wastage-reports').set(asHead).expect(200)) as any[];
+      const seen = list.find((r) => r.wastage_report_id === id);
+      expect(seen.details.notes).toBeUndefined();
+      expect(seen.details.costImpact).toBeUndefined();
     });
   });
 

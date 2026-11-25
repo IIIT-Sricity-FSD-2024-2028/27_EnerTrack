@@ -253,6 +253,31 @@ describe('Wastage case workflow and notifications (e2e)', () => {
     });
   });
 
+  describe('linked issues stay inside the organisation', () => {
+    it('PATCH and PUT refuse an issue that does not exist here (404)', async () => {
+      const id = await open();
+      await move(SO, id, 'Open', { source_request_ids: ['no-such-ticket'] }).expect(404);
+      await http()
+        .put(`/api/wastage-reports/${id}`)
+        .set(ADMIN)
+        .send({ type: 'Energy', status: 'Open', details: {}, source_request_ids: ['no-such-ticket'] })
+        .expect(404);
+    });
+
+    it('a closed case never tells someone from another organisation', async () => {
+      const foreign = `wf-foreign-${Date.now()}`;
+      db.serviceRequests.push({
+        service_request_id: foreign, organization_id: 'org-002', reporter_id: 'outsider', reporter_ids: ['outsider'],
+        assigned_to_id: null, category: 'Waste', issue_type: 'x', status: 'closed', created_at: new Date().toISOString(),
+      } as any);
+      const id = await open({ source_request_ids: [incident()], details: { remedy: NO_COST, location: 'LH-2' } });
+      db.wastageReports.find((r) => r.wastage_report_id === id)!.source_request_ids!.push(foreign); // a stray id
+      for (const s of ['Target Set', 'Verify Target', 'Target Met', 'Closed']) await move(SO, id, s).expect(200);
+      expect(notesFor(id).some((n) => n.user_id === 'outsider')).toBe(false);
+      expect(notesFor(id).some((n) => n.user_id === REPORTER)).toBe(true);
+    });
+  });
+
   describe('who can read a case', () => {
     it('a visitor sees only cases that grew from an issue they reported', async () => {
       // Tokens in e2e are signed for user_id "test-user".

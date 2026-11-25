@@ -49,7 +49,12 @@ export class WastageReportsController {
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   @UseInterceptors(FilesInterceptor("files", 4, photoUploadConfig))
-  uploadPhotos(@Param("id") id: string, @UploadedFiles() files: Express.Multer.File[]) {
+  uploadPhotos(
+    @Param("id") id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Headers("x-user-id") userId?: string,
+    @Headers("x-role") role?: string,
+  ) {
     // Multer leaves `files` undefined (or empty) when the request carries no
     // files at all. Without this guard the service calls files.map and the
     // caller gets a 500, contradicting the documented 400 above.
@@ -58,7 +63,7 @@ export class WastageReportsController {
     }
     // Every file must genuinely be a JPEG or PNG, not just named like one.
     assertFileSignatures(files, "image");
-    return this.wastageReportsService.attachPhotos(id, files);
+    return this.wastageReportsService.attachPhotos(id, files, userId, role);
   }
 
   @Get(":id/photos/:filename")
@@ -72,8 +77,10 @@ export class WastageReportsController {
     @Param("id") id: string,
     @Param("filename") filename: string,
     @Res() res: Response,
+    @Headers("x-user-id") userId?: string,
+    @Headers("x-role") role?: string,
   ) {
-    const filePath = this.wastageReportsService.getPhotoPath(id, filename);
+    const filePath = this.wastageReportsService.getPhotoPath(id, filename, userId, role);
     return res.sendFile(filePath);
   }
 
@@ -160,8 +167,13 @@ export class WastageReportsController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
-  addComment(@Param("id") id: string, @Body() dto: AddWastageCommentDto, @Headers("x-role") role?: string) {
-    return this.wastageReportsService.addComment(id, dto, role);
+  addComment(
+    @Param("id") id: string,
+    @Body() dto: AddWastageCommentDto,
+    @Headers("x-role") role?: string,
+    @Headers("x-user-id") userId?: string,
+  ) {
+    return this.wastageReportsService.addComment(id, dto, role, userId);
   }
 
   @Patch(":id/archive")
@@ -171,8 +183,8 @@ export class WastageReportsController {
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Campus Visitor", "Sustainability Officer", "Organization Admin")
-  archive(@Param("id") id: string) {
-    return this.wastageReportsService.archive(id);
+  archive(@Param("id") id: string, @Headers("x-user-id") userId?: string, @Headers("x-role") role?: string) {
+    return this.wastageReportsService.archive(id, userId, role);
   }
 
   @Post(":id/work-order")

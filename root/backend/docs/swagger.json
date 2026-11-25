@@ -5616,10 +5616,18 @@
             }
           },
           {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
             "schema": {
               "type": "string"
             }
@@ -5686,10 +5694,18 @@
             }
           },
           {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
             "schema": {
               "type": "string"
             }
@@ -6026,6 +6042,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -6069,10 +6093,18 @@
             }
           },
           {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "x-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC.",
-            "required": false,
             "schema": {
               "type": "string"
             }
@@ -10750,7 +10782,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$3SjVv0XTuHOqYLnAdR19Ze5C3acDZkKuhP0c.U6vLK0JDi3pqhfme",
+          "password": "$2b$08$2I2HbSDaDOHrZSwG.xtv6.C0IvurjF.zf/O8VN3ZG94Q6ni97Yrm2",
           "role": "Organization Admin"
         }
       },
@@ -10766,7 +10798,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$3SjVv0XTuHOqYLnAdR19Ze5C3acDZkKuhP0c.U6vLK0JDi3pqhfme",
+          "password": "$2b$08$2I2HbSDaDOHrZSwG.xtv6.C0IvurjF.zf/O8VN3ZG94Q6ni97Yrm2",
           "role": "Organization Admin"
         }
       },

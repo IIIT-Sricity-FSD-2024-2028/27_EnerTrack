@@ -12,6 +12,7 @@ import {
   DatabaseService,
   FoodWasteLog,
   NotificationTargetType,
+  ROLE_EQUIVALENTS,
   UserRole,
   WastageReport,
 } from "../../core/database/database.service";
@@ -216,7 +217,11 @@ export class WastageReportsService {
   private linkedReporters(report: WastageReport): string[] {
     const ids = new Set<string>();
     for (const ticketId of report.source_request_ids ?? []) {
-      const t = this.database.serviceRequests.find((x) => x.service_request_id === ticketId);
+      // Only the case's own organisation: a stray id must never pull in
+      // (and notify) people from another tenant.
+      const t = this.database.serviceRequests.find(
+        (x) => x.service_request_id === ticketId && x.organization_id === report.organization_id,
+      );
       if (!t) continue;
       for (const r of [t.reporter_id, ...(t.reporter_ids ?? [])]) if (r && r !== "system") ids.add(r);
     }
@@ -292,11 +297,7 @@ export class WastageReportsService {
     if (createDto.status !== undefined && canonicalStatus(createDto.status) !== "Open")
       throw new BadRequestException(`A new wastage case must start as 'Open'`);
 
-    const sources = [...new Set(createDto.source_request_ids ?? [])];
-    const tickets = scopeToTenant(this.database.serviceRequests);
-    const missing = sources.filter((id) => !tickets.some((t) => t.service_request_id === id));
-    if (missing.length)
-      throw new NotFoundException(`Issue report(s) not found: ${missing.join(", ")}`);
+    const sources = this.checkSources(createDto.source_request_ids);
 
     const generatedId = crypto.randomUUID();
     const newRecord = {
@@ -310,12 +311,13 @@ export class WastageReportsService {
     this.database.wastageReports.push(newRecord as any);
     return newRecord;
   }
-  attachPhotos(id: string, files: Express.Multer.File[]) {
+  attachPhotos(id: string, files: Express.Multer.File[], userId?: string, role?: string) {
     const index = this.database.wastageReports.findIndex(
       (item) => item.wastage_report_id === id,
     );
     if (index === -1 || !assertTenantOwns(this.database.wastageReports[index]))
       throw new NotFoundException(`Wastage Report with ID ${id} not found`);
+    this.assertVisitorMayAct(this.database.wastageReports[index], userId, role);
 
     const photoPaths = files.map((f) => f.path);
     const currentDetails = this.database.wastageReports[index].details;
@@ -342,12 +344,13 @@ export class WastageReportsService {
    * there, never an arbitrary path a caller could otherwise type into the
    * URL.
    */
-  getPhotoPath(id: string, filename: string): string {
+  getPhotoPath(id: string, filename: string, userId?: string, role?: string): string {
     const record = assertTenantOwns(
       this.database.wastageReports.find((item) => item.wastage_report_id === id),
     ) as any;
     if (!record)
       throw new NotFoundException(`Wastage Report with ID ${id} not found`);
+    this.assertVisitorMayAct(record, userId, role);
 
     const photos: string[] = record.details?.photos ?? [];
     const match = photos.find((p) => nodePath.basename(p) === filename);
@@ -400,6 +403,63 @@ export class WastageReportsService {
    * (or, for older records, one they filed themselves); staff see the
    * organisation's.
    */
+  /**
+   * The linked issue reports, de-duplicated, each checked to exist in the
+   * caller's organisation (404 otherwise). Used on create, PUT and PATCH.
+   */
+  private checkSources(ids: string[] | undefined): string[] {
+    const sources = [...new Set(ids ?? [])];
+    const tickets = scopeToTenant(this.database.serviceRequests);
+    const missing = sources.filter((id) => !tickets.some((t) => t.service_request_id === id));
+    if (missing.length)
+      throw new NotFoundException(`Issue report(s) not found: ${missing.join(", ")}`);
+    return sources;
+  }
+
+  /** Campus Visitor, or a role that passes as one (Department Head). */
+  private static isVisitor(role?: string): boolean {
+    return role === UserRole.CAMPUS_VISITOR || !!(role && ROLE_EQUIVALENTS[role]?.includes(UserRole.CAMPUS_VISITOR));
+  }
+
+  /**
+   * Comments, photos and archiving are for a visitor's own older reports
+   * only. A case that grew from their issue is the officer's: they may read
+   * what came of it, not act on it. Anything else is a 404, like a missing id.
+   */
+  private assertVisitorMayAct(record: WastageReport, userId?: string, role?: string) {
+    if (WastageReportsService.isVisitor(role) && (!userId || record.reporter_id !== userId))
+      throw new NotFoundException(`WastageReport with ID ${record.wastage_report_id} not found`);
+  }
+
+  /**
+   * What a visitor sees of a case behind their report: what it is about,
+   * where it stands and the fix. Never Finance's figures, the officer's
+   * notes and comments, or other people's reports. Their own older reports
+   * they filed themselves come back whole.
+   */
+  private visitorView(r: WastageReport, userId?: string) {
+    if (userId && r.reporter_id === userId) return this.withPhotoUrls(r);
+    const d = r.details ?? {};
+    const mine = (r.source_request_ids ?? []).filter((id) => {
+      const t = this.database.serviceRequests.find((x) => x.service_request_id === id);
+      return !!t && !!userId && [t.reporter_id, ...(t.reporter_ids ?? [])].includes(userId);
+    });
+    return {
+      wastage_report_id: r.wastage_report_id,
+      organization_id: r.organization_id,
+      type: r.type,
+      status: r.status,
+      created_at: r.created_at,
+      source_request_ids: mine,
+      details: {
+        title: d.title,
+        location: d.location,
+        ...(d.remedy?.description ? { remedy: { description: d.remedy.description } } : {}),
+        ...(d.archived ? { archived: true } : {}),
+      },
+    };
+  }
+
   private visibleToVisitor(r: WastageReport, userId?: string): boolean {
     if (!userId) return false;
     return r.reporter_id === userId || this.linkedReporters(r).includes(userId);
@@ -408,8 +468,9 @@ export class WastageReportsService {
   findAll(userId?: string, role?: string) {
     this.promoteDueTargets();
     const all = scopeToTenant(this.database.wastageReports);
-    const visible = role === "Campus Visitor" ? all.filter((r) => this.visibleToVisitor(r, userId)) : all;
-    return visible.map((r) => this.withPhotoUrls(r));
+    if (WastageReportsService.isVisitor(role))
+      return all.filter((r) => this.visibleToVisitor(r, userId)).map((r) => this.visitorView(r, userId));
+    return all.map((r) => this.withPhotoUrls(r));
   }
 
   /**
@@ -721,9 +782,10 @@ export class WastageReportsService {
     const record = assertTenantOwns(this.database.wastageReports.find(
       (item) => item.wastage_report_id === id,
     ));
-    if (!record || (role === "Campus Visitor" && !this.visibleToVisitor(record, userId)))
+    const visitor = WastageReportsService.isVisitor(role);
+    if (!record || (visitor && !this.visibleToVisitor(record, userId)))
       throw new NotFoundException(`WastageReport with ID ${id} not found`);
-    return this.withPhotoUrls(record);
+    return visitor ? this.visitorView(record, userId) : this.withPhotoUrls(record);
   }
 
   put(id: string, putDto: PutWastageReportDto, role?: string) {
@@ -738,9 +800,11 @@ export class WastageReportsService {
     // A full replace cannot be used to skip the workflow either.
     assertWastageMove(role, from, to);
     assertRemedyRule(from, to, putDto.details);
+    const sources = this.checkSources(putDto.source_request_ids);
     this.database.wastageReports[index] = {
       wastage_report_id: id,
       ...putDto,
+      source_request_ids: sources,
       organization_id: existing.organization_id,
       created_at: existing.created_at,
     } as any;
@@ -753,12 +817,13 @@ export class WastageReportsService {
    * cost figures, ...). The comment is appended here on the server, so two
    * people commenting at once cannot overwrite each other.
    */
-  addComment(id: string, dto: AddWastageCommentDto, role: string | undefined) {
+  addComment(id: string, dto: AddWastageCommentDto, role: string | undefined, userId?: string) {
     const index = this.database.wastageReports.findIndex(
       (item) => item.wastage_report_id === id,
     );
     if (index === -1 || !assertTenantOwns(this.database.wastageReports[index]))
       throw new NotFoundException(`WastageReport with ID ${id} not found`);
+    this.assertVisitorMayAct(this.database.wastageReports[index], userId, role);
 
     const existing = this.database.wastageReports[index];
     const details = existing.details || {};
@@ -789,12 +854,13 @@ export class WastageReportsService {
    * report is finished or dismissed, so an active report cannot be hidden
    * from the visitor's list while it is still being worked on.
    */
-  archive(id: string) {
+  archive(id: string, userId?: string, role?: string) {
     const index = this.database.wastageReports.findIndex(
       (item) => item.wastage_report_id === id,
     );
     if (index === -1 || !assertTenantOwns(this.database.wastageReports[index]))
       throw new NotFoundException(`WastageReport with ID ${id} not found`);
+    this.assertVisitorMayAct(this.database.wastageReports[index], userId, role);
 
     const existing = this.database.wastageReports[index];
     if (!WastageReportsService.ARCHIVABLE.includes(canonicalStatus(existing.status)))
@@ -855,6 +921,8 @@ export class WastageReportsService {
     }
 
     assertRemedyRule(from, to, mergedDetails);
+    if (updateDto.source_request_ids !== undefined)
+      updateDto = { ...updateDto, source_request_ids: this.checkSources(updateDto.source_request_ids) };
 
     this.database.wastageReports[index] = {
       ...existing,
