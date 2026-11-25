@@ -3,6 +3,9 @@
  *
  * `building` is null when adding; the campus picker then starts on the
  * campus selected in the manager.
+ *
+ * `showBudget` false (auditor page) hides the budget and never sends one,
+ * so an edit keeps the stored budget and a new building has none yet.
  */
 import { useState } from "react";
 import api from "../../../api/client";
@@ -17,6 +20,7 @@ export default function BuildingModal({
   departments,
   selectedCampusId,
   orgId,
+  showBudget = true,
   onSaved,
   onClose,
   showToast,
@@ -48,14 +52,16 @@ export default function BuildingModal({
     if (!campuses.some((c) => c.campus_id === campusId)) {
       newErrors.campus = "Select a valid campus.";
     }
-    if (budget === "" || Number(budget) < 0) {
-      newErrors.budget = "Enter a valid positive number.";
-    } else if (maxBudget !== null && Number(budget) > maxBudget) {
-      newErrors.budget =
-        "The campus has only " + formatCurrency(maxBudget) + " unallocated.";
-    } else if (Number(budget) < minBudget) {
-      newErrors.budget =
-        "Its departments already hold " + formatCurrency(minBudget) + ".";
+    if (showBudget) {
+      if (budget === "" || Number(budget) < 0) {
+        newErrors.budget = "Enter a valid positive number.";
+      } else if (maxBudget !== null && Number(budget) > maxBudget) {
+        newErrors.budget =
+          "The campus has only " + formatCurrency(maxBudget) + " unallocated.";
+      } else if (Number(budget) < minBudget) {
+        newErrors.budget =
+          "Its departments already hold " + formatCurrency(minBudget) + ".";
+      }
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
@@ -65,8 +71,10 @@ export default function BuildingModal({
     const body = {
       name: name.trim(),
       campus_id: campusId,
-      budget: Number(budget),
     };
+    if (showBudget) {
+      body.budget = Number(budget);
+    }
     if (orgId) {
       body.organization_id = orgId;
     }
@@ -124,26 +132,28 @@ export default function BuildingModal({
           </select>
           <span className="field-error">{errors.campus}</span>
         </div>
-        <div className="form-field">
-          <label htmlFor="buildingBudget">Budget</label>
-          <input
-            id="buildingBudget"
-            type="number"
-            min="0"
-            step="0.01"
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-          />
-          {maxBudget !== null && (
-            <span className="field-hint">
-              {minBudget > 0
-                ? "Between " + formatCurrency(minBudget) + " and "
-                : "Up to "}
-              {formatCurrency(maxBudget)}
-            </span>
-          )}
-          <span className="field-error">{errors.budget}</span>
-        </div>
+        {showBudget && (
+          <div className="form-field">
+            <label htmlFor="buildingBudget">Budget</label>
+            <input
+              id="buildingBudget"
+              type="number"
+              min="0"
+              step="0.01"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+            />
+            {maxBudget !== null && (
+              <span className="field-hint">
+                {minBudget > 0
+                  ? "Between " + formatCurrency(minBudget) + " and "
+                  : "Up to "}
+                {formatCurrency(maxBudget)}
+              </span>
+            )}
+            <span className="field-error">{errors.budget}</span>
+          </div>
+        )}
       </div>
     </Modal>
   );
