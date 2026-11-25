@@ -23,6 +23,11 @@ import { PutCampusDto } from "./dto/put-campus.dto";
 
 import { UpdateCampusDto } from "./dto/update-campus.dto";
 
+/** Removes every matching item from `list` in place. */
+function removeWhere<T>(list: T[], matches: (item: T) => boolean) {
+  for (let i = list.length - 1; i >= 0; i--) if (matches(list[i])) list.splice(i, 1);
+}
+
 @Injectable()
 export class CampusService {
   constructor(private database: DatabaseService) {}
@@ -152,6 +157,17 @@ export class CampusService {
       throw new NotFoundException(`Campus with ID ${id} not found`);
     this.assertAuditorHasOpenEngagement(this.database.campus[index].organization_id);
     const removed = this.database.campus.splice(index, 1);
+
+    // Take the campus's buildings with it, and their departments and meters,
+    // as the delete confirmation tells the user. Each goes exactly as if it
+    // had been deleted on its own: history that names it (readings, costs,
+    // findings, ...) is kept.
+    const buildingIds = new Set(
+      this.database.buildings.filter((b) => b.campus_id === id).map((b) => b.building_id),
+    );
+    removeWhere(this.database.buildings, (b) => buildingIds.has(b.building_id));
+    removeWhere(this.database.departments, (d) => buildingIds.has(d.building_id));
+    removeWhere(this.database.meters, (m) => buildingIds.has(m.building_id));
     return removed[0];
   }
 

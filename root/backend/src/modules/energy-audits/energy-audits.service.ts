@@ -613,6 +613,7 @@ export class EnergyAuditsService {
       target_id: audit.audit_id,
       message,
       is_read: false,
+      created_at: new Date().toISOString(),
     });
   }
 

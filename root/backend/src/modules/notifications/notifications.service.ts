@@ -30,7 +30,14 @@ export class NotificationsService {
         );
     }
     const generatedId = crypto.randomUUID();
-    const newRecord = { notification_id: generatedId, ...createDto, organization_id: currentOrgId() ?? createDto.organization_id ?? null };
+    const newRecord = {
+      notification_id: generatedId,
+      is_read: false,
+      ...createDto,
+      organization_id: currentOrgId() ?? createDto.organization_id ?? null,
+      // Set by the server, so lists can be ordered newest first.
+      created_at: new Date().toISOString(),
+    };
     this.database.notifications.push(newRecord as any);
     return newRecord;
   }
@@ -63,6 +70,8 @@ export class NotificationsService {
       notification_id: id,
       ...putDto,
       organization_id: this.database.notifications[index].organization_id,
+      // A replacement keeps when the notification was first sent.
+      created_at: this.database.notifications[index].created_at,
     } as any;
     return this.database.notifications[index];
   }

@@ -88,6 +88,14 @@ const REMOVE = {
   meter: removeMeter,
 };
 
+// The server deletes a campus's buildings (with their departments and
+// meters), and a building's departments and meters, along with it. These
+// lists are reloaded after such a delete so the children disappear too.
+const RELOAD_AFTER_DELETE = {
+  campus: [fetchBuildings, fetchDepartments, fetchMeters],
+  building: [fetchDepartments, fetchMeters],
+};
+
 /** Keep only one client's records when an orgId is given. */
 function forOrg(list, orgId) {
   if (!orgId) {
@@ -178,6 +186,9 @@ export default function InfrastructureManager({ orgId, onChange, showBudget = tr
     dispatch(REMOVE[type](idOf(type, item)))
       .unwrap()
       .then(() => {
+        for (const load of RELOAD_AFTER_DELETE[type] || []) {
+          dispatch(load({ force: true }));
+        }
         showToast("Deleted.", "success");
         afterChange();
       })
