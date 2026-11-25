@@ -44,6 +44,7 @@ import targets from "./slices/targetsSlice";
 import energyCosts from "./slices/energyCostsSlice";
 import financialReports from "./slices/financialReportsSlice";
 import invoices from "./slices/invoicesSlice";
+import expenseBills, { expenseSettingsReducer as expenseSettings } from "./slices/expenseBillsSlice";
 // Person 5: wastage / campus
 import wastageReports, { wastageSignalsReducer as wastageSignals } from "./slices/wastageReportsSlice";
 import serviceRequests, {
@@ -85,6 +86,8 @@ const reducers = {
   energyCosts,
   financialReports,
   invoices,
+  expenseBills,
+  expenseSettings,
   // Person 4: sustainability           (initiatives, sustainabilityReports, sustainabilityMetrics)
   // Person 5: wastage / campus         (+ wastageReports)
   serviceRequests,

@@ -56,11 +56,13 @@ export default function DepartmentCostBars() {
                   <div className="fo-dept-name">
                     <strong>{c.scopeLabel || "—"}</strong>
                     <span className={over ? "fo-dept-status over" : "fo-dept-status"}>
-                      {over
-                        ? `${formatCurrency(-c.variance)} over budget`
-                        : c.variance > 0
-                          ? `${formatCurrency(c.variance)} under budget`
-                          : "On budget"}
+                      {budget === 0
+                        ? "No budget set"
+                        : over
+                          ? `${formatCurrency(-c.variance)} over budget`
+                          : c.variance > 0
+                            ? `${formatCurrency(c.variance)} under budget`
+                            : "On budget"}
                     </span>
                   </div>
 

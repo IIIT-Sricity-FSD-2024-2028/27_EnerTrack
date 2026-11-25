@@ -13,13 +13,20 @@
  * and "Validated (Awaiting Payment)". Nothing sets either status any more —
  * the estimate travels on the work order — so those rows were dropped.
  *
- * The component loads its own data with useEffect and reloads it after
- * every approve / reject, like renderFinanceWorkflow() did.
+ * The work orders come from the Redux store (workOrdersSlice). They are
+ * reloaded when the box appears, since technicians send estimates from their
+ * own browsers; an approve / send back updates the order in place, so it
+ * leaves the list without another request.
  */
 import { useEffect, useState } from "react";
-import api from "../../../api/client";
+import { useDispatch, useSelector } from "react-redux";
 import { useToast } from "../components/toastContext";
 import { formatCurrency } from "../financeUtils";
+import {
+  fetchWorkOrders,
+  selectAllWorkOrders,
+  updateWorkOrder,
+} from "../../../store/slices/workOrdersSlice";
 
 /** "wo-ab12cd" → "WO-AB12CD" (same rule as the original formatWOId) */
 function formatWOId(id) {
@@ -28,12 +35,6 @@ function formatWOId(id) {
   const parts = id.split("-");
   if (parts.length > 1) return "WO-" + parts[1].toUpperCase();
   return "WO-" + id.substring(0, 4).toUpperCase();
-}
-
-/** Loads the work orders waiting for approval. */
-async function fetchApprovalItems() {
-  const wos = await api.get("/work-orders");
-  return Array.isArray(wos) ? wos.filter((w) => w.status === "approval") : [];
 }
 
 /** One approval row. The parent decides what the buttons do. */
@@ -111,27 +112,24 @@ function EstimateActions({ busy, onApprove, onReject }) {
 
 const ESTIMATE = { label: "Estimate to approve", tone: "action" };
 
-export default function MaintenanceApprovals({ onChange } = {}) {
+export default function MaintenanceApprovals() {
   const showToast = useToast();
-  const [workOrders, setWorkOrders] = useState([]);
+  const dispatch = useDispatch();
+  const workOrders = useSelector(selectAllWorkOrders).filter((w) => w.status === "approval");
   const [busyId, setBusyId] = useState(null);
-  // Bumping this number re-runs the effect below, i.e. reloads the list.
-  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    fetchApprovalItems()
-      .then(setWorkOrders)
-      .catch((error) => console.error("API error fetching workflow items", error));
-  }, [reloadKey]);
+    dispatch(fetchWorkOrders({ force: true }))
+      .unwrap()
+      .catch((error) => showToast(error.message || "Could not load the estimates.", "error"));
+  }, [dispatch, showToast]);
 
-  /** PATCHes one record, shows a toast and reloads the list. */
-  async function update(path, id, body, successMessage, successType) {
+  /** Saves one decision on a work order and shows a toast. */
+  async function decide(id, changes, successMessage, successType) {
     setBusyId(id);
     try {
-      await api.patch(`${path}/${id}`, body);
+      await dispatch(updateWorkOrder({ id, changes })).unwrap();
       showToast(successMessage, successType);
-      setReloadKey((k) => k + 1);
-      if (onChange) onChange();
     } catch (error) {
       showToast(error.message || "Failed to update", "warning");
     }
@@ -171,14 +169,17 @@ export default function MaintenanceApprovals({ onChange } = {}) {
               <EstimateActions
                 busy={busyId === woId}
                 onApprove={() =>
-                  update("/work-orders", woId, { status: "inprogress" },
+                  decide(woId, { status: "inprogress" },
                     "Internal Work Order estimate approved.", "success")
                 }
                 // Keeps the technician: they revise the estimate. Clearing
                 // assigned_to_id took the order off their board and hid the
                 // "estimate rejected" step on both technician pages.
                 onReject={(reason) =>
-                  update("/work-orders", woId, { status: "new", details: { decision_reason: reason } },
+                  // Keep the rest of details: on an order the system did not
+                  // dispatch, the backend replaces details as a whole, and
+                  // sending only the reason wiped the estimate.
+                  decide(woId, { status: "new", details: { ...wo.details, decision_reason: reason } },
                     "Sent back to the technician with your reason.", "warning")
                 }
               />
