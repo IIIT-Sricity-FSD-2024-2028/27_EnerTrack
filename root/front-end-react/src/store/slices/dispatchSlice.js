@@ -13,7 +13,7 @@
  * only dispatch and show a toast.
  *
  * Coordinator: sendFault, assignTicket, setJobDeadline, decideExtension,
- *              sweepTimeouts
+ *              sweepTimeouts, decideRework, backOnDuty
  * Technician:  setAvailability, jobAction({ id, action, body }) with action
  *              acknowledge | decline | start | finish | made-safe | resume |
  *              needs-parts | extension
@@ -30,7 +30,7 @@ import { fetchWorkOrders } from "./workOrdersSlice";
 const dispatchQueue = createResourceSlice({
   name: "dispatchQueue",
   path: "/dispatch/queue",
-  initialData: { queued: [], team_status: [] },
+  initialData: { queued: [], team_status: [], rework_requests: [] },
 });
 
 const myJobs = createResourceSlice({
@@ -116,6 +116,28 @@ export const decideExtension = coordinatorAction(
 
 export const sweepTimeouts = coordinatorAction("dispatch/sweep", () =>
   api.post("/dispatch/sweep", {}),
+);
+
+/**
+ * An initiative's officer asked for a closed job to be redone:
+ * { ticketId, decision: "same" | "auto" | "pick" | "decline", assigneeId?,
+ *   finishBy? (YYYY-MM-DD), note? }.
+ */
+export const decideRework = coordinatorAction(
+  "dispatch/decideRework",
+  ({ ticketId, decision, assigneeId, finishBy, note }) =>
+    api.post(`/dispatch/rework-requests/${ticketId}`, {
+      decision,
+      ...(assigneeId ? { assignee_id: assigneeId } : {}),
+      ...(finishBy ? { finish_by: finishBy } : {}),
+      ...(note ? { note } : {}),
+    }),
+);
+
+/** Clears a technician's "off for today" and switches them back on. */
+export const backOnDuty = coordinatorAction(
+  "dispatch/backOnDuty",
+  ({ userId }) => api.post(`/dispatch/technicians/${userId}/back-on-duty`, {}),
 );
 
 /** Technician: switch "Available today". Turning it on may place jobs. */

@@ -3,18 +3,25 @@ import { useSearchParams } from "react-router-dom";
 import api from "../../api/client";
 import initiativesCss from "../../styles/sustainability_officer/sust_initiatives.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
+import { SpendLine } from "./initiativeShared";
+import { useTeams, rupees } from "./initiativeUtils";
 
-const STATE_ORDER = ["proposed", "approved", "in-progress", "completed"];
+/**
+ * Board columns. Approval starts the work, so there is no "Approved" column:
+ * an older record still marked approved is shown under In Progress.
+ */
+const STATE_ORDER = ["proposed", "in-progress", "completed"];
+const columnOf = (status) => (status === "approved" ? "in-progress" : status);
 /** Statuses the server lets an initiative be archived from. */
 const ARCHIVABLE = ["completed", "rejected"];
 
 /**
  * The moves the Sustainability Officer makes from the board. Approving or
  * rejecting a proposal is the Organization Admin's decision (their approvals
- * page), and the server refuses anything else.
+ * page), and approving it starts the work, so the only move left is
+ * completing it. The server refuses anything else.
  */
 const SO_NEXT = {
-  approved: { to: "in-progress", label: "Start work" },
   "in-progress": { to: "completed", label: "Mark completed" },
 };
 
@@ -38,9 +45,6 @@ function normalizeStatus(status) {
   return status.toLowerCase().replace(/_/g, "-");
 }
 
-const formatMoney = (n) =>
-  typeof n === "number" ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : null;
-
 const formatDate = (d) =>
   d ? new Date(`${d}T00:00:00`).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" }) : null;
 
@@ -58,24 +62,19 @@ const MEASURES = [
 const measureOf = (metric) => MEASURES.find((m) => m.value === metric);
 const num = (n) => Number(n || 0).toLocaleString("en-GB", { maximumFractionDigits: 0 });
 
-/** The technician types an initiative's on-site work can need (the server's team list). */
-const TEAM_OPTIONS = [
-  { value: "electrician", label: "Electrician" },
-  { value: "plumber", label: "Plumber" },
-  { value: "hvac", label: "HVAC" },
-  { value: "cleaning", label: "Cleaning" },
-];
-const teamLabel = (t) => TEAM_OPTIONS.find((o) => o.value === t)?.label || t;
-const teamList = (teams) => (teams || []).map(teamLabel).join(", ");
+/** Longest task a technician type can be given (the server's limit). */
+const TASK_MAX = 300;
 
 /**
- * "Does this need technicians on site?" No keeps the initiative as paperwork
- * (like before). Yes asks which technician types: at Start work each gets
- * its own job, sent at once, due on the target date.
+ * "Does this need technicians on site?" No keeps the initiative as paperwork.
+ * Yes asks which technician types and, optionally, what each must do: on
+ * approval each type gets its own job, sent at once, due on the target date,
+ * whose description is that task (if given) plus the initiative's description.
  */
-function OnsiteFields({ idPrefix, onsite, teams, disabled, onChange }) {
+function OnsiteFields({ idPrefix, onsite, teams, tasks, disabled, onChange }) {
+  const { teams: options } = useTeams();
   const toggle = (value) =>
-    onChange({ onsite, teams: teams.includes(value) ? teams.filter((t) => t !== value) : [...teams, value] });
+    onChange({ onsite, tasks, teams: teams.includes(value) ? teams.filter((t) => t !== value) : [...teams, value] });
   return (
     <fieldset className="init-onsite" disabled={disabled}>
       <legend>Does this need technicians on site?</legend>
@@ -90,7 +89,7 @@ function OnsiteFields({ idPrefix, onsite, teams, disabled, onChange }) {
             role="radio"
             aria-checked={onsite === o.value}
             className={onsite === o.value ? "is-selected" : ""}
-            onClick={() => onChange({ onsite: o.value, teams: o.value ? teams : [] })}
+            onClick={() => onChange({ onsite: o.value, tasks, teams: o.value ? teams : [] })}
           >
             {o.label}
           </button>
@@ -99,16 +98,37 @@ function OnsiteFields({ idPrefix, onsite, teams, disabled, onChange }) {
       {onsite === true && (
         <div className="init-teams">
           <span className="init-teams-label">Technician types needed (one job each, in parallel)</span>
-          {TEAM_OPTIONS.map((o) => (
-            <label key={o.value} htmlFor={`${idPrefix}-team-${o.value}`}>
-              <input
-                id={`${idPrefix}-team-${o.value}`}
-                type="checkbox"
-                checked={teams.includes(o.value)}
-                onChange={() => toggle(o.value)}
-              />
-              {o.label}
-            </label>
+          {options.map((o) => (
+            <div key={o.id} className="init-team">
+              <label htmlFor={`${idPrefix}-team-${o.id}`}>
+                <input
+                  id={`${idPrefix}-team-${o.id}`}
+                  type="checkbox"
+                  checked={teams.includes(o.id)}
+                  onChange={() => toggle(o.id)}
+                />
+                {o.label}
+              </label>
+              {teams.includes(o.id) && (
+                <div className="init-task">
+                  <label className="init-task-label" htmlFor={`${idPrefix}-task-${o.id}`}>
+                    Task for the {o.label.toLowerCase()} <span>(optional)</span>
+                  </label>
+                  <textarea
+                    id={`${idPrefix}-task-${o.id}`}
+                    className="form-input"
+                    placeholder={`What does the ${o.label.toLowerCase()} need to do?`}
+                    rows={2}
+                    maxLength={TASK_MAX}
+                    value={tasks[o.id] || ""}
+                    onChange={(e) => onChange({ onsite, teams, tasks: { ...tasks, [o.id]: e.target.value } })}
+                  />
+                  <span className="init-task-count">
+                    {(tasks[o.id] || "").length}/{TASK_MAX}
+                  </span>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -116,94 +136,135 @@ function OnsiteFields({ idPrefix, onsite, teams, disabled, onChange }) {
   );
 }
 
+/** Checks the on-site answer the way the server will; returns an error message or null. */
+function onsiteProblem({ onsite, teams, targetDate }) {
+  if (onsite === null || onsite === undefined) return "Answer: does this need technicians on site?";
+  if (!onsite) return null;
+  if (!teams.length) return "Pick the technician types the on-site work needs.";
+  if (!targetDate) return "On-site work needs a target date: it is the technicians' finish date.";
+  return null;
+}
+
+/** Only the ticked types' tasks that were filled in, trimmed. */
+const tasksFor = (teams, tasks) =>
+  Object.fromEntries(teams.map((t) => [t, (tasks[t] || "").trim()]).filter(([, task]) => task));
+
+/**
+ * Dot colour of a job: green closed, blue being checked by the coordinator,
+ * amber waiting for someone to take it, grey otherwise.
+ */
+const jobTone = (j) =>
+  !j.open ? "green" : j.stage === "Being checked" ? "blue" : j.stage === "Waiting for a person" ? "amber" : "none";
+
+const shortDate = (iso) => formatDate(String(iso || "").slice(0, 10));
+
+/** Where a rework request stands, in a sentence. */
+function reworkStatus(r) {
+  if (!r) return null;
+  if (r.status === "pending") return { tone: "amber", text: `Rework requested: ${r.reason}. Waiting for the coordinator.` };
+  if (r.status === "sent")
+    return {
+      tone: "none",
+      text: `Rework sent to ${r.rework_technician_name || "a technician"}${r.rework_finish_by ? `, finish by ${shortDate(r.rework_finish_by)}` : ""}.`,
+    };
+  if (r.status === "declined")
+    return { tone: "red", text: `Rework declined${r.decided_by_name ? ` by ${r.decided_by_name}` : ""}: ${r.note}` };
+  return null;
+}
+
 /**
  * The on-site jobs of an initiative: one row per job (first try or rework),
- * with who has it, where it is and its finish date. A closed job can be
- * sent back with a reason and a new finish date.
+ * with its task, who has it, where it is, its finish date and what it has
+ * cost. Once a job is closed the officer can ask the coordinator for rework;
+ * the coordinator decides who redoes it and by when.
  */
-function InitiativeWork({ init, onSendBack }) {
-  const [sending, setSending] = useState(null); // work_order_id being sent back
+function InitiativeWork({ init, onRequestRework }) {
+  const { label } = useTeams();
+  const [asking, setAsking] = useState(null); // work_order_id being asked about
   const [reason, setReason] = useState("");
-  const [finishBy, setFinishBy] = useState(init.target_date && init.target_date >= todayIso() ? init.target_date : "");
   const [busy, setBusy] = useState(false);
   const jobs = init.jobs || [];
   if (!jobs.length) return null;
 
-  const tone = (j) => (!j.open ? "green" : j.stage === "Waiting for a person" ? "amber" : j.stage === "Being checked" ? "green" : "none");
-
   async function submit(job) {
     setBusy(true);
-    const ok = await onSendBack(init, job, reason.trim(), finishBy);
+    const ok = await onRequestRework(init, job, reason.trim());
     setBusy(false);
     if (ok) {
-      setSending(null);
+      setAsking(null);
       setReason("");
     }
   }
+
+  const canAsk = (j) =>
+    !j.open &&
+    init.status === "in-progress" &&
+    j.work_order_id &&
+    !jobs.some((x) => x.rework_of === j.work_order_id) &&
+    (!j.rework_request || j.rework_request.status === "declined");
 
   return (
     <div className="init-work">
       <p className="init-work-title">Work</p>
       <ul>
-        {jobs.map((j) => (
-          <li key={j.ticket_id}>
-            <div className="init-work-row">
-              <span className={`perf-status init-work-status perf--${tone(j)}`}>
-                {teamLabel(j.team)}
-                {j.rework_of ? " (rework)" : ""}
-              </span>
-              <span className="init-work-stage">{j.stage}</span>
-            </div>
-            <p className="perf-note">
-              {j.technician_name ? `${j.technician_name} · ` : ""}
-              {j.open
-                ? `finish by ${formatDate(String(j.finish_by || "").slice(0, 10))}`
-                : `closed ${formatDate(String(j.closed_at || "").slice(0, 10))}`}
-            </p>
-            {j.rework_reason && <p className="perf-note">Sent back: {j.rework_reason}</p>}
-            {!j.open &&
-              init.status === "in-progress" &&
-              !jobs.some((x) => x.rework_of === j.work_order_id) &&
-              (sending === j.work_order_id ? (
-                <div className="init-sendback">
-                  <input
-                    type="text"
-                    className="form-input"
-                    aria-label="What needs redoing"
-                    placeholder="What needs redoing?"
-                    value={reason}
-                    maxLength={500}
-                    onChange={(e) => setReason(e.target.value)}
-                  />
-                  <input
-                    type="date"
-                    className="form-input"
-                    aria-label="New finish date"
-                    min={todayIso()}
-                    value={finishBy}
-                    onChange={(e) => setFinishBy(e.target.value)}
-                  />
-                  <div className="init-sendback-actions">
-                    <button
-                      type="button"
-                      className="btn-action"
-                      disabled={busy || reason.trim().length < 3 || !finishBy}
-                      onClick={() => submit(j)}
-                    >
-                      Send back
-                    </button>
-                    <button type="button" className="btn-action" onClick={() => setSending(null)}>
-                      Cancel
-                    </button>
+        {jobs.map((j) => {
+          const rs = reworkStatus(j.rework_request);
+          return (
+            <li key={j.ticket_id}>
+              <div className="init-work-row">
+                <span className={`perf-status init-work-status perf--${jobTone(j)}`}>
+                  {j.team_label || label(j.team)}
+                  {j.rework_of ? " (rework)" : ""}
+                </span>
+                <span className="init-work-stage">{j.stage}</span>
+              </div>
+              {j.task && <p className="perf-note init-work-task">{j.task}</p>}
+              <p className="perf-note">
+                {j.technician_name ? `${j.technician_name} · ` : ""}
+                {j.open ? `finish by ${shortDate(j.finish_by)}` : `closed ${shortDate(j.closed_at)}`}
+                {j.spent > 0 ? ` · spent ${rupees(j.spent)}` : ""}
+              </p>
+              {j.rework_reason && <p className="perf-note">Rework of an earlier job: {j.rework_reason}</p>}
+              {rs && <p className={`perf-note init-rework init-rework--${rs.tone}`}>{rs.text}</p>}
+              {canAsk(j) &&
+                (asking === j.work_order_id ? (
+                  <div className="init-sendback">
+                    <input
+                      type="text"
+                      className="form-input"
+                      aria-label="What needs redoing"
+                      placeholder="What needs redoing?"
+                      value={reason}
+                      maxLength={500}
+                      onChange={(e) => setReason(e.target.value)}
+                    />
+                    <div className="init-sendback-actions">
+                      <button
+                        type="button"
+                        className="btn-action"
+                        disabled={busy || reason.trim().length < 3}
+                        onClick={() => submit(j)}
+                      >
+                        Send request
+                      </button>
+                      <button type="button" className="btn-action" onClick={() => setAsking(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                    <p className="perf-note">The coordinator decides who redoes it and by when.</p>
                   </div>
-                </div>
-              ) : (
-                <button type="button" className="btn-action init-sendback-open" onClick={() => setSending(j.work_order_id)}>
-                  Send back
-                </button>
-              ))}
-          </li>
-        ))}
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-action init-sendback-open"
+                    onClick={() => setAsking(j.work_order_id)}
+                  >
+                    Request rework
+                  </button>
+                ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -225,9 +286,9 @@ function Performance({ init }) {
 
   if (!p.measurable)
     return (
-      <div className="perf">
+      <div className="perf perf--inline">
         <span className="perf-status">Not measured</span>
-        <p className="perf-note">{p.reason === "No measure chosen." ? "No measure chosen." : "Not started yet."}</p>
+        <span className="perf-note">{p.reason === "No measure chosen." ? "no measure chosen" : "not started yet"}</span>
       </div>
     );
 
@@ -324,6 +385,9 @@ export default function SustainabilityInitiatives() {
   // On-site work: null until the officer answers, then false or true.
   const [newOnsite, setNewOnsite] = useState(null);
   const [newTeams, setNewTeams] = useState([]);
+  const [newTasks, setNewTasks] = useState({});
+  const { label: teamLabel } = useTeams();
+  const teamList = (teams) => (teams || []).map(teamLabel).join(", ");
   const [isProposing, setIsProposing] = useState(false);
 
   // Edit modal
@@ -407,13 +471,7 @@ export default function SustainabilityInitiatives() {
       // The server's answer carries the jobs Start work just sent.
       const saved = await api.patch(`/initiatives/${id}`, { status: nextState });
       if (saved && typeof saved === "object") replaceInit(id, { ...saved, status: normalizeStatus(saved.status) });
-      const sent = saved?.jobs?.length && nextState === "in-progress" ? saved.jobs.length : 0;
-      showToast(
-        sent
-          ? `Work started: ${sent} job${sent === 1 ? "" : "s"} sent to ${teamList(saved.teams)}.`
-          : `Moved to ${formatStatus(nextState)}`,
-        "success",
-      );
+      showToast(`Moved to ${formatStatus(nextState)}`, "success");
     } catch (err) {
       replaceInit(id, prevInit);
       showToast(err.message || "Failed to move initiative. Nothing was changed.", "error");
@@ -431,20 +489,19 @@ export default function SustainabilityInitiatives() {
     setNewTargetDate("");
     setNewOnsite(null);
     setNewTeams([]);
+    setNewTasks({});
   };
 
-  // The officer checked a closed job and it is not right: send it back.
-  const handleSendBack = async (init, job, reason, finishBy) => {
+  // The officer checked a closed job and it is not right: ask the
+  // coordinator for rework. They decide who redoes it and by when.
+  const handleRequestRework = async (init, job, reason) => {
     try {
-      const saved = await api.post(`/initiatives/${idOf(init)}/jobs/${job.work_order_id}/send-back`, {
-        reason,
-        finish_by: finishBy,
-      });
+      const saved = await api.post(`/initiatives/${idOf(init)}/jobs/${job.work_order_id}/rework-request`, { reason });
       if (saved && typeof saved === "object") replaceInit(idOf(init), { ...saved, status: normalizeStatus(saved.status) });
-      showToast(`${teamLabel(job.team)} work sent back. A new job has been sent.`, "success");
+      showToast(`Rework requested on the ${teamLabel(job.team)} job. The coordinator will decide who redoes it.`, "success");
       return true;
     } catch (err) {
-      showToast(err.message || "Could not send the work back.", "error");
+      showToast(err.message || "Could not request rework.", "error");
       return false;
     }
   };
@@ -479,10 +536,8 @@ export default function SustainabilityInitiatives() {
     if (newTargetDate && newTargetDate < todayIso()) {
       return showToast("Target date cannot be in the past.", "error");
     }
-    if (newOnsite === null) return showToast("Answer: does this need technicians on site?", "error");
-    if (newOnsite && !newTeams.length) return showToast("Pick the technician types the on-site work needs.", "error");
-    if (newOnsite && !newTargetDate)
-      return showToast("On-site work needs a target date: it is the technicians' finish date.", "error");
+    const onsiteError = onsiteProblem({ onsite: newOnsite, teams: newTeams, targetDate: newTargetDate });
+    if (onsiteError) return showToast(onsiteError, "error");
 
     const payload = {
       title,
@@ -497,7 +552,7 @@ export default function SustainabilityInitiatives() {
       ...(capex !== undefined ? { capex } : {}),
       ...(newTargetDate ? { target_date: newTargetDate } : {}),
       onsite_work: newOnsite === true,
-      ...(newOnsite ? { teams: newTeams } : {}),
+      ...(newOnsite ? { teams: newTeams, team_tasks: tasksFor(newTeams, newTasks) } : {}),
     };
 
     setIsProposing(true);
@@ -573,10 +628,16 @@ export default function SustainabilityInitiatives() {
     // Organization Admin agreed to; the server refuses changes (409), so
     // they are not sent.
     const termsLocked = editingInit.status !== "proposed";
-    if (!termsLocked && editingInit.onsite_work && !(editingInit.teams || []).length)
-      return showToast("Pick the technician types the on-site work needs.", "error");
-    if (!termsLocked && editingInit.onsite_work && !editingInit.target_date)
-      return showToast("On-site work needs a target date: it is the technicians' finish date.", "error");
+    const editTeams = editingInit.teams || [];
+    const editTasks = editingInit.team_tasks || {};
+    if (!termsLocked) {
+      const onsiteError = onsiteProblem({
+        onsite: editingInit.onsite_work === true,
+        teams: editTeams,
+        targetDate: editingInit.target_date,
+      });
+      if (onsiteError) return showToast(onsiteError, "error");
+    }
     const patch = {
       title,
       description: editingInit.description || "",
@@ -589,7 +650,10 @@ export default function SustainabilityInitiatives() {
       ...(editingInit.target_date ? { target_date: editingInit.target_date } : {}),
       // Whether it needs technicians, and which, is part of what the admin approves.
       ...(!termsLocked
-        ? { onsite_work: editingInit.onsite_work === true, ...(editingInit.onsite_work ? { teams: editingInit.teams || [] } : {}) }
+        ? {
+            onsite_work: editingInit.onsite_work === true,
+            ...(editingInit.onsite_work ? { teams: editTeams, team_tasks: tasksFor(editTeams, editTasks) } : {}),
+          }
         : {}),
     };
 
@@ -757,9 +821,11 @@ export default function SustainabilityInitiatives() {
             idPrefix="new-init"
             onsite={newOnsite}
             teams={newTeams}
-            onChange={({ onsite, teams }) => {
+            tasks={newTasks}
+            onChange={({ onsite, teams, tasks }) => {
               setNewOnsite(onsite);
               setNewTeams(teams);
+              setNewTasks(tasks);
             }}
           />
           {linkableTargets.length > 0 && (
@@ -805,9 +871,8 @@ export default function SustainabilityInitiatives() {
         <section className="panel">
           <h2 className="panel-title">Initiative pipeline</h2>
           <p className="panel-sub">
-            You propose; the Organization Admin approves or rejects; you start
-            and complete the work. Archive a completed or rejected initiative to
-            move it to Archives.
+            The Organization Admin&apos;s approval starts the work and sends any
+            on-site jobs. Check the work, then mark it completed.
           </p>
 
           {loading && <p className="panel-sub" role="status">Loading initiatives…</p>}
@@ -844,16 +909,19 @@ export default function SustainabilityInitiatives() {
 
           <div className="pipeline-grid">
             {STATE_ORDER.map((statusKey) => {
-              const colItems = live.filter((i) => i.status === statusKey);
+              const colItems = live.filter((i) => columnOf(i.status) === statusKey);
 
               return (
                 <div key={statusKey} className="pipeline-col">
-                  <h4>{formatStatus(statusKey)}</h4>
+                  <h4>
+                    {formatStatus(statusKey)} <span className="pipeline-count">{colItems.length}</span>
+                  </h4>
                   <div id={`col-${statusKey}`}>
                     {colItems.map((init) => {
                       const id = idOf(init);
-                      const next = SO_NEXT[init.status];
+                      const next = SO_NEXT[columnOf(init.status)];
                       const openJobs = (init.jobs || []).filter((j) => j.open).length;
+                      const reworkPending = (init.jobs || []).some((j) => j.rework_request?.status === "pending");
 
                       return (
                         <div
@@ -884,7 +952,7 @@ export default function SustainabilityInitiatives() {
                           {init.source_finding && (
                             <p className="init-source">
                               From an energy audit
-                              {init.expected_saving_amount ? ` · promised ${formatMoney(init.expected_saving_amount)} a year` : ""}
+                              {init.expected_saving_amount ? ` · promised ${rupees(init.expected_saving_amount)} a year` : ""}
                             </p>
                           )}
 
@@ -921,10 +989,10 @@ export default function SustainabilityInitiatives() {
                             <div className="kanban-stats-val">
                               {init.onsite_work ? teamList(init.teams) : "No on-site work"}
                             </div>
-                            {formatMoney(init.capex) && (
+                            {typeof init.capex === "number" && (
                               <>
                                 <div className="kanban-stats-label">Cost</div>
-                                <div className="kanban-stats-val">{formatMoney(init.capex)}</div>
+                                <div className="kanban-stats-val">{rupees(init.capex)}</div>
                               </>
                             )}
                             {init.target_date && (
@@ -949,7 +1017,10 @@ export default function SustainabilityInitiatives() {
 
                           <Performance init={init} />
 
-                          <InitiativeWork init={init} onSendBack={handleSendBack} />
+                          {/* Only on-site jobs carry expense bills, so only they can spend. */}
+                          {init.onsite_work && init.status !== "proposed" && <SpendLine money={init.money} />}
+
+                          <InitiativeWork init={init} onRequestRework={handleRequestRework} />
 
                           <div className="kanban-state-row">
                             {init.status === "proposed" ? (
@@ -961,22 +1032,23 @@ export default function SustainabilityInitiatives() {
                               <p className="kanban-waiting init-open-jobs">
                                 {openJobs} job{openJobs === 1 ? "" : "s"} still open. Mark it completed once all work is done and checked.
                               </p>
+                            ) : next && reworkPending ? (
+                              <p className="kanban-waiting init-open-jobs">
+                                Rework is waiting for the coordinator&apos;s decision. Mark it completed once that is settled.
+                              </p>
                             ) : next ? (
                               <button
                                 type="button"
                                 className="btn-state btn-state-next"
                                 onClick={() => handleMoveState(id, next.to)}
                               >
-                                {next.to === "in-progress" && init.onsite_work
-                                  ? `Start work: send ${init.teams?.length || 0} job${init.teams?.length === 1 ? "" : "s"}`
-                                  : next.label}{" "}
-                                →
+                                {next.label} →
                               </button>
                             ) : null}
                           </div>
                           {init.status !== "proposed" && init.decision_note && (
-                            <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#4b5563" }}>
-                              Approval note: {init.decision_note}
+                            <p className="init-decision">
+                              Approved{init.decided_by_name ? ` by ${init.decided_by_name}` : ""}: {init.decision_note}
                             </p>
                           )}
 
@@ -1035,8 +1107,11 @@ export default function SustainabilityInitiatives() {
                       {init.description && (
                         <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>{init.description}</p>
                       )}
-                      {Array.isArray(init.outcomes) && init.outcomes.length > 0 && (
-                        <p style={{ fontSize: "12px", color: "#991b1b", margin: "6px 0 0 0" }}>{init.outcomes.join(" · ")}</p>
+                      {(init.decision_note || (Array.isArray(init.outcomes) && init.outcomes.length > 0)) && (
+                        <p style={{ fontSize: "12px", color: "#991b1b", margin: "6px 0 0 0" }}>
+                          Rejected{init.decided_by_name ? ` by ${init.decided_by_name}` : ""}:{" "}
+                          {init.decision_note || init.outcomes.join(" · ")}
+                        </p>
                       )}
                     </div>
                     <div className="kanban-actions" style={{ flexShrink: 0 }}>
@@ -1226,8 +1301,11 @@ export default function SustainabilityInitiatives() {
                 idPrefix="edit-init"
                 onsite={editingInit.onsite_work === true}
                 teams={editingInit.teams || []}
+                tasks={editingInit.team_tasks || {}}
                 disabled={editingInit.status !== "proposed"}
-                onChange={({ onsite, teams }) => setEditingInit({ ...editingInit, onsite_work: onsite, teams })}
+                onChange={({ onsite, teams, tasks }) =>
+                  setEditingInit({ ...editingInit, onsite_work: onsite, teams, team_tasks: tasks })
+                }
               />
               <div>
                 <label

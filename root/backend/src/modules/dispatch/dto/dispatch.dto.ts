@@ -43,3 +43,17 @@ export class SendFaultDto {
   @IsOptional() @IsString() assignee_id?: string;
   @IsOptional() @IsString() @MaxLength(1000) notes?: string;
 }
+
+/**
+ * The coordinator's answer to a rework request on an initiative job:
+ * "same" (the technician who did it), "auto" (the system picks), "pick"
+ * (assignee_id) — each with finish_by — or "decline" with a note.
+ */
+export class DecideReworkDto {
+  @IsIn(["same", "auto", "pick", "decline"]) decision: "same" | "auto" | "pick" | "decline";
+  @IsOptional() @IsString() assignee_id?: string;
+  /** YYYY-MM-DD, today or later. Required unless declining. */
+  @IsOptional() @IsString() finish_by?: string;
+  /** Required when declining (sent to the officer); optional otherwise. */
+  @IsOptional() @IsString() @MaxLength(500) note?: string;
+}

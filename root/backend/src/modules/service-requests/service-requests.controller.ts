@@ -1,5 +1,12 @@
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from "@nestjs/swagger";
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put, Headers, Query } from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, Headers, Query, Res, UploadedFile, UseFilters, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import type { Response } from "express";
+import { ApiBody, ApiConsumes } from "@nestjs/swagger";
+import { photoUploadConfig } from "../../core/middleware/file-upload.middleware";
+import { MulterExceptionFilter } from "../../core/filters/multer-exception.filter";
+import { assertFileSignatures } from "../../core/utils/file-signature";
+import { StillBrokenDto } from "./dto/still-broken.dto";
 import { ServiceRequestsService } from "./service-requests.service";
 import { IssueReportsService } from "./issue-reports.service";
 import { CreateIssueReportDto } from "./dto/create-issue-report.dto";
@@ -73,11 +80,50 @@ export class ServiceRequestsController {
   }
 
   @Post(":id/still-broken")
-  @ApiOperation({ summary: "Still broken", description: "Files the same problem again as a new report linked to the fixed one, raised one level because it happened before." })
+  @ApiOperation({
+    summary: "Still broken",
+    description:
+      "Files the same problem again as a new report linked to the fixed one, raised one level because it happened before. reason (what is still wrong) is required; a photo is optional (multipart field 'photo', JPEG or PNG, up to 5 MB). The new job is offered first to the technician who did the fix; if they cannot take it, it is ranked as usual and the coordinator is told.",
+  })
+  @ApiConsumes("multipart/form-data", "application/json")
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["reason"],
+      properties: { reason: { type: "string", maxLength: 500 }, photo: { type: "string", format: "binary" } },
+    },
+  })
+  @ApiResponse({ status: 400, description: "No reason, not yours, too late to reopen, or the photo is not a JPEG/PNG." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin", "Financial Analyst", "Operations Coordinator", "Technician", "Sustainability Officer", "Campus Visitor")
-  stillBroken(@Headers("x-user-id") userId: string, @Param("id") id: string) {
-    return this.issueReports.respond(userId, id, false);
+  @UseFilters(MulterExceptionFilter)
+  @UseInterceptors(FileInterceptor("photo", photoUploadConfig))
+  stillBroken(
+    @Headers("x-user-id") userId: string,
+    @Param("id") id: string,
+    @Body() dto: StillBrokenDto,
+    @UploadedFile() photo?: Express.Multer.File,
+  ) {
+    // A photo must really be a JPEG or PNG, not just named like one.
+    if (photo) assertFileSignatures([photo], "image");
+    return this.issueReports.respond(userId, id, false, { reason: dto.reason, photo: photo?.path ?? null });
+  }
+
+  @Get(":id/reopen-photo")
+  @ApiOperation({
+    summary: "Photo sent with a 'still broken' report",
+    description: "Streams the photo the reporter attached when they said the fix did not work. Staff in the organisation, and the reporter themselves.",
+  })
+  @ApiResponse({ status: 404, description: "No such report, or it has no photo." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Organization Admin", "Operations Coordinator", "Technician", "Sustainability Officer", "Campus Visitor")
+  reopenPhoto(
+    @Headers("x-user-id") userId: string,
+    @Headers("x-role") role: string,
+    @Param("id") id: string,
+    @Res() res: Response,
+  ) {
+    return res.sendFile(this.issueReports.reopenPhotoPath(userId, role, id));
   }
 
   @Post()

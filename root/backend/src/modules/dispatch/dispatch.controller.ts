@@ -3,7 +3,7 @@ import { Body, Controller, Get, Headers, Param, Post, Put } from "@nestjs/common
 import { Roles } from "../../core/decorators/roles.decorator";
 import { DispatchService } from "./dispatch.service";
 import { SlaService } from "./sla.service";
-import { AvailabilityDto, DeclineJobDto, DecideDto, ExtensionRequestDto, FinishJobDto, ManualAssignDto, NeedsPartsDto, SendFaultDto, SetDeadlineDto } from "./dto/dispatch.dto";
+import { AvailabilityDto, DeclineJobDto, DecideDto, DecideReworkDto, ExtensionRequestDto, FinishJobDto, ManualAssignDto, NeedsPartsDto, SendFaultDto, SetDeadlineDto } from "./dto/dispatch.dto";
 
 /**
  * Technicians never browse or pick jobs. The system pushes each job to one
@@ -88,6 +88,30 @@ export class DispatchController {
   @Roles("Operations Coordinator", "Organization Admin")
   assign(@Param("id") id: string, @Body() dto: ManualAssignDto) {
     return this.dispatch.manualAssign(id, dto.user_id);
+  }
+
+  @Post("rework-requests/:ticketId")
+  @ApiOperation({
+    summary: "Decide a rework request on an initiative job",
+    description:
+      "The Sustainability Officer asked for a closed initiative job to be redone. decision: same (the technician who did it), auto (the system picks), pick (assignee_id), each with finish_by (YYYY-MM-DD, today or later); or decline with a note (sent to the officer). Pending requests are listed in GET /dispatch/queue as rework_requests.",
+  })
+  @ApiResponse({ status: 201, description: "Decision recorded; a rework job was sent unless declined." })
+  @ApiResponse({ status: 400, description: "No request waiting, bad decision, date or note." })
+  @Roles("Operations Coordinator", "Organization Admin")
+  decideRework(@Param("ticketId") ticketId: string, @Body() dto: DecideReworkDto, @Headers("x-user-id") userId: string) {
+    return this.dispatch.decideRework(ticketId, dto, userId);
+  }
+
+  @Post("technicians/:userId/back-on-duty")
+  @ApiOperation({
+    summary: "Put a technician back on duty",
+    description:
+      "Clears 'off for today' (declined a job as unwell by mistake, or missed answering one) and switches them available, so jobs can be sent to them again today. Waiting jobs are offered again. The technician is told.",
+  })
+  @Roles("Operations Coordinator", "Organization Admin")
+  backOnDuty(@Param("userId") userId: string, @Headers("x-user-id") coordinatorId: string) {
+    return this.dispatch.backOnDuty(userId, coordinatorId);
   }
 
   @Post("sweep")

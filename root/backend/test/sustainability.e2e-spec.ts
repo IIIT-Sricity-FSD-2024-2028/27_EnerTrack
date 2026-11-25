@@ -8,6 +8,7 @@ import { TransformInterceptor } from '../src/core/interceptors/transform.interce
 import { RolesGuard } from '../src/core/guards/roles.guard';
 import { GAS_CO2_KG_PER_M3, GRID_CO2_KG_PER_KWH } from '../src/modules/organizations/organizations.service';
 import { DatabaseService } from '../src/core/database/database.service';
+import { DispatchService } from '../src/modules/dispatch/dispatch.service';
 import { defaultRange } from '../src/core/utils/period';
 
 /**
@@ -623,176 +624,249 @@ describe('Sustainability Workflows (e2e)', () => {
     const asSO = (r: request.Test) => r.set('x-role', 'Sustainability Officer').set('x-org-id', 'org-001');
     const asAdmin = (r: request.Test) => r.set('x-role', 'Organization Admin').set('x-org-id', 'org-001');
     const asCoord = (r: request.Test) => r.set('x-role', 'Operations Coordinator').set('x-org-id', 'org-001');
+    const asFinance = (r: request.Test) => r.set('x-role', 'Financial Analyst').set('x-org-id', 'org-001');
     const targetDate = `${new Date().getFullYear() + 1}-06-30`;
+    const tasks = { plumber: 'Fit the sump tank and its pipes.', electrician: 'Wire the pump circuit and an isolator.' };
     const plan = {
       title: 'Solar water heaters (test)',
       description: 'Rooftop tanks, pipework and backup heaters.',
       feasible: true,
       onsite_work: true,
       teams: ['plumber', 'electrician'],
+      team_tasks: tasks,
       target_date: targetDate,
       building_ids: ['660e8800-0002-4000-8000-000000000000'],
     };
     const db = () => app.get(DatabaseService);
+    const get = async (id: string) => (await asSO(request(server()).get(`/api/initiatives/${id}`)).expect(200)).body.data;
+    const propose = (extra: Record<string, unknown> = {}) => asSO(request(server()).post('/api/initiatives')).send({ ...plan, ...extra });
+    const decide = (id: string, body: Record<string, unknown>) => asAdmin(request(server()).patch(`/api/initiatives/${id}`)).send(body);
 
-    async function proposeAndApprove(extra: Record<string, unknown> = {}): Promise<string> {
-      const id = (await asSO(request(server()).post('/api/initiatives')).send({ ...plan, ...extra }).expect(201)).body.data
-        .initiative_id;
-      await asAdmin(request(server()).patch(`/api/initiatives/${id}`)).send({ status: 'approved' }).expect(200);
-      return id;
+    /** Proposed and approved: approval starts it, so it comes back in progress with its jobs sent. */
+    async function running(extra: Record<string, unknown> = {}) {
+      const id = (await propose(extra).expect(201)).body.data.initiative_id;
+      const approved = (await decide(id, { status: 'approved' }).expect(200)).body.data;
+      return { id, approved, jobs: approved.jobs as any[] };
     }
-    const start = (id: string) => asSO(request(server()).patch(`/api/initiatives/${id}`)).send({ status: 'in-progress' });
     const complete = (id: string) => asSO(request(server()).patch(`/api/initiatives/${id}`)).send({ status: 'completed' });
-    const jobsOf = async (id: string) =>
-      (await asSO(request(server()).get(`/api/initiatives/${id}`)).expect(200)).body.data.jobs as any[];
     const closeJob = (workOrderId: string) =>
       asCoord(request(server()).patch(`/api/work-orders/${workOrderId}`)).send({ status: 'closed' }).expect(200);
-    const jobFor = (jobs: any[], team: string) => jobs.find((j) => j.team === team && j.open !== false && !j.rework_of) ?? jobs.find((j) => j.team === team);
+    const jobFor = (jobs: any[], team: string) => jobs.find((j) => j.team === team && !j.rework_of);
+    const askRework = (id: string, woId: string, reason: string) =>
+      asSO(request(server()).post(`/api/initiatives/${id}/jobs/${woId}/rework-request`)).send({ reason });
+    const decideRework = (ticketId: string, body: Record<string, unknown>) =>
+      asCoord(request(server()).post(`/api/dispatch/rework-requests/${ticketId}`)).send(body);
 
-    it('asks for technician types and a target date when on-site work is needed', async () => {
-      const post = () => asSO(request(server()).post('/api/initiatives'));
-      await post().send({ ...plan, teams: [] }).expect(400);
-      await post().send({ ...plan, target_date: undefined }).expect(400);
-      await post().send({ ...plan, teams: ['carpenter'] }).expect(400);
-      const noWork = (await post().send({ ...plan, onsite_work: false }).expect(201)).body.data;
-      expect(noWork.onsite_work).toBe(false);
-      expect(noWork.teams).toEqual([]);
+    // ── #10 one team list ──
+    it('offers the server team list (with General Maintenance) and refuses the old "cleaning"', async () => {
+      const cat = (await asSO(request(server()).get('/api/service-requests/catalogue')).expect(200)).body.data;
+      expect(cat.teams.map((t: any) => t.id)).toEqual(['electrician', 'plumber', 'general', 'hvac']);
+      expect(cat.teams.find((t: any) => t.id === 'general').label).toBe('General Maintenance');
+      await propose({ teams: ['cleaning'], team_tasks: { cleaning: 'x' } }).expect(400);
+      // Every type the form can offer is accepted.
+      for (const t of cat.teams) await propose({ teams: [t.id], team_tasks: { [t.id]: `Do the ${t.label} part.` } }).expect(201);
     });
 
-    it('locks the technician types after approval for the officer, not the admin', async () => {
-      const id = await proposeAndApprove();
-      await asSO(request(server()).patch(`/api/initiatives/${id}`)).send({ teams: ['plumber'] }).expect(409);
-      const changed = (await asAdmin(request(server()).patch(`/api/initiatives/${id}`)).send({ teams: ['plumber', 'hvac'] }).expect(200))
-        .body.data;
-      expect(changed.teams).toEqual(['plumber', 'hvac']);
+    // ── #5 a task per type ──
+    it('a task per technician type is optional; only tasks for ticked types are kept', async () => {
+      const partial = (await propose({ team_tasks: { plumber: 'Only the plumber' } }).expect(201)).body.data;
+      expect(partial.team_tasks).toEqual({ plumber: 'Only the plumber' });
+      await propose({ team_tasks: { plumber: 'x'.repeat(301), electrician: 'ok' } }).expect(400);
+      await propose({ teams: [], team_tasks: {} }).expect(400);
+      await propose({ target_date: undefined }).expect(400);
+      const made = (await propose({ teams: ['plumber'], team_tasks: { plumber: '  Fit the tank.  ', hvac: 'stray' } }).expect(201)).body.data;
+      expect(made.team_tasks).toEqual({ plumber: 'Fit the tank.' });
+      const none = (await propose({ onsite_work: false }).expect(201)).body.data;
+      expect(none.teams).toEqual([]);
+      expect(none.team_tasks).toEqual({});
     });
 
-    it('refuses to start once the target date has passed', async () => {
-      const id = await proposeAndApprove();
-      db().initiatives.find((i) => i.initiative_id === id)!.target_date = '2020-01-31';
-      await start(id).expect(400);
-      expect((await jobsOf(id)).length).toBe(0);
+    // ── #1 decisions ──
+    it('rejecting needs a reason; the reason and an approval remark reach the proposer', async () => {
+      const id = (await propose().expect(201)).body.data.initiative_id;
+      await decide(id, { status: 'rejected' }).expect(400);
+      await decide(id, { status: 'rejected', decision_note: '   ' }).expect(400);
+      const rejected = (await decide(id, { status: 'rejected', decision_note: 'Not this year' }).expect(200)).body.data;
+      expect(rejected.decision_note).toBe('Not this year');
+      expect(rejected.decided_by_name).toBeNull(); // the test signer is not a seeded user
+      const msgs = () => db().notifications.filter((n) => n.target_id === id).map((n) => n.message);
+      expect(msgs()).toContain('Your initiative "Solar water heaters (test)" was not approved: Not this year');
+
+      const id2 = (await propose().expect(201)).body.data.initiative_id;
+      await decide(id2, { status: 'approved', decision_note: 'Go ahead, keep within budget' }).expect(200);
+      const note = db().notifications.filter((n) => n.target_id === id2).map((n) => n.message).pop()!;
+      expect(note).toContain('was approved: Go ahead, keep within budget');
+      expect(note).toContain('Work has started: 2 jobs sent to Plumber, Electrician.');
     });
 
-    it('Start work sends one job per technician type at once, each due on the target date', async () => {
-      const id = await proposeAndApprove();
-      await start(id).expect(200);
-      const jobs = await jobsOf(id);
+    // ── #3 approval starts the work ──
+    it('approval starts the work: in progress at once, start date today, one job per type, each due on the target date', async () => {
+      const { approved, jobs } = await running();
+      expect(approved.status).toBe('in-progress');
+      expect(approved.start_date).toBe(new Date().toISOString().slice(0, 10));
       expect(jobs.map((j) => j.team).sort()).toEqual(['electrician', 'plumber']);
-
       const due = new Date(`${targetDate}T23:59:59`).toISOString();
       for (const job of jobs) {
         const wo = db().workOrders.find((w) => w.work_order_id === job.work_order_id)!;
         expect(wo.dispatch?.team).toBe(job.team);
         expect(wo.dispatch?.sla?.deadline_at).toBe(due);
-        // Each goes to its own technician of the right type, in parallel.
-        const tech = db().users.find((u) => u.user_id === wo.assigned_to_id);
-        expect(tech?.team).toBe(job.team);
+        expect(db().users.find((u) => u.user_id === wo.assigned_to_id)?.team).toBe(job.team);
+        // #7: its own type; #5: the job carries that type's task.
+        expect(wo.details?.type).toBe('initiative');
+        const ticket = db().serviceRequests.find((t) => t.service_request_id === wo.source_request_id)!;
+        expect(ticket.description).toContain(`Your task: ${(tasks as any)[job.team]}`);
+        expect(job.task).toBe((tasks as any)[job.team]);
       }
-
-      // Never shown to students as a campus issue.
       const campus = (
         await request(server()).get('/api/service-requests/campus-issues').set('x-role', 'Campus Visitor').set('x-org-id', 'org-001').expect(200)
       ).body.data as any[];
       expect(campus.some((t) => String(t.summary).includes('Solar water heaters (test)'))).toBe(false);
     });
 
-    it('completes only when every job is closed, and tells the officer when all work is done', async () => {
-      const id = await proposeAndApprove();
-      await start(id).expect(200);
-      const jobs = await jobsOf(id);
-
-      await closeJob(jobFor(jobs, 'plumber').work_order_id);
-      const refused = await complete(id).expect(409);
-      expect(JSON.stringify(refused.body)).toContain('Electrician');
-
-      await closeJob(jobFor(jobs, 'electrician').work_order_id);
-      const notices = db().notifications.filter((n) => n.target_id === id).map((n) => n.message);
-      expect(notices.some((m) => m.startsWith('All work for'))).toBe(true);
-      // Nothing moved on its own: the officer checks and completes.
-      expect((await asSO(request(server()).get(`/api/initiatives/${id}`)).expect(200)).body.data.status).toBe('in-progress');
-
-      const done = (await complete(id).expect(200)).body.data;
-      expect(done.status).toBe('completed');
+    it('an initiative without on-site work also starts on approval, with no jobs', async () => {
+      const { approved, jobs } = await running({ onsite_work: false });
+      expect(approved.status).toBe('in-progress');
+      expect(jobs).toEqual([]);
     });
 
-    it('sends one closed job back as a new job for the same type; completing waits for it', async () => {
-      const id = await proposeAndApprove();
-      await start(id).expect(200);
-      const jobs = await jobsOf(id);
-      const plumbing = jobFor(jobs, 'plumber');
-      const electrical = jobFor(jobs, 'electrician');
-      const sendBack = (woId: string, body: Record<string, unknown>) =>
-        asSO(request(server()).post(`/api/initiatives/${id}/jobs/${woId}/send-back`)).send(body);
-
-      // Still open: nothing to send back yet.
-      await sendBack(electrical.work_order_id, { reason: 'Isolator missing', finish_by: targetDate }).expect(400);
-
-      await closeJob(plumbing.work_order_id);
-      await sendBack(plumbing.work_order_id, { reason: 'x', finish_by: targetDate }).expect(400);
-      await sendBack(plumbing.work_order_id, { reason: 'Tank leaks at the inlet', finish_by: '2020-01-01' }).expect(400);
-      const after = (await sendBack(plumbing.work_order_id, { reason: 'Tank leaks at the inlet', finish_by: targetDate }).expect(201)).body
-        .data.jobs as any[];
-      const rework = after.find((j) => j.rework_of === plumbing.work_order_id);
-      expect(rework).toBeDefined();
-      expect(rework.team).toBe('plumber');
-      expect(rework.open).toBe(true);
-      expect(rework.rework_reason).toBe('Tank leaks at the inlet');
-
-      await closeJob(electrical.work_order_id);
-      await complete(id).expect(409); // the rework job is still open
-      await closeJob(rework.work_order_id);
-      await complete(id).expect(200);
+    it('approval is refused once the target date has passed (move the date first)', async () => {
+      const id = (await propose().expect(201)).body.data.initiative_id;
+      db().initiatives.find((i) => i.initiative_id === id)!.target_date = '2020-01-31';
+      const res = await decide(id, { status: 'approved' }).expect(400);
+      expect(res.body.message).toContain('has passed; move it first');
+      expect((await get(id)).status).toBe('proposed');
+      await decide(id, { status: 'approved', target_date: targetDate }).expect(200);
+      expect((await get(id)).status).toBe('in-progress');
     });
 
-    // ── Edge cases found by probing (regressions) ──
-    const running = async () => {
-      const id = await proposeAndApprove();
-      await start(id).expect(200);
-      return { id, jobs: await jobsOf(id) };
-    };
-    const asAdminPatch = (id: string, body: Record<string, unknown>) =>
-      asAdmin(request(server()).patch(`/api/initiatives/${id}`)).send(body);
-
-    it('a technician type added after Start work gets its job straight away', async () => {
+    it('the officer cannot change the technician types or tasks once approved; the admin can', async () => {
       const { id } = await running();
-      await asAdminPatch(id, { teams: ['plumber', 'electrician', 'hvac'] }).expect(200);
-      const jobs = await jobsOf(id);
-      expect(jobs.filter((j) => j.team === 'hvac')).toHaveLength(1);
-      expect(jobs).toHaveLength(3); // the other two were not sent again
+      await asSO(request(server()).patch(`/api/initiatives/${id}`)).send({ teams: ['plumber'] }).expect(409);
+      await asSO(request(server()).patch(`/api/initiatives/${id}`)).send({ team_tasks: { ...tasks, plumber: 'Something else' } }).expect(409);
+      const changed = (
+        await decide(id, { teams: ['plumber', 'electrician', 'hvac'], team_tasks: { ...tasks, hvac: 'Balance the loop.' } }).expect(200)
+      ).body.data;
+      // A type added later gets its job straight away, with its task.
+      expect(changed.jobs.filter((j: any) => j.team === 'hvac')).toHaveLength(1);
+      expect(changed.jobs).toHaveLength(3);
+      // A type can be added without a task: its job carries the initiative's description only.
+      const more = (await decide(id, { teams: ['plumber', 'electrician', 'hvac', 'general'] }).expect(200)).body.data;
+      const general = more.jobs.find((j: any) => j.team === 'general');
+      expect(general).toBeDefined();
+      expect(general.task).toBeNull();
     });
 
     it('cannot switch on-site work off, or drop a type that has a job, once jobs exist', async () => {
       const { id } = await running();
-      await asAdminPatch(id, { onsite_work: false }).expect(409);
-      await asAdminPatch(id, { teams: ['plumber'] }).expect(409);
-      // So it can still not be completed with its jobs open.
+      await decide(id, { onsite_work: false }).expect(409);
+      await decide(id, { teams: ['plumber'], team_tasks: { plumber: tasks.plumber } }).expect(409);
       await complete(id).expect(409);
     });
 
-    it('the same job cannot be sent back twice; the rework job can be', async () => {
+    it('completes only when every job is closed, and tells the officer when all work is done', async () => {
       const { id, jobs } = await running();
-      const plumbing = jobFor(jobs, 'plumber');
-      const sendBack = (woId: string) =>
-        asSO(request(server()).post(`/api/initiatives/${id}/jobs/${woId}/send-back`)).send({ reason: 'Leaking joint', finish_by: targetDate });
-      await closeJob(plumbing.work_order_id);
-      const first = (await sendBack(plumbing.work_order_id).expect(201)).body.data.jobs as any[];
-      await sendBack(plumbing.work_order_id).expect(409);
-      const rework = first.find((j) => j.rework_of === plumbing.work_order_id);
-      await closeJob(rework.work_order_id);
-      await sendBack(rework.work_order_id).expect(201);
+      await closeJob(jobFor(jobs, 'plumber').work_order_id);
+      expect(JSON.stringify((await complete(id).expect(409)).body)).toContain('Electrician');
+      await closeJob(jobFor(jobs, 'electrician').work_order_id);
+      const notices = db().notifications.filter((n) => n.target_id === id).map((n) => n.message);
+      expect(notices.some((m) => m.startsWith('All work for'))).toBe(true);
+      expect((await get(id)).status).toBe('in-progress');
+      expect((await complete(id).expect(200)).body.data.status).toBe('completed');
     });
 
-    it('moving the target date moves the open jobs’ finish date, never into the past', async () => {
-      const { id } = await running();
-      const later = `${new Date().getFullYear() + 2}-01-31`;
-      await asSO(request(server()).patch(`/api/initiatives/${id}`)).send({ target_date: later }).expect(200);
-      const due = new Date(`${later}T23:59:59`).toISOString();
-      for (const j of await jobsOf(id)) {
-        expect(j.finish_by).toBe(due);
-        expect(db().workOrders.find((w) => w.work_order_id === j.work_order_id)!.dispatch?.sla?.deadline_at).toBe(due);
-      }
-      await asSO(request(server()).patch(`/api/initiatives/${id}`)).send({ target_date: '2020-01-31' }).expect(400);
+    // ── #8 rework requests go through the coordinator ──
+    it('rework: the officer only asks; the coordinator sends it to the same technician with a finish date', async () => {
+      const { id, jobs } = await running();
+      const plumbing = jobFor(jobs, 'plumber');
+      await askRework(id, plumbing.work_order_id, 'Tank leaks at the inlet').expect(400); // still open
+      await closeJob(plumbing.work_order_id);
+      await askRework(id, plumbing.work_order_id, 'x').expect(400);
+      const asked = (await askRework(id, plumbing.work_order_id, 'Tank leaks at the inlet').expect(201)).body.data;
+      expect(jobFor(asked.jobs, 'plumber').rework_request.status).toBe('pending');
+      // Nothing was dispatched yet; the coordinator was told and sees it in the queue.
+      expect(asked.jobs).toHaveLength(2);
+      await askRework(id, plumbing.work_order_id, 'Again').expect(409);
+      const queue = (await asCoord(request(server()).get('/api/dispatch/queue')).expect(200)).body.data;
+      const req = queue.rework_requests.find((r: any) => r.initiative_id === id);
+      expect(req.reason).toBe('Tank leaks at the inlet');
+      expect(req.original_technician_name).toBe(plumbing.technician_name);
+      await closeJob(jobFor(jobs, 'electrician').work_order_id);
+      await complete(id).expect(409); // the request is still waiting
+
+      await decideRework(req.ticket_id, { decision: 'same' }).expect(400); // needs a finish date
+      await decideRework(req.ticket_id, { decision: 'same', finish_by: '2020-01-01' }).expect(400);
+      const later = `${new Date().getFullYear() + 1}-01-15`;
+      await decideRework(req.ticket_id, { decision: 'same', finish_by: later }).expect(201);
+      const after = await get(id);
+      const rework = after.jobs.find((j: any) => j.rework_of === plumbing.work_order_id);
+      expect(rework.technician_name).toBe(plumbing.technician_name); // the same person
+      expect(rework.finish_by).toBe(new Date(`${later}T23:59:59`).toISOString());
+      expect(jobFor(after.jobs, 'plumber').rework_request.status).toBe('sent');
+      const officerNote = db().notifications.filter((n) => n.target_id === id).map((n) => n.message).pop()!;
+      expect(officerNote).toContain(`was sent to ${plumbing.technician_name}`);
+      await decideRework(req.ticket_id, { decision: 'auto', finish_by: later }).expect(400); // already decided
+      await complete(id).expect(409); // rework job open
+      await closeJob(rework.work_order_id);
+      await complete(id).expect(200);
+    });
+
+    it('rework: the coordinator can decline with a note (required), and the officer is told', async () => {
+      const { id, jobs } = await running();
+      const plumbing = jobFor(jobs, 'plumber');
+      await closeJob(plumbing.work_order_id);
+      await askRework(id, plumbing.work_order_id, 'Add a second tank').expect(201);
+      const ticket = db().serviceRequests.find((t) => t.source_initiative === id && t.team === 'plumber')!;
+      await decideRework(ticket.service_request_id, { decision: 'decline' }).expect(400);
+      await decideRework(ticket.service_request_id, { decision: 'decline', note: 'New scope: propose a new initiative' }).expect(201);
+      const job = jobFor((await get(id)).jobs, 'plumber');
+      expect(job.rework_request.status).toBe('declined');
+      expect(job.rework_request.note).toBe('New scope: propose a new initiative');
+      expect(db().notifications.filter((n) => n.target_id === id).pop()!.message).toContain('was declined: New scope');
+    });
+
+    it('rework: the coordinator can hand-pick another technician of any team', async () => {
+      const { id, jobs } = await running();
+      const plumbing = jobFor(jobs, 'plumber');
+      await closeJob(plumbing.work_order_id);
+      await askRework(id, plumbing.work_order_id, 'Pipe lagging missing').expect(201);
+      const ticket = db().serviceRequests.find((t) => t.source_initiative === id && t.team === 'plumber' && !t.rework_of)!;
+      const other = db().users.find((u) => u.role === 'Technician' && u.team === 'plumber' && u.user_id !== plumbing.technician_id)!;
+      await decideRework(ticket.service_request_id, { decision: 'pick', finish_by: targetDate }).expect(400); // who?
+      await decideRework(ticket.service_request_id, { decision: 'pick', assignee_id: other.user_id, finish_by: targetDate }).expect(201);
+      const rework = (await get(id)).jobs.find((j: any) => j.rework_of === plumbing.work_order_id);
+      expect(rework.technician_name).toBe(other.name);
+    });
+
+    // ── #6 money ──
+    it('spend: approved bills on its jobs count against the cost; late bills allowed for 7 days on closed initiative jobs; Finance can read it', async () => {
+      const { id, jobs } = await running({ capex: 85000 });
+      const plumbing = jobFor(jobs, 'plumber');
+      const bill = (woId: string, amount: number) =>
+        asAdmin(request(server()).post('/api/expense-bills')).send({
+          work_order_id: woId, title: 'Pipes', vendor: 'City Hardware', category: 'materials', bill_date: new Date().toISOString().slice(0, 10), amount,
+        });
+      await closeJob(plumbing.work_order_id);
+      await bill(plumbing.work_order_id, 1200).expect(201); // late, within 7 days: auto-approved under the cap
+      await bill(plumbing.work_order_id, 5000).expect(201); // over the cap: waits for Finance
+      const seen = (await asFinance(request(server()).get(`/api/initiatives/${id}`)).expect(200)).body.data;
+      expect(seen.money.cost).toBe(85000);
+      expect(seen.money.spent).toBe(1200);
+      expect(seen.money.spend_pending).toBe(5000);
+      expect(jobFor(seen.jobs, 'plumber').spent).toBe(1200);
+      // Outside the window: refused.
+      db().serviceRequests.find((t) => t.service_request_id === db().workOrders.find((w) => w.work_order_id === plumbing.work_order_id)!.source_request_id)!.closed_at =
+        new Date(Date.now() - 8 * 86_400_000).toISOString();
+      await bill(plumbing.work_order_id, 100).expect(400);
+      // A closed job that is not from an initiative: refused as before.
+      const ordinary = db().workOrders.find((w) => w.status === 'closed' && !w.dispatch);
+      if (ordinary) await bill(ordinary.work_order_id, 100).expect(400);
+    });
+
+    it('the record carries who proposed it and when, for the archive card', async () => {
+      const { approved } = await running();
+      expect(approved.created_at).toBeDefined();
+      expect(approved.decided_at).toBeDefined();
+      expect(approved.team_labels).toEqual(['Plumber', 'Electrician']);
     });
 
     it('an initiative with open jobs cannot be deleted, even by the admin', async () => {
@@ -802,11 +876,36 @@ describe('Sustainability Workflows (e2e)', () => {
       await asAdmin(request(server()).delete(`/api/initiatives/${id}`)).expect(200);
     });
 
-    it('an initiative without on-site work starts exactly as before: no jobs', async () => {
-      const id = await proposeAndApprove({ onsite_work: false });
-      await start(id).expect(200);
-      expect(await jobsOf(id)).toEqual([]);
-      expect(db().serviceRequests.some((t) => t.source_initiative === id)).toBe(false);
+    it('moving the target date moves the open jobs’ finish date, never into the past', async () => {
+      const { id } = await running();
+      const later = `${new Date().getFullYear() + 2}-01-31`;
+      await asSO(request(server()).patch(`/api/initiatives/${id}`)).send({ target_date: later }).expect(200);
+      const due = new Date(`${later}T23:59:59`).toISOString();
+      for (const j of (await get(id)).jobs) expect(j.finish_by).toBe(due);
+      await asSO(request(server()).patch(`/api/initiatives/${id}`)).send({ target_date: '2020-01-31' }).expect(400);
+    });
+
+    // ── #4 "Available today" ──
+    it('"Available today" off lasts for today only; the coordinator can put someone back on duty', async () => {
+      const dispatch = app.get(DispatchService);
+      const tech = db().users.find((u) => u.email === 'meera@gmail.com')!;
+      const today = new Date();
+      const tomorrow = new Date(today.getTime() + 86_400_000);
+      dispatch.setAvailability(tech.user_id, false, today);
+      expect(dispatch.availabilityOf(tech, today).switched_on).toBe(false);
+      expect(dispatch.availabilityOf(tech, tomorrow).switched_on).toBe(true); // a new day
+      expect(dispatch.availabilityOf(tech, tomorrow).available).toBe(true);
+
+      dispatch.setAvailability(tech.user_id, true, today);
+      tech.unavailable_on = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      tech.unavailable_reason = 'sick';
+      expect(dispatch.availabilityOf(tech, today).off_reason).toBe('sick');
+      const back = (await asCoord(request(server()).post(`/api/dispatch/technicians/${tech.user_id}/back-on-duty`)).expect(201)).body.data;
+      expect(back.available).toBe(true);
+      expect(back.off_for_today).toBe(false);
+      await request(server()).post(`/api/dispatch/technicians/${tech.user_id}/back-on-duty`).set('x-role', 'Technician').set('x-org-id', 'org-001').expect(403);
+      const noTeam = db().users.find((u) => u.role === 'Technician' && !u.team)!;
+      expect(dispatch.availabilityOf(noTeam).has_team).toBe(false);
     });
   });
 

@@ -1,6 +1,6 @@
 /**
  * Sustainability approvals — where the Organization Admin decides on what the
- * Sustainability Officer proposes: targets and initiatives. The Org Admin
+ * Sustainability Officer proposes: targets, initiatives and reports. The Org Admin
  * cannot open the Sustainability Officer's pages, so the decisions live here.
  * The proposer is notified of every decision (server side).
  */
@@ -12,31 +12,50 @@ import TargetCard from "../sustainability/components/TargetCard";
 import ReportDocument from "../sustainability/components/ReportDocument";
 import { periodName } from "../sustainability/periods";
 import "../sustainability/components/targets.css";
+import { InitiativeSummary } from "../sustainability/initiativeShared";
+import { useTeams, rupees, day } from "../sustainability/initiativeUtils";
 
-function Decision({ busy, onApprove, onReject, approveLabel = "Approve", rejectLabel = "Reject" }) {
-  const [rejecting, setRejecting] = useState(false);
-  const [reason, setReason] = useState("");
-  const reasonId = useId();
-  if (!rejecting)
+/**
+ * Approve or reject. Approving asks for an optional remark, rejecting for a
+ * required reason; either is sent to the proposer with the decision.
+ * `approveHint` is a line shown while confirming (what approving will do).
+ */
+function Decision({ busy, onApprove, onReject, approveLabel = "Approve", rejectLabel = "Reject", approveHint }) {
+  const [mode, setMode] = useState(null); // null | "approve" | "reject"
+  const [text, setText] = useState("");
+  const noteId = useId();
+  if (!mode)
     return (
       <>
-        <button type="button" className="tbtn tbtn--primary" disabled={busy} onClick={onApprove}>
+        <button type="button" className="tbtn tbtn--primary" disabled={busy} onClick={() => setMode("approve")}>
           {approveLabel}
         </button>
-        <button type="button" className="tbtn tbtn--danger" disabled={busy} onClick={() => setRejecting(true)}>
+        <button type="button" className="tbtn tbtn--danger" disabled={busy} onClick={() => setMode("reject")}>
           {rejectLabel}
         </button>
       </>
     );
+  const approving = mode === "approve";
+  const close = () => {
+    setMode(null);
+    setText("");
+  };
   return (
     <div className="treason" style={{ width: "100%", marginTop: 0 }}>
-      <label htmlFor={reasonId}>Reason (sent to the proposer)</label>
-      <textarea id={reasonId} rows="2" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
+      <label htmlFor={noteId}>{approving ? "Remark (optional, sent to the proposer)" : "Reason (required, sent to the proposer)"}</label>
+      <textarea id={noteId} rows="2" maxLength={500} value={text} onChange={(e) => setText(e.target.value)} autoFocus />
+      {approving && approveHint && <p style={{ margin: "0 0 8px", fontSize: "12.5px", color: "#4b5563" }}>{approveHint}</p>}
       <div style={{ display: "flex", gap: "8px" }}>
-        <button type="button" className="tbtn tbtn--danger" disabled={busy || !reason.trim()} onClick={() => onReject(reason.trim())}>
-          Confirm: {rejectLabel.toLowerCase()}
-        </button>
-        <button type="button" className="tbtn" disabled={busy} onClick={() => setRejecting(false)}>
+        {approving ? (
+          <button type="button" className="tbtn tbtn--primary" disabled={busy} onClick={() => onApprove(text.trim())}>
+            Confirm: {approveLabel.toLowerCase()}
+          </button>
+        ) : (
+          <button type="button" className="tbtn tbtn--danger" disabled={busy || !text.trim()} onClick={() => onReject(text.trim())}>
+            Confirm: {rejectLabel.toLowerCase()}
+          </button>
+        )}
+        <button type="button" className="tbtn" disabled={busy} onClick={close}>
           Cancel
         </button>
       </div>
@@ -55,15 +74,19 @@ export default function SustainabilityApprovals() {
   const [toasts, setToasts] = useState([]);
   const [tab, setTab] = useState("targets");
   const [busyId, setBusyId] = useState(null);
+  const [buildings, setBuildings] = useState([]);
+  const { label: teamLabel } = useTeams();
 
   const load = useCallback(async () => {
     try {
-      const [t, i, u, r] = await Promise.all([
+      const [t, i, u, r, b] = await Promise.all([
         api.get("/targets"),
         api.get("/initiatives"),
         api.get("/users").catch(() => []),
         api.get("/sustainability-reports"),
+        api.get("/buildings").catch(() => []),
       ]);
+      setBuildings(Array.isArray(b) ? b : []);
       setReports(Array.isArray(r) ? r : []);
       setTargets(Array.isArray(t) ? t : []);
       setInitiatives(Array.isArray(i) ? i : []);
@@ -108,7 +131,14 @@ export default function SustainabilityApprovals() {
     try {
       const updated = await api.patch(`/initiatives/${i.initiative_id}`, { status, ...(note ? { decision_note: note } : {}) });
       setInitiatives((list) => list.map((x) => (x.initiative_id === i.initiative_id ? { ...x, ...updated } : x)));
-      addToast(setToasts, status === "approved" ? "Initiative approved." : "Initiative rejected.", "success");
+      const sent = (updated?.jobs || []).length;
+      addToast(
+        setToasts,
+        status === "approved"
+          ? `Initiative approved. Work has started${sent ? `: ${sent} job${sent === 1 ? "" : "s"} sent` : ""}.`
+          : "Initiative rejected. The proposer has been told why.",
+        "success",
+      );
     } catch (err) {
       addToast(setToasts, err.message || "Could not save the decision.", "error");
     } finally {
@@ -139,6 +169,15 @@ export default function SustainabilityApprovals() {
   const waitingTargets = targets.filter((t) => t.status === "proposed");
   const activeTargets = targets.filter((t) => t.status === "active");
   const waitingInitiatives = initiatives.filter((i) => String(i.status).toLowerCase() === "proposed" && !i.archived_at);
+  // Everything already decided, newest decision first.
+  const decidedInitiatives = initiatives
+    .filter((i) => String(i.status).toLowerCase() !== "proposed")
+    .sort((a, b) => String(b.decided_at || b.start_date || "").localeCompare(String(a.decided_at || a.start_date || "")));
+  const statusChip = (s) =>
+    ({
+      rejected: ["Rejected", "tcard__chip--bad"],
+      completed: ["Completed", "tcard__chip--good"],
+    })[s] || ["In progress", "tcard__chip--active"];
   const by = (id) => (names[id] ? `Proposed by ${names[id]}` : null);
 
   return (
@@ -189,7 +228,7 @@ export default function SustainabilityApprovals() {
                     actions={
                       <Decision
                         busy={busyId === t.target_id}
-                        onApprove={() => decideTarget(t, "active")}
+                        onApprove={(note) => decideTarget(t, "active", note)}
                         onReject={(note) => decideTarget(t, "rejected", note)}
                       />
                     }
@@ -248,39 +287,82 @@ export default function SustainabilityApprovals() {
                 <article key={i.initiative_id} className="tcard">
                   <div className="tcard__head">
                     <h3 className="tcard__title">{i.title}</h3>
-                    <span className="tcard__chip tcard__chip--wait">Waiting for approval</span>
                   </div>
                   {i.description && <p className="tcard__note">{i.description}</p>}
                   <p className="tcard__basis" style={{ fontSize: "13px" }}>
                     {[
-                      i.source_finding && `From an energy audit${i.expected_saving_amount ? ` (promised ${i.expected_saving_amount.toLocaleString("en-GB")} a year)` : ""}`,
+                      i.source_finding && `From an energy audit${i.expected_saving_amount ? ` (promised ${rupees(i.expected_saving_amount)} a year)` : ""}`,
                       i.metric &&
                         i.expected_saving != null &&
                         `Expected to save ${Number(i.expected_saving).toLocaleString("en-GB")} ${{ energy_kwh: "kWh", water_kl: "kL", gas_m3: "m³", emissions_kg: "kg CO₂e" }[i.metric]} a year`,
                       i.target_reduction && `Target reduction ${i.target_reduction}`,
-                      typeof i.capex === "number" && `Cost ${i.capex.toLocaleString("en-GB")}`,
+                      typeof i.capex === "number" && `Cost ${rupees(i.capex)}`,
                       i.target_date &&
                         `Finish by ${new Date(`${i.target_date}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`,
-                      // Who it will use: at Start work each type gets its own job.
-                      i.onsite_work
-                        ? `Needs ${(i.teams || [])
-                            .map((t) => ({ electrician: "Electrician", plumber: "Plumber", hvac: "HVAC", cleaning: "Cleaning" })[t] || t)
-                            .join(", ")} on site`
-                        : "No on-site work",
+                      // Who it will use: on approval each type gets its own job.
+                      i.onsite_work ? `Needs ${(i.teams || []).map(teamLabel).join(", ")} on site` : "No on-site work",
                       by(i.created_by_id),
                     ]
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
+                  {i.onsite_work && (i.teams || []).length > 0 && (
+                    <ul className="tcard__tasks">
+                      {i.teams.map((t) => (
+                        <li key={t}>
+                          <strong>{teamLabel(t)}:</strong> {i.team_tasks?.[t] || "No task given."}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <div className="tcard__actions">
                     <Decision
                       busy={busyId === i.initiative_id}
-                      onApprove={() => decideInitiative(i, "approved")}
+                      approveLabel="Approve and start"
+                      approveHint={
+                        i.onsite_work
+                          ? `Approving starts the work now and sends ${(i.teams || []).length} job${(i.teams || []).length === 1 ? "" : "s"} (${(i.teams || []).map(teamLabel).join(", ")}), due ${i.target_date || "on the target date"}.`
+                          : "Approving starts the work now."
+                      }
+                      onApprove={(note) => decideInitiative(i, "approved", note)}
                       onReject={(note) => decideInitiative(i, "rejected", note)}
                     />
                   </div>
                 </article>
               ))}
+            </div>
+          )}
+        </section>
+      )}
+      {tab === "initiatives" && (
+        <section className="tsection" aria-labelledby="hi-heading">
+          <h2 id="hi-heading">Decided</h2>
+          {decidedInitiatives.length === 0 ? (
+            <p className="tempty">Nothing decided yet.</p>
+          ) : (
+            <div className="tlist">
+              {decidedInitiatives.map((i) => {
+                const [chip, chipClass] = statusChip(String(i.status).toLowerCase());
+                return (
+                  <details key={i.initiative_id} className="tcard tcard--history">
+                    <summary className="tcard__head">
+                      <h3 className="tcard__title">
+                        {i.title}
+                        <span className="tcard__when">
+                          {String(i.status).toLowerCase() === "rejected" ? "Rejected" : "Approved"}
+                          {i.decided_at ? ` ${day(i.decided_at)}` : ""}
+                          {i.decided_by_name ? ` by ${i.decided_by_name}` : ""}
+                        </span>
+                      </h3>
+                      <span className={`tcard__chip ${chipClass}`}>
+                        {chip}
+                        {i.archived_at ? " · archived" : ""}
+                      </span>
+                    </summary>
+                    <InitiativeSummary init={i} buildings={buildings} targets={targets} />
+                  </details>
+                );
+              })}
             </div>
           )}
         </section>
@@ -331,7 +413,7 @@ export default function SustainabilityApprovals() {
                         {r.status === "submitted" ? (
                           <Decision
                             busy={busyId === r.report_id}
-                            onApprove={() => decideReport(r, "approved")}
+                            onApprove={(note) => decideReport(r, "approved", note)}
                             onReject={(note) => decideReport(r, "draft", note)}
                             rejectLabel="Send back"
                           />

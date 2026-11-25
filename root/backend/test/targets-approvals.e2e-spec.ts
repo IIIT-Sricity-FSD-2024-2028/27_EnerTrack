@@ -173,6 +173,16 @@ describe('Targets and approvals (e2e)', () => {
       expect(told.message).toMatch(/was not approved: Too ambitious for one year$/);
     });
 
+    it('rejecting a target needs a reason; an approval remark is optional and reaches the proposer', async () => {
+      const t = body(await propose(SO, { metric: 'emissions_kg', reduction_pct: 15 }).expect(201));
+      const setStatus = (b: Record<string, unknown>) => http().patch(`/api/targets/${t.target_id}/status`).set(ADMIN).send(b);
+      await setStatus({ status: 'rejected' }).expect(400);
+      await setStatus({ status: 'rejected', note: '  ' }).expect(400);
+      const ok = body(await setStatus({ status: 'active', note: 'Review it in March' }).expect(200));
+      expect(ok.decision_note).toBe('Review it in March');
+      expect(notes(NotificationTargetType.TARGET, t.target_id).pop()!.message).toMatch(/now being tracked\. Remark: Review it in March$/);
+    });
+
     it('the proposer can withdraw a proposal, and its notifications go with it', async () => {
       const t = body(await propose(SO, { metric: 'energy_kwh', building_ids: ['660e8800-0002-4000-8000-000000000000'] }).expect(201));
       await http().delete(`/api/targets/${t.target_id}`).set(SO).expect(200);
@@ -267,17 +277,25 @@ describe('Targets and approvals (e2e)', () => {
       expect(res.body.message).toContain("cannot move an initiative from 'proposed' to 'approved'");
     });
 
-    it('the Org Admin approves; then the SO runs it to completion, one step at a time', async () => {
+    it('the Org Admin approves, which starts it; then the SO completes it', async () => {
       const i = await create();
+      await patch(SO, i.initiative_id, { status: 'completed' }).expect(403); // no skipping approval
       const approved = body(await patch(ADMIN, i.initiative_id, { status: 'approved', decision_note: 'Go ahead' }).expect(200));
+      expect(approved.status).toBe('in-progress'); // approval is the go-ahead
       expect(approved.decided_by_id).toBe('test-user');
       expect(approved.decision_note).toBe('Go ahead');
-      expect(notes(NotificationTargetType.INITIATIVE, i.initiative_id).pop()!.message).toBe('Your initiative "Chiller retune" was approved.');
+      expect(notes(NotificationTargetType.INITIATIVE, i.initiative_id).pop()!.message).toBe(
+        'Your initiative "Chiller retune" was approved: Go ahead It is now in progress.',
+      );
 
-      await patch(SO, i.initiative_id, { status: 'completed' }).expect(403); // no skipping
-      await patch(SO, i.initiative_id, { status: 'in-progress' }).expect(200);
       await patch(SO, i.initiative_id, { status: 'completed' }).expect(200);
       await patch(SO, i.initiative_id, { status: 'proposed' }).expect(403); // no going back
+    });
+
+    it('rejecting needs a reason', async () => {
+      const i = await create();
+      await patch(ADMIN, i.initiative_id, { status: 'rejected' }).expect(400);
+      expect(body(await http().get(`/api/initiatives/${i.initiative_id}`).set(SO).expect(200)).status).toBe('proposed');
     });
 
     it('the Org Admin can reject with a reason', async () => {

@@ -10,7 +10,7 @@
  * Ported from renderColumn() in js/technician/workOrdersPage.js.
  */
 import { MoneyIcon, PersonIcon, PinIcon } from "../components/icons";
-import { capitalize, estimateLabel, formatId, userName } from "../techUtils";
+import { capitalize, estimateLabel, formatId, jobTypeLabel, userName } from "../techUtils";
 
 export default function WorkOrderCard({ wo, users, selected, onSelect }) {
   const details = wo.details || {};
@@ -33,6 +33,11 @@ export default function WorkOrderCard({ wo, users, selected, onSelect }) {
         </span>
       </div>
       <div>{wo.title}</div>
+      {details.type && (
+        <span className={"type-tag" + (details.type === "initiative" ? " type-tag--initiative" : "")}>
+          {jobTypeLabel(details.type)}
+        </span>
+      )}
       <div className="task-meta">
         <span className="task-meta-row">
           <PersonIcon />

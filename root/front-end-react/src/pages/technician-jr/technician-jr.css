@@ -8,3 +8,81 @@
   color: var(--red);
   border-color: var(--red);
 }
+
+/* ── "Available today" status + switch (DispatchInbox) ── */
+.avail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 14px;
+  padding: 10px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 13px;
+  color: #374151;
+}
+
+.avail-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+
+.avail--on .avail-dot {
+  background: #16a34a;
+}
+
+.avail--amber {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.avail--amber .avail-dot {
+  background: #d97706;
+}
+
+.avail--none {
+  display: block;
+  color: #4b5563;
+}
+
+.avail-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.avail-text strong {
+  display: block;
+  color: #111827;
+}
+
+.avail-text small {
+  display: block;
+  color: #6b7280;
+}
+
+.avail .btn {
+  flex: none;
+}
+
+/* What the job is about (task, "still broken" reason) on a deadline card. */
+.job-card-desc {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: #4b5563;
+  white-space: pre-line;
+}
+
+.job-card .issue-photo img,
+.up-next-item .issue-photo img {
+  display: block;
+  max-width: 200px;
+  max-height: 140px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  object-fit: cover;
+}

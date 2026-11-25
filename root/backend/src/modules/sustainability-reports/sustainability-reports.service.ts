@@ -190,6 +190,10 @@ export class SustainabilityReportsService {
     if (from === dto.status) return report;
     if (from === "draft" && dto.status === "draft") return report;
 
+    const note = dto.note?.trim() || null;
+    // Sending it back needs a reason the author can act on; an approval remark is optional.
+    if (dto.status === "draft" && from !== "draft" && role === UserRole.ORGANIZATION_ADMIN && !note)
+      throw new BadRequestException("Give a reason for sending it back (note); the author sees it.");
     const now = new Date().toISOString();
     const org = report.organization_id;
     const admins = usersWithRole(this.database, org, [UserRole.ORGANIZATION_ADMIN]);
@@ -200,12 +204,13 @@ export class SustainabilityReportsService {
       report.review_note = null;
       this.notify(report, admins, `Report to approve: ${label}.`);
     } else if (dto.status === "draft") {
-      report.review_note = dto.note ?? null;
-      this.notify(report, [report.generated_by_id], `Your report "${label}" was sent back${dto.note ? `: ${dto.note}` : "."}`);
+      report.review_note = note;
+      this.notify(report, [report.generated_by_id], `Your report "${label}" was sent back${note ? `: ${note}` : "."}`);
     } else if (dto.status === "approved") {
       report.approved_by_id = userId ?? null;
       report.approved_at = now;
-      this.notify(report, [report.generated_by_id], `Your report "${label}" was approved.`);
+      report.review_note = note;
+      this.notify(report, [report.generated_by_id], `Your report "${label}" was approved${note ? `: ${note}` : "."}`);
     } else if (dto.status === "published") {
       report.published_at = now;
       this.notify(report, [report.generated_by_id], `Your report "${label}" was published.`);

@@ -23,6 +23,26 @@ export type Team = "electrician" | "plumber" | "general" | "hvac";
 /** Every team a technician can belong to. The user form and validation use this list. */
 export const TEAMS: Team[] = ["electrician", "plumber", "general", "hvac"];
 
+/**
+ * How each team is named on screen, and the kind of work it does ("Plumbing
+ * work for … is done"). The one place these names live: the pages read them
+ * from the catalogue (`teams`), so a renamed team cannot drift out of a form.
+ */
+export const TEAM_LABELS: Record<Team, string> = {
+  electrician: "Electrician",
+  plumber: "Plumber",
+  general: "General Maintenance",
+  hvac: "HVAC",
+};
+export const TEAM_WORK_LABELS: Record<Team, string> = {
+  electrician: "Electrical",
+  plumber: "Plumbing",
+  general: "General maintenance",
+  hvac: "HVAC",
+};
+export const teamLabel = (t: string | null | undefined) => TEAM_LABELS[t as Team] ?? t ?? "";
+export const teamWorkLabel = (t: string | null | undefined) => TEAM_WORK_LABELS[t as Team] ?? t ?? "";
+
 export const SIZE_POINTS: Record<Size, number> = { S: 1, M: 2, L: 4 };
 
 /** The kinds of waste a report or a wastage case can be about. */
@@ -801,6 +821,8 @@ export function publicCatalogue() {
     areas: AREAS,
     parts: PARTS,
     howBad: OTHER_HOW_BAD.map(({ value, label }) => ({ value, label })),
+    /** Technician teams and their names, for any form that picks a team. */
+    teams: TEAMS.map((id) => ({ id, label: TEAM_LABELS[id], work: TEAM_WORK_LABELS[id] })),
     issueTypes: ISSUE_TYPES.map((t) => ({
       id: t.id,
       label: t.label,

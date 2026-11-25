@@ -17,6 +17,10 @@
  *   onSubmit  async (payload) => result from the server, or throws
  *   onPlusOne async (ticketId) => void, for the "Already reported here" row
  *   nearby    open issues on the chosen building and floor (status only)
+ *   viewing   a submitted report from My Reports ({ id, status, summary,
+ *             reported_on, form, reopen_reason }): the form is shown filled
+ *             in exactly as it was sent, locked, with "New report" below
+ *   onNew     () => void, leaves the read-only view for a blank form
  */
 import { useMemo, useState } from "react";
 import Dropdown from "./Dropdown";
@@ -101,6 +105,27 @@ function floorId(raw) {
   return FLOOR_WORDS[s] || "";
 }
 
+/** A submitted report's answers (GET /service-requests/mine → form) as form state. */
+function fromSubmitted(sent, catalogue) {
+  if (!sent) return EMPTY;
+  const floorLabel = catalogue.floors.find((f) => f.id === sent.floor)?.label;
+  return {
+    ...EMPTY,
+    ...sent,
+    floor: floorLabel || String(sent.floor ?? ""),
+    // These two are set by the server for floors that decide the place.
+    area: ["whole_building", "outside"].includes(sent.area) ? "" : sent.area || "",
+    part: sent.part || "",
+    answers: sent.answers || {},
+    in_danger: sent.in_danger === true,
+    happened_before: sent.happened_before === true ? true : null,
+    description: sent.description || "",
+    other_text: sent.other_text || "",
+    how_bad: sent.how_bad || "",
+    how_many: sent.how_many || "",
+  };
+}
+
 function Select({ id, label, value, onChange, options, placeholder }) {
   return (
     <div className="form-group">
@@ -124,8 +149,11 @@ export default function ReportForm({
   onSubmit,
   onPlusOne,
   onFloorChange,
+  viewing = null,
+  onNew,
 }) {
-  const [form, setForm] = useState(EMPTY);
+  const readOnly = !!viewing;
+  const [form, setForm] = useState(() => (viewing ? fromSubmitted(viewing.form, catalogue) : EMPTY));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   // When an open whole-floor/building issue covers this spot, the server asks
@@ -224,7 +252,7 @@ export default function ReportForm({
   const showDanger = describedOk;
   const showBefore = showDanger && form.in_danger !== null;
   const showNotes = showBefore;
-  const canSubmit = showNotes && !submitting;
+  const canSubmit = showNotes && !submitting && !readOnly;
 
   const summary = (() => {
     if (!showNotes) return "";
@@ -297,20 +325,40 @@ export default function ReportForm({
   ];
 
   return (
-    <div className="report-card">
+    <div className={"report-card" + (readOnly ? " report-card--view" : "")} id="report-form">
       <div className="report-card-header">
-        <h2>Report an Issue</h2>
-        <p>
-          Answer a few quick questions about what you can see. It takes under a
-          minute.
-        </p>
+        {readOnly ? (
+          <>
+            <h2>Your report</h2>
+            <p>
+              {viewing.reported_on ? `Sent on ${new Date(viewing.reported_on).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}. ` : ""}
+              This is what you sent. It can no longer be changed.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2>Report an Issue</h2>
+            <p>
+              Answer a few quick questions about what you can see. It takes under a
+              minute.
+            </p>
+          </>
+        )}
       </div>
 
       <div className="report-card-body">
-        <div className="report-note">
-          Before reporting, check if it's already in the{" "}
-          <Link to={PATHS.campus.issues}>Campus issues</Link> list.
-        </div>
+        {readOnly ? (
+          viewing.reopen_reason && (
+            <div className="report-note" role="note">
+              You said the earlier fix did not work: {viewing.reopen_reason}
+            </div>
+          )
+        ) : (
+          <div className="report-note">
+            Before reporting, check if it's already in the{" "}
+            <Link to={PATHS.campus.issues}>Campus issues</Link> list.
+          </div>
+        )}
 
         <form
           onSubmit={(e) => {
@@ -319,6 +367,8 @@ export default function ReportForm({
           }}
           noValidate
         >
+          {/* A submitted report is shown locked: every field is disabled. */}
+          <fieldset className="report-fieldset" disabled={readOnly}>
           <Select
             id="rb"
             label="Building"
@@ -393,7 +443,7 @@ export default function ReportForm({
             </div>
           )}
 
-          {placeAnswered && nearby.length > 0 && (
+          {!readOnly && placeAnswered && nearby.length > 0 && (
             <div className="already-reported">
               <strong>Already reported here</strong>
               {nearby.map((t) => (
@@ -587,19 +637,27 @@ export default function ReportForm({
             </div>
           )}
 
+          </fieldset>
+
           {error && <div className="form-error">{error}</div>}
 
           {showNotes && <p className="report-summary">{summary}</p>}
 
           <div className="report-footer">
-            <span className="reporting-as">Reporting as {email}</span>
-            <button
-              type="submit"
-              className="btn-submit"
-              disabled={!canSubmit || !!covers}
-            >
-              Submit report
-            </button>
+            <span className="reporting-as">{readOnly ? `Sent as ${email}` : `Reporting as ${email}`}</span>
+            {readOnly ? (
+              <button type="button" className="btn-submit" onClick={onNew}>
+                New report
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="btn-submit"
+                disabled={!canSubmit || !!covers}
+              >
+                Submit report
+              </button>
+            )}
           </div>
         </form>
       </div>

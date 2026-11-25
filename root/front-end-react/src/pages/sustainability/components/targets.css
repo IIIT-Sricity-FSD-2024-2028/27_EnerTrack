@@ -334,3 +334,45 @@
     padding: 14px 16px;
   }
 }
+
+/* An initiative's task per technician type, on the approvals page. */
+.tcard__tasks {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: #374151;
+}
+
+.tcard__tasks li + li {
+  margin-top: 4px;
+}
+
+/* A decided initiative: click the head to open its full record. */
+.tcard--history > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.tcard--history > summary::-webkit-details-marker {
+  display: none;
+}
+
+.tcard--history > summary::after {
+  content: "Details";
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.tcard--history[open] > summary::after {
+  content: "Hide";
+}
+
+/* "Approved 25 Nov 2026 by Aadithya" under a decided initiative's title. */
+.tcard__when {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #6b7280;
+}

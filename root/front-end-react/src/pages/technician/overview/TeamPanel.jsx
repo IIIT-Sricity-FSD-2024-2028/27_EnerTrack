@@ -2,13 +2,18 @@
  * TeamPanel — what the coordinator needs to judge the team, kept apart from
  * the issue list: who is free and how loaded, who has been declining, and
  * where the time went on jobs that are late (so a staffing gap is not blamed
- * on one person). It draws what it is given.
+ * on one person). A technician marked off for today (declined as unwell, or
+ * missed answering) can be put back on duty here. It draws what it is given.
  */
 import LoadBar from "./LoadBar";
+import { useTeams } from "../../sustainability/initiativeUtils";
 
 const fmt = (iso) => new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
-export default function TeamPanel({ queue, busy, onSweep }) {
+const OFF_REASON = { sick: "declined a job as unwell", missed: "missed answering a job" };
+
+export default function TeamPanel({ queue, busy, onSweep, onBackOnDuty }) {
+  const { label: teamLabel } = useTeams();
   const people = queue.team_status || [];
   const declines = queue.declines || [];
   const late = [...(queue.overdue || []), ...(queue.unsafe || [])].filter(
@@ -36,7 +41,7 @@ export default function TeamPanel({ queue, busy, onSweep }) {
               <li key={p.user_id}>
                 <span>
                   {p.name}
-                  <small>{p.team || "no team set"}</small>
+                  <small>{p.team ? teamLabel(p.team) : "No team set"}</small>
                 </span>
                 {p.team ? (
                   <LoadBar person={p} />
@@ -48,8 +53,23 @@ export default function TeamPanel({ queue, busy, onSweep }) {
                     </span>
                   </span>
                 )}
-                <span className={"badge " + (p.available ? "resolved" : "high")}>
-                  {p.available ? "Available" : p.off_for_today ? "Off today" : "Not available"}
+                <span className="team-avail">
+                  <span className={"badge " + (p.available ? "resolved" : "high")}>
+                    {p.available ? "Available" : p.off_for_today ? "Off today" : "Not available"}
+                  </span>
+                  {p.off_for_today && onBackOnDuty && (
+                    <button
+                      type="button"
+                      className="btn btn-light btn-sm"
+                      disabled={busy}
+                      title={OFF_REASON[p.off_reason] ? `Off today: ${OFF_REASON[p.off_reason]}` : undefined}
+                      onClick={() => {
+                        if (window.confirm(`Put ${p.name} back on duty? They can be sent jobs again today.`)) onBackOnDuty(p);
+                      }}
+                    >
+                      Put back on duty
+                    </button>
+                  )}
                 </span>
               </li>
             ))}
@@ -66,7 +86,7 @@ export default function TeamPanel({ queue, busy, onSweep }) {
                 <li key={d.user_id}>
                   <span>
                     {d.name}
-                    <small>{d.team || "no team set"}</small>
+                    <small>{d.team ? teamLabel(d.team) : "No team set"}</small>
                   </span>
                   <span>
                     {d.declines_this_week} declined, {d.missed_this_week} missed

@@ -8,14 +8,15 @@
  * here.
  */
 import { useState } from "react";
+import ReopenPhoto from "../components/ReopenPhoto";
 import { Link } from "react-router-dom";
 import { PATHS } from "../../../routes";
 import ProgressRail from "./ProgressRail";
 import { initialsOf, leftText, levelLabel, loadText, money } from "./issueStage";
-
-const TEAM_LABEL = { electrician: "Electrician", plumber: "Plumber", general: "General Maintenance", hvac: "HVAC" };
+import { useTeams } from "../../sustainability/initiativeUtils";
 
 const LEVELS = ["low", "medium", "high", "immediate"];
+
 const fmt = (iso) => new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
 const EVENT_TEXT = {
@@ -47,8 +48,9 @@ const REASON_TEXT = {
  * coordinator decides which team it is.
  */
 function PersonSelect({ id, row, people, value, onChange }) {
+  const { label: teamLabel } = useTeams();
   const team = row.ticket.team;
-  const teamName = TEAM_LABEL[team] || team;
+  const teamName = teamLabel(team);
   const label = (p) => `${p.name}, ${p.team ? loadText(p) : "no team"}${p.available ? "" : ", unavailable"}`;
   const opt = (p) => (
     <option key={p.user_id} value={p.user_id}>
@@ -70,7 +72,7 @@ function PersonSelect({ id, row, people, value, onChange }) {
       )}
       {mine.map(opt)}
       {Object.entries(groups).map(([name, list]) => (
-        <optgroup key={name} label={TEAM_LABEL[name] || name}>
+        <optgroup key={name} label={teamLabel(name)}>
           {list.map(opt)}
         </optgroup>
       ))}
@@ -115,6 +117,7 @@ export default function IssueRow({
   onDeadline,
 }) {
   const { ticket, wo, stage, clock } = row;
+  const { label: teamLabel } = useTeams();
   const [date, setDate] = useState("");
   const done = stage.key === "fixed";
   const nameOf = (id) => users.find((u) => u.user_id === id)?.name || "someone";
@@ -132,12 +135,19 @@ export default function IssueRow({
         ? "From a wastage case"
         : ticket.source_initiative
           ? ticket.rework_of
-            ? "From an initiative, sent back for rework"
-            : "From an initiative"
+            ? "Initiative · rework"
+            : "Initiative"
           : row.reports > 1
           ? `${row.reports} reports`
           : "";
   const tags = [source, row.plusOnes > 0 ? `${row.plusOnes} more say the same` : ""].filter(Boolean);
+  // An initiative job carries what this technician type must do (and any
+  // rework reason) as the first paragraphs of its description.
+  const initiativeNotes = ticket.source_initiative
+    ? String(ticket.description || "")
+        .split("\n\n")
+        .filter((p) => p.startsWith("Your task:") || p.startsWith("Rework requested:"))
+    : [];
 
   return (
     <li className={`issue level-${row.level}` + (row.needsYou ? " issue-needs" : "") + (done ? " issue-done" : "")}>
@@ -149,6 +159,17 @@ export default function IssueRow({
         </div>
         <h3 className="issue-title">{row.title}</h3>
         <p className="issue-place">{row.place || "Place not recorded"}</p>
+        {ticket.reopen_reason && (
+          <div className="issue-reopen">
+            <p className="issue-task">Still broken: {ticket.reopen_reason}</p>
+            {ticket.has_reopen_photo && <ReopenPhoto ticketId={ticket.service_request_id} />}
+          </div>
+        )}
+        {initiativeNotes.map((n) => (
+          <p key={n} className="issue-task">
+            {n}
+          </p>
+        ))}
         {tags.length > 0 && (
           <ul className="issue-tags" aria-label="About this issue">
             {tags.map((t) => (
@@ -167,9 +188,9 @@ export default function IssueRow({
             <strong>{row.holder ? row.holder.name : "Nobody has it yet"}</strong>
             <small>
               {row.holder
-                ? TEAM_LABEL[row.holder.team] || "Technician"
+                ? teamLabel(row.holder.team) || "Technician"
                 : ticket.team
-                  ? `${TEAM_LABEL[ticket.team] || ticket.team} team needed`
+                  ? `${teamLabel(ticket.team)} team needed`
                   : "Choose a team"}
             </small>
           </span>

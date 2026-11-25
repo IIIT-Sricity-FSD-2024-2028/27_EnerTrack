@@ -56,13 +56,28 @@ const ALLOWED_WO_STATUSES = new Set([
   WorkOrderStatus.REVIEW,
 ]);
 
+/** Days after an initiative job closes during which a late receipt can still be added. */
+export const LATE_BILL_DAYS = 7;
+
 @Injectable()
 export class ExpenseBillsService {
   constructor(private database: DatabaseService) {}
 
+  /**
+   * A closed initiative job still takes bills for LATE_BILL_DAYS after it
+   * closed (a supplier's receipt often arrives after the work). Other closed
+   * jobs do not.
+   */
+  private inLateBillWindow(wo: { status: string; source_request_id?: string | null }): boolean {
+    if (wo.status !== WorkOrderStatus.CLOSED || !wo.source_request_id) return false;
+    const ticket = this.database.serviceRequests.find((t) => t.service_request_id === wo.source_request_id);
+    if (!ticket?.source_initiative || !ticket.closed_at) return false;
+    return Date.now() - new Date(ticket.closed_at).getTime() <= LATE_BILL_DAYS * 86_400_000;
+  }
+
   private assertWorkOrderNotClosed(workOrderId: string) {
     const wo = this.database.workOrders.find((w) => w.work_order_id === workOrderId);
-    if (wo && wo.status === WorkOrderStatus.CLOSED) {
+    if (wo && wo.status === WorkOrderStatus.CLOSED && !this.inLateBillWindow(wo)) {
       throw new BadRequestException(
         "This work order is closed; expense bills can no longer be edited or resubmitted.",
       );
@@ -109,9 +124,9 @@ export class ExpenseBillsService {
       throw new NotFoundException("Work order not found.");
     }
 
-    if (!ALLOWED_WO_STATUSES.has(wo.status)) {
+    if (!ALLOWED_WO_STATUSES.has(wo.status) && !this.inLateBillWindow(wo)) {
       throw new BadRequestException(
-        "Expense bills can only be created for In Progress or Review work orders.",
+        `Expense bills can only be created for In Progress or Review work orders (initiative jobs: up to ${LATE_BILL_DAYS} days after closing).`,
       );
     }
 
