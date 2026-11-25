@@ -4,7 +4,8 @@
  * `allMeters` is used to stop two meters sharing the same code.
  */
 import { useState } from "react";
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
+import { createMeter, updateMeter } from "../../../store/slices/metersSlice";
 import Modal from "../../technician/components/Modal";
 import { label } from "../auditorUtils";
 import { METER_STATUSES, METER_TYPES } from "./infraConstants";
@@ -18,6 +19,7 @@ export default function MeterModal({
   onClose,
   showToast,
 }) {
+  const dispatch = useDispatch();
   const [code, setCode] = useState(meter ? meter.meter_code : "");
   const [type, setType] = useState(meter ? meter.meter_type : METER_TYPES[0]);
   const [zone, setZone] = useState(meter ? meter.zone || "" : "");
@@ -65,9 +67,12 @@ export default function MeterModal({
 
     let request;
     if (meter) {
-      request = api.patch("/meters/" + meter.meter_id, body);
+      // The update thunk resolves to { id, changes, row }: hand on the row.
+      request = dispatch(updateMeter({ id: meter.meter_id, changes: body }))
+        .unwrap()
+        .then((result) => result.row);
     } else {
-      request = api.post("/meters", body);
+      request = dispatch(createMeter(body)).unwrap();
     }
 
     request

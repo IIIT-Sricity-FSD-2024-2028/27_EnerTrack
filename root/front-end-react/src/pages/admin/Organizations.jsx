@@ -10,7 +10,20 @@
  * own tab rule never let one open this tab, so that view is left out.)
  */
 import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  createOrganization,
+  fetchOrganizations,
+  removeOrganization,
+  selectAllOrganizations,
+  selectOrganizationsStatus,
+  updateOrganization,
+} from "../../store/slices/organizationsSlice";
+import {
+  fetchCampuses,
+  selectAllCampuses,
+} from "../../store/slices/campusSlice";
+import { fetchUsers, selectAllUsers } from "../../store/slices/usersSlice";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
 import SearchBox from "./SearchBox";
@@ -18,6 +31,7 @@ import {
   addToast,
   formatCurrency,
   formatLabel,
+  loadFailed,
   matchesSearch,
 } from "./adminHelpers";
 import { PATTERNS, validators } from "../auth/validators";
@@ -25,38 +39,31 @@ import { PATTERNS, validators } from "../auth/validators";
 const STATUSES = ["prospect", "audited", "active", "churned"];
 
 export default function Organizations() {
-  const [organizations, setOrganizations] = useState([]);
-  const [campuses, setCampuses] = useState([]);
-  const [users, setUsers] = useState([]); // only to count each org's users
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const organizations = useSelector(selectAllOrganizations);
+  const campuses = useSelector(selectAllCampuses);
+  const users = useSelector(selectAllUsers); // only to count each org's users
+  const orgStatus = useSelector(selectOrganizationsStatus);
+  const loading = orgStatus === "idle" || orgStatus === "loading";
   const [toasts, setToasts] = useState([]);
   const [search, setSearch] = useState("");
   // The open popup: null, or { type: "add" | "edit" | "delete", org }
   const [modal, setModal] = useState(null);
 
   // Load the organisations, plus the campuses and users to count per
-  // organisation (the users only for the delete warning)
+  // organisation (the users only for the delete warning, so a failure there
+  // is not reported)
   useEffect(() => {
     Promise.all([
-      api.get("/organizations"),
-      api.get("/campus"),
-      api.get("/users").catch(() => []),
-    ])
-      .then(([orgList, campusList, userList]) => {
-        setOrganizations(Array.isArray(orgList) ? orgList : []);
-        setCampuses(Array.isArray(campusList) ? campusList : []);
-        setUsers(Array.isArray(userList) ? userList : []);
-      })
-      .catch(() => {
+      dispatch(fetchOrganizations()),
+      dispatch(fetchCampuses()),
+      dispatch(fetchUsers()),
+    ]).then(([orgs, campusList]) => {
+      if (loadFailed(orgs) || loadFailed(campusList)) {
         addToast(setToasts, "Failed to load data from backend.", "error");
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function reloadOrganizations() {
-    const list = await api.get("/organizations").catch(() => organizations);
-    setOrganizations(Array.isArray(list) ? list : organizations);
-  }
+      }
+    });
+  }, [dispatch]);
 
   // Called by <OrgFormModal> with the organisation to save
   async function handleSave(payload) {
@@ -64,11 +71,12 @@ export default function Organizations() {
     setModal(null);
     try {
       if (editing) {
-        await api.patch("/organizations/" + editing.organization_id, payload);
+        await dispatch(
+          updateOrganization({ id: editing.organization_id, changes: payload }),
+        ).unwrap();
       } else {
-        await api.post("/organizations", payload);
+        await dispatch(createOrganization(payload)).unwrap();
       }
-      await reloadOrganizations();
       addToast(
         setToasts,
         editing ? "Organisation updated." : "Organisation added.",
@@ -86,11 +94,9 @@ export default function Organizations() {
   async function handleDelete(org) {
     setModal(null);
     try {
-      await api.delete("/organizations/" + org.organization_id);
-      await reloadOrganizations();
+      await dispatch(removeOrganization(org.organization_id)).unwrap();
       // The backend deleted the organisation's users with it
-      const userList = await api.get("/users").catch(() => users);
-      setUsers(Array.isArray(userList) ? userList : users);
+      dispatch(fetchUsers({ force: true }));
       addToast(setToasts, "Organisation deleted.", "success");
     } catch (err) {
       // e.g. the backend refuses while the organisation still owns campuses

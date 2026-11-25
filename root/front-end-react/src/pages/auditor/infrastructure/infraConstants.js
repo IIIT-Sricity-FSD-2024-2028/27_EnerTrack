@@ -13,11 +13,3 @@ export const METER_STATUSES = [
   "calibrating",
   "decommissioned",
 ];
-
-/** The API path for each kind of record, used to save and delete. */
-export const API_PATH = {
-  campus: "/campus",
-  building: "/buildings",
-  department: "/departments",
-  meter: "/meters",
-};

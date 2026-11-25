@@ -8,7 +8,11 @@
  * so an edit keeps the stored budget and a new department has none yet.
  */
 import { useState } from "react";
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
+import {
+  createDepartment,
+  updateDepartment,
+} from "../../../store/slices/departmentsSlice";
 import Modal from "../../technician/components/Modal";
 import { formatCurrency } from "../auditorUtils";
 import { maxDepartmentBudget } from "./budgetRules";
@@ -24,6 +28,7 @@ export default function DepartmentModal({
   onClose,
   showToast,
 }) {
+  const dispatch = useDispatch();
   const [name, setName] = useState(department ? department.name : "");
   const [buildingId, setBuildingId] = useState(
     department ? department.building_id : selectedBuildingId || "",
@@ -73,9 +78,12 @@ export default function DepartmentModal({
 
     let request;
     if (department) {
-      request = api.patch("/departments/" + department.department_id, body);
+      // The update thunk resolves to { id, changes, row }: hand on the row.
+      request = dispatch(updateDepartment({ id: department.department_id, changes: body }))
+        .unwrap()
+        .then((result) => result.row);
     } else {
-      request = api.post("/departments", body);
+      request = dispatch(createDepartment(body)).unwrap();
     }
 
     request

@@ -20,7 +20,8 @@
  * js/system_admin/modules/UserManagement.js.
  */
 import { useState } from "react";
-import api from "../../api/client";
+import { useDispatch } from "react-redux";
+import { generatePassword } from "../../store/slices/usersSlice";
 import Modal from "./Modal";
 import {
   assignableRoles,
@@ -40,6 +41,7 @@ export default function UserFormModal({
   onSave,
   onClose,
 }) {
+  const dispatch = useDispatch();
   const isEdit = user !== null;
 
   // Everything typed, in one object. The backend never sends passwords, so
@@ -90,7 +92,7 @@ export default function UserFormModal({
   async function handleGenerate() {
     setGenerating(true);
     try {
-      const result = await api.post("/users/generate-password", {});
+      const result = await dispatch(generatePassword()).unwrap();
       setForm((prev) => ({ ...prev, password: result.password }));
       setErrors((prev) => ({ ...prev, password: "" }));
       setShowPassword(true);

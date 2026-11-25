@@ -14,8 +14,20 @@
  * user, an Organization Admin only their own organisation's.
  */
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import api from "../../api/client";
+import {
+  createUser,
+  fetchUsers,
+  removeUser,
+  selectAllUsers,
+  selectUsersStatus,
+  updateUser,
+} from "../../store/slices/usersSlice";
+import {
+  fetchOrganizations,
+  selectAllOrganizations,
+} from "../../store/slices/organizationsSlice";
 import { useAuth } from "../../auth/useAuth";
 import { homeForRole } from "../../routes";
 import AdminPage from "./AdminPage";
@@ -28,6 +40,7 @@ import {
   addToast,
   formatLabel,
   assignableRoles,
+  loadFailed,
   matchesSearch,
   teamLabel,
 } from "./adminHelpers";
@@ -81,9 +94,9 @@ function filterAndSort(users, filters, organizations) {
 
 // A Super Admin and an Organization Admin share this page as their home, so
 // "Act as" (and the way back) lands on the page that is already open. React
-// would keep it as it was: the list loaded for the previous person, with
-// their filters. A new `key` makes React build a fresh page instead, which
-// loads the list again for whoever is signed in now.
+// would keep it as it was, with the previous person's filters and search.
+// A new `key` makes React build a fresh page instead. (The lists themselves
+// are emptied by resetData on act-as, and reload on the fresh mount.)
 export default function Users() {
   const { user } = useAuth();
   return <UsersPage key={user.user_id || user.id} />;
@@ -92,10 +105,12 @@ export default function Users() {
 function UsersPage() {
   const { user: me, adoptSession, impersonate } = useAuth();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const [users, setUsers] = useState([]);
-  const [organizations, setOrganizations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const users = useSelector(selectAllUsers);
+  const organizations = useSelector(selectAllOrganizations);
+  const usersStatus = useSelector(selectUsersStatus);
+  const loading = usersStatus === "idle" || usersStatus === "loading";
   const [toasts, setToasts] = useState([]);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   // What is typed in the search box. Like the filters, not remembered
@@ -113,30 +128,19 @@ function UsersPage() {
     (o) => o.organization_id === me.organization_id,
   );
 
-  // Load the users and organisations when the page opens
+  // Load the users and organisations when the page opens. The organisations
+  // are only used for names, so a failure there just means ids are shown.
   useEffect(() => {
-    Promise.all([
-      api.get("/users"),
-      // Only used for names, so a failure here just means ids are shown
-      api.get("/organizations").catch(() => []),
-    ])
-      .then(([userList, orgList]) => {
-        setUsers(Array.isArray(userList) ? userList : []);
-        setOrganizations(Array.isArray(orgList) ? orgList : []);
-      })
-      .catch(() => {
+    dispatch(fetchOrganizations());
+    dispatch(fetchUsers()).then((result) => {
+      if (loadFailed(result)) {
         addToast(setToasts, "Failed to load data from backend.", "error");
-      })
-      .finally(() => setLoading(false));
-  }, []);
+      }
+    });
+  }, [dispatch]);
 
   function isMe(u) {
     return me.user_id === u.user_id || me.id === u.user_id;
-  }
-
-  async function reloadUsers() {
-    const list = await api.get("/users").catch(() => users);
-    setUsers(Array.isArray(list) ? list : users);
   }
 
   // Called by <UserFormModal> with the user to save
@@ -145,7 +149,9 @@ function UsersPage() {
     setModal(null);
     try {
       if (editing) {
-        await api.patch("/users/" + editing.user_id, payload);
+        await dispatch(
+          updateUser({ id: editing.user_id, changes: payload }),
+        ).unwrap();
         // Edited yourself: keep the signed-in session in step (without the
         // password: the session never stores one)
         if (isMe(editing)) {
@@ -154,9 +160,8 @@ function UsersPage() {
           adoptSession({ ...me, ...details });
         }
       } else {
-        await api.post("/users", payload);
+        await dispatch(createUser(payload)).unwrap();
       }
-      await reloadUsers();
       addToast(
         setToasts,
         `${editing ? "Updated" : "Added"} ${payload.name}.`,
@@ -182,8 +187,7 @@ function UsersPage() {
   async function handleDelete(target) {
     setModal(null);
     try {
-      await api.delete("/users/" + target.user_id);
-      await reloadUsers();
+      await dispatch(removeUser(target.user_id)).unwrap();
       addToast(setToasts, `Deleted ${target.name}.`, "success");
     } catch (err) {
       addToast(setToasts, err.message || "Could not delete the user.", "error");
@@ -455,7 +459,6 @@ function UsersPage() {
           emailDomain={myOrganisation?.email_domain || ""}
           existing={users}
           onClose={() => setModal(null)}
-          onDone={reloadUsers}
         />
       )}
 

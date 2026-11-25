@@ -14,10 +14,13 @@
  *   emailDomain  the organisation's required mail domain, or "" for none
  *   existing     users already in the organisation, to catch repeated emails
  *   onClose      closes the popup
- *   onDone       called once after accounts were created (reload the list)
+ *
+ * The user list reloads itself once the accounts are created (see
+ * bulkCreateUsers in store/slices/usersSlice.js).
  */
 import { useRef, useState } from "react";
-import api from "../../api/client";
+import { useDispatch } from "react-redux";
+import { bulkCreateUsers } from "../../store/slices/usersSlice";
 import { emailOnDomain, validators } from "../auth/validators";
 import Modal from "./Modal";
 import { PLATFORM_SIDE_ROLES, TEAMS, USER_ROLES, formatLabel } from "./adminHelpers";
@@ -143,8 +146,8 @@ export default function BulkImportModal({
   emailDomain,
   existing,
   onClose,
-  onDone,
 }) {
+  const dispatch = useDispatch();
   const [step, setStep] = useState("input"); // "input" | "preview" | "result"
   const [text, setText] = useState("");
   const [rows, setRows] = useState([]);
@@ -199,18 +202,19 @@ export default function BulkImportModal({
     setSubmitting(true);
     setProblem("");
     try {
-      const response = await api.post("/users/bulk", {
-        users: validRows.map(({ name, email, phone, role, team }) => ({
-          name,
-          email,
-          role,
-          ...(role === "Technician" ? { team } : {}),
-          ...(phone.trim() ? { phone: phone.trim() } : {}),
-        })),
-      });
-      setResults(Array.isArray(response) ? response : []);
+      const response = await dispatch(
+        bulkCreateUsers(
+          validRows.map(({ name, email, phone, role, team }) => ({
+            name,
+            email,
+            role,
+            ...(role === "Technician" ? { team } : {}),
+            ...(phone.trim() ? { phone: phone.trim() } : {}),
+          })),
+        ),
+      ).unwrap();
+      setResults(response);
       setStep("result");
-      onDone();
     } catch (err) {
       setProblem(err.message || "Could not create the accounts.");
     } finally {

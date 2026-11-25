@@ -8,7 +8,11 @@
  * so an edit keeps the stored budget and a new building has none yet.
  */
 import { useState } from "react";
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
+import {
+  createBuilding,
+  updateBuilding,
+} from "../../../store/slices/buildingsSlice";
 import Modal from "../../technician/components/Modal";
 import { formatCurrency } from "../auditorUtils";
 import { maxBuildingBudget, minBuildingBudget } from "./budgetRules";
@@ -25,6 +29,7 @@ export default function BuildingModal({
   onClose,
   showToast,
 }) {
+  const dispatch = useDispatch();
   const [name, setName] = useState(building ? building.name : "");
   const [campusId, setCampusId] = useState(
     building ? building.campus_id : selectedCampusId || "",
@@ -81,9 +86,14 @@ export default function BuildingModal({
 
     let request;
     if (building) {
-      request = api.patch("/buildings/" + building.building_id, body);
+      // The update thunk resolves to { id, changes, row }: hand on the row.
+      request = dispatch(
+        updateBuilding({ id: building.building_id, changes: body }),
+      )
+        .unwrap()
+        .then((result) => result.row);
     } else {
-      request = api.post("/buildings", body);
+      request = dispatch(createBuilding(body)).unwrap();
     }
 
     request
