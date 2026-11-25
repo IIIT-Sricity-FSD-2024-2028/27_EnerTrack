@@ -75,3 +75,168 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ── My deadlines: one card per job ───────────────────────────────────── */
+
+.job-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px 18px;
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+}
+
+.job-card-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.job-card-main {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.job-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.job-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.job-card-due {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted, #6b7280);
+}
+
+.job-card-due span {
+  font-weight: 600;
+  color: var(--dark, #111827);
+}
+
+.job-card-due.late span {
+  color: #b91c1c;
+}
+
+.job-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* A note says one thing: a bold line, then one sentence */
+.job-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  border-left: 3px solid currentColor;
+  border-radius: 0 8px 8px 0;
+}
+
+.job-note strong {
+  font-weight: 600;
+}
+
+.job-note span {
+  color: var(--dark, #111827);
+}
+
+.job-note-info {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.job-note-warn {
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.job-note-danger {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.job-extend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.job-extend label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.job-extend input {
+  font-weight: 400;
+}
+
+.job-extend-actions {
+  display: flex;
+  gap: 8px;
+}
+
+
+/* ── Log food waste (General Maintenance) ───────────── */
+.food-log {
+  margin-bottom: 20px;
+}
+
+.food-log-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin-top: 12px;
+}
+
+.food-log-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.food-log-form input,
+.food-log-form select {
+  font-weight: 400;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.food-log-msg {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #065f46;
+}
+
+.food-log-msg.is-error {
+  color: #b91c1c;
+}

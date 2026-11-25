@@ -619,3 +619,34 @@
     white-space: normal;
   }
 }
+
+/* Reason box shown when an estimate is sent back */
+.fo-reason-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.fo-reason-box label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fo-reason {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+}
+
+.fo-reason-actions {
+  display: flex;
+  gap: 8px;
+}

@@ -1,6 +1,6 @@
 /**
  * CostEstimateCard — where a work order's cost estimate stands, and a small
- * form (materials + labour) to send one to the Financial Analyst.
+ * form (the cost of materials) to send one to the Financial Analyst.
  *
  * Shared by the Operations Coordinator and Technician Jr work-order pages.
  *
@@ -29,7 +29,6 @@ export default function CostEstimateCard({
 }) {
   const [formOpen, setFormOpen] = useState(false);
   const [materials, setMaterials] = useState("");
-  const [labor, setLabor] = useState("");
 
   const details = wo.details || {};
   const estimate = details.estimate;
@@ -51,9 +50,14 @@ export default function CostEstimateCard({
     );
   } else if (rejected) {
     statusLine = (
-      <span className="cost-status cost-status--required">
-        Rejected (₹{estimate.total}) — submit a revised estimate
-      </span>
+      <>
+        <span className="cost-status cost-status--required">
+          Sent back (₹{estimate.total}). Submit a revised estimate.
+        </span>
+        {details.decision?.reason && (
+          <span className="cost-reason">Finance says: {details.decision.reason}</span>
+        )}
+      </>
     );
   } else if (estimate) {
     statusLine = (
@@ -83,16 +87,13 @@ export default function CostEstimateCard({
 
   // The inputs hold text; turn them into numbers to check and add them.
   const materialsCost = Number(materials);
-  const laborCost = Number(labor);
-  const filledIn =
-    materials !== "" && labor !== "" && materialsCost + laborCost > 0;
+  const filledIn = materials !== "" && materialsCost > 0;
 
   async function handleSubmit() {
-    const ok = await onSubmit(materialsCost, laborCost);
+    const ok = await onSubmit(materialsCost);
     if (ok) {
       setFormOpen(false);
       setMaterials("");
-      setLabor("");
     }
   }
 
@@ -124,15 +125,6 @@ export default function CostEstimateCard({
               placeholder="Materials cost (₹)"
               value={materials}
               onChange={(event) => setMaterials(event.target.value)}
-            />
-          </div>
-          <div className="field">
-            <input
-              type="number"
-              min="0"
-              placeholder="Labor cost (₹)"
-              value={labor}
-              onChange={(event) => setLabor(event.target.value)}
             />
           </div>
           <button

@@ -75,7 +75,9 @@ async function bootstrap() {
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000,
-      max: 1000,
+      // Override with RATE_LIMIT_MAX when developing: polling screens and
+      // reloads use up 1000 requests quickly.
+      max: Number(process.env.RATE_LIMIT_MAX) || 1000,
       standardHeaders: true,
       legacyHeaders: false,
       skip: (req) => req.originalUrl.startsWith('/api/docs'),

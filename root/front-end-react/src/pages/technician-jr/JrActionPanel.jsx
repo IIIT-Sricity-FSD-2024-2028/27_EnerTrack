@@ -59,8 +59,10 @@ export default function JrActionPanel({
       <div>
         {estimateRejected ? (
           <p className="callout callout--danger stage-note mb-10">
-            The Financial Analyst rejected your cost estimate. Send a revised
-            one with the Cost Estimate form; work starts once it is approved.
+            The Financial Analyst sent your cost estimate back
+            {details.decision?.reason ? `: ${details.decision.reason}` : "."}{" "}
+            Send a revised one with the Cost Estimate form; work starts once it
+            is approved.
           </p>
         ) : (
           <p className="callout callout--warning stage-note mb-10">

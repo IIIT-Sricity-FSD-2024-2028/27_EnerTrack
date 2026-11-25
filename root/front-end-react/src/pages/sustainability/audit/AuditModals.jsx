@@ -1,8 +1,8 @@
 /**
- * AuditModals — the three forms the Sustainability Officer fills in while
- * working a wastage report (ported from window._auditAction('dismiss'),
- * window._sendBackToFinance and window._openTargetModal in
- * js/sustainability_officer/overviewPage.js).
+ * AuditModals — the forms the Sustainability Officer fills in while working
+ * a wastage case: dismiss, send back to Finance, set a target, and check
+ * whether the target was met. (Opening a case and planning its remedy are
+ * in CaseModals.)
  *
  * Each one only checks its own fields and hands the values to onSubmit;
  * the parent (WastageAuditQueue) does the saving.
@@ -11,15 +11,16 @@ import { useEffect, useState } from "react";
 import api from "../../../api/client";
 import Modal from "../components/Modal";
 
-const DISMISS_REASONS = ["False Alarm", "Insufficient Evidence", "Already Addressed", "Out of Scope", "Other"];
+const DISMISS_REASONS = ["One-off, not a pattern", "Already addressed", "Insufficient evidence", "Out of scope", "Other"];
 
-const METRIC_UNITS = { Energy: "kWh", Water: "L", Emissions: "kg CO2e", Food: "kg" };
+// Food targets are checked against General Maintenance's daily weigh-ins.
+const METRIC_UNITS = { Energy: "kWh", Water: "L", Emissions: "kg CO2e", Food: "kg/day" };
 
 const TARGET_HELP = {
   Energy: "Set a realistic reduction target in kWh for the reported wastage zone.",
   Water: "Set a capped water loss target in liters for the identified location.",
   Emissions: "Set an emissions reduction target in kg CO2e for this source.",
-  Food: "Set an upper limit for food wastage (kg) for this cafeteria area.",
+  Food: "Set an upper limit for food thrown away, in kg a day. It is checked against General Maintenance's bin weigh-ins for this place.",
 };
 
 const TARGET_PLACEHOLDER = { Energy: "120", Water: "650", Emissions: "45", Food: "18" };
@@ -47,7 +48,7 @@ function FormError({ message }) {
   );
 }
 
-/** "Dismiss Report With Reason" — reason + explanation shown to the end user. */
+/** "Dismiss case" — the reason is kept on the case's record. */
 export function DismissModal({ report, busy, onSubmit, onClose }) {
   const [reason, setReason] = useState("");
   const [comment, setComment] = useState("");
@@ -60,7 +61,7 @@ export function DismissModal({ report, busy, onSubmit, onClose }) {
   }
 
   return (
-    <Modal title="Dismiss Report With Reason" confirmLabel="Confirm Dismissal" danger busy={busy} onConfirm={handleConfirm} onClose={onClose}>
+    <Modal title="Dismiss case" confirmLabel="Dismiss case" danger busy={busy} onConfirm={handleConfirm} onClose={onClose}>
       <div
         style={{
           marginBottom: "12px",
@@ -72,7 +73,8 @@ export function DismissModal({ report, busy, onSubmit, onClose }) {
       >
         <strong style={{ fontSize: "13px", color: "#9f1239" }}>Dismissal Confirmation</strong>
         <div style={{ fontSize: "13px", color: "#6b7280", lineHeight: 1.5, marginTop: "4px" }}>
-          This will close <strong>Report #{report.shortId}</strong>, notify the end user, and move it to archives.
+          This closes case <strong>WR-{report.shortId}</strong> without action and moves it to archives. The waste reports behind it
+          stay as they are.
         </div>
       </div>
       <div style={{ display: "grid", gap: "12px" }}>
@@ -95,7 +97,7 @@ export function DismissModal({ report, busy, onSubmit, onClose }) {
             placeholder="Provide clear details (minimum 10 characters)..."
             style={{ ...inputStyle, resize: "vertical" }}
           />
-          <div style={hintStyle}>This explanation is shown to the end user in their dismissal notice.</div>
+          <div style={hintStyle}>Kept on the case so you (and Finance) can see why it was dropped.</div>
         </div>
       </div>
       <FormError message={error} />
@@ -117,7 +119,7 @@ export function SendBackModal({ report, busy, onSubmit, onClose }) {
   return (
     <Modal title="↻ Send Back to Finance Analyst" confirmLabel="Send Back" busy={busy} onConfirm={handleConfirm} onClose={onClose}>
       <div style={{ marginBottom: "10px", fontSize: "13px", color: "#6b7280" }}>
-        Explain what changes are needed for report <strong>#{report.shortId}</strong>:
+        Explain what changes are needed for case <strong>WR-{report.shortId}</strong>:
       </div>
       <div style={{ marginBottom: "12px" }}>
         <label style={labelStyle} htmlFor="sb-reason">What needs to be revised? *</label>
@@ -150,16 +152,40 @@ export function SendBackModal({ report, busy, onSubmit, onClose }) {
 export function TargetModal({ report, busy, onSubmit, onClose }) {
   const sd = report.systemData || {};
   const metricType = report.type || "Energy";
-  const unit = sd.readingUnit || METRIC_UNITS[metricType] || "units";
-  const measured = Number(sd.readingValue);
-  const baseline = Number(sd.baselineValue);
-  const userEstimate = Number(report.specificData?.reportedValue);
-  const suggested = Number.isFinite(measured) && measured > 0 ? (measured * 0.85).toFixed(2) : "";
+  const isFood = metricType === "Food";
+  const place = report.details?.location || "";
+  const unit = isFood ? METRIC_UNITS.Food : sd.readingUnit || METRIC_UNITS[metricType] || "units";
   const existing = report.metricTarget || {};
   const today = new Date().toISOString().split("T")[0];
   const show = (n) => (Number.isFinite(n) ? n : "—");
 
-  const [value, setValue] = useState(String(existing.value ?? suggested ?? ""));
+  // Food: the current figure is the last 30 days of weigh-ins for the place.
+  const [food, setFood] = useState(null);
+  useEffect(() => {
+    if (!isFood) return undefined;
+    let live = true;
+    api
+      .get("/food-waste-logs/summary")
+      .then((rows) => {
+        if (!live) return;
+        const key = place.trim().toLowerCase().replace(/\s+/g, " ");
+        const row = (Array.isArray(rows) ? rows : []).find((r) => r.location.trim().toLowerCase().replace(/\s+/g, " ") === key);
+        setFood(row || false);
+      })
+      .catch(() => live && setFood(false));
+    return () => {
+      live = false;
+    };
+  }, [isFood, place]);
+
+  const measured = isFood ? Number(food?.kg_per_day_30d) : Number(sd.readingValue);
+  const baseline = isFood ? Number(food?.kg_per_day_7d) : Number(sd.baselineValue);
+  const suggested = Number.isFinite(measured) && measured > 0 ? (measured * 0.85).toFixed(isFood ? 1 : 2) : "";
+
+  // Until the officer types, the box shows the saved target or the suggestion
+  // (which for food arrives once the weigh-ins load).
+  const [typed, setValue] = useState(existing.value != null ? String(existing.value) : null);
+  const value = typed ?? String(suggested || "");
   const [deadline, setDeadline] = useState(existing.deadline || "");
   const [error, setError] = useState("");
 
@@ -186,15 +212,17 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
         }}
       >
         <div>
-          <div style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase" }}>Current {metricType} Value</div>
+          <div style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase" }}>
+            {isFood ? "Food thrown away, last 30 days" : `Current ${metricType} value`}
+          </div>
           <div style={{ fontSize: "22px", fontWeight: 700, color: "#059669" }}>
             {show(measured)} <small style={{ fontSize: "13px" }}>{unit}</small>
           </div>
         </div>
         <div style={{ fontSize: "12px", color: "#6b7280", textAlign: "right" }}>
-          Report #{report.shortId}
+          Case WR-{report.shortId}
           <br />
-          {metricType} Wastage
+          {place || `${metricType} waste`}
         </div>
       </div>
       <div
@@ -211,12 +239,24 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
       >
         <div style={{ fontWeight: 600, color: "#1d4ed8", marginBottom: "6px" }}>How to set this target</div>
         <div>{TARGET_HELP[metricType] || TARGET_HELP.Energy}</div>
+        {isFood ? (
+          food === false ? (
+            <div>
+              No weigh-ins are logged for <strong>{place || "this place"}</strong> yet. Ask General Maintenance to log the bins there,
+              or the target cannot be checked.
+            </div>
+          ) : (
+            <div>
+              Last 30 days: <strong>{show(measured)} {unit}</strong> | Last 7 days: <strong>{show(baseline)} {unit}</strong>
+            </div>
+          )
+        ) : (
+          <div>
+            Measured current: <strong>{show(measured)} {unit}</strong> | Baseline: <strong>{show(baseline)} {unit}</strong>
+          </div>
+        )}
         <div>
-          Measured current: <strong>{show(measured)} {unit}</strong> | Baseline: <strong>{show(baseline)} {unit}</strong> | End-user
-          estimate: <strong>{show(userEstimate)} {report.specificData?.reportedUnit || unit}</strong>
-        </div>
-        <div>
-          Recommended starting target: <strong>{suggested || "—"} {unit}</strong> (about 15% below current measured value).
+          Recommended starting target: <strong>{suggested || "—"} {unit}</strong> (about 15% below the current figure).
         </div>
       </div>
       <div style={{ display: "grid", gap: "12px" }}>
@@ -232,10 +272,7 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
             placeholder={`e.g. ${TARGET_PLACEHOLDER[metricType] || "100"}`}
             style={inputStyle}
           />
-          <div style={hintStyle}>
-            Use the same unit as the measured/estimated wastage value shown above. Keep the target lower than the current measured
-            value whenever possible.
-          </div>
+          <div style={hintStyle}>Use the unit shown above, and keep the target below the current figure.</div>
         </div>
         <div>
           <label style={labelStyle} htmlFor="mt-deadline">Target Deadline *</label>
@@ -270,6 +307,7 @@ export function VerifyTargetModal({ report, busy, onSubmit, onClose }) {
   }, [report.id]);
 
   const t = check?.target || report.metricTarget || {};
+  const food = check?.food || null;
   const pct = (n) => (n === null || n === undefined ? "—" : `${n}%`);
   const decide = (status) =>
     onSubmit({
@@ -292,16 +330,33 @@ export function VerifyTargetModal({ report, busy, onSubmit, onClose }) {
               {t.value ?? "—"} {t.unit || ""} by {t.deadline || "—"}
             </dd>
           </div>
-          <div>
-            <dt>Meter</dt>
-            <dd>{check ? (check.meter ? check.meter.meter_code : "Not linked") : "…"}</dd>
-          </div>
+          {food ? (
+            <>
+              <div>
+                <dt>Weigh-ins at</dt>
+                <dd>{food.location || "—"}</dd>
+              </div>
+              <div>
+                <dt>Before the target</dt>
+                <dd>{food.baseline_kg_per_day ?? "—"} kg a day</dd>
+              </div>
+              <div>
+                <dt>Since the target ({food.days_logged} days logged)</dt>
+                <dd>{food.achieved_kg_per_day ?? "—"} kg a day</dd>
+              </div>
+            </>
+          ) : (
+            <div>
+              <dt>Meter</dt>
+              <dd>{check ? (check.meter ? check.meter.meter_code : "Not linked") : "…"}</dd>
+            </div>
+          )}
           <div>
             <dt>Cut the target needs</dt>
             <dd>{check ? pct(check.required_reduction_pct) : "…"}</dd>
           </div>
           <div>
-            <dt>Cut measured (vs same months last year)</dt>
+            <dt>{food ? "Cut measured (vs before the target)" : "Cut measured (vs same months last year)"}</dt>
             <dd>{check ? pct(check.achieved_reduction_pct) : "…"}</dd>
           </div>
         </dl>

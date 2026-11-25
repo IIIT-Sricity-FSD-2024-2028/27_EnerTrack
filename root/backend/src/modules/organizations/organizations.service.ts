@@ -153,7 +153,6 @@ export class OrganizationsService {
       phone: dto.admin_phone?.trim() || null,
       password: hashPassword(dto.admin_password),
       role: UserRole.ORGANIZATION_ADMIN,
-      specialization: null,
       must_change_password: false,
     };
     this.database.users.push(admin as any);

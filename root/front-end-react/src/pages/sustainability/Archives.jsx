@@ -95,8 +95,8 @@ export default function SustainabilityArchives() {
           if (usersRes.status === "fulfilled" && Array.isArray(usersRes.value))
             usersRes.value.forEach((u) => (directory[u.user_id] = u));
 
-          // Closed reports only: sent to the occupant, dismissed, or
-          // archived by the officer. The rest are still in the overview queue.
+          // Finished cases only: closed, dismissed, or archived by the
+          // officer. The rest are still in the overview queue.
           const archivedW = wastageRes.value
             .map((raw) => {
               const r = normalizeWastageReport(raw, user);
@@ -108,18 +108,18 @@ export default function SustainabilityArchives() {
                 priority: r.details?.priority || "Medium",
                 reporterName:
                   reporter?.name ||
-                  (r.reporterName && r.reporterName !== "Unknown" ? r.reporterName : "Occupant"),
+                  (r.reporterName && r.reporterName !== "Unknown" ? r.reporterName : "Sustainability Officer"),
               };
             })
             .filter(
               (r) =>
-                r.status === "Delivered" ||
+                r.status === "Closed" ||
                 r.status === "Dismissed" ||
                 r.details?.soArchived,
             )
             .sort((x, y) => {
               const at = (r) =>
-                r.details?.deliveredAt || r.details?.dismissedAt || r.details?.soArchivedAt || r.timestamp;
+                r.details?.closedAt || r.details?.deliveredAt || r.details?.dismissedAt || r.details?.soArchivedAt || r.timestamp;
               return String(at(y)).localeCompare(String(at(x)));
             });
 
@@ -247,7 +247,7 @@ export default function SustainabilityArchives() {
       {/* Header */}
       <header className="arc-head">
         <h1>Archives</h1>
-        <p>Saved reports, archived initiatives and closed wastage reports.</p>
+        <p>Saved reports, archived initiatives and closed wastage cases.</p>
       </header>
 
       {/* Tabs and search */}
@@ -256,7 +256,7 @@ export default function SustainabilityArchives() {
           {[
             { id: "reports", label: "Reports", count: reports.length },
             { id: "initiatives", label: "Initiatives", count: initiatives.length },
-            { id: "wastage", label: "Wastage reports", count: wastage.length },
+            { id: "wastage", label: "Wastage cases", count: wastage.length },
           ].map((tab) => (
             <button
               key={tab.id}

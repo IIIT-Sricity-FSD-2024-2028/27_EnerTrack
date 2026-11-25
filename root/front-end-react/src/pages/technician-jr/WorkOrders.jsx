@@ -147,11 +147,10 @@ export default function TechnicianJrWorkOrders() {
 
   // {...wo.details, estimate} keeps every field already in details — the
   // backend replaces details as a whole on every update.
-  function submitEstimate(wo, materials, labor) {
+  function submitEstimate(wo, materials) {
     const estimate = {
       materials: materials,
-      labor: labor,
-      total: materials + labor,
+      total: materials,
       type: "repair",
     };
     return updateWorkOrder(
@@ -226,9 +225,7 @@ export default function TechnicianJrWorkOrders() {
             key={"cost-" + id}
             wo={selected}
             busy={busy}
-            onSubmit={(materials, labor) =>
-              submitEstimate(selected, materials, labor)
-            }
+            onSubmit={(materials) => submitEstimate(selected, materials)}
           />
           <TaskFlow status={selected.status} />
           <SummaryCard wo={selected} users={users} />

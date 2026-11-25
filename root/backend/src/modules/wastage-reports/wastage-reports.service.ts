@@ -10,6 +10,7 @@ import {
 } from "@nestjs/common";
 import {
   DatabaseService,
+  FoodWasteLog,
   NotificationTargetType,
   UserRole,
   WastageReport,
@@ -25,36 +26,53 @@ import {
   assertTenantOwns,
 } from "../../core/tenancy/tenant-context";
 import { CreateWastageReportDto } from "./dto/create-wastage-report.dto";
+import {
+  AREAS,
+  AreaId,
+  FLOORS,
+  PARTS,
+  WasteKind,
+  findItem,
+  findProblem,
+  alertsOfficer,
+  wasteKindOf,
+} from "../issue-catalogue/issue-catalogue";
+import { cleanPart } from "../issue-catalogue/dedupe";
+import { kgPerDay, placeKey } from "../food-waste-logs/food-waste-logs.service";
 import { PutWastageReportDto } from "./dto/put-wastage-report.dto";
 
 import { UpdateWastageReportDto } from "./dto/update-wastage-report.dto";
 import { AddWastageCommentDto } from "./dto/add-wastage-comment.dto";
 
 /**
- * The wastage workflow, enforced here rather than by which buttons a page
- * happens to show. Seeded reports use "pending", which means "Reported".
+ * A wastage case: a *pattern* of waste the Sustainability Officer has chosen
+ * to tackle (a hotspot of repeated waste issues, or something seen on the
+ * meters). Single incidents — lights left on, a tap running — are ordinary
+ * issue reports and never come here; a case links to the incidents behind it
+ * through source_request_ids.
  *
- *   Reported ──► Validated ──► Forwarded to Finance ──► Cost Impact Added
- *      │             │                ▲                        │
- *      ▼             ▼                │                        ▼
- *   Dismissed     Target Set ◄── Returned to SO ◄──────────────┘
- *                  │     ▲
- *   (deadline or   ▼     │ (try again)
- *    checked early) Verify Target ──► Target Met ──► Delivered
- *                        └──────────► Target Missed ──► Delivered
+ * Finance is involved only when the remedy needs spending (details.remedy):
  *
- * Older reports may still be "Finalized" (the step before T14); they can
- * still be delivered, and Target Set → Finalized is kept for them.
+ *   Open ──► remedy "no_cost" ─────────────────────────────────► Target Set
+ *     │  └─► remedy "spend" ──► Forwarded to Finance ──► Cost Impact Added
+ *     │                               ▲                         │
+ *     ▼                               └──── Returned to SO ◄────┘
+ *   Dismissed                                    │
+ *                                                ▼
+ *   Target Set ──(deadline / checked early)──► Verify Target ──► Target Met ──► Closed
+ *        ▲                                                  └─► Target Missed ─► Closed
+ *        └──────────────────── (try again) ─────────────────────────┘
+ *
+ * Older records may still say "pending", "Reported" or "Validated" (read as
+ * Open) or "Finalized" / "Delivered" (read as Closed).
  */
 const OFFICER_MOVES: Record<string, string[]> = {
-  Reported: ["Validated", "Dismissed"],
-  Validated: ["Forwarded to Finance", "Target Set", "Finalized", "Dismissed"],
-  "Returned to SO": ["Target Set", "Forwarded to Finance", "Finalized", "Dismissed"],
-  "Target Set": ["Verify Target", "Finalized", "Delivered"],
+  Open: ["Target Set", "Forwarded to Finance", "Dismissed"],
+  "Returned to SO": ["Target Set", "Forwarded to Finance", "Dismissed"],
+  "Target Set": ["Verify Target"],
   "Verify Target": ["Target Met", "Target Missed"],
-  "Target Met": ["Delivered"],
-  "Target Missed": ["Delivered", "Target Set"],
-  Finalized: ["Delivered"],
+  "Target Met": ["Closed"],
+  "Target Missed": ["Closed", "Target Set"],
 };
 
 const FINANCE_MOVES: Record<string, string[]> = {
@@ -76,21 +94,100 @@ const KNOWN_STATUSES = new Set([
 ]);
 
 /**
- * The workflow check for a status change. A report sitting in a status the
- * workflow does not know (an older record) is not blocked.
+ * The workflow check for a status change. A case sitting in a status the
+ * workflow does not know is not blocked.
  */
 function assertWastageMove(role: string | undefined, from: string, to: string) {
   if (!KNOWN_STATUSES.has(from)) return;
-  assertMove(WORKFLOW, role, from, to, "a wastage report");
+  assertMove(WORKFLOW, role, from, to, "a wastage case");
 }
 
-/** "pending" (seed) and "reported" mean the same thing: "Reported". */
-function canonicalStatus(status: string | undefined | null): string {
-  if (!status) return "Reported";
-  return status.trim().toLowerCase() === "pending" || status.trim().toLowerCase() === "reported"
-    ? "Reported"
-    : status;
+export type RemedyType = "no_cost" | "spend";
+
+/**
+ * Whether Finance is involved is a rule, not a choice: a remedy that needs
+ * spending must be costed by Finance before a target is set, and a no-cost
+ * remedy (schedule, policy, awareness) never goes to Finance.
+ */
+function assertRemedyRule(from: string, to: string, details: Record<string, any> | undefined) {
+  if (from === to) return;
+  const needsRemedy = to === "Forwarded to Finance" || (from === "Open" && to === "Target Set");
+  if (!needsRemedy) return;
+  const remedy = details?.remedy;
+  if (!remedy || (remedy.type !== "no_cost" && remedy.type !== "spend"))
+    throw new BadRequestException(
+      "Choose a remedy first: details.remedy.type must be 'no_cost' or 'spend'.",
+    );
+  if (to === "Forwarded to Finance") {
+    if (remedy.type !== "spend")
+      throw new ForbiddenException("Only a remedy that needs spending goes to Finance; set the target directly.");
+    if (!(Number(remedy.estimate) > 0))
+      throw new BadRequestException("A remedy that needs spending must give its estimated cost (details.remedy.estimate > 0).");
+  }
+  if (to === "Target Set" && remedy.type === "spend")
+    throw new ForbiddenException("A remedy that needs spending must be costed by Finance before a target is set.");
 }
+
+/** Older spellings, read as the status they became. */
+const LEGACY_STATUS: Record<string, string> = {
+  pending: "Open",
+  reported: "Open",
+  validated: "Open",
+  open: "Open",
+  finalized: "Closed",
+  delivered: "Closed",
+};
+
+function canonicalStatus(status: string | undefined | null): string {
+  if (!status) return "Open";
+  return LEGACY_STATUS[status.trim().toLowerCase()] ?? status;
+}
+
+/** How far back the waste signals look. */
+const SIGNAL_WINDOW_DAYS = 30;
+/** Repeated incidents at one place within the window that make a hotspot. */
+const HOTSPOT_INCIDENTS = 3;
+/** A meter this much above the same month last year is a signal. */
+const METER_RISE_PCT = 10;
+
+export interface WasteSignal {
+  key: string;
+  kind: WasteKind;
+  source: "reports" | "food_log" | "meter";
+  location: string;
+  building_id: string | null;
+  incidents: number;
+  people: number;
+  last_at: string | null;
+  ticket_ids: string[];
+  sensor_reading_id: string | null;
+  reasons: string[];
+  /** Meets the hotspot rule (otherwise only shown under "all groups"). */
+  hotspot: boolean;
+  watched: boolean;
+  /** An active case already covers it. */
+  case_id: string | null;
+}
+
+/** The fields of a ticket the signals read. */
+interface ServiceRequestLike {
+  service_request_id: string;
+  reporter_id: string;
+  reporter_ids?: string[];
+  plus_one_ids?: string[];
+  created_at?: string;
+  building_id?: string;
+  floor?: string;
+  area?: string;
+  part?: string;
+  issue_type_id?: string;
+  item_id?: string;
+  problem_id?: string | null;
+  source_wastage?: string;
+}
+
+/** Statuses in which a case is still being worked on. */
+const ACTIVE_CASE = ["Open", "Forwarded to Finance", "Cost Impact Added", "Returned to SO", "Target Set", "Verify Target", "Target Missed"];
 
 /** The short reference the pages show, e.g. WR-3N2A8Z (same hash as reportRef in the front end). */
 export function reportRef(id: string): string {
@@ -106,33 +203,54 @@ export class WastageReportsService {
     private dispatch: DispatchService,
   ) {}
 
+  /** Where a case is, in words: its location, else its title. */
+  private static whereOf(report: WastageReport): string {
+    const d = report.details ?? {};
+    return String(d.location ?? d.specificData?.location ?? d.title ?? "").trim();
+  }
+
+  /**
+   * Everyone who reported one of the incidents behind a case (their tickets'
+   * reporters), so the people who raised the problem hear what came of it.
+   */
+  private linkedReporters(report: WastageReport): string[] {
+    const ids = new Set<string>();
+    for (const ticketId of report.source_request_ids ?? []) {
+      const t = this.database.serviceRequests.find((x) => x.service_request_id === ticketId);
+      if (!t) continue;
+      for (const r of [t.reporter_id, ...(t.reporter_ids ?? [])]) if (r && r !== "system") ids.add(r);
+    }
+    return [...ids];
+  }
+
   /** Who hears about a move, and what they are told. */
-  private notifyStatus(report: WastageReport, to: string) {
+  private notifyStatus(report: WastageReport, to: string, from?: string) {
     const ref = reportRef(report.wastage_report_id);
-    const kind = String(report.type || "wastage").toLowerCase();
     const org = report.organization_id;
-    const reporter = [report.reporter_id];
     const officers = () => usersWithRole(this.database, org, [UserRole.SUSTAINABILITY_OFFICER]);
     const finance = () => usersWithRole(this.database, org, [UserRole.FINANCIAL_ANALYST]);
+    const where = WastageReportsService.whereOf(report);
+    const remedy = String(report.details?.remedy?.description ?? "").trim();
+    const result =
+      from === "Target Met"
+        ? " The reduction target was met."
+        : from === "Target Missed"
+          ? " The reduction target was not fully met."
+          : "";
 
     const messages: Record<string, [string[], string]> = {
-      Validated: [reporter, `Your ${kind} report ${ref} has been confirmed and is being looked into.`],
-      Dismissed: [
-        reporter,
-        `Your ${kind} report ${ref} was closed without action` +
-          (report.details?.dismissReason ? `: ${report.details.dismissReason}.` : "."),
+      "Forwarded to Finance": [finance(), `Wastage case ${ref} needs a cost estimate for its remedy.`],
+      "Returned to SO": [officers(), `Finance added cost figures to wastage case ${ref}.`],
+      "Verify Target": [officers(), `The target deadline for wastage case ${ref} has passed; check whether it was met.`],
+      Closed: [
+        this.linkedReporters(report),
+        `Update on the waste you reported${where ? ` at ${where}` : ""}: the Sustainability Officer has acted on it` +
+          (remedy ? ` (${remedy}).` : ".") +
+          result,
       ],
-      "Forwarded to Finance": [finance(), `Wastage report ${ref} needs a cost estimate.`],
-      "Returned to SO": [officers(), `Finance added cost figures to wastage report ${ref}.`],
-      "Target Set": [reporter, `A reduction target has been set for your ${kind} report ${ref}.`],
-      "Verify Target": [officers(), `The target deadline for wastage report ${ref} has passed; check whether it was met.`],
-      "Target Met": [reporter, `Good news: the reduction target for your ${kind} report ${ref} was met.`],
-      "Target Missed": [reporter, `The reduction target for your ${kind} report ${ref} was not met. The Sustainability Officer is following it up.`],
-      Finalized: [reporter, `Your ${kind} report ${ref} has been finalised.`],
-      Delivered: [reporter, `The outcome of your ${kind} report ${ref} is ready to read.`],
     };
     const entry = messages[to];
-    if (!entry) return;
+    if (!entry || entry[0].length === 0) return;
     pushNotifications(this.database, {
       organizationId: org,
       userIds: entry[0],
@@ -142,8 +260,14 @@ export class WastageReportsService {
     });
   }
 
+  /**
+   * Opens a case. Only the Sustainability Officer (or Org Admin) does this,
+   * from a hotspot of waste issues or from monitoring; occupants report
+   * incidents as issues instead. The linked tickets must exist in this
+   * organisation.
+   */
   create(createDto: CreateWastageReportDto, userId?: string) {
-    // The reporter is the signed-in person, whatever the body says.
+    // The case belongs to the signed-in officer, whatever the body says.
     if (userId && this.database.users.some((u) => u.user_id === userId)) {
       createDto = { ...createDto, reporter_id: userId };
     }
@@ -165,34 +289,25 @@ export class WastageReportsService {
           `Target meterReadings with id '${createDto.sensor_reading_id}' not found`,
         );
     }
-    // A new report always starts as Reported. Later statuses (Validated,
-    // Delivered, ...) are set by the officer and Finance through PATCH.
-    if (
-      createDto.status !== undefined &&
-      createDto.status.toLowerCase() !== "reported"
-    )
-      throw new BadRequestException(
-        `A new wastage report must start as 'Reported'`,
-      );
+    if (createDto.status !== undefined && canonicalStatus(createDto.status) !== "Open")
+      throw new BadRequestException(`A new wastage case must start as 'Open'`);
+
+    const sources = [...new Set(createDto.source_request_ids ?? [])];
+    const tickets = scopeToTenant(this.database.serviceRequests);
+    const missing = sources.filter((id) => !tickets.some((t) => t.service_request_id === id));
+    if (missing.length)
+      throw new NotFoundException(`Issue report(s) not found: ${missing.join(", ")}`);
 
     const generatedId = crypto.randomUUID();
     const newRecord = {
       wastage_report_id: generatedId,
       ...createDto,
-      status: "Reported",
+      source_request_ids: sources,
+      status: "Open",
       organization_id: currentOrgId() ?? createDto.organization_id ?? null,
       created_at: new Date().toISOString(),
     };
     this.database.wastageReports.push(newRecord as any);
-
-    const where = createDto.details?.specificData?.location;
-    pushNotifications(this.database, {
-      organizationId: newRecord.organization_id,
-      userIds: usersWithRole(this.database, newRecord.organization_id, [UserRole.SUSTAINABILITY_OFFICER]),
-      targetType: NotificationTargetType.WASTAGE,
-      targetId: generatedId,
-      message: `New ${String(createDto.type || "wastage").toLowerCase()} wastage report ${reportRef(generatedId)}${where ? ` at ${where}` : ""}.`,
-    });
     return newRecord;
   }
   attachPhotos(id: string, files: Express.Multer.File[]) {
@@ -280,11 +395,20 @@ export class WastageReportsService {
     };
   }
 
-  /** Visitors see only their own reports; staff see the organisation's. */
+  /**
+   * A visitor sees a case only when it grew out of an issue they reported
+   * (or, for older records, one they filed themselves); staff see the
+   * organisation's.
+   */
+  private visibleToVisitor(r: WastageReport, userId?: string): boolean {
+    if (!userId) return false;
+    return r.reporter_id === userId || this.linkedReporters(r).includes(userId);
+  }
+
   findAll(userId?: string, role?: string) {
     this.promoteDueTargets();
     const all = scopeToTenant(this.database.wastageReports);
-    const visible = role === "Campus Visitor" ? all.filter((r) => r.reporter_id === userId) : all;
+    const visible = role === "Campus Visitor" ? all.filter((r) => this.visibleToVisitor(r, userId)) : all;
     return visible.map((r) => this.withPhotoUrls(r));
   }
 
@@ -321,6 +445,7 @@ export class WastageReportsService {
     if (!report) throw new NotFoundException(`WastageReport with ID ${id} not found`);
     const target = report.details?.metricTarget;
     if (!target) throw new BadRequestException("This report has no target yet.");
+    if (report.type === "Food") return this.foodTargetCheck(report, target);
 
     const reading = this.database.meterReadings.find((r) => r.reading_id === report.sensor_reading_id);
     const meter = reading && this.database.meters.find((m) => m.meter_id === reading.meter_id);
@@ -362,12 +487,241 @@ export class WastageReportsService {
     };
   }
 
+  /**
+   * Food has no meter: its target (kg a day) is checked against the
+   * General Maintenance weigh-ins for the case's place. The baseline is the
+   * 30 days before the target was set; the outcome is the days since.
+   */
+  private foodTargetCheck(report: WastageReport, target: any) {
+    const place = WastageReportsService.whereOf(report);
+    const setAt = String(target.setAt ?? report.details?.targetSetAt ?? "").slice(0, 10);
+    const base = {
+      target: { value: target.value, unit: target.unit, deadline: target.deadline, set_at: target.setAt ?? report.details?.targetSetAt ?? null },
+      meter: null,
+    };
+    const logs = scopeToTenant(this.database.foodWasteLogs).filter((l) => placeKey(l.location) === placeKey(place));
+    if (!place || logs.length === 0)
+      return {
+        ...base,
+        food: { location: place, baseline_kg_per_day: null, achieved_kg_per_day: null, days_logged: 0 },
+        suggested: null,
+        reason: `No food waste has been logged for ${place || "this case's place"}, so the outcome cannot be measured. Ask General Maintenance to log the bins, or decide from what you know.`,
+      };
+
+    const today = new Date().toISOString().slice(0, 10);
+    const before = setAt ? new Date(Date.parse(setAt) - 30 * 86_400_000).toISOString().slice(0, 10) : "";
+    const end = String(target.deadline) < today ? String(target.deadline) : today;
+    const baseline = setAt ? kgPerDay(logs.filter((l) => l.date >= before && l.date < setAt)) : null;
+    const sinceLogs = setAt ? logs.filter((l) => l.date >= setAt && l.date <= end) : [];
+    const achieved = kgPerDay(sinceLogs);
+    const days = new Set(sinceLogs.map((l) => l.date)).size;
+    const value = Number(target.value);
+    const required = baseline && value < baseline ? Number(((1 - value / baseline) * 100).toFixed(1)) : null;
+    const achievedPct = baseline && achieved !== null ? Number(((1 - achieved / baseline) * 100).toFixed(1)) : null;
+
+    let suggested: "Target Met" | "Target Missed" | null = null;
+    let reason: string;
+    if (!setAt) reason = "The target has no start date, so there is nothing to compare.";
+    else if (achieved === null || days < 7)
+      reason = `Only ${days} day(s) of weigh-ins since the target was set; at least 7 are needed to judge it.`;
+    else {
+      suggested = achieved <= value ? "Target Met" : "Target Missed";
+      reason =
+        `Food waste averaged ${achieved} kg a day over ${days} logged days, against a target of ${value} kg a day` +
+        (baseline ? ` (it was ${baseline} kg a day before the target).` : ".");
+    }
+    return {
+      ...base,
+      food: { location: place, baseline_kg_per_day: baseline, achieved_kg_per_day: achieved, days_logged: days },
+      required_reduction_pct: required,
+      achieved_reduction_pct: achievedPct,
+      months_compared: 0,
+      months: [],
+      suggested,
+      reason,
+    };
+  }
+
+  // ── Waste signals ──────────────────────────────────────────────────────
+
+  /** A ticket's place in words: building, floor, area and room. */
+  private placeOf(t: { building_id?: string | null; floor?: string; area?: string; part?: string }): string {
+    const building = this.database.buildings.find((b) => b.building_id === t.building_id);
+    const floor = FLOORS.find((f) => f.id === t.floor)?.label ?? t.floor;
+    const area = AREAS.find((a) => a.id === t.area)?.label ?? t.area;
+    const part = PARTS[t.area as AreaId]?.find((x) => x.id === t.part)?.label ?? t.part ?? "";
+    const whole = t.floor === "whole_building" || t.floor === "outside";
+    return [
+      building?.name,
+      t.floor === "whole_building" ? null : t.floor === "outside" ? "outside" : floor ? `floor ${floor}` : null,
+      whole ? null : area ? String(area).toLowerCase() : null,
+      part,
+    ]
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  /** True for a ticket that reports waste: a WASTE-tagged problem, or an item that alerts the officer. */
+  private static isWasteTicket(t: { item_id?: string | null; problem_id?: string | null }): boolean {
+    if (!t.item_id) return false;
+    if (alertsOfficer(t.item_id)) return true;
+    const found = findItem(t.item_id);
+    const prob = found && t.problem_id ? findProblem(found.item, t.problem_id) : undefined;
+    return !!prob?.tags?.includes("WASTE");
+  }
+
+  /**
+   * What the Sustainability Officer works from instead of single reports:
+   * - waste issue reports grouped by place and kind over the last 30 days
+   *   (a hotspot at 3 or more, or at once for food thrown away or smoke);
+   * - places whose food waste rose this week (General Maintenance weigh-ins);
+   * - meters well above the same month last year.
+   * Every group is returned; `hotspot` marks the ones the rule flags.
+   */
+  signals(): WasteSignal[] {
+    const org = currentOrgId();
+    const since = new Date(Date.now() - SIGNAL_WINDOW_DAYS * 86_400_000).toISOString();
+    const cases = scopeToTenant(this.database.wastageReports).filter((r) => ACTIVE_CASE.includes(canonicalStatus(r.status)));
+    const caseFor = (ticketIds: string[], key: string) =>
+      cases.find((c) => c.details?.signalKey === key || (c.source_request_ids ?? []).some((id) => ticketIds.includes(id)))
+        ?.wastage_report_id ?? null;
+    const watches = this.database.wastageWatches.filter((w) => !org || w.organization_id === org);
+    const watchedAt = (key: string) => watches.find((w) => w.key === key)?.watched_at ?? null;
+    const out: WasteSignal[] = [];
+
+    // 1. Waste issue reports, by place and kind.
+    const groups = new Map<string, ServiceRequestLike[]>();
+    for (const t of scopeToTenant(this.database.serviceRequests) as ServiceRequestLike[]) {
+      if (t.source_wastage || !WastageReportsService.isWasteTicket(t) || String(t.created_at ?? "") < since) continue;
+      const kind = wasteKindOf(t.issue_type_id, t.item_id);
+      if (!kind) continue;
+      const key = ["reports", kind, t.building_id ?? "", t.floor ?? "", t.area ?? "", cleanPart(t.part ?? "")].join("|");
+      groups.set(key, [...(groups.get(key) ?? []), t]);
+    }
+    for (const [key, tickets] of groups) {
+      const kind = key.split("|")[1] as WasteKind;
+      const people = new Set(
+        tickets.flatMap((t) => [t.reporter_id, ...(t.reporter_ids ?? []), ...(t.plus_one_ids ?? [])]).filter((x) => x && x !== "system"),
+      );
+      const last = tickets.map((t) => String(t.created_at)).sort().pop() ?? null;
+      const observed = tickets.some((t) => alertsOfficer(t.item_id));
+      const reasons: string[] = [];
+      if (tickets.length >= HOTSPOT_INCIDENTS) reasons.push(`${tickets.length} reports in ${SIGNAL_WINDOW_DAYS} days`);
+      if (observed) reasons.push(kind === "Food" ? "Food reported thrown away" : "Smoke or burning reported");
+      const ids = tickets.map((t) => t.service_request_id);
+      const w = watchedAt(key);
+      out.push({
+        key,
+        kind,
+        source: "reports",
+        location: this.placeOf(tickets[0]),
+        building_id: tickets[0].building_id ?? null,
+        incidents: tickets.length,
+        people: people.size,
+        last_at: last,
+        ticket_ids: ids,
+        sensor_reading_id: null,
+        reasons,
+        hotspot: reasons.length > 0,
+        // Watching lapses when a new report arrives after it.
+        watched: !!w && (last ?? "") <= w,
+        case_id: caseFor(ids, key),
+      });
+    }
+
+    // 2. Food weigh-ins rising this week.
+    const byPlace = new Map<string, FoodWasteLog[]>();
+    for (const l of scopeToTenant(this.database.foodWasteLogs))
+      byPlace.set(placeKey(l.location), [...(byPlace.get(placeKey(l.location)) ?? []), l]);
+    const week = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
+    const month = since.slice(0, 10);
+    for (const [place, logs] of byPlace) {
+      const last7 = kgPerDay(logs.filter((l) => l.date > week));
+      const last30 = kgPerDay(logs.filter((l) => l.date > month));
+      if (last30 === null) continue;
+      const key = `food_log|${place}`;
+      const rising = last7 !== null && last7 > last30 * 1.1;
+      const last = logs.map((l) => l.created_at).sort().pop() ?? null;
+      const w = watchedAt(key);
+      out.push({
+        key,
+        kind: "Food",
+        source: "food_log",
+        location: logs[0].location,
+        building_id: logs[0].building_id ?? null,
+        incidents: logs.filter((l) => l.date > month).length,
+        people: 0,
+        last_at: last,
+        ticket_ids: [],
+        sensor_reading_id: null,
+        reasons: rising
+          ? [`${last7} kg a day this week, up from ${last30} kg a day over ${SIGNAL_WINDOW_DAYS} days`]
+          : [`${last30} kg a day over ${SIGNAL_WINDOW_DAYS} days`],
+        hotspot: rising,
+        watched: !!w && (last ?? "") <= w,
+        case_id: caseFor([], key),
+      });
+    }
+
+    // 3. Meters well above the same month last year.
+    const lastMonth = lastFullMonth();
+    const kindOfMeter: Record<string, WasteKind> = { electricity: "Energy", gas: "Energy", water: "Water", emissions: "Emissions", food: "Food" };
+    for (const meter of scopeToTenant(this.database.meters)) {
+      const kind = kindOfMeter[meter.meter_type];
+      if (!kind) continue;
+      const cmp = compareYoY(meterSum(this.database, [meter.meter_id]), [lastMonth]);
+      if (cmp.months_compared === 0 || cmp.change_pct <= METER_RISE_PCT) continue;
+      const key = `meter|${meter.meter_id}|${lastMonth}`;
+      const building = this.database.buildings.find((b) => b.building_id === meter.building_id);
+      const reading = this.database.meterReadings
+        .filter((r) => r.meter_id === meter.meter_id)
+        .sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
+      out.push({
+        key,
+        kind,
+        source: "meter",
+        location: [building?.name, meter.zone, meter.meter_code].filter(Boolean).join(", "),
+        building_id: meter.building_id,
+        incidents: 0,
+        people: 0,
+        last_at: reading?.timestamp ?? null,
+        ticket_ids: [],
+        sensor_reading_id: reading?.reading_id ?? null,
+        reasons: [`${meter.meter_code} used ${cmp.change_pct}% more in ${lastMonth} than a year earlier`],
+        hotspot: true,
+        watched: !!watchedAt(key),
+        case_id: caseFor([], key),
+      });
+    }
+
+    // Hotspots first, then the rest, then watched, then those with a case.
+    const rank = (x: WasteSignal) => (x.case_id ? 3 : x.watched ? 2 : x.hotspot ? 0 : 1);
+    return out.sort((a, b) => rank(a) - rank(b) || String(b.last_at).localeCompare(String(a.last_at)));
+  }
+
+  /** Watch a signal instead of opening a case; a new report brings it back. */
+  watch(key: string, userId?: string) {
+    if (!key) throw new BadRequestException("Which signal? Send its key.");
+    const org = currentOrgId() ?? "";
+    const at = new Date().toISOString();
+    const existing = this.database.wastageWatches.find((w) => w.organization_id === org && w.key === key);
+    if (existing) existing.watched_at = at;
+    else this.database.wastageWatches.push({ organization_id: org, key, watched_at: at, watched_by: userId ?? null });
+    return { key, watched_at: at };
+  }
+
+  unwatch(key: string) {
+    const org = currentOrgId() ?? "";
+    this.database.wastageWatches = this.database.wastageWatches.filter((w) => !(w.organization_id === org && w.key === key));
+    return { key, watched: false };
+  }
+
   findOne(id: string, userId?: string, role?: string) {
     this.promoteDueTargets();
     const record = assertTenantOwns(this.database.wastageReports.find(
       (item) => item.wastage_report_id === id,
     ));
-    if (!record || (role === "Campus Visitor" && record.reporter_id !== userId))
+    if (!record || (role === "Campus Visitor" && !this.visibleToVisitor(record, userId)))
       throw new NotFoundException(`WastageReport with ID ${id} not found`);
     return this.withPhotoUrls(record);
   }
@@ -383,13 +737,14 @@ export class WastageReportsService {
     const to = canonicalStatus(putDto.status ?? existing.status);
     // A full replace cannot be used to skip the workflow either.
     assertWastageMove(role, from, to);
+    assertRemedyRule(from, to, putDto.details);
     this.database.wastageReports[index] = {
       wastage_report_id: id,
       ...putDto,
       organization_id: existing.organization_id,
       created_at: existing.created_at,
     } as any;
-    if (from !== to) this.notifyStatus(this.database.wastageReports[index], to);
+    if (from !== to) this.notifyStatus(this.database.wastageReports[index], to, from);
     return this.database.wastageReports[index];
   }
   /**
@@ -422,11 +777,10 @@ export class WastageReportsService {
 
   /** Statuses a report can be archived from: it is over, one way or another. */
   private static readonly ARCHIVABLE = [
-    "Finalized",
     "Target Set",
     "Target Met",
     "Target Missed",
-    "Delivered",
+    "Closed",
     "Dismissed",
   ];
 
@@ -443,7 +797,7 @@ export class WastageReportsService {
       throw new NotFoundException(`WastageReport with ID ${id} not found`);
 
     const existing = this.database.wastageReports[index];
-    if (!WastageReportsService.ARCHIVABLE.includes(existing.status))
+    if (!WastageReportsService.ARCHIVABLE.includes(canonicalStatus(existing.status)))
       throw new BadRequestException(
         `Only a finished or dismissed report can be archived (this one is '${existing.status}')`,
       );
@@ -500,6 +854,8 @@ export class WastageReportsService {
       };
     }
 
+    assertRemedyRule(from, to, mergedDetails);
+
     this.database.wastageReports[index] = {
       ...existing,
       ...updateDto,
@@ -510,7 +866,7 @@ export class WastageReportsService {
       organization_id: existing.organization_id,
       created_at: existing.created_at,
     };
-    if (from !== to) this.notifyStatus(this.database.wastageReports[index], to);
+    if (from !== to) this.notifyStatus(this.database.wastageReports[index], to, from);
     return this.withPhotoUrls(this.database.wastageReports[index]);
   }
 
@@ -528,13 +884,13 @@ export class WastageReportsService {
     return removed[0];
   }
 
-  /** Turns a validated report into a job in the same assignment engine. */
+  /** Turns a case's physical remedy into a job in the same assignment engine. */
   raiseWorkOrder(id: string) {
     const record = assertTenantOwns(this.database.wastageReports.find((r) => r.wastage_report_id === id));
     if (!record) throw new NotFoundException(`WastageReport with ID ${id} not found`);
-    const raisable = ["Validated", "Forwarded to Finance", "Cost Impact Added", "Returned to SO", "Target Set", "Verify Target", "Target Missed", "Finalized"];
-    if (!raisable.includes(record.status))
-      throw new BadRequestException(`Validate the report first (it is '${record.status}').`);
+    const raisable = ["Open", "Forwarded to Finance", "Cost Impact Added", "Returned to SO", "Target Set", "Verify Target", "Target Missed"];
+    if (!raisable.includes(canonicalStatus(record.status)))
+      throw new BadRequestException(`A work order can only be raised for an active case (this one is '${record.status}').`);
     const result = this.dispatch.sendWastage(record);
     record.details = { ...(record.details ?? {}), workOrderRaisedAt: new Date().toISOString(), workOrderTicketId: result.ticket_id };
     return result;

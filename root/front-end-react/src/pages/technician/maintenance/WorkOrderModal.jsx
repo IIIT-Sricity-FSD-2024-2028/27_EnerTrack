@@ -13,7 +13,7 @@
  */
 import { useState } from "react";
 import Modal from "../components/Modal";
-import { assignableUsers } from "../techUtils";
+import { assignableUsers, teamForFault } from "../techUtils";
 
 /** Suggested priority for a scheduled repair, from the fault's severity. */
 function defaultPriority(kind, severity) {
@@ -58,8 +58,12 @@ export default function WorkOrderModal({
   const [assigneeId, setAssigneeId] = useState("");
   const [notes, setNotes] = useState(defaultNotes(fault));
 
-  // Only field technicians can be given a job.
-  const technicians = assignableUsers(users).filter((u) => u.role === "Technician");
+  // Only field technicians can be given a job, and only from the team this
+  // kind of fault needs (the server checks the same rule).
+  const faultTeam = teamForFault(fault.fault_type);
+  const technicians = assignableUsers(users).filter(
+    (u) => u.role === "Technician" && (!faultTeam || u.team === faultTeam),
+  );
 
   let title = "Setup Scheduled Work Order";
   let confirmLabel = "Create Work Order";
@@ -123,7 +127,7 @@ export default function WorkOrderModal({
               value={assigneeId}
               onChange={(event) => setAssigneeId(event.target.value)}
             >
-              <option value="">Let the system choose</option>
+              <option value="">Let the system choose{faultTeam ? ` (${faultTeam} team)` : ""}</option>
               {technicians.map((tech) => (
                 <option key={tech.user_id} value={tech.user_id}>
                   {tech.name}

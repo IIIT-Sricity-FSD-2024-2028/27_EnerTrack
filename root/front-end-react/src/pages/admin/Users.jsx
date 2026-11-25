@@ -210,7 +210,6 @@ function UsersPage() {
       u.email,
       u.phone,
       u.role,
-      u.specialization,
       teamLabel(u.team),
       orgName(u.organization_id, organizations),
     ]),
@@ -364,7 +363,6 @@ function UsersPage() {
                   <th>Phone</th>
                   <th>Organisation</th>
                   <th>Role</th>
-                  <th>Specialization</th>
                   <th>Team</th>
                   <th className="actions-col">Actions</th>
                 </tr>
@@ -391,7 +389,6 @@ function UsersPage() {
                       <td>{u.phone || "-"}</td>
                       <td>{orgName(u.organization_id, organizations)}</td>
                       <td>{formatLabel(u.role)}</td>
-                      <td>{u.specialization || "-"}</td>
                       <td>{teamLabel(u.team) || "-"}</td>
                       <td>
                         <div className="row-actions">

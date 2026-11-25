@@ -1,18 +1,22 @@
 /**
- * WastageAuditQueue — "Wastage Audit Queue" on the Sustainability Officer
- * overview (ported from renderWastageAuditQueue() and the window._audit*
- * handlers in js/sustainability_officer/overviewPage.js).
+ * WastageAuditQueue — "Wastage cases" on the Sustainability Officer overview.
  *
- * Workflow 2, the officer's steps:
- *   Reported        → Validate / Dismiss (with reason)
- *   Validated       → Forward to Finance
- *   Returned to SO  → Set New Target / Send Back to Finance
- *   Target Set      → Finalize Report / Edit Target
- *   Finalized       → Preview report / Send report to occupant (→ Delivered)
- * Reports sitting with Finance ("Forwarded to Finance", "Cost Impact Added")
- * are listed without buttons. Dismissed and Delivered reports go to archives.
+ * A case is a pattern of waste the officer opened from a signal (see
+ * WasteSignals) or from Monitoring. Single reports never come here.
  *
- * This component owns the list (state) and the save logic; each report is
+ *   Open            → Plan the remedy, then:
+ *                       no cost        → Set target
+ *                       needs spending → Send to Finance
+ *                     or Dismiss
+ *   Returned to SO  → Set target / Send back to Finance
+ *   Target Set      → Check target now / Edit target (the deadline moves it on)
+ *   Verify Target   → Check the result (met or missed)
+ *   Target Met      → Close the case (tells the people who reported it)
+ *   Target Missed   → Set a new target / Close the case
+ * Cases with Finance ("Forwarded to Finance", "Cost Impact Added") are listed
+ * without buttons. Dismissed and Closed cases go to archives.
+ *
+ * This component owns the list (state) and the save logic; each case is
  * drawn by <WastageAuditCard>, which reports clicks back through props.
  */
 import { useEffect, useState } from "react";
@@ -21,12 +25,13 @@ import { useAuth } from "../../../auth/useAuth";
 import { addWastageComment, normalizeWastageReport, updateWastageReport } from "../../finance/financeApi";
 import { reportRef } from "../../finance/financeUtils";
 import { DismissModal, SendBackModal, TargetModal, VerifyTargetModal } from "./AuditModals";
-import ReportPreview from "./ReportPreview";
+import { RemedyModal } from "./CaseModals";
 import WastageAuditCard from "./WastageAuditCard";
 import { normalizeStatus } from "./auditShared";
 
-// Reports waiting on Finance; everything else in the queue waits on the officer.
+// Cases waiting on Finance; everything else in the queue waits on the officer.
 const WITH_FINANCE = ["Forwarded to Finance", "Cost Impact Added"];
+const FINISHED = ["Dismissed", "Closed"];
 
 /** The server is the only record; if it cannot be reached, the queue says so. */
 async function loadRawReports() {
@@ -34,15 +39,16 @@ async function loadRawReports() {
   return Array.isArray(rows) ? rows : [];
 }
 
-export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
+export default function WastageAuditQueue({ reloadKey = 0, onChanged, showToast }) {
   const { user } = useAuth();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState(null); // report being saved
-  const [modal, setModal] = useState(null); // { kind: 'dismiss'|'sendBack'|'target', report }
+  const [busyId, setBusyId] = useState(null); // case being saved
+  const [modal, setModal] = useState(null); // { kind, report }
   const [loadError, setLoadError] = useState(null);
   const [retryKey, setRetryKey] = useState(0);
   const [tab, setTab] = useState("action"); // 'action' | 'finance'
+  const [foodLogs, setFoodLogs] = useState([]); // kg a day per place, for food cases
 
   const officerName = user?.name || "Sustainability Officer";
 
@@ -51,11 +57,14 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
 
     Promise.all([
       loadRawReports(),
-      // Only used to show reporter names and notify them; optional.
+      // Only used to show who opened each case; optional.
       api.get("/users").catch(() => []),
+      // Food cases show General Maintenance's weigh-ins; optional.
+      api.get("/food-waste-logs/summary").catch(() => []),
     ])
-      .then(([rows, users]) => {
+      .then(([rows, users, food]) => {
         if (!active) return;
+        setFoodLogs(Array.isArray(food) ? food : []);
         const directory = {};
         (Array.isArray(users) ? users : []).forEach((u) => {
           if (u.user_id) directory[u.user_id] = u;
@@ -64,21 +73,19 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
         setReports(
           rows.map((raw) => {
             const r = normalizeWastageReport(raw, user);
-            const reporter = directory[raw.reporter_id] || null;
+            const opener = directory[raw.reporter_id] || null;
             return {
               ...r,
               status: normalizeStatus(r.status),
               shortId: reportRef(r.id),
-              priority: r.details?.priority || "Medium",
-              reporterName: reporter?.name || (r.reporterName && r.reporterName !== "Unknown" ? r.reporterName : "Occupant"),
-              reporterEmail: reporter?.email || raw.reporterEmail,
+              reporterName: opener?.name || (r.reporterName && r.reporterName !== "Unknown" ? r.reporterName : "Sustainability Officer"),
             };
           }),
         );
       })
       .catch((error) => {
         if (!active) return;
-        console.error("[SO Wastage] Failed to load reports", error);
+        console.error("[SO Wastage] Failed to load cases", error);
         setLoadError(error.message || "The server could not be reached.");
       })
       .finally(() => {
@@ -91,7 +98,7 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
   }, [user, reloadKey, retryKey]);
 
   /**
-   * Saves the changes and swaps the updated report into state.
+   * Saves the changes and swaps the updated case into state.
    * Returns null (after an error toast) if the server refuses.
    */
   async function saveReport(report, changes) {
@@ -99,9 +106,11 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     try {
       const updated = await updateWastageReport(report, changes);
       setReports((list) => list.map((r) => (r.id === updated.id ? updated : r)));
+      // A case that closes or is dismissed changes the signals panel too.
+      if (changes.status && FINISHED.includes(changes.status)) onChanged?.();
       return updated;
     } catch (error) {
-      showToast?.("Could not save the report: " + error.message, "error");
+      showToast?.("Could not save the case: " + error.message, "error");
       return null;
     } finally {
       setBusyId(null);
@@ -111,27 +120,24 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
   async function handleAction(report, action) {
     const now = new Date().toISOString();
 
-    if (action === "validate") {
-      if (!(await saveReport(report, { status: "Validated", validatedAt: now }))) return;
-      showToast?.("Report validated successfully.", "success");
-    } else if (action === "forward") {
+    if (action === "forward") {
       if (!(await saveReport(report, { status: "Forwarded to Finance", forwardedAt: now }))) return;
-      showToast?.("Report forwarded to Finance Analyst.", "success");
-    } else if (action === "finalize") {
-      if (!(await saveReport(report, { status: "Finalized", finalizedAt: now, finalizedBy: officerName }))) return;
-      showToast?.("Report finalized. Preview it, then send it to the occupant.", "success");
-    } else if (action === "deliver") {
+      showToast?.("Sent to Finance for the remedy's cost and payback.", "success");
+    } else if (action === "close") {
       const saved = await saveReport(report, {
-        status: "Delivered",
-        deliveredAt: now,
-        deliveredBy: officerName,
+        status: "Closed",
+        closedAt: now,
+        closedBy: officerName,
         soArchived: true,
         soArchivedAt: now,
       });
       if (!saved) return;
-      showToast?.("Report sent to the occupant.", "success");
+      showToast?.(
+        report.sourceRequestIds?.length ? "Case closed. The people who reported the waste have been told." : "Case closed.",
+        "success",
+      );
     } else if (action === "raiseWorkOrder") {
-      // Turns a validated report into a job for a technician (dispatch).
+      // Sends the physical part of the remedy to the right team as a job.
       try {
         await api.post(`/wastage-reports/${report.id}/work-order`, {});
         showToast?.("Work order created and sent to a technician.", "success");
@@ -144,9 +150,20 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
       const saved = await saveReport(report, { status: "Verify Target", checkedEarlyAt: now });
       if (!saved) return;
       setModal({ kind: "verify", report: saved });
-    } else if (action === "dismiss" || action === "sendBack" || action === "target" || action === "preview" || action === "verify") {
+    } else if (["dismiss", "sendBack", "target", "verify", "remedy"].includes(action)) {
       setModal({ kind: action, report });
     }
+  }
+
+  async function handleRemedy(remedy) {
+    const report = modal.report;
+    const saved = await saveReport(report, { remedy: { ...remedy, plannedBy: officerName } });
+    if (!saved) return;
+    setModal(null);
+    showToast?.(
+      remedy.type === "spend" ? "Remedy saved. Send it to Finance for the cost and payback." : "Remedy saved. Set a target next.",
+      "success",
+    );
   }
 
   async function handleDismiss({ reason, comment }) {
@@ -154,20 +171,20 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     const now = new Date().toISOString();
     const comments = [
       ...(report.comments || []),
-      { author: officerName, role: "Sustainability Officer", text: `Dismissed this report. Reason: ${reason}. ${comment}`, timestamp: now },
+      { author: officerName, role: "Sustainability Officer", text: `Dismissed this case. Reason: ${reason}. ${comment}`, timestamp: now },
     ];
     const saved = await saveReport(report, {
       status: "Dismissed",
       dismissedAt: now,
       dismissReason: reason,
       dismissComment: comment,
-      archived: true,
-      archivedAt: now,
+      soArchived: true,
+      soArchivedAt: now,
       comments,
     });
     if (!saved) return;
     setModal(null);
-    showToast?.("Report dismissed with reason.", "info");
+    showToast?.("Case dismissed.", "info");
   }
 
   async function handleSendBack({ reason, notes }) {
@@ -182,7 +199,7 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     });
     if (!saved) return;
     setModal(null);
-    showToast?.("Report sent back to Finance for revision.", "warning");
+    showToast?.("Case sent back to Finance for revision.", "warning");
   }
 
   async function handleSetTarget({ value, unit, deadline }) {
@@ -208,8 +225,8 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     setModal(null);
     showToast?.(
       status === "Target Met"
-        ? "Recorded as met. The occupant has been told."
-        : "Recorded as missed. The occupant has been told; you can set a new target.",
+        ? "Recorded as met. Close the case to tell the people who reported the waste."
+        : "Recorded as missed. Set a new target, or close the case.",
       "success",
     );
   }
@@ -226,12 +243,8 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     }
   }
 
-  // Not archived by the officer, not dismissed, not delivered — newest first.
-  // details.archived is the occupant's own archive (PATCH /:id/archive, allowed
-  // from Target Set onwards); it must not hide a report the officer still has
-  // to finalize and send, so only soArchived counts here.
   const visible = reports
-    .filter((r) => !r.details?.soArchived && r.status !== "Dismissed" && r.status !== "Delivered")
+    .filter((r) => !r.details?.soArchived && !FINISHED.includes(r.status))
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   const withFinance = visible.filter((r) => WITH_FINANCE.includes(r.status));
   const needsAction = visible.filter((r) => !WITH_FINANCE.includes(r.status));
@@ -241,10 +254,10 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
     <section className="so-panel" id="wastageAuditSection" aria-labelledby="wastageAuditTitle">
       <div className="so-panel-head">
         <div>
-          <h2 id="wastageAuditTitle">Wastage reports</h2>
-          <p>Check each campus report against its sensor, send real issues to Finance, then close them out with a target.</p>
+          <h2 id="wastageAuditTitle">Wastage cases</h2>
+          <p>Plan a remedy for each case. Free fixes go straight to a target; anything that costs money goes to Finance first.</p>
         </div>
-        <div className="so-tabs" role="tablist" aria-label="Filter wastage reports">
+        <div className="so-tabs" role="tablist" aria-label="Filter wastage cases">
           <button type="button" role="tab" aria-selected={tab === "action"} onClick={() => setTab("action")}>
             Needs your action ({needsAction.length})
           </button>
@@ -257,7 +270,7 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
       <div id="wastageAuditContainer" role="tabpanel">
         {loadError && reports.length === 0 ? (
           <div className="so-empty" role="alert">
-            Wastage reports could not be loaded: {loadError}{" "}
+            Wastage cases could not be loaded: {loadError}{" "}
             <button
               type="button"
               className="so-btn"
@@ -270,12 +283,12 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
             </button>
           </div>
         ) : loading && reports.length === 0 ? (
-          <div className="so-empty">Loading wastage reports…</div>
+          <div className="so-empty">Loading wastage cases…</div>
         ) : shown.length === 0 ? (
           <div className="so-empty">
             {tab === "finance"
-              ? "Nothing is with Finance right now. Forward a validated report to get a cost estimate."
-              : "No reports need your action. New campus reports will appear here."}
+              ? "Nothing is with Finance. Only remedies that need spending go there."
+              : "No open cases. Open one from a waste signal above."}
           </div>
         ) : (
           shown.map((report) => (
@@ -283,6 +296,7 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
               key={report.id}
               report={report}
               busy={busyId === report.id}
+              foodLogs={foodLogs}
               onAction={(action) => handleAction(report, action)}
               onAddComment={(text) => handleAddComment(report, text)}
             />
@@ -290,22 +304,14 @@ export default function WastageAuditQueue({ reloadKey = 0, showToast }) {
         )}
       </div>
 
+      {modal?.kind === "remedy" && (
+        <RemedyModal report={modal.report} busy={busyId === modal.report.id} onSubmit={handleRemedy} onClose={() => setModal(null)} />
+      )}
       {modal?.kind === "dismiss" && (
         <DismissModal report={modal.report} busy={busyId === modal.report.id} onSubmit={handleDismiss} onClose={() => setModal(null)} />
       )}
       {modal?.kind === "sendBack" && (
         <SendBackModal report={modal.report} busy={busyId === modal.report.id} onSubmit={handleSendBack} onClose={() => setModal(null)} />
-      )}
-      {modal?.kind === "preview" && (
-        <ReportPreview
-          report={modal.report}
-          busy={busyId === modal.report.id}
-          onSend={async () => {
-            await handleAction(modal.report, "deliver");
-            setModal(null);
-          }}
-          onClose={() => setModal(null)}
-        />
       )}
       {modal?.kind === "verify" && (
         <VerifyTargetModal report={modal.report} busy={busyId === modal.report.id} onSubmit={handleVerify} onClose={() => setModal(null)} />

@@ -24,6 +24,7 @@ import {
 import { PATHS } from "../../routes";
 
 import DispatchInbox from "./DispatchInbox";
+import FoodLogCard from "./FoodLogCard";
 import StatCard from "../technician/components/StatCard";
 import {
   BellIcon,
@@ -159,6 +160,8 @@ export default function TechnicianJrOverview() {
       </div>
 
       <DispatchInbox />
+
+      <FoodLogCard />
 
       {content}
     </div>

@@ -1,12 +1,8 @@
 /**
- * ReportResult — the outcome of a finished wastage report: what was decided,
- * Finance's figures and the new target against the sensor readings.
- *
- * It is what the occupant receives, so the same component is used in two
- * places: on the occupant's report card (pages/campus/WastageCard) and in the
- * Sustainability Officer's "Preview report" dialog before it is sent
- * (pages/sustainability/audit). Works with either page's report shape —
- * both carry type, status, costImpact, metricTarget and systemData.
+ * ReportResult — the outcome of a finished wastage case: the remedy,
+ * Finance's figures (only when the remedy needed spending), the target, and
+ * the readings against it. Shown in the Sustainability Officer's archive
+ * (pages/sustainability/archives/WastageArchive).
  * Styles: ./ReportResult.css (rr-* classes, loaded globally).
  */
 import "./ReportResult.css";
@@ -38,13 +34,22 @@ export default function ReportResult({ report }) {
   const sensor = report.systemData || {};
   const type = (report.type || "").toLowerCase();
   const { roi, payback } = ci ? getReturn(ci) : {};
-  const delivered = report.status === "Delivered";
+  const closed = report.status === "Closed" || report.status === "Delivered";
+  const remedy = report.details?.remedy;
+  const result = report.details?.targetOutcome?.result;
 
   return (
     <section className="rr" aria-label="Report outcome">
       <h4 className="rr-heading">Outcome</h4>
       <p className="rr-summary">
-        The Sustainability Officer checked this {type} report against the sensor data and confirmed it.
+        {remedy ? (
+          <>
+            The fix for this {type} waste was <strong>{remedy.description}</strong>
+            {remedy.type === "spend" ? ", which needed spending." : ", at no cost."}
+          </>
+        ) : (
+          <>The Sustainability Officer opened this case for repeated {type} waste.</>
+        )}
         {ci && (
           <>
             {" "}
@@ -62,7 +67,9 @@ export default function ReportResult({ report }) {
             by {formatDay(target.deadline)}.
           </>
         )}
-        {delivered && " This report is now closed."}
+        {result === "met" && " The target was met."}
+        {result === "missed" && " The target was not fully met."}
+        {closed && " The case is closed and the people who reported the waste were told."}
       </p>
 
       {ci && (

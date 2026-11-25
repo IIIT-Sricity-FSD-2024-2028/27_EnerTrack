@@ -30,6 +30,7 @@ import { DepartmentsModule } from "./modules/departments/departments.module";
 import { MetersModule } from "./modules/meters/meters.module";
 import { MeterReadingsModule } from "./modules/meter-readings/meter-readings.module";
 import { WastageReportsModule } from "./modules/wastage-reports/wastage-reports.module";
+import { FoodWasteLogsModule } from "./modules/food-waste-logs/food-waste-logs.module";
 import { AlertsModule } from "./modules/alerts/alerts.module";
 import { FaultsModule } from "./modules/faults/faults.module";
 import { ServiceRequestsModule } from "./modules/service-requests/service-requests.module";
@@ -61,6 +62,7 @@ import { SustainabilityReportsModule } from "./modules/sustainability-reports/su
     MetersModule,
     MeterReadingsModule,
     WastageReportsModule,
+    FoodWasteLogsModule,
     AlertsModule,
     FaultsModule,
     ServiceRequestsModule,

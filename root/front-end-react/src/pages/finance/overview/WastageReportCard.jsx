@@ -1,11 +1,12 @@
 /**
- * WastageReportCard — one sustainability report waiting for cost review.
+ * WastageReportCard — one wastage case waiting for cost review.
  *
- * Same row layout as the Sustainability Officer's audit queue: what the
- * occupant reported on the left, the sensor reading on the right, then the
- * cost impact (once added), any revision request from the officer, the
- * comment thread and the buttons. The buttons only call the callbacks passed
- * in as props; the parent (WastageReviewQueue) does the saving.
+ * Only cases whose remedy needs spending come to Finance (a no-cost remedy
+ * goes straight to a target). The row shows the case and the remedy with the
+ * officer's rough estimate, the meter reading when the case has one, then the
+ * cost impact (once added), any revision request, the comment thread and the
+ * buttons. The buttons only call the callbacks passed in as props; the
+ * parent (WastageReviewQueue) does the saving.
  */
 import { useState } from "react";
 import { formatCurrency, formatDateTime, reportRef, wastageSummary } from "../financeUtils";
@@ -55,6 +56,9 @@ export default function WastageReportCard({ report, onEditCostImpact, onReturn, 
   const comments = report.comments || [];
   const anomaly = sd.anomalyDetected || sd.status === "abnormal";
   const deviation = deviationText(sd);
+  const remedy = report.details?.remedy || null;
+  const hasSensor = sd.readingValue !== undefined && sd.readingValue !== null;
+  const linked = report.sourceRequestIds?.length || 0;
 
   // ROI and payback are worked out from the saved figures for display.
   const roi = ci && ci.remediationCost > 0 ? ((ci.projectedSavings - ci.remediationCost) / ci.remediationCost) * 100 : null;
@@ -67,7 +71,7 @@ export default function WastageReportCard({ report, onEditCostImpact, onReturn, 
   }
 
   return (
-    <article className="fo-row" aria-label={`${report.type} wastage report WR-${reportRef(report.id)}`}>
+    <article className="fo-row" aria-label={`${report.type} wastage case WR-${reportRef(report.id)}`}>
       <div className="fo-row-top">
         <div className="fo-row-title">
           <span className="fo-type-icon" style={{ color: TYPE_COLORS[report.type] || "#6b7280" }} aria-hidden="true">
@@ -75,7 +79,7 @@ export default function WastageReportCard({ report, onEditCostImpact, onReturn, 
               {TYPE_ICONS[report.type]}
             </svg>
           </span>
-          <strong>{report.type} wastage</strong>
+          <strong>{report.type} waste</strong>
           {location && <span title={location}>{location}</span>}
         </div>
         <span className={pending ? "fo-chip action" : "fo-chip ready"}>{pending ? "Needs cost impact" : "Ready to return"}</span>
@@ -85,11 +89,18 @@ export default function WastageReportCard({ report, onEditCostImpact, onReturn, 
         <div className="fo-report-main">
           <p className="fo-observation">{summary || "No description provided."}</p>
           <div className="fo-meta">
-            <span>Reported by {report.reporterName}</span>
-            <span className={report.priority === "High" ? "high" : undefined}>{report.priority || "Normal"} priority</span>
-            {report.validatedAt && <span>Validated {formatDateTime(report.validatedAt, false)}</span>}
+            <span>Opened by {report.reporterName}</span>
+            {linked > 0 && <span>From {linked} waste report{linked === 1 ? "" : "s"}</span>}
+            {report.details?.forwardedAt && <span>Sent {formatDateTime(report.details.forwardedAt, false)}</span>}
             <span title={report.id}>WR-{reportRef(report.id)}</span>
           </div>
+
+          {remedy && (
+            <p className="fo-note">
+              <strong>Remedy to cost:</strong> {remedy.description}
+              {remedy.estimate ? <> (officer's rough estimate {formatCurrency(remedy.estimate)})</> : null}
+            </p>
+          )}
 
           {report.revisionRequest && pending && (
             <p className="fo-note revision">
@@ -139,6 +150,7 @@ export default function WastageReportCard({ report, onEditCostImpact, onReturn, 
           </button>
         </div>
 
+        {hasSensor && (
         <div className="fo-sensor">
           <div>Sensor {sd.sensorId || "not linked"}</div>
           <div className="fo-sensor-value">
@@ -153,6 +165,7 @@ export default function WastageReportCard({ report, onEditCostImpact, onReturn, 
             </span>
           </div>
         </div>
+        )}
       </div>
 
       {showComments && (

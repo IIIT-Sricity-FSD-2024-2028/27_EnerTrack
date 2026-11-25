@@ -120,51 +120,26 @@ describe('Campus visitor: create rules (e2e)', () => {
     });
   });
 
-  describe('wastage reports', () => {
-    // What the Report Wastage page sends (trimmed to the parts that matter)
-    const valid = () => ({
-      reporter_id: TRISHANK,
-      type: 'Water',
-      status: 'Reported',
-      details: { specificData: { location: 'Cafeteria Kitchen' }, priority: 'Medium' },
-    });
-    const file = (changes: object) =>
-      http().post('/api/wastage-reports').set(asVisitor).send({ ...valid(), ...changes });
-
-    it('accepts what the Report Wastage page sends, as Reported', async () => {
-      const res = await file({});
-      expect(res.status).toBe(201);
-      expect(body(res).status).toBe('Reported');
-    });
-
-    it('starts as Reported when no status is sent', async () => {
-      const { status, ...noStatus } = valid();
-      const res = await http().post('/api/wastage-reports').set(asVisitor).send(noStatus);
-      expect(res.status).toBe(201);
-      expect(body(res).status).toBe('Reported');
-    });
-
-    it('accepts "reported" in any case, stored as Reported', async () => {
-      const res = await file({ status: 'reported' });
-      expect(res.status).toBe(201);
-      expect(body(res).status).toBe('Reported');
-    });
-
-    it.each(['Delivered', 'Validated', 'Dismissed'])(
-      'rejects a new report that starts as %s',
-      async (status) => {
-        expect((await file({ status })).status).toBe(400);
-      },
-    );
-
-    it('still lets the Sustainability Officer move a report on afterwards', async () => {
-      const id = body(await file({})).wastage_report_id;
+  describe('wastage', () => {
+    // Occupants report waste as an issue (e.g. lights left on); only the
+    // Sustainability Officer opens a wastage case, for a pattern of waste.
+    it('an occupant cannot file a wastage report any more (403)', async () => {
       const res = await http()
-        .patch(`/api/wastage-reports/${id}`)
-        .set(asOfficer)
-        .send({ status: 'Validated' });
-      expect(res.status).toBe(200);
-      expect(body(res).status).toBe('Validated');
+        .post('/api/wastage-reports')
+        .set(asVisitor)
+        .send({ reporter_id: TRISHANK, type: 'Water', details: { specificData: { location: 'Cafeteria Kitchen' } } });
+      expect(res.status).toBe(403);
+    });
+
+    it('the Sustainability Officer opens a case, which starts Open', async () => {
+      const res = await http().post('/api/wastage-reports').set(asOfficer).send({ type: 'Water', details: { location: 'Cafeteria Kitchen' } });
+      expect(res.status).toBe(201);
+      expect(body(res).status).toBe('Open');
+    });
+
+    it.each(['Closed', 'Target Set', 'Dismissed'])('a new case cannot start as %s', async (status) => {
+      const res = await http().post('/api/wastage-reports').set(asOfficer).send({ type: 'Water', status, details: {} });
+      expect(res.status).toBe(400);
     });
   });
 });

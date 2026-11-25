@@ -16,6 +16,7 @@ import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
 import ReportForm from "./ReportForm";
 import MyReports from "./MyReports";
+import WasteOutcomes from "./WasteOutcomes";
 import {
   TIMELINE_STEPS,
   formatReportedOn,
@@ -170,6 +171,8 @@ export default function Dashboard() {
         onRespond={respond}
       />
 
+      <WasteOutcomes />
+
       <div
         className={
           "eu-toast" +
@@ -209,6 +212,14 @@ const TIPS = [
       <>
         Only describe what you can <strong>see</strong>. We work out how urgent
         it is.
+      </>
+    ),
+  },
+  {
+    id: "waste",
+    text: (
+      <>
+        Lights, AC or a tap left on? Report it under <strong>Energy, water or food being wasted</strong>. General Maintenance switches it off.
       </>
     ),
   },

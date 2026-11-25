@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
-import { DatabaseService, MeterStatus, MeterType, WastageType } from "../../core/database/database.service";
+import { DatabaseService, MeterStatus, MeterType } from "../../core/database/database.service";
 import { scopeToTenant, currentOrgId } from "../../core/tenancy/tenant-context";
 import { GAS_CO2_KG_PER_M3, GRID_CO2_KG_PER_KWH } from "../organizations/organizations.service";
 import { addMonths, defaultRange, isPeriod, periodsBetween } from "../../core/utils/period";
@@ -204,22 +204,12 @@ export class SustainabilityMetricsService {
         .reduce((sum, r) => sum + Number(r.value || 0), 0);
     };
 
-    // Also look up food wastage reports in target periods for this tenant
-    const tenantWastage = scopeToTenant(this.database.wastageReports);
-    const sumFoodWastage = (targetPeriods: string[]) => {
-      let total = 0;
-      tenantWastage.forEach((w) => {
-        if (w.type === WastageType.FOOD && w.details?.specificData?.estimatedAmount) {
-          const createdPeriod = (w as any).created_at
-            ? (w as any).created_at.slice(0, 7)
-            : periods[0];
-          if (targetPeriods.includes(createdPeriod)) {
-            total += parseFloat(w.details.specificData.estimatedAmount) || 0;
-          }
-        }
-      });
-      return total;
-    };
+    // Food thrown away, as weighed by General Maintenance (not occupants' guesses).
+    const tenantFoodLogs = scopeToTenant(this.database.foodWasteLogs);
+    const sumFoodWastage = (targetPeriods: string[]) =>
+      tenantFoodLogs
+        .filter((l) => targetPeriods.includes(l.date.slice(0, 7)))
+        .reduce((sum, l) => sum + Number(l.kg || 0), 0);
 
     // Calculate series by month
     const monthlySeries: SummaryRow[] = periods.map((p) =>

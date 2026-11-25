@@ -44,6 +44,7 @@ import FinanceArchives from "./pages/finance/Archives";
 import SustainabilityOverview from "./pages/sustainability/Overview";
 import SustainabilityMonitoring from "./pages/sustainability/Monitoring";
 import SustainabilityTargets from "./pages/sustainability/Targets";
+import SustainabilityWastage from "./pages/sustainability/Wastage";
 import SustainabilityReport from "./pages/sustainability/Report";
 import SustainabilityInitiatives from "./pages/sustainability/Initiatives";
 import SustainabilityArchives from "./pages/sustainability/Archives";
@@ -61,7 +62,6 @@ import AuditorAudits from "./pages/auditor/Audits";
 
 import CampusDashboard from "./pages/campus/Dashboard";
 import CampusIssues from "./pages/campus/CampusIssues";
-import CampusWastage from "./pages/campus/Wastage";
 import CampusArchives from "./pages/campus/Archives";
 
 import NotFound from "./pages/NotFound";
@@ -164,6 +164,10 @@ export default function App() {
             element={<SustainabilityInitiatives />}
           />
           <Route
+            path={PATHS.sustainability.wastage}
+            element={<SustainabilityWastage />}
+          />
+          <Route
             path={PATHS.sustainability.archives}
             element={<SustainabilityArchives />}
           />
@@ -219,7 +223,7 @@ export default function App() {
         <Route element={<DashboardLayout />}>
           <Route path={PATHS.campus.dashboard} element={<CampusDashboard />} />
           <Route path={PATHS.campus.issues} element={<CampusIssues />} />
-          <Route path={PATHS.campus.wastage} element={<CampusWastage />} />
+          <Route path={PATHS.campus.wastage} element={<Navigate to={PATHS.campus.dashboard} replace />} />
           <Route path={PATHS.campus.archives} element={<CampusArchives />} />
         </Route>
       </Route>

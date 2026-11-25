@@ -3,10 +3,8 @@ import { Link } from "react-router-dom";
 import api from "../../api/client";
 import { PATHS } from "../../routes";
 import { useAuth } from "../../auth/useAuth";
-import Toast from "./components/Toast";
 import MetricCard from "./components/MetricCard";
 import { addMonths, rangeLabel } from "./periods";
-import WastageAuditQueue from "./audit/WastageAuditQueue";
 import overviewCss from "./overview.css?inline";
 import sustLayoutCss from "./sustainability.css?inline";
 
@@ -18,20 +16,10 @@ export default function SustainabilityOverview() {
   const [summary, setSummary] = useState(null);
   const [targets, setTargets] = useState({});
   const [activeInitiatives, setActiveInitiatives] = useState(null);
-  const [queueReloadKey, setQueueReloadKey] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [toast, setToast] = useState(null);
-
-  const showToast = useCallback((msg, type = "success") => {
-    setToast({ msg, type });
-  }, []);
-
-  const closeToast = useCallback(() => {
-    setToast(null);
-  }, []);
 
   const loadData = useCallback(() => {
     let active = true;
@@ -83,7 +71,6 @@ export default function SustainabilityOverview() {
   const handleRefresh = () => {
     setLoading(true);
     loadData();
-    setQueueReloadKey((k) => k + 1);
   };
 
   const firstName = (user?.name || "").trim().split(/\s+/)[0];
@@ -134,12 +121,11 @@ export default function SustainabilityOverview() {
       <style>{overviewCss}</style>
       <style>{sustLayoutCss}</style>
 
-      <Toast toast={toast} onClose={closeToast} />
 
       <header className="so-header">
         <div>
           <h1 id="welcomeHeading">{firstName ? `Welcome back, ${firstName}` : "Overview"}</h1>
-          <p>{periodNote}, and the wastage reports waiting on you.</p>
+          <p>{periodNote}.</p>
         </div>
         <div className="so-header-controls">
           {lastUpdated && (
@@ -248,7 +234,7 @@ export default function SustainabilityOverview() {
           value={show(totals?.food_kg)}
           unit="kg"
           delta={change ? change.food_pct : null}
-          description="Bin weights and wastage reports."
+          description="Weighed by General Maintenance."
           icon={
             <svg {...ICON_PROPS}>
               <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
@@ -271,7 +257,6 @@ export default function SustainabilityOverview() {
         />
       </section>
 
-      <WastageAuditQueue reloadKey={queueReloadKey} showToast={showToast} />
     </div>
   );
 }

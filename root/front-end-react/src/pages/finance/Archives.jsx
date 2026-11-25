@@ -20,7 +20,7 @@ import sharedCss from "../../styles/finance-analyst/finance_shared.css?inline";
 import archivesCss from "../../styles/finance-analyst/finance_archives.css?inline";
 
 // Everything that has left Finance, including the target follow-up steps.
-const DONE_STATUSES = ["Returned to SO", "Target Set", "Verify Target", "Target Met", "Target Missed", "Finalized", "Delivered"];
+const DONE_STATUSES = ["Returned to SO", "Target Set", "Verify Target", "Target Met", "Target Missed", "Closed", "Finalized", "Delivered"];
 
 const STATUS_MAP = {
   "Returned to SO": { label: "Returned to SO", cssClass: "status-target-set" },
@@ -29,7 +29,8 @@ const STATUS_MAP = {
   "Target Met": { label: "Target met", cssClass: "status-finalized" },
   "Target Missed": { label: "Target missed", cssClass: "status-target-set" },
   Finalized: { label: "Finalized", cssClass: "status-finalized" },
-  Delivered: { label: "Delivered to occupant", cssClass: "status-finalized" },
+  Delivered: { label: "Closed", cssClass: "status-finalized" },
+  Closed: { label: "Closed", cssClass: "status-finalized" },
   Dismissed: { label: "Dismissed", cssClass: "status-dismissed" },
 };
 
@@ -144,7 +145,7 @@ function ArchivedWastageCard({ report: t }) {
   const mt = t.metricTarget;
   const sd = t.systemData || {};
   const { summary, location } = wastageSummary(t);
-  const processedAt = t.returnedAt || t.targetSetAt || t.finalizedAt || t.deliveredAt || t.timestamp;
+  const processedAt = t.returnedAt || t.targetSetAt || t.details?.closedAt || t.finalizedAt || t.deliveredAt || t.timestamp;
 
   // Bar widths for the before / after comparison (only when a target is set).
   let bars = null;
@@ -224,7 +225,8 @@ function ArchivedWastageCard({ report: t }) {
         </h5>
         <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.7 }}>
           <p style={{ margin: "0 0 6px 0" }}>
-            Finance completed cost impact assessment for this {String(t.type).toLowerCase()} wastage report.
+            Finance costed the fix for this {String(t.type).toLowerCase()} wastage case
+            {t.details?.remedy?.description ? <> ({t.details.remedy.description})</> : null}.
           </p>
           {ci && (
             <>

@@ -42,6 +42,7 @@ export const PATHS = {
     overview: "/sustainability/overview",
     monitoring: "/sustainability/monitoring",
     targets: "/sustainability/targets",
+    wastage: "/sustainability/wastage",
     report: "/sustainability/report",
     initiatives: "/sustainability/initiatives",
     archives: "/sustainability/archives",
@@ -64,6 +65,8 @@ export const PATHS = {
   campus: {
     dashboard: "/campus/dashboard",
     issues: "/campus/issues",
+    // Retired: waste is reported through "Report an Issue" now. Old links
+    // to this path land on the dashboard.
     wastage: "/campus/wastage",
     archives: "/campus/archives",
   },
@@ -201,6 +204,7 @@ export const NAV = {
   sustainability: [
     { label: "Overview", to: PATHS.sustainability.overview },
     { label: "Monitoring", to: PATHS.sustainability.monitoring },
+    { label: "Wastage", to: PATHS.sustainability.wastage },
     { label: "Targets", to: PATHS.sustainability.targets },
     { label: "Reports", to: PATHS.sustainability.report },
     {
@@ -229,7 +233,6 @@ export const NAV = {
   campus: [
     { label: "Report an Issue", to: PATHS.campus.dashboard },
     { label: "Campus Issues", to: PATHS.campus.issues },
-    { label: "Report Wastage", to: PATHS.campus.wastage },
     { label: "My Archives", to: PATHS.campus.archives },
   ],
 };

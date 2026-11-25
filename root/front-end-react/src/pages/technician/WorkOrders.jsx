@@ -150,11 +150,10 @@ export default function TechnicianWorkOrders() {
     return ok;
   }
 
-  function submitEstimate(wo, materials, labor) {
+  function submitEstimate(wo, materials) {
     const estimate = {
       materials: materials,
-      labor: labor,
-      total: materials + labor,
+      total: materials,
       type: "repair",
     };
     // {...wo.details, estimate} = everything already in details, plus the
@@ -270,9 +269,7 @@ export default function TechnicianWorkOrders() {
             wo={selected}
             busy={busy}
             canEdit={mine}
-            onSubmit={(materials, labor) =>
-              submitEstimate(selected, materials, labor)
-            }
+            onSubmit={(materials) => submitEstimate(selected, materials)}
           />
           <TaskFlow status={selected.status} />
           <SummaryCard wo={selected} users={users} />

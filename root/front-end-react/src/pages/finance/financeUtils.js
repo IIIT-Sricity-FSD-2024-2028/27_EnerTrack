@@ -85,6 +85,10 @@ export function reportRef(id) {
 /** The user's own words and location, which live in different fields per type. */
 export function wastageSummary(report) {
   const spec = report.specificData || {};
+  // A wastage case carries its own title and place.
+  const d = report.details || {};
+  if (d.title || d.location)
+    return { summary: d.title || d.notes, location: d.location || spec.location || spec.cafeteria || spec.building };
   if (report.type === "Water") return { summary: spec.nature, location: spec.location };
   if (report.type === "Emissions") return { summary: spec.observation, location: spec.location };
   if (report.type === "Food")

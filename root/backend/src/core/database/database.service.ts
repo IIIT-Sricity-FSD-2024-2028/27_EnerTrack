@@ -188,8 +188,7 @@ export interface User {
   phone: string | null;
   password: string;
   role: UserRole;
-  specialization: string | null;
-  /** Field-staff team (electrician | plumber | cleaning). Falls back to the specialization text when unset. */
+  /** Field-staff team (electrician | plumber | general | hvac; "general" is General Maintenance). Jobs are only sent to someone on the matching team. */
   team?: string | null;
   /** The person's own "Available today" switch. Missing means available. */
   available?: boolean;
@@ -246,7 +245,57 @@ export interface WastageReport {
   sensor_reading_id: string | null;
   /** When the report was filed (ISO). Reports are grouped by month from this. */
   created_at?: string;
+  /**
+   * The issue reports (ServiceRequest ids) whose pattern this case tackles.
+   * Their reporters hear the outcome when the case closes.
+   */
+  source_request_ids?: string[];
 }
+/**
+ * One weigh-in of food thrown away at a place (a cafeteria or mess), logged by
+ * General Maintenance when they clear the food-waste bins. It is to food what
+ * a meter reading is to energy: the measurement a food wastage target is
+ * checked against.
+ */
+export interface FoodWasteLog {
+  log_id: string;
+  organization_id: string;
+  /** Where the food was thrown away, e.g. "North Campus Cafeteria". */
+  location: string;
+  building_id: string | null;
+  /** The day the waste was collected (YYYY-MM-DD). */
+  date: string;
+  kg: number;
+  meal?: "breakfast" | "lunch" | "dinner" | "other" | null;
+  logged_by: string;
+  created_at: string;
+}
+
+/**
+ * Seeded weigh-ins: one a day at North Campus Cafeteria for the twelve weeks
+ * before 2026-11-25, around 34 kg a day, so the seeded food case has a
+ * baseline.
+ */
+function seedFoodWasteLogs(): FoodWasteLog[] {
+  const logs: FoodWasteLog[] = [];
+  const end = Date.UTC(2026, 10, 24); // 2026-11-24
+  for (let i = 0; i < 84; i++) {
+    const date = new Date(end - (83 - i) * 86_400_000).toISOString().slice(0, 10);
+    logs.push({
+      log_id: `food-log-${date}`,
+      organization_id: "org-001",
+      location: "North Campus Cafeteria",
+      building_id: null,
+      date,
+      kg: 30 + ((i * 7) % 9),
+      meal: "other",
+      logged_by: "550e8400-0009-4000-8000-000000000009",
+      created_at: `${date}T20:00:00.000Z`,
+    });
+  }
+  return logs;
+}
+
 export interface AlertMessage {
   sender_role: string;
   content: string;
@@ -1185,7 +1234,6 @@ export class DatabaseService {
       phone: "9876543210",
       password: "Aadi@123",
       role: UserRole.ORGANIZATION_ADMIN,
-      specialization: null,
     },
     {
       user_id: "550e8400-0002-4000-8000-000000000002",
@@ -1195,7 +1243,6 @@ export class DatabaseService {
       phone: "9876543211",
       password: "Husaam@123",
       role: UserRole.FINANCIAL_ANALYST,
-      specialization: null,
     },
     {
       user_id: "550e8400-0003-4000-8000-000000000003",
@@ -1205,7 +1252,6 @@ export class DatabaseService {
       phone: "9876543212",
       password: "Chirag@123",
       role: UserRole.OPERATIONS_COORDINATOR,
-      specialization: "Electrical",
     },
     {
       user_id: "550e8400-0004-4000-8000-000000000004",
@@ -1215,7 +1261,6 @@ export class DatabaseService {
       phone: "9876543214",
       password: "Teja@123",
       role: UserRole.TECHNICIAN,
-      specialization: "Solar Installation",
     },
     {
       user_id: "550e8400-0005-4000-8000-000000000005",
@@ -1225,7 +1270,6 @@ export class DatabaseService {
       phone: "9876543213",
       password: "Viksa@123",
       role: UserRole.SUSTAINABILITY_OFFICER,
-      specialization: null,
     },
     {
       user_id: "550e8400-0006-4000-8000-000000000006",
@@ -1235,7 +1279,6 @@ export class DatabaseService {
       phone: "9876543215",
       password: "Trishank@123",
       role: UserRole.CAMPUS_VISITOR,
-      specialization: null,
     },
     {
       user_id: "550e8400-0007-4000-8000-000000000007",
@@ -1245,7 +1288,6 @@ export class DatabaseService {
       phone: "9876543216",
       password: "Elena@123",
       role: UserRole.TECHNICIAN,
-      specialization: "Electrical",
       team: "electrician",
     },
     {
@@ -1256,7 +1298,6 @@ export class DatabaseService {
       phone: "9876543217",
       password: "Marcus@123",
       role: UserRole.TECHNICIAN,
-      specialization: "HVAC",
       team: "hvac",
     },
     {
@@ -1267,8 +1308,7 @@ export class DatabaseService {
       phone: "9876543218",
       password: "Noah@123",
       role: UserRole.TECHNICIAN,
-      specialization: "General Maintenance",
-      team: "cleaning",
+      team: "general",
     },
     {
       user_id: "550e8400-000a-4000-8000-00000000000a",
@@ -1278,7 +1318,6 @@ export class DatabaseService {
       phone: "9876543219",
       password: "Rina@123",
       role: UserRole.TECHNICIAN,
-      specialization: "Plumbing",
       team: "plumber",
     },
     // ── The rest of org-001's facilities and energy team ──────────────
@@ -1298,7 +1337,6 @@ export class DatabaseService {
       phone: "9876543220",
       password: "Kavya@123",
       role: UserRole.OPERATIONS_COORDINATOR,
-      specialization: "HVAC",
     },
     {
       user_id: "550e8400-000c-4000-8000-00000000000c",
@@ -1308,7 +1346,6 @@ export class DatabaseService {
       phone: "9876543221",
       password: "Arjun@123",
       role: UserRole.OPERATIONS_COORDINATOR,
-      specialization: "Electrical",
     },
     {
       user_id: "550e8400-000d-4000-8000-00000000000d",
@@ -1318,7 +1355,6 @@ export class DatabaseService {
       phone: "9876543222",
       password: "Sneha@123",
       role: UserRole.SUSTAINABILITY_OFFICER,
-      specialization: null,
     },
     {
       user_id: "550e8400-000e-4000-8000-00000000000e",
@@ -1328,7 +1364,6 @@ export class DatabaseService {
       phone: "9876543223",
       password: "Rahul@123",
       role: UserRole.SUSTAINABILITY_OFFICER,
-      specialization: null,
     },
     {
       user_id: "550e8400-000f-4000-8000-00000000000f",
@@ -1338,7 +1373,6 @@ export class DatabaseService {
       phone: "9876543224",
       password: "Priyanka@123",
       role: UserRole.FINANCIAL_ANALYST,
-      specialization: null,
     },
     {
       user_id: "550e8400-0010-4000-8000-000000000010",
@@ -1348,7 +1382,6 @@ export class DatabaseService {
       phone: "9876543225",
       password: "Vikram@123",
       role: UserRole.FINANCIAL_ANALYST,
-      specialization: null,
     },
     {
       user_id: "550e8400-0011-4000-8000-000000000011",
@@ -1358,7 +1391,6 @@ export class DatabaseService {
       phone: "9876543226",
       password: "Ananya@123",
       role: UserRole.ORGANIZATION_ADMIN,
-      specialization: null,
     },
     {
       user_id: "550e8400-0012-4000-8000-000000000012",
@@ -1368,7 +1400,6 @@ export class DatabaseService {
       phone: "9876543227",
       password: "Sanjay@123",
       role: UserRole.TECHNICIAN,
-      specialization: "HVAC",
       team: "hvac",
     },
     {
@@ -1379,7 +1410,6 @@ export class DatabaseService {
       phone: "9876543228",
       password: "Meera@123",
       role: UserRole.TECHNICIAN,
-      specialization: "Electrical",
       team: "electrician",
     },
     {
@@ -1390,7 +1420,6 @@ export class DatabaseService {
       phone: "9876543229",
       password: "Imran@123",
       role: UserRole.TECHNICIAN,
-      specialization: "Plumbing",
       team: "plumber",
     },
     {
@@ -1401,7 +1430,6 @@ export class DatabaseService {
       phone: "9876543230",
       password: "Divya@123",
       role: UserRole.TECHNICIAN,
-      specialization: "Solar Installation",
     },
     {
       user_id: "550e8400-0016-4000-8000-000000000016",
@@ -1411,8 +1439,7 @@ export class DatabaseService {
       phone: "9876543231",
       password: "Karthik@123",
       role: UserRole.TECHNICIAN,
-      specialization: "General Maintenance",
-      team: "cleaning",
+      team: "general",
     },
     {
       user_id: "550e8400-0017-4000-8000-000000000017",
@@ -1422,7 +1449,6 @@ export class DatabaseService {
       phone: "9876543232",
       password: "Fatima@123",
       role: UserRole.TECHNICIAN,
-      specialization: "HVAC",
       team: "hvac",
     },
     {
@@ -1433,7 +1459,6 @@ export class DatabaseService {
       phone: "9876543233",
       password: "Nikhil@123",
       role: UserRole.TECHNICIAN,
-      specialization: "Electrical",
       team: "electrician",
     },
     {
@@ -1444,8 +1469,7 @@ export class DatabaseService {
       phone: "9876543234",
       password: "Lakshmi@123",
       role: UserRole.TECHNICIAN,
-      specialization: "General Maintenance",
-      team: "cleaning",
+      team: "general",
     },
 
     // ── Prospect contacts ─────────────────────────────────────────────
@@ -1462,7 +1486,6 @@ export class DatabaseService {
       phone: "9830000001",
       password: "Ramesh@123",
       role: UserRole.ORGANIZATION_ADMIN,
-      specialization: null,
     },
     {
       user_id: "550e8400-00c2-4000-8000-0000000000c2",
@@ -1472,7 +1495,6 @@ export class DatabaseService {
       phone: "9840000001",
       password: "Anita@123",
       role: UserRole.ORGANIZATION_ADMIN,
-      specialization: null,
     },
 
     // ── EnerTrack staff: no organization_id, they work across tenants ──
@@ -1484,7 +1506,6 @@ export class DatabaseService {
       phone: "9800000001",
       password: "Priya@123",
       role: UserRole.SUPER_ADMIN,
-      specialization: null,
     },
     {
       user_id: "550e8400-00f2-4000-8000-0000000000f2",
@@ -1494,7 +1515,6 @@ export class DatabaseService {
       phone: "9800000002",
       password: "Arun@123",
       role: UserRole.CERTIFIED_ENERGY_AUDITOR,
-      specialization: "Energy Audit (BEE Certified)",
     },
 
     // ── Client-side staff for the second tenant (proves isolation) ──
@@ -1510,7 +1530,6 @@ export class DatabaseService {
       phone: "9820000001",
       password: "Sunita@123",
       role: UserRole.ORGANIZATION_ADMIN,
-      specialization: null,
     },
     {
       user_id: "550e8400-00b1-4000-8000-0000000000b1",
@@ -1520,7 +1539,6 @@ export class DatabaseService {
       phone: "9811000001",
       password: "Kavya@123",
       role: UserRole.FACILITY_MANAGER,
-      specialization: "Facilities",
     },
     {
       user_id: "550e8400-00b2-4000-8000-0000000000b2",
@@ -1530,45 +1548,13 @@ export class DatabaseService {
       phone: "9811000002",
       password: "Rahul@123",
       role: UserRole.ECONOMIC_BUYER,
-      specialization: null,
     },
   ];
   /**
-   * One "new report" notification to the Sustainability Officer per seeded
-   * wastage report, worded exactly as WastageReportsService sends them.
+   * No seeded notifications: the seeded wastage cases were opened by the
+   * Sustainability Officer themselves, so there is nobody to tell.
    */
-  public notifications: Notification[] = [
-    {
-      notification_id: "660e8400-0001-4000-8000-000000000000",
-      organization_id: "org-001",
-      user_id: "550e8400-0005-4000-8000-000000000005",
-      target_type: NotificationTargetType.WASTAGE,
-      target_id: "wwww0000-0001-4000-8000-000000000000",
-      message: "New water wastage report WR-3N2A8Z at Main Courtyard, East Wing.",
-      is_read: true,
-      created_at: "2026-11-12T09:15:00.000Z",
-    },
-    {
-      notification_id: "660e8400-0002-4000-8000-000000000000",
-      organization_id: "org-001",
-      user_id: "550e8400-0005-4000-8000-000000000005",
-      target_type: NotificationTargetType.WASTAGE,
-      target_id: "wwww0000-0002-4000-8000-000000000000",
-      message: "New food wastage report WR-2J63IA.",
-      is_read: false,
-      created_at: "2026-11-18T13:40:00.000Z",
-    },
-    {
-      notification_id: "660e8400-0003-4000-8000-000000000000",
-      organization_id: "org-001",
-      user_id: "550e8400-0005-4000-8000-000000000005",
-      target_type: NotificationTargetType.WASTAGE,
-      target_id: "wwww0000-0003-4000-8000-000000000000",
-      message: "New energy wastage report WR-1F9WRL.",
-      is_read: false,
-      created_at: "2026-11-20T08:05:00.000Z",
-    },
-  ];
+  public notifications: Notification[] = [];
   public campus: Campus[] = [
     {
       campus_id: "660e8700-0001-4000-8000-000000000000",
@@ -2007,81 +1993,35 @@ export class DatabaseService {
       timestamp: "2025-01-01T10:00:00.000Z",
     },
   ];
+  /**
+   * One seeded case, opened by the Sustainability Officer from the North
+   * Campus Cafeteria weigh-ins (seedFoodWasteLogs: about 34 kg a day). It is
+   * waiting for a remedy, so a demo can take it through the whole flow.
+   * Other cases are opened from waste signals as reports come in.
+   */
   public wastageReports: WastageReport[] = [
-    {
-      wastage_report_id: "wwww0000-0001-4000-8000-000000000000",
-      created_at: "2026-11-12T09:15:00.000Z",
-      organization_id: "org-001",
-      reporter_id: "550e8400-0002-4000-8000-000000000002",
-      type: WastageType.WATER,
-      status: "pending",
-      details: {
-        specificData: {
-          nature: "Sprinkler system leaking heavily near the pathway.",
-          location: "Main Courtyard, East Wing"
-        },
-        priority: "High",
-        systemData: {
-          sensorId: "FLOW-CW-01",
-          readingValue: 45.5,
-          readingUnit: "L/min",
-          baselineValue: 20.0,
-          confidence: "High",
-          status: "abnormal"
-        }
-      },
-      sensor_reading_id: "rrrr0000-0001-4000-8000-000000000000",
-    },
     {
       wastage_report_id: "wwww0000-0002-4000-8000-000000000000",
       created_at: "2026-11-18T13:40:00.000Z",
       organization_id: "org-001",
-      reporter_id: "550e8400-0003-4000-8000-000000000003",
+      reporter_id: "550e8400-0005-4000-8000-000000000005",
       type: WastageType.FOOD,
-      status: "pending",
+      status: "Open",
+      source_request_ids: [],
       details: {
-        specificData: {
-          typeOfWastage: "Unserved catered buffet food.",
-          estimatedAmount: "25",
-          cafeteria: "North Campus Cafeteria"
-        },
-        priority: "Medium",
-        systemData: {
-          sensorId: "WEIGHT-BIN-04",
-          readingValue: 35.2,
-          readingUnit: "kg",
-          baselineValue: 10.0,
-          confidence: "Medium",
-          status: "abnormal"
-        }
-      },
-      sensor_reading_id: "rrrr0000-0003-4000-8000-000000000000",
-    },
-    {
-      wastage_report_id: "wwww0000-0003-4000-8000-000000000000",
-      created_at: "2026-11-20T08:05:00.000Z",
-      organization_id: "org-001",
-      reporter_id: "550e8400-0004-4000-8000-000000000004",
-      type: WastageType.ENERGY,
-      status: "pending",
-      details: {
-        specificData: {
-          observation: "AC left running at 18C in empty conference rooms.",
-          building: "Science Block B, Floor 3"
-        },
-        priority: "Low",
-        systemData: {
-          sensorId: "HVAC-PWR-B3",
-          readingValue: 12.4,
-          readingUnit: "kW",
-          baselineValue: 3.5,
-          confidence: "High",
-          status: "abnormal"
-        }
+        origin: "food_log",
+        signalKey: "food_log|north campus cafeteria",
+        signalReasons: ["34 kg a day over 30 days"],
+        title: "Food thrown away at North Campus Cafeteria",
+        location: "North Campus Cafeteria",
+        notes: "General Maintenance weigh around 34 kg of food from the cafeteria bins every day.",
       },
       sensor_reading_id: null,
-    }
+    },
   ];
+  public foodWasteLogs: FoodWasteLog[] = seedFoodWasteLogs();
+  /** Waste signals the Sustainability Officer chose to watch rather than open a case for. */
+  public wastageWatches: { organization_id: string; key: string; watched_at: string; watched_by: string | null }[] = [];
   public alerts: Alert[] = [
     {
       alert_id: "ALT-001",
@@ -2255,7 +2195,7 @@ export class DatabaseService {
         description: "HVAC Unit – Block A",
         type: "scheduled",
         estimateRequired: true,
-        estimate: { materials: 18000, labor: 6500, total: 24500, type: "repair" },
+        estimate: { materials: 24500, total: 24500, type: "repair" },
       },
     },
     {

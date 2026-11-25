@@ -52,40 +52,51 @@ describe('Stage 6: target follow-up and report sign-off (e2e)', () => {
     const move = (id: string, status: string, details?: Record<string, unknown>) =>
       http().patch(`/api/wastage-reports/${id}`).set(SO).send({ status, ...(details ? { details } : {}) });
 
-    /** A report linked to M-001 (whose electricity the seed cuts 12% from March 2026). */
+    /** An issue REPORTER filed, which the case below grew out of. */
+    let t = 0;
+    const incident = () => {
+      const id = `s6-ticket-${++t}-${Date.now()}`;
+      db.serviceRequests.push({
+        service_request_id: id, organization_id: 'org-001', reporter_id: REPORTER, reporter_ids: [REPORTER],
+        assigned_to_id: null, category: 'Waste', issue_type: 'Lights left on', status: 'closed', created_at: new Date().toISOString(),
+      } as any);
+      return id;
+    };
+
+    /** A case linked to M-001 (whose electricity the seed cuts 12% from March 2026). */
     const fileLinked = async (readingValue = 100) => {
       const res = await http()
         .post('/api/wastage-reports')
-        .set(as('Campus Visitor'))
+        .set(SO)
         .send({
-          reporter_id: REPORTER,
           type: 'Energy',
           sensor_reading_id: 'gen-M001-2026-01',
-          details: { systemData: { readingValue, readingUnit: 'kW' }, specificData: { location: 'Block A' } },
+          source_request_ids: [incident()],
+          details: { systemData: { readingValue, readingUnit: 'kW' }, location: 'Block A' },
         })
         .expect(201);
       return body(res).wastage_report_id as string;
     };
     const setTarget = async (id: string, value: number, deadline: string, setAt: string) => {
-      await move(id, 'Validated').expect(200);
       const r = db.wastageReports.find((x) => x.wastage_report_id === id)!;
       await move(id, 'Target Set', {
         ...r.details,
+        remedy: { type: 'no_cost', description: 'Switch-off rounds' },
         metricTarget: { value, unit: 'kW', deadline, setAt },
         targetSetAt: setAt,
       }).expect(200);
     };
 
-    it('moves a report to Verify Target once its deadline has passed, and asks the officers', async () => {
+    it('moves a case to Verify Target once its deadline has passed, and asks the officers', async () => {
       const id = await fileLinked();
       await setTarget(id, 95, '2026-06-30', '2026-02-10T00:00:00.000Z');
       const list = body(await http().get('/api/wastage-reports').set(SO).expect(200));
       expect(list.find((r: any) => r.wastage_report_id === id).status).toBe('Verify Target');
       const officerNote = notesFor(NotificationTargetType.WASTAGE, id).pop()!;
-      expect(officerNote.message).toBe(`The target deadline for wastage report ${reportRef(id)} has passed; check whether it was met.`);
+      expect(officerNote.message).toBe(`The target deadline for wastage case ${reportRef(id)} has passed; check whether it was met.`);
     });
 
-    it('leaves a report with a future deadline alone', async () => {
+    it('leaves a case with a future deadline alone', async () => {
       const id = await fileLinked();
       await setTarget(id, 95, '2099-01-01', '2026-02-10T00:00:00.000Z');
       const one = body(await http().get(`/api/wastage-reports/${id}`).set(SO).expect(200));
@@ -121,7 +132,7 @@ describe('Stage 6: target follow-up and report sign-off (e2e)', () => {
       expect(c1.reason).toContain('no full month of readings since the target was set');
 
       const unlinked = body(
-        await http().post('/api/wastage-reports').set(as('Campus Visitor')).send({ reporter_id: REPORTER, type: 'Water', details: {} }).expect(201),
+        await http().post('/api/wastage-reports').set(SO).send({ type: 'Water', details: {} }).expect(201),
       ).wastage_report_id;
       await setTarget(unlinked, 10, '2026-06-30', '2026-02-10T00:00:00.000Z');
       const c2 = body(await http().get(`/api/wastage-reports/${unlinked}/target-check`).set(SO).expect(200));
@@ -135,27 +146,28 @@ describe('Stage 6: target follow-up and report sign-off (e2e)', () => {
       await http().get(`/api/wastage-reports/${id}/target-check`).set(SO).expect(400);
     });
 
-    it('Met and Missed both notify the reporter; Missed can retry; both can be delivered', async () => {
+    it("Met and Missed are the officer's record; closing tells the reporter; Missed can retry", async () => {
       const met = await fileLinked();
       await setTarget(met, 95, '2026-06-30', '2026-02-10T00:00:00.000Z');
       await http().get('/api/wastage-reports').set(SO).expect(200); // promotes to Verify Target
+      const before = notesFor(NotificationTargetType.WASTAGE, met).length;
       await move(met, 'Target Met').expect(200);
-      expect(notesFor(NotificationTargetType.WASTAGE, met).pop()!.message).toBe(
-        `Good news: the reduction target for your energy report ${reportRef(met)} was met.`,
+      expect(notesFor(NotificationTargetType.WASTAGE, met)).toHaveLength(before);
+      await move(met, 'Closed').expect(200);
+      const closing = notesFor(NotificationTargetType.WASTAGE, met).pop()!;
+      expect(closing.user_id).toBe(REPORTER);
+      expect(closing.message).toBe(
+        'Update on the waste you reported at Block A: the Sustainability Officer has acted on it (Switch-off rounds). The reduction target was met.',
       );
-      await move(met, 'Delivered').expect(200);
 
       const missed = await fileLinked();
       await setTarget(missed, 50, '2026-06-30', '2026-02-10T00:00:00.000Z');
       await http().get('/api/wastage-reports').set(SO).expect(200);
       await move(missed, 'Target Missed').expect(200);
-      const note = notesFor(NotificationTargetType.WASTAGE, missed).pop()!;
-      expect(note.user_id).toBe(REPORTER);
-      expect(note.message).toContain('was not met');
       await move(missed, 'Target Set').expect(200); // try again with a new target
     });
 
-    it('refuses skipping to an outcome (Reported → Target Met is 403), and Finance cannot decide it', async () => {
+    it('refuses skipping to an outcome (Open → Target Met is 403), and Finance cannot decide it', async () => {
       const id = await fileLinked();
       await move(id, 'Target Met').expect(403);
       await setTarget(id, 95, '2026-06-30', '2026-02-10T00:00:00.000Z');

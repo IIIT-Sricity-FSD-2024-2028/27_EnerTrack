@@ -157,7 +157,9 @@ export default function NewWorkOrderForm({ users, request, busy, onCreate }) {
                 onChange={(event) => setTechId(event.target.value)}
               >
                 <option value="">— Select —</option>
-                {assignableUsers(users).map((tech) => (
+                {assignableUsers(users)
+                  .filter((tech) => !request?.team || tech.team === request.team)
+                  .map((tech) => (
                   <option key={tech.user_id} value={tech.user_id}>
                     {tech.name}
                   </option>

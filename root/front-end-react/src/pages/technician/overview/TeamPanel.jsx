@@ -4,6 +4,8 @@
  * where the time went on jobs that are late (so a staffing gap is not blamed
  * on one person). It draws what it is given.
  */
+import LoadBar from "./LoadBar";
+
 const fmt = (iso) => new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
 export default function TeamPanel({ queue, busy, onSweep }) {
@@ -18,7 +20,7 @@ export default function TeamPanel({ queue, busy, onSweep }) {
       <div className="feed-header">
         <div>
           <h2>Team and deadlines</h2>
-          <small>Load is in points; the system stops sending jobs at 6.</small>
+          <small>How full each person is. Someone who is Full is not sent new jobs.</small>
         </div>
         <button type="button" className="btn btn-light" disabled={busy} onClick={onSweep}>
           Check timeouts now
@@ -29,14 +31,23 @@ export default function TeamPanel({ queue, busy, onSweep }) {
         <div>
           <h3>Team right now</h3>
           {people.length === 0 && <p className="sub">No technicians yet.</p>}
-          <ul className="team-list">
+          <ul className="team-list team-load">
             {people.map((p) => (
               <li key={p.user_id}>
                 <span>
                   {p.name}
                   <small>{p.team || "no team set"}</small>
                 </span>
-                <span>{p.open_points} pts</span>
+                {p.team ? (
+                  <LoadBar person={p} />
+                ) : (
+                  <span className="load load-none">
+                    <span className="load-text">
+                      <strong>No team</strong>
+                      <small>No automatic jobs</small>
+                    </span>
+                  </span>
+                )}
                 <span className={"badge " + (p.available ? "resolved" : "high")}>
                   {p.available ? "Available" : p.off_for_today ? "Off today" : "Not available"}
                 </span>

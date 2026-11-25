@@ -19,7 +19,7 @@ import { defaultRange } from '../src/core/utils/period';
  * - POST /api/sustainability-reports/generate: period validation, preview shape,
  *   and proving no records are persisted.
  * - DELETE /api/sustainability-reports/:id: Sustainability Officer deletion.
- * - Wastage status normalization in seed.
+ * - Wastage cases are seeded Open.
  */
 describe('Sustainability Workflows (e2e)', () => {
   let app: INestApplication;
@@ -620,7 +620,7 @@ describe('Sustainability Workflows (e2e)', () => {
   });
 
   describe('Wastage seed normalization', () => {
-    it('seeds all wastage reports with normalized status "pending"', async () => {
+    it('seeds all wastage cases as "Open"', async () => {
       const res = await request(server())
         .get('/api/wastage-reports')
         .set('x-role', 'Sustainability Officer')
@@ -629,7 +629,7 @@ describe('Sustainability Workflows (e2e)', () => {
 
       expect(res.body.data.length).toBeGreaterThan(0);
       for (const report of res.body.data) {
-        expect(report.status.toLowerCase()).toBe('pending');
+        expect(report.status).toBe('Open');
       }
     });
   });

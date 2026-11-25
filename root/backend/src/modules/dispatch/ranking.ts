@@ -20,6 +20,19 @@ export const MAX_LOAD = 6;
 export const FADE_HALF_LIFE_DAYS = 7;
 const DAY_MS = 86_400_000;
 
+export type LoadLevel = "light" | "busy" | "full";
+
+/**
+ * How full someone is, in words, from their open points. This is what the
+ * coordinator sees instead of the raw score: Full means the cap is reached and
+ * no normal job will be sent; Busy is half the cap or more.
+ */
+export function loadLevel(openPoints: number): LoadLevel {
+  if (openPoints >= MAX_LOAD) return "full";
+  if (openPoints >= MAX_LOAD / 2) return "busy";
+  return "light";
+}
+
 /** Technician job points actually carried out, newest wins in the ranking. */
 export interface PastJob {
   points: number;
@@ -37,6 +50,8 @@ export interface Candidate {
   unavailableOn?: string | null;
   /** Points of jobs still open on them. */
   openPoints: number;
+  /** How many jobs are still open on them (for display only). */
+  openJobs?: number;
   /** Buildings of the jobs still open on them. */
   openBuildings: string[];
   past: PastJob[];

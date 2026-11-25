@@ -1,12 +1,11 @@
 /**
- * WastageAuditCard — one report in the Sustainability Officer's Wastage
- * Audit Queue (ported from renderWastageAuditQueue() in
- * js/sustainability_officer/overviewPage.js).
+ * WastageAuditCard — one wastage case in the Sustainability Officer's queue.
  *
- * A row, not a card: what the occupant saw on the left, the sensor reading on
- * the right, Finance's figures and the target once they exist, then the
- * buttons for whatever step the report is on. The buttons only call
- * onAction(name); the parent (WastageAuditQueue) does the saving.
+ * A case is a pattern of waste the officer opened from a signal (or from
+ * Monitoring). The row shows what the case is about and the reports behind
+ * it, the remedy, Finance's figures (only for a remedy that needs spending)
+ * and the target, then the buttons for the step the case is on. The buttons
+ * only call onAction(name); the parent (WastageAuditQueue) does the saving.
  * Styles live in ../overview.css (so-* classes).
  */
 import { useEffect, useState } from "react";
@@ -31,8 +30,7 @@ const TYPE_ICONS = {
 // Chip text + tone. "action" = waiting on the officer, "finance" = with
 // Finance, "ready" = can be closed out.
 const STATUS_CHIPS = {
-  Reported: { label: "New report", tone: "action" },
-  Validated: { label: "Validated", tone: "action" },
+  Open: { label: "Plan the remedy", tone: "action" },
   "Forwarded to Finance": { label: "With Finance", tone: "finance" },
   "Cost Impact Added": { label: "Finance reviewing", tone: "finance" },
   "Returned to SO": { label: "Cost data returned", tone: "action" },
@@ -40,11 +38,10 @@ const STATUS_CHIPS = {
   "Verify Target": { label: "Check target", tone: "action" },
   "Target Met": { label: "Target met", tone: "ready" },
   "Target Missed": { label: "Target missed", tone: "action" },
-  Finalized: { label: "Finalized", tone: "ready" },
 };
 
-// Reports still waiting on the officer's first look get an age badge.
-const AGE_TRACKED = ["Reported", "Validated"];
+// Cases still waiting for a remedy get an age badge.
+const AGE_TRACKED = ["Open"];
 
 function ageBadge(report) {
   if (!AGE_TRACKED.includes(report.status) || !report.timestamp) return null;
@@ -56,8 +53,8 @@ function ageBadge(report) {
 
 
 // Statuses at which Finance's cost figures / the officer's target are shown
-const COST_VISIBLE = ["Returned to SO", "Target Set", "Verify Target", "Target Met", "Target Missed", "Finalized"];
-const TARGET_VISIBLE = ["Target Set", "Verify Target", "Target Met", "Target Missed", "Finalized"];
+const COST_VISIBLE = ["Returned to SO", "Target Set", "Verify Target", "Target Met", "Target Missed"];
+const TARGET_VISIBLE = ["Target Set", "Verify Target", "Target Met", "Target Missed"];
 
 /** "+128% above baseline" — from the stored deviation, or worked out. */
 function deviationText(sd) {
@@ -71,27 +68,34 @@ function deviationText(sd) {
   return `${pct > 0 ? "+" : ""}${pct.toFixed(0)}% over baseline`;
 }
 
-// Once a report is validated the officer can send the problem on as a job.
-const RAISABLE = ["Validated", "Returned to SO", "Target Set", "Finalized"];
+// A remedy that needs physical work can be sent on as a job while the case is active.
+const RAISABLE = ["Open", "Returned to SO", "Target Set", "Verify Target", "Target Missed"];
 
-/** The buttons for each step of the audit workflow. */
-function ActionButtons({ status, busy, onAction }) {
+/** The buttons for each step of the case. */
+function ActionButtons({ status, remedy, busy, onAction }) {
   const props = (action) => ({ type: "button", disabled: busy, onClick: () => onAction(action) });
 
-  if (status === "Reported")
+  if (status === "Open") {
+    // The remedy decides the next step: no cost → a target; spending → Finance.
+    if (!remedy)
+      return (
+        <>
+          <button {...props("remedy")} className="so-btn primary">Plan the remedy</button>
+          <button {...props("dismiss")} className="so-btn danger">Dismiss</button>
+        </>
+      );
     return (
       <>
-        <button {...props("validate")} className="so-btn primary">Validate</button>
+        {remedy.type === "spend" ? (
+          <button {...props("forward")} className="so-btn primary">Send to Finance</button>
+        ) : (
+          <button {...props("target")} className="so-btn primary">Set target</button>
+        )}
+        <button {...props("remedy")} className="so-btn">Change remedy</button>
         <button {...props("dismiss")} className="so-btn danger">Dismiss</button>
       </>
     );
-  if (status === "Validated")
-    return (
-      <>
-        <button {...props("forward")} className="so-btn primary">Forward to Finance</button>
-        <button {...props("target")} className="so-btn">Set target</button>
-      </>
-    );
+  }
   if (status === "Returned to SO")
     return (
       <>
@@ -107,19 +111,12 @@ function ActionButtons({ status, busy, onAction }) {
       </>
     );
   if (status === "Verify Target") return <button {...props("verify")} className="so-btn primary">Check the result</button>;
-  if (status === "Target Met") return <button {...props("deliver")} className="so-btn primary">Send outcome to occupant</button>;
+  if (status === "Target Met") return <button {...props("close")} className="so-btn primary">Close the case</button>;
   if (status === "Target Missed")
     return (
       <>
-        <button {...props("deliver")} className="so-btn primary">Send outcome to occupant</button>
-        <button {...props("target")} className="so-btn">Set a new target</button>
-      </>
-    );
-  if (status === "Finalized")
-    return (
-      <>
-        <button {...props("deliver")} className="so-btn primary">Send report to occupant</button>
-        <button {...props("preview")} className="so-btn">Preview report</button>
+        <button {...props("target")} className="so-btn primary">Set a new target</button>
+        <button {...props("close")} className="so-btn">Close the case</button>
       </>
     );
   if (status === "Forwarded to Finance") return <span className="so-waiting">Waiting for Finance to add cost impact.</span>;
@@ -186,19 +183,30 @@ function CostFigures({ ci }) {
   );
 }
 
-export default function WastageAuditCard({ report, busy, onAction, onAddComment }) {
+/** "north  campus cafeteria " and "North Campus Cafeteria" are the same place. */
+const placeKey = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+
+export default function WastageAuditCard({ report, busy, foodLogs = [], onAction, onAddComment }) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
 
   const sd = report.systemData || {};
-  const spec = report.specificData || {};
   const { summary, location } = wastageSummary(report);
-  const chip = STATUS_CHIPS[report.status] || { label: report.status, tone: "finance" };
+  const remedyPlanned = report.status === "Open" && report.details?.remedy;
+  const chip = remedyPlanned
+    ? { label: report.details.remedy.type === "spend" ? "Ready for Finance" : "Ready for a target", tone: "action" }
+    : STATUS_CHIPS[report.status] || { label: report.status, tone: "finance" };
   const comments = report.comments || [];
   const ci = report.costImpact;
   const mt = report.metricTarget;
   const anomaly = sd.anomalyDetected || sd.status === "abnormal";
   const deviation = deviationText(sd);
+  const remedy = report.details?.remedy || null;
+  const linked = report.sourceRequestIds?.length || 0;
+  // Food is measured by General Maintenance's weigh-ins, not a sensor.
+  const isFood = report.type === "Food";
+  const hasSensor = !isFood && sd.readingValue !== undefined && sd.readingValue !== null;
+  const food = isFood ? foodLogs.find((l) => placeKey(l.location) === placeKey(report.details?.location)) : null;
 
   function handleSend() {
     if (!commentText.trim()) return;
@@ -209,7 +217,7 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
   const age = ageBadge(report);
 
   return (
-    <article className="so-report" aria-label={`${report.type} wastage report ${report.shortId}`}>
+    <article className="so-report" aria-label={`${report.type} wastage case ${report.shortId}`}>
       <div className="so-report-top">
         <div className="so-report-title">
           <span className="so-type-icon" style={{ color: TYPE_COLORS[report.type] || "#6b7280" }} aria-hidden="true">
@@ -222,7 +230,7 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
         </div>
         <span className="so-report-chips">
           {age && (
-            <span className={`so-age so-age--${age.tone}`} title="Days since the report was filed">
+            <span className={`so-age so-age--${age.tone}`} title="Days since the case was opened">
               {age.days} day{age.days === 1 ? "" : "s"} old
             </span>
           )}
@@ -234,11 +242,28 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
         <div className="so-report-main">
           <p className="so-observation">{summary || "No description provided."}</p>
           <div className="so-meta">
-            <span>Reported by {report.reporterName}</span>
-            <span className={report.priority === "High" ? "high" : undefined}>{report.priority} priority</span>
+            <span>Opened by {report.reporterName}</span>
+            <span>
+              {linked
+                ? `From ${linked} waste report${linked === 1 ? "" : "s"}`
+                : report.details?.origin === "food_log"
+                  ? "From food weigh-ins"
+                  : report.details?.origin === "meter"
+                    ? "From a meter"
+                    : "From monitoring"}
+            </span>
             <span>{formatDateTime(report.timestamp)}</span>
             <span title={report.id}>WR-{report.shortId}</span>
           </div>
+          {report.details?.signalReasons?.length > 0 && <p className="so-note">Signal: {report.details.signalReasons.join("; ")}</p>}
+
+          {remedy && (
+            <p className="so-remedy">
+              <span className={`so-remedy-type ${remedy.type}`}>{remedy.type === "spend" ? "Needs spending" : "No cost"}</span>
+              <strong>{remedy.description}</strong>
+              {remedy.type === "spend" && remedy.estimate ? <span>est. {formatCurrency(remedy.estimate)}</span> : null}
+            </p>
+          )}
 
           {ci && COST_VISIBLE.includes(report.status) && <CostFigures ci={ci} />}
 
@@ -265,8 +290,10 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
         </div>
 
         <div className="so-actions">
-          <ActionButtons status={report.status} busy={busy} onAction={onAction} />
-          {RAISABLE.includes(report.status) &&
+          <ActionButtons status={report.status} remedy={remedy} busy={busy} onAction={onAction} />
+          {/* A job only makes sense once the fix is known. */}
+          {remedy &&
+            RAISABLE.includes(report.status) &&
             (report.details?.workOrderRaisedAt ? (
               <span className="so-waiting">Work order raised.</span>
             ) : (
@@ -279,6 +306,28 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
           </button>
         </div>
 
+        {isFood && (
+          <div className="so-sensor">
+            <div>Weigh-ins (General Maintenance)</div>
+            {food ? (
+              <>
+                <div className="so-sensor-value">
+                  {food.kg_per_day_30d ?? "—"} <small>kg/day</small>
+                </div>
+                <div>Last 30 days</div>
+                <div style={{ marginTop: 4 }}>
+                  <span className={food.rising ? "anomaly" : "normal"}>
+                    {food.kg_per_day_7d ?? "—"} kg/day this week{food.rising ? ", rising" : ""}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div style={{ marginTop: 4 }}>Nothing logged for this place yet.</div>
+            )}
+          </div>
+        )}
+
+        {hasSensor && (
         <div className="so-sensor">
           <div>Sensor {sd.sensorId || "not linked"}</div>
           <div className="so-sensor-value">
@@ -292,12 +341,8 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
               {anomaly ? `Anomaly${deviation ? `, ${deviation}` : ""}` : "Within normal range"}
             </span>
           </div>
-          {spec.reportedValue && (
-            <div style={{ marginTop: 4 }}>
-              Reporter estimate {spec.reportedValue} {spec.reportedUnit || ""}
-            </div>
-          )}
         </div>
+        )}
       </div>
 
       {showComments && (
@@ -321,7 +366,7 @@ export default function WastageAuditCard({ report, busy, onAction, onAddComment 
             <input
               type="text"
               aria-label="Comment"
-              placeholder="Write a comment for Finance and the reporter"
+              placeholder="Write a note on this case (Finance can read it)"
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}

@@ -18,11 +18,12 @@ export class WastageReportsController {
   constructor(private readonly wastageReportsService: WastageReportsService) {}
 
   @Post()
-  @ApiOperation({ summary: "Create Wastage Report", description: "Submits a new wastage report. Any authenticated user (including Campus Visitor) can report wastage. Send a POST with a CreateWastageReportDto JSON body." })
-  @ApiResponse({ status: 201, description: "Wastage report created successfully." })
+  @ApiOperation({ summary: "Open Wastage Case", description: "Opens a wastage case for a pattern of waste (a hotspot of repeated waste issues, or something seen on the meters). Only the Sustainability Officer or Organization Admin opens cases; occupants report single incidents as issues (POST /service-requests/reports). source_request_ids links the issue reports behind the case. A case starts as 'Open'." })
+  @ApiResponse({ status: 201, description: "Wastage case opened." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
+  @ApiResponse({ status: 404, description: "A linked issue report does not exist." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
-  @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
+  @Roles("Organization Admin", "Sustainability Officer")
   create(@Body() createDto: CreateWastageReportDto, @Headers("x-user-id") userId?: string) {
     return this.wastageReportsService.create(createDto, userId);
   }
@@ -77,13 +78,41 @@ export class WastageReportsController {
   }
 
   @Get()
-  @ApiOperation({ summary: "List All Wastage Reports", description: "Retrieves all wastage reports. Any authenticated user can view them (the frontend filters by reporter)." })
+  @ApiOperation({ summary: "List Wastage Cases", description: "Staff see the organisation's cases. A Campus Visitor sees only the cases that grew out of an issue they reported." })
   @ApiResponse({ status: 200, description: "Array of wastage report records returned." })
   @ApiResponse({ status: 403, description: "Forbidden (RBAC)" })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
   @Roles("Organization Admin", "Financial Analyst", "Technician", "Sustainability Officer", "Campus Visitor")
   findAll(@Headers("x-user-id") userId?: string, @Headers("x-role") role?: string) {
     return this.wastageReportsService.findAll(userId, role);
+  }
+
+  @Get("signals")
+  @ApiOperation({
+    summary: "Waste signals",
+    description:
+      "What the Sustainability Officer opens cases from. Waste issue reports grouped by place and kind over 30 days (hotspot at 3 or more, or at once for a food or smoke report), places whose logged food waste rose this week, and meters more than 10% above the same month last year. Every group is returned; hotspot marks the ones the rule flags, watched the ones the officer chose to watch, case_id the ones an active case already covers.",
+  })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Sustainability Officer", "Organization Admin")
+  signals() {
+    return this.wastageReportsService.signals();
+  }
+
+  @Post("signals/watch")
+  @ApiOperation({ summary: "Watch a waste signal", description: "Keeps an eye on a signal instead of opening a case. It comes back as active when a new report arrives. Body: { key }." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Sustainability Officer", "Organization Admin")
+  watch(@Body("key") key: string, @Headers("x-user-id") userId?: string) {
+    return this.wastageReportsService.watch(String(key ?? ""), userId);
+  }
+
+  @Post("signals/unwatch")
+  @ApiOperation({ summary: "Stop watching a waste signal", description: "Body: { key }." })
+  @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
+  @Roles("Sustainability Officer", "Organization Admin")
+  unwatch(@Body("key") key: string) {
+    return this.wastageReportsService.unwatch(String(key ?? ""));
   }
 
   @Get(":id/target-check")
@@ -147,7 +176,7 @@ export class WastageReportsController {
   }
 
   @Post(":id/work-order")
-  @ApiOperation({ summary: "Raise a work order from a validated report", description: "Sends the job through the same assignment as every other job: team from the kind of wastage, one ranked technician, a deadline. One per report." })
+  @ApiOperation({ summary: "Raise a work order from a case", description: "For a remedy that needs physical work. Sends the job through the same assignment as every other job: team from the kind of wastage, one ranked technician, a deadline. One per case; only while the case is active." })
   @ApiResponse({ status: 201, description: "Job raised." })
   @ApiResponse({ status: 409, description: "A work order was already raised." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC.", required: false })
@@ -157,7 +186,7 @@ export class WastageReportsController {
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update Wastage Report", description: "Partially updates a wastage report. A status change must follow the workflow: Sustainability Officer (and Organization Admin) Reported→Validated|Dismissed, Validated→Forwarded to Finance|Target Set|Dismissed, Returned to SO→Target Set|Forwarded to Finance, Target Set→Finalized, Finalized→Delivered; Financial Analyst (and Organization Admin) Forwarded to Finance→Cost Impact Added, Cost Impact Added→Returned to SO. Any other move returns 403. Saving the same status with other changes is allowed. Each move notifies the people concerned." })
+  @ApiOperation({ summary: "Update Wastage Report", description: "Partially updates a wastage case. A status change must follow the workflow: Sustainability Officer (and Organization Admin) Open→Target Set|Forwarded to Finance|Dismissed, Returned to SO→Target Set|Forwarded to Finance|Dismissed, Target Set→Verify Target, Verify Target→Target Met|Target Missed, Target Met→Closed, Target Missed→Closed|Target Set; Financial Analyst (and Organization Admin) Forwarded to Finance→Cost Impact Added, Cost Impact Added→Returned to SO. Leaving Open needs details.remedy: a 'no_cost' remedy goes straight to Target Set, a 'spend' remedy (with estimate > 0) must go through Finance first. Any other move returns 403 (400 when no remedy is given). Saving the same status with other changes is allowed. Closing a case tells the reporters of its linked issues what came of it." })
   @ApiResponse({ status: 200, description: "Updated successfully." })
   @ApiResponse({ status: 404, description: "Not found." })
   @ApiResponse({ status: 403, description: "Forbidden." })

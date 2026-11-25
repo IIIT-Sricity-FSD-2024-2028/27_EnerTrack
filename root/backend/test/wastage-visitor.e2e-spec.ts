@@ -6,11 +6,13 @@ import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/core/filters/all-exceptions.filter';
 import { TransformInterceptor } from '../src/core/interceptors/transform.interceptor';
 import { RolesGuard } from '../src/core/guards/roles.guard';
+import { DatabaseService } from '../src/core/database/database.service';
 
 /**
- * What a Campus Visitor can do to a wastage report after filing it: add a
- * comment and archive it once it is over. Both have their own routes, so the
- * visitor still cannot use PATCH /wastage-reports/:id to change anything else.
+ * What a Campus Visitor can do to a wastage case that grew out of an issue
+ * they reported: add a comment and archive it once it is over. Both have
+ * their own routes, so the visitor still cannot use PATCH
+ * /wastage-reports/:id to change anything else.
  */
 describe('Wastage reports: visitor comments and archive (e2e)', () => {
   let app: INestApplication;
@@ -22,12 +24,29 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
   const asOfficer = { 'x-role': 'Sustainability Officer', 'x-org-id': ORG };
   const body = (res: request.Response) => res.body?.data ?? res.body;
 
-  /** Files a report as the visitor and returns its id. */
+  let db: DatabaseService;
+  let n = 0;
+  /**
+   * Opens a case (as the officer) behind an issue the visitor reported, and
+   * returns its id. Tokens in e2e are signed for user_id "test-user".
+   */
   const fileReport = async () => {
+    const ticket = `wv-ticket-${++n}-${Date.now()}`;
+    db.serviceRequests.push({
+      service_request_id: ticket,
+      organization_id: ORG,
+      reporter_id: 'test-user',
+      reporter_ids: ['test-user', TRISHANK],
+      assigned_to_id: null,
+      category: 'Waste',
+      issue_type: 'Tap left open',
+      status: 'closed',
+      created_at: new Date().toISOString(),
+    } as any);
     const res = await http()
       .post('/api/wastage-reports')
-      .set(asVisitor)
-      .send({ reporter_id: TRISHANK, type: 'Water', status: 'Reported', details: { priority: 'Medium' } });
+      .set(asOfficer)
+      .send({ type: 'Water', source_request_ids: [ticket], details: { priority: 'Medium', remedy: { type: 'no_cost', description: 'Signage' } } });
     return body(res).wastage_report_id as string;
   };
 
@@ -36,12 +55,11 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
    * legal step at a time, since the server refuses skipped steps.
    */
   const PATH: Record<string, string[]> = {
-    Reported: [],
-    Validated: ['Validated'],
-    'Forwarded to Finance': ['Validated', 'Forwarded to Finance'],
-    'Target Set': ['Validated', 'Target Set'],
-    Finalized: ['Validated', 'Target Set', 'Finalized'],
-    Delivered: ['Validated', 'Target Set', 'Finalized', 'Delivered'],
+    Open: [],
+    'Target Set': ['Target Set'],
+    'Verify Target': ['Target Set', 'Verify Target'],
+    'Target Met': ['Target Set', 'Verify Target', 'Target Met'],
+    Closed: ['Target Set', 'Verify Target', 'Target Met', 'Closed'],
     Dismissed: ['Dismissed'],
   };
   const setStatus = async (id: string, status: string) => {
@@ -64,6 +82,7 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
     app.useGlobalInterceptors(new TransformInterceptor());
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
+    db = app.get(DatabaseService);
   });
 
   afterAll(async () => {
@@ -132,8 +151,8 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
   });
 
   describe('archive', () => {
-    it.each(['Delivered', 'Target Set', 'Finalized', 'Dismissed'])(
-      'lets a visitor archive a %s report',
+    it.each(['Closed', 'Target Set', 'Target Met', 'Dismissed'])(
+      'lets a visitor archive a %s case',
       async (status) => {
         const id = await fileReport();
         await setStatus(id, status);
@@ -145,11 +164,11 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
       },
     );
 
-    it.each(['Reported', 'Validated', 'Forwarded to Finance'])(
-      'refuses to archive a report that is still %s',
+    it.each(['Open', 'Verify Target'])(
+      'refuses to archive a case that is still %s',
       async (status) => {
         const id = await fileReport();
-        if (status !== 'Reported') await setStatus(id, status);
+        await setStatus(id, status);
         const res = await http().patch(`/api/wastage-reports/${id}/archive`).set(asVisitor);
         expect(res.status).toBe(400);
       },
@@ -158,7 +177,7 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
     it('keeps the comments when archiving', async () => {
       const id = await fileReport();
       await http().post(`/api/wastage-reports/${id}/comments`).set(asVisitor).send({ text: 'thanks' });
-      await setStatus(id, 'Delivered');
+      await setStatus(id, 'Closed');
       const res = await http().patch(`/api/wastage-reports/${id}/archive`).set(asVisitor);
       expect(body(res).details.comments).toHaveLength(1);
     });
@@ -166,7 +185,7 @@ describe('Wastage reports: visitor comments and archive (e2e)', () => {
 
   it('still refuses a visitor the general PATCH', async () => {
     const id = await fileReport();
-    const res = await http().patch(`/api/wastage-reports/${id}`).set(asVisitor).send({ status: 'Delivered' });
+    const res = await http().patch(`/api/wastage-reports/${id}`).set(asVisitor).send({ status: 'Closed' });
     expect(res.status).toBe(403);
   });
 });

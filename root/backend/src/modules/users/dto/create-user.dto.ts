@@ -22,7 +22,6 @@ export class CreateUserDto {
   @IsOptional() @Matches(PHONE, { message: `phone ${PHONE_MESSAGE}` }) phone?: string;
   @Matches(PASSWORD, { message: `password ${PASSWORD_MESSAGE}` }) password: string;
   @IsEnum(UserRole) role: UserRole;
-  @IsOptional() @Matches(LABEL, { message: `specialization ${LABEL_MESSAGE}` }) specialization?: string;
   /** Field-staff trade. Jobs are only auto-assigned to someone on the matching team; null means none. */
   @IsOptional() @IsIn(TEAMS, { message: `team must be one of: ${TEAMS.join(", ")}` }) team?: string | null;
 }

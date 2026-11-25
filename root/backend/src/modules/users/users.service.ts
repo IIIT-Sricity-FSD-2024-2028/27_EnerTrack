@@ -425,13 +425,10 @@ export class UsersService {
       try {
         // A technician is only sent jobs for their own team, so it is required.
         if (row.role === UserRole.TECHNICIAN && !row.team)
-          throw new BadRequestException("A technician needs a team (electrician, plumber, cleaning or hvac).");
-        const specialization =
-          row.role === UserRole.TECHNICIAN ? row.team!.charAt(0).toUpperCase() + row.team!.slice(1) : undefined;
+          throw new BadRequestException("A technician needs a team (electrician, plumber, general or hvac).");
         const user = this.create({
           ...row,
           team: row.role === UserRole.TECHNICIAN ? row.team : undefined,
-          ...(specialization ? { specialization } : {}),
           password,
         } as CreateUserDto);
         return { row: i + 1, ok: true, email: user.email, name: user.name, role: user.role, password };

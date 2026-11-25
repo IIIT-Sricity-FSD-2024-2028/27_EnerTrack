@@ -133,7 +133,7 @@ export class UsersController {
   }
 
   @Post()
-  @ApiOperation({ summary: "Create User", description: "Creates a new user account in the system. Only the Organization Admin can register new users by providing name, email, password, role, and optional phone/specialization fields. Send a POST request with a CreateUserDto JSON body containing all required user fields." })
+  @ApiOperation({ summary: "Create User", description: "Creates a new user account in the system. Only the Organization Admin can register new users by providing name, email, password, role, and optional phone and team fields. Send a POST request with a CreateUserDto JSON body containing all required user fields." })
   @ApiResponse({ status: 201, description: "User created successfully." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })
   @ApiHeader({ name: "x-role", description: "User role for RBAC. Enum: Organization Admin | Financial Analyst | Technician | Sustainability Officer | Campus Visitor", required: false })
@@ -174,7 +174,7 @@ export class UsersController {
     return this.usersService.put(id, putDto);
   }
   @Patch(":id")
-  @ApiOperation({ summary: "Update User", description: "Partially updates specific fields of an existing user record (e.g., role, specialization, contact info). Only the Organization Admin can modify user details. Send a PATCH request with the user_id in the URL and an UpdateUserDto JSON body containing only the fields to change." })
+  @ApiOperation({ summary: "Update User", description: "Partially updates specific fields of an existing user record (e.g., role, team, contact info). Only the Organization Admin can modify user details. Send a PATCH request with the user_id in the URL and an UpdateUserDto JSON body containing only the fields to change." })
   @ApiResponse({ status: 200, description: "User record updated successfully." })
   @ApiResponse({ status: 404, description: "User with the given ID not found." })
   @ApiResponse({ status: 403, description: "Forbidden – caller role is not Organization Admin." })

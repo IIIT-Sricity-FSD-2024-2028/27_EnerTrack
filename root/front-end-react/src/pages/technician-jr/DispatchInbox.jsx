@@ -202,104 +202,130 @@ export default function DispatchInbox() {
   );
 }
 
-const fmt = (iso) => new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
-/** One acknowledged job: its finish date and the few things a technician can do about it. */
+const fmtDue = (iso) =>
+  new Date(iso).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+const LEVEL_NAME = { immediate: "Critical", high: "High", medium: "Medium", low: "Low" };
+/** "1 d 23 h left" or "5 h left", rounded once so it never reads "1 d 24 h". */
+const leftIn = (hours) => {
+  const h = Math.round(Math.abs(hours));
+  const text = h >= 24 ? `${Math.floor(h / 24)} d ${h % 24} h` : `${h} h`;
+  return hours < 0 ? "Past due" : `${text} left`;
+};
+const rupees = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
+
+/** A short note under a job: what is happening to it that the technician should know. */
+function JobNote({ tone, title, children }) {
+  return (
+    <div className={`job-note job-note-${tone}`}>
+      <strong>{title}</strong>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+/** One acknowledged job: what it is, when it is due, where it stands, and what can be done next. */
 function ActiveJob({ job, run, busy }) {
   const sla = job.sla;
-  const [mode, setMode] = useState(null); // "parts" | "extend"
-  const [days, setDays] = useState(2);
+  const [mode, setMode] = useState(null); // "extend"
   const [date, setDate] = useState("");
   const [why, setWhy] = useState("");
   // Runs one step on this job. An error is shown by the inbox.
-  const step = (action, body) =>
-    run(jobAction({ id: job.work_order_id, action, body }));
-  const stepThenClose = (action, body) =>
-    step(action, body).then(() => setMode(null), () => {});
+  const step = (action, body) => run(jobAction({ id: job.work_order_id, action, body }));
+  const stepThenClose = (action, body) => step(action, body).then(() => setMode(null), () => {});
+  const late = sla.hours_left < 0;
+  const needsSafe = sla.safe_by && !sla.made_safe_at;
 
   return (
-    <div className="up-next-item" style={{ flexWrap: "wrap", gap: 8 }}>
-      <span className="up-next-title" style={{ flex: 1, minWidth: 220 }}>
-        {job.title}
-        <small style={{ display: "block" }}>
-          {sla.paused
-            ? `Clock paused for parts until about ${fmt(sla.expected_back)}`
-            : `Finish by ${fmt(sla.deadline_at)} (${sla.hours_left >= 0 ? `${sla.hours_left} h left` : "past due"})`}
-        </small>
-        {sla.request && (
-          <small style={{ display: "block" }}>Waiting for the coordinator to answer your request.</small>
-        )}
-        {sla.safe_by && !sla.made_safe_at && (
-          <small style={{ display: "block", color: "#b91c1c" }}>
-            Make it safe by {fmt(sla.safe_by)}
-          </small>
-        )}
-      </span>
+    <div className="job-card">
+      <div className="job-card-top">
+        <div className="job-card-main">
+          <div className="job-card-head">
+            <span className={`priority-tag priority-${job.priority}`}>{LEVEL_NAME[job.priority] || "Medium"}</span>
+            <strong className="job-card-title">{job.title}</strong>
+          </div>
+          <p className={"job-card-due" + (late ? " late" : "")}>
+            Finish by {fmtDue(sla.deadline_at)}
+            <span>{leftIn(sla.hours_left)}</span>
+          </p>
+        </div>
 
-      {mode === null && (
-        <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {job.status === "new" && (
-            <button type="button" className="btn btn-dark" disabled={busy} onClick={() => step("start").catch(() => {})}>
-              Start work
-            </button>
-          )}
-          {job.status === "inprogress" && (
-            <button type="button" className="btn btn-green" disabled={busy} onClick={() => step("finish").catch(() => {})}>
-              Mark done
-            </button>
-          )}
-          {sla.safe_by && !sla.made_safe_at && (
-            <button type="button" className="btn btn-green" disabled={busy} onClick={() => step("made-safe").catch(() => {})}>
-              Made safe
-            </button>
-          )}
-          {sla.paused ? (
-            <button type="button" className="btn btn-dark" disabled={busy} onClick={() => step("resume").catch(() => {})}>
-              Parts arrived
-            </button>
-          ) : (
-            <button type="button" className="btn btn-light" onClick={() => setMode("parts")}>
-              Needs parts
-            </button>
-          )}
-          {!sla.request && (
-            <button type="button" className="btn btn-light" onClick={() => setMode("extend")}>
-              Request extension
-            </button>
-          )}
-        </span>
+        {mode === null && (
+          <div className="job-card-actions">
+            {job.status === "new" && (
+              <button type="button" className="btn btn-dark" disabled={busy} onClick={() => step("start").catch(() => {})}>
+                Start work
+              </button>
+            )}
+            {job.status === "inprogress" && (
+              <button type="button" className="btn btn-green" disabled={busy} onClick={() => step("finish").catch(() => {})}>
+                Mark done
+              </button>
+            )}
+            {needsSafe && (
+              <button type="button" className="btn btn-green" disabled={busy} onClick={() => step("made-safe").catch(() => {})}>
+                Made safe
+              </button>
+            )}
+            {!sla.request && (
+              <button type="button" className="btn btn-light" onClick={() => setMode("extend")}>
+                Request extension
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {needsSafe && (
+        <JobNote tone="danger" title="Make it safe first">
+          Do this by {fmtDue(sla.safe_by)}.
+        </JobNote>
       )}
-
-      {mode === "parts" && (
-        <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <label>
-            Expected wait (days){" "}
-            <input type="number" min="1" max="60" value={days} onChange={(e) => setDays(Number(e.target.value))} style={{ width: 70 }} />
-          </label>
-          {days > 5 && <small>Over 5 days needs the coordinator&apos;s OK.</small>}
-          <button type="button" className="btn btn-dark" disabled={busy}
-            onClick={() => stepThenClose("needs-parts", { days })}>
-            Pause for parts
-          </button>
-          <button type="button" className="btn btn-light" onClick={() => setMode(null)}>Cancel</button>
-        </span>
+      {job.estimate?.state === "waiting" && (
+        <JobNote tone="info" title="Cost estimate is with Finance">
+          You asked for {rupees(job.estimate.total)}. You can start once it is approved.
+        </JobNote>
+      )}
+      {job.estimate?.state === "sent_back" && (
+        <JobNote tone="warn" title="Finance sent your estimate back">
+          {job.estimate.reason ? `${job.estimate.reason} ` : ""}Send a new one from My Work Orders.
+        </JobNote>
+      )}
+      {sla.request && (
+        <JobNote tone="info" title="Request sent">
+          Waiting for the coordinator to answer.
+        </JobNote>
       )}
 
       {mode === "extend" && (
-        <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
-          <input type="text" placeholder="Short reason" value={why} onChange={(e) => setWhy(e.target.value)} />
-          <button type="button" className="btn btn-dark" disabled={busy || !date || why.trim().length < 3}
-            onClick={() =>
-              stepThenClose("extension", {
-                new_deadline_at: new Date(date).toISOString(),
-                reason: why,
-              })
-            }>
-            Send request
-          </button>
-          <button type="button" className="btn btn-light" onClick={() => setMode(null)}>Cancel</button>
-        </span>
+        <div className="job-extend">
+          <label>
+            New finish date
+            <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+          </label>
+          <label>
+            Reason
+            <input type="text" placeholder="A few words" value={why} onChange={(e) => setWhy(e.target.value)} />
+          </label>
+          <span className="job-extend-actions">
+            <button
+              type="button"
+              className="btn btn-dark"
+              disabled={busy || !date || why.trim().length < 3}
+              onClick={() =>
+                stepThenClose("extension", {
+                  new_deadline_at: new Date(date).toISOString(),
+                  reason: why,
+                })
+              }
+            >
+              Send request
+            </button>
+            <button type="button" className="btn btn-light" onClick={() => setMode(null)}>
+              Cancel
+            </button>
+          </span>
+        </div>
       )}
     </div>
   );

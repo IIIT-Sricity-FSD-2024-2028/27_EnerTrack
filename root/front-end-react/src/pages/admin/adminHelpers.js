@@ -38,14 +38,11 @@ export function assignableRoles(isSuperAdmin) {
 export const TEAMS = [
   { value: "electrician", label: "Electrician" },
   { value: "plumber", label: "Plumber" },
-  { value: "cleaning", label: "Cleaning" },
+  { value: "general", label: "General Maintenance" },
   { value: "hvac", label: "HVAC (AC and cooling)" },
 ];
 
 export const teamLabel = (value) => TEAMS.find((t) => t.value === value)?.label || "";
-
-// Roles that must have a specialization (e.g. "Electrical")
-export const TECHNICIAN_ROLES = ["Technician", "Operations Coordinator"];
 
 // Friendly names for a few stored values; anything else is shown as it is
 const LABELS = {
@@ -95,7 +92,7 @@ export function addToast(setToasts, message, type = "info") {
  * field that is wrong, or {} when everything is fine. Every text rule is the
  * same regular expression the backend enforces (see auth/validators.js).
  *
- *   values       { name, email, phone, role, specialization, password }
+ *   values       { name, email, phone, role, team, password }
  *                (already trimmed)
  *   users        every existing user, to catch a repeated email or phone
  *   editingId    the id of the user being edited, or null when adding;
@@ -131,13 +128,9 @@ export function getUserErrors(values, users, editingId, emailDomain = "") {
     errors.role = "Select a valid role.";
   }
 
-  if (TECHNICIAN_ROLES.includes(values.role) && values.specialization === "") {
-    errors.specialization = "Technician specialization is required.";
-  } else {
-    const specializationError = validators.specialization(
-      values.specialization,
-    );
-    if (specializationError) errors.specialization = specializationError;
+  // A technician is only sent jobs for their own team, so it is required.
+  if (values.role === "Technician" && !TEAMS.some((t) => t.value === values.team)) {
+    errors.team = "Select the technician's team.";
   }
 
   // A new account needs a password. When editing, a blank one means "leave it".

@@ -614,3 +614,160 @@
   outline: 2px solid #2d5a43;
   outline-offset: 2px;
 }
+
+
+/* ── Waste signals ────────────────────────────────── */
+
+.so-panel-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.so-signals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.so-signal {
+  display: grid;
+  grid-template-columns: 84px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid #eef0f2;
+}
+
+.so-signal-kind {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.so-signal-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.so-signal-main strong {
+  font-size: 14px;
+  color: #111827;
+}
+
+.so-signal-main span {
+  font-size: 13px;
+  color: #374151;
+}
+
+.so-signal-main small {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.so-signal.is-hot .so-signal-main span {
+  color: #92400e;
+  font-weight: 600;
+}
+
+.so-signal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .so-signal {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+/* ── Case remedy and modals ───────────────────────── */
+
+.so-remedy {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.so-remedy strong {
+  color: #111827;
+}
+
+.so-remedy-type {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.so-remedy-type.no_cost {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.so-remedy-type.spend {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.so-case-from {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.so-choice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.so-choice.is-on {
+  border-color: #2d5a43;
+  background: #f0fdf4;
+}
+
+.so-choice input {
+  /* The page styles every input full width; a radio must stay small. */
+  width: auto;
+  flex: none;
+  margin: 3px 0 0;
+}
+
+.so-choice span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.so-choice strong {
+  font-size: 14px;
+  color: #111827;
+}
+
+.so-choice small {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}

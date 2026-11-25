@@ -26,7 +26,6 @@ import {
   assignableRoles,
   getUserErrors,
   PLATFORM_SIDE_ROLES,
-  TECHNICIAN_ROLES,
   USER_ROLES,
   formatLabel,
   TEAMS,
@@ -51,7 +50,6 @@ export default function UserFormModal({
     phone: user?.phone || "",
     role: user?.role || USER_ROLES[0],
     organization_id: "",
-    specialization: user?.specialization || "",
     team: user?.team || "",
     password: "",
   });
@@ -114,7 +112,7 @@ export default function UserFormModal({
       phone: form.phone.trim(),
       role: form.role,
       organization_id: form.organization_id,
-      specialization: form.specialization.trim(),
+      team: form.team,
       password: form.password.trim(),
     };
 
@@ -139,9 +137,6 @@ export default function UserFormModal({
       email: values.email.toLowerCase(),
       phone: values.phone,
       role: values.role,
-      specialization: TECHNICIAN_ROLES.includes(values.role)
-        ? values.specialization
-        : null,
       // Only field technicians take jobs, so only they have a team.
       team: values.role === "Technician" ? form.team || null : null,
     };
@@ -160,7 +155,6 @@ export default function UserFormModal({
         phone: "editUserPhone",
         role: "editUserRole",
         org: "editUserOrg",
-        specialization: "editSpecialization",
         team: "editTeam",
         password: "editPassword",
       }
@@ -170,7 +164,6 @@ export default function UserFormModal({
         phone: "userPhone",
         role: "userRole",
         org: "userOrg",
-        specialization: "specialization",
         team: "userTeam",
         password: "tempPassword",
       };
@@ -282,26 +275,11 @@ export default function UserFormModal({
           </div>
         )}
 
-        <div className="form-field">
-          <label htmlFor={id.specialization}>Specialization</label>
-          {/* Only technicians have a specialization, so the box is locked for
-              every other role (it would not be saved anyway). */}
-          <input
-            id={id.specialization}
-            name="specialization"
-            placeholder="Required for Technicians"
-            disabled={!TECHNICIAN_ROLES.includes(form.role)}
-            value={form.specialization}
-            onChange={handleChange}
-          />
-          <span className="field-error">{errors.specialization}</span>
-        </div>
-
         {form.role === "Technician" && (
           <div className="form-field">
             <label htmlFor={id.team}>Team</label>
             <select id={id.team} name="team" value={form.team} onChange={handleChange}>
-              <option value="">No team (no automatic jobs)</option>
+              <option value="">Select a team</option>
               {TEAMS.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
@@ -312,6 +290,7 @@ export default function UserFormModal({
               Jobs are only sent to someone on the matching team. A plumbing job
               never goes to an electrician.
             </p>
+            <span className="field-error">{errors.team}</span>
           </div>
         )}
 
