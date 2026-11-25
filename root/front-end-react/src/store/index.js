@@ -37,12 +37,14 @@ import {
 import notifications from "./slices/notificationsSlice";
 // Person 4: sustainability
 import initiatives from "./slices/initiativesSlice";
+import sustainabilityReports from "./slices/sustainabilityReportsSlice";
 import targets from "./slices/targetsSlice";
 // Person 3: finance
 import energyCosts from "./slices/energyCostsSlice";
 import financialReports from "./slices/financialReportsSlice";
 import invoices from "./slices/invoicesSlice";
 // Person 5: wastage / campus
+import wastageReports, { wastageSignalsReducer as wastageSignals } from "./slices/wastageReportsSlice";
 import serviceRequests, {
   serviceCatalogueReducer as serviceCatalogue,
 } from "./slices/serviceRequestsSlice";
@@ -72,6 +74,11 @@ const reducers = {
   initiatives,
   targets,
   // Person 5: wastage / campus
+  sustainabilityReports,
+  targets,
+  // Person 5: wastage / campus
+  wastageReports,
+  wastageSignals,
   // Person 3: finance
   energyCosts,
   financialReports,
