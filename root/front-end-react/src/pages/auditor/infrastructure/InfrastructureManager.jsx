@@ -16,6 +16,11 @@
  *
  * `onChange` (optional) is called after every save or delete, so the page
  * around it can refresh anything that depends on buildings or meters.
+ *
+ * `showBudget` (default true) shows the budget fields in the campus,
+ * building and department forms. The auditor page turns it off: budgets are
+ * the client's money, set by their Organization Admin. With it off, edits
+ * leave the stored budget as it is.
  */
 import { useEffect, useState } from "react";
 import api from "../../../api/client";
@@ -76,7 +81,7 @@ async function fetchInfrastructure(orgId) {
   };
 }
 
-export default function InfrastructureManager({ orgId, onChange }) {
+export default function InfrastructureManager({ orgId, onChange, showBudget = true }) {
   const { toasts, showToast } = useToast();
   const { role } = useAuth();
   // Only EnerTrack staff see more than one organisation, so only they need
@@ -314,6 +319,7 @@ export default function InfrastructureManager({ orgId, onChange }) {
           campus={popup.item}
           buildings={buildings}
           orgId={orgId}
+          showBudget={showBudget}
           onSaved={(saved) => {
             // Select a newly added campus so its panels show straight away.
             if (!popup.item && saved) {
@@ -334,6 +340,7 @@ export default function InfrastructureManager({ orgId, onChange }) {
           departments={departments}
           selectedCampusId={campus ? campus.campus_id : null}
           orgId={orgId}
+          showBudget={showBudget}
           onSaved={(saved) => {
             if (!popup.item && saved) {
               setSelectedBuildingId(saved.building_id);
@@ -352,6 +359,7 @@ export default function InfrastructureManager({ orgId, onChange }) {
           departments={departments}
           selectedBuildingId={building ? building.building_id : null}
           orgId={orgId}
+          showBudget={showBudget}
           onSaved={afterChange}
           onClose={() => setPopup(null)}
           showToast={showToast}

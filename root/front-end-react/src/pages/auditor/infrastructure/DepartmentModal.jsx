@@ -3,6 +3,9 @@
  *
  * `buildings` is the selected campus's buildings; the picker starts on the
  * building selected in the manager.
+ *
+ * `showBudget` false (auditor page) hides the budget and never sends one,
+ * so an edit keeps the stored budget and a new department has none yet.
  */
 import { useState } from "react";
 import api from "../../../api/client";
@@ -16,6 +19,7 @@ export default function DepartmentModal({
   departments,
   selectedBuildingId,
   orgId,
+  showBudget = true,
   onSaved,
   onClose,
   showToast,
@@ -43,11 +47,13 @@ export default function DepartmentModal({
     if (!buildingId) {
       newErrors.building = "Select a building.";
     }
-    if (budget === "" || Number(budget) < 0) {
-      newErrors.budget = "Enter a valid positive number.";
-    } else if (maxBudget !== null && Number(budget) > maxBudget) {
-      newErrors.budget =
-        "The building has only " + formatCurrency(maxBudget) + " unallocated.";
+    if (showBudget) {
+      if (budget === "" || Number(budget) < 0) {
+        newErrors.budget = "Enter a valid positive number.";
+      } else if (maxBudget !== null && Number(budget) > maxBudget) {
+        newErrors.budget =
+          "The building has only " + formatCurrency(maxBudget) + " unallocated.";
+      }
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
@@ -57,8 +63,10 @@ export default function DepartmentModal({
     const body = {
       name: name.trim(),
       building_id: buildingId,
-      budget: Number(budget),
     };
+    if (showBudget) {
+      body.budget = Number(budget);
+    }
     if (orgId) {
       body.organization_id = orgId;
     }
@@ -116,23 +124,25 @@ export default function DepartmentModal({
           </select>
           <span className="field-error">{errors.building}</span>
         </div>
-        <div className="form-field">
-          <label htmlFor="deptBudget">Budget</label>
-          <input
-            id="deptBudget"
-            type="number"
-            min="0"
-            step="0.01"
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-          />
-          {maxBudget !== null && (
-            <span className="field-hint">
-              Up to {formatCurrency(maxBudget)}
-            </span>
-          )}
-          <span className="field-error">{errors.budget}</span>
-        </div>
+        {showBudget && (
+          <div className="form-field">
+            <label htmlFor="deptBudget">Budget</label>
+            <input
+              id="deptBudget"
+              type="number"
+              min="0"
+              step="0.01"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+            />
+            {maxBudget !== null && (
+              <span className="field-hint">
+                Up to {formatCurrency(maxBudget)}
+              </span>
+            )}
+            <span className="field-error">{errors.budget}</span>
+          </div>
+        )}
       </div>
     </Modal>
   );

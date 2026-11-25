@@ -3,6 +3,10 @@
  *
  * `campus` is null when adding. `orgId` is set on the auditor page, so a
  * new campus is created for the client being audited.
+ *
+ * `showBudget` false (auditor page) hides the budget: an edit leaves the
+ * stored budget alone, and a new campus starts at 0 for the client's admin
+ * to set (the server requires a number).
  */
 import { useState } from "react";
 import api from "../../../api/client";
@@ -14,6 +18,7 @@ export default function CampusModal({
   campus,
   buildings,
   orgId,
+  showBudget = true,
   onSaved,
   onClose,
   showToast,
@@ -31,11 +36,13 @@ export default function CampusModal({
     if (name.trim().length < 3) {
       newErrors.name = "Enter a campus name (min 3 chars).";
     }
-    if (budget === "" || Number(budget) < 0) {
-      newErrors.budget = "Enter a valid positive number.";
-    } else if (Number(budget) < minBudget) {
-      newErrors.budget =
-        "Its buildings already hold " + formatCurrency(minBudget) + ".";
+    if (showBudget) {
+      if (budget === "" || Number(budget) < 0) {
+        newErrors.budget = "Enter a valid positive number.";
+      } else if (Number(budget) < minBudget) {
+        newErrors.budget =
+          "Its buildings already hold " + formatCurrency(minBudget) + ".";
+      }
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
@@ -45,8 +52,12 @@ export default function CampusModal({
     const body = {
       name: name.trim(),
       location: location.trim() || null,
-      total_budget: Number(budget),
     };
+    if (showBudget) {
+      body.total_budget = Number(budget);
+    } else if (!campus) {
+      body.total_budget = 0;
+    }
     if (orgId) {
       body.organization_id = orgId;
     }
@@ -95,23 +106,25 @@ export default function CampusModal({
             placeholder="City Center"
           />
         </div>
-        <div className="form-field">
-          <label htmlFor="campusBudget">Total Budget</label>
-          <input
-            id="campusBudget"
-            type="number"
-            min="0"
-            step="0.01"
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-          />
-          {minBudget > 0 && (
-            <span className="field-hint">
-              At least {formatCurrency(minBudget)}
-            </span>
-          )}
-          <span className="field-error">{errors.budget}</span>
-        </div>
+        {showBudget && (
+          <div className="form-field">
+            <label htmlFor="campusBudget">Total Budget</label>
+            <input
+              id="campusBudget"
+              type="number"
+              min="0"
+              step="0.01"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+            />
+            {minBudget > 0 && (
+              <span className="field-hint">
+                At least {formatCurrency(minBudget)}
+              </span>
+            )}
+            <span className="field-error">{errors.budget}</span>
+          </div>
+        )}
       </div>
     </Modal>
   );

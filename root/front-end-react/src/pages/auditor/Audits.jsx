@@ -246,6 +246,7 @@ export default function AuditorAudits() {
                 key={audit.organization_id}
                 orgId={audit.organization_id}
                 onChange={reloadBuildingsAndMeters}
+                showBudget={false}
               />
             </div>
           </div>
