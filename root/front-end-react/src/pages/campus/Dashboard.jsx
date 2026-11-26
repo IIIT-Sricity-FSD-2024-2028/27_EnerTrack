@@ -12,6 +12,7 @@
  * reach the server is not a report, and the visitor is told so.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { unwrapLoad } from "../../store/loadState";
 import { useToast } from "../../ui/useToast";
 import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../auth/useAuth";
@@ -64,8 +65,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      dispatch(fetchServiceCatalogue()).unwrap(),
-      dispatch(fetchBuildings()).unwrap(),
+      // Cached loads: a skip (already loaded) is not an error.
+      unwrapLoad(dispatch(fetchServiceCatalogue())),
+      unwrapLoad(dispatch(fetchBuildings())),
     ]).catch((e) => setLoadError(e.message));
     loadTickets();
   }, [dispatch, loadTickets]);

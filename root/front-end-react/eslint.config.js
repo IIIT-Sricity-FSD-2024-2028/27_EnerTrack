@@ -79,7 +79,8 @@ export default defineConfig([
   },
 
   {
-    // ── Merge-gate rule: the session belongs to the auth slice ──
+    // ── Merge-gate rules: the session belongs to the auth slice, and
+    //    cached loads are never .unwrap()-ed directly ──
     //
     // store/slices/authSlice.js owns reading and writing the session, and
     // src/api reads it to send the sign-in token. Everywhere else goes through
@@ -99,6 +100,15 @@ export default defineConfig([
           selector: "Literal[value='enertrack_impersonator']",
           message:
             "Impersonation state belongs to the auth slice — use useAuth().impersonate / stopImpersonating.",
+        },
+        {
+          // dispatch(fetchX()).unwrap(): a cached load that is skipped
+          // (already loaded, or StrictMode's second run) throws "Aborted due
+          // to condition callback returning false".
+          selector:
+            "CallExpression[callee.property.name='unwrap'][callee.object.callee.name='dispatch'][callee.object.arguments.0.callee.name=/^fetch/][callee.object.arguments.0.arguments.length=0]",
+          message:
+            "A cached load can be skipped, and .unwrap() then throws. Use unwrapLoad(dispatch(fetchX())) from store/loadState, or pass { force: true }.",
         },
       ],
     },

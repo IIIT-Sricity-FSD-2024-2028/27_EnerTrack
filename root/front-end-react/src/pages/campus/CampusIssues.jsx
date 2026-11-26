@@ -7,6 +7,7 @@
  * see how many friends to ask for a +1 to push a ticket up.
  */
 import { useEffect, useMemo, useState } from "react";
+import { unwrapLoad } from "../../store/loadState";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBuildings, selectAllBuildings } from "../../store/slices/buildingsSlice";
 import {
@@ -40,8 +41,9 @@ export default function CampusIssues() {
 
   useEffect(() => {
     Promise.all([
-      dispatch(fetchServiceCatalogue()).unwrap(),
-      dispatch(fetchBuildings()).unwrap(),
+      // Cached loads: a skip (already loaded) is not an error.
+      unwrapLoad(dispatch(fetchServiceCatalogue())),
+      unwrapLoad(dispatch(fetchBuildings())),
     ]).catch((e) => setError(e.message));
   }, [dispatch]);
 
