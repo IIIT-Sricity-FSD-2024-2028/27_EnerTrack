@@ -5,7 +5,7 @@ import { resetData } from "../actions";
 
 function makeStore() {
   const app = combineReducers({ ui });
-  // Same reset rule as store/index.js: ui survives resetData.
+  // Same reset rule as store/store.js: ui survives resetData.
   const root = (state, action) =>
     action.type === resetData.type && state ? app({ ui: state.ui }, action) : app(state, action);
   return configureStore({ reducer: root });

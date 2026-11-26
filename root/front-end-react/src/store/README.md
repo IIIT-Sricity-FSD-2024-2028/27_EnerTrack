@@ -5,7 +5,7 @@ read with `useSelector` and change data with `dispatch`.
 
 ```
 store/
-  index.js            the store: register your reducer here (one line)
+  store.js            the store: register your reducer here (one line)
   actions.js          resetData: empties every data slice on sign-out / act-as
   apiThunk.js         createAsyncThunk that keeps isNetworkError on errors
   createCrudSlice.js  factory: one resource → slice + CRUD thunks + selectors
@@ -31,7 +31,7 @@ export const archiveInvoice = apiThunk("invoices/archive", (id) =>
 );
 
 const invoices = createCrudSlice({
-  name: "invoices", // = key in store/index.js = state.invoices
+  name: "invoices", // = key in store/store.js = state.invoices
   path: "/invoices", // REST base path
   idKey: "invoice_id", // primary key the backend sends
   extraReducers: (builder, { adapter }) => {
@@ -59,7 +59,7 @@ export const {
 export default invoices.reducer;
 ```
 
-Then add one line to `reducers` in `store/index.js` (in your own block).
+Then add one line to `reducers` in `store/store.js` (in your own block).
 
 ### Naming (keep it identical everywhere)
 

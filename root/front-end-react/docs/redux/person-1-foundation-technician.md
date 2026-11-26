@@ -2,7 +2,7 @@
 
 ## PR 1: `feat/redux-foundation` ✅ (done, lands first)
 - `@reduxjs/toolkit` + `react-redux`; `<Provider>` in `main.jsx`.
-- `store/index.js`, `actions.js` (`resetData`), `apiThunk.js`, `createCrudSlice.js`.
+- `store/store.js`, `actions.js` (`resetData`), `apiThunk.js`, `createCrudSlice.js`.
 - `authSlice`: session in the store, localStorage still written first (the
   API client reads the token there). `useAuth()` keeps its old shape;
   `AuthContext.jsx` / `context.js` removed. Auth and account pages dispatch
@@ -69,6 +69,6 @@ clearing the previous role's data.
 
 ## Reviewing teammates' PRs: checklist
 - No `api.` in pages; no `useState` holding server lists.
-- Thunks use `apiThunk`; slice registered in its owner's block in `store/index.js`.
+- Thunks use `apiThunk`; slice registered in its owner's block in `store/store.js`.
 - Mutations update in place (no `fetchX({force:true})` after the slice's own CRUD).
 - Selectors reshape; reducers store raw rows.

@@ -5,7 +5,7 @@
  *
  * gives you
  *
- *   meters.reducer                       register it in store/index.js
+ *   meters.reducer                       register it in store/store.js
  *   meters.thunks.fetchAll(arg?)         GET    /meters          → replaces the list
  *   meters.thunks.fetchOne(id)           GET    /meters/:id      → upserts one row
  *   meters.thunks.create(body)           POST   /meters          → adds the saved row
