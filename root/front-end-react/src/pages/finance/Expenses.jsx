@@ -1,6 +1,15 @@
+/**
+ * Expenses — /finance/expenses ("Maintenance Spend").
+ *
+ * Two tabs: technicians' expense bills grouped by work order (approve, or
+ * hold with a reason), and the pre-work quotes (MaintenanceApprovals). The
+ * bills, the auto-approve cap and the work orders come from the Redux store;
+ * a decision or a new cap reloads the bills, because it changes the totals
+ * and cap warnings on other bills too.
+ */
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
-import api from "../../api/client";
 import FinanceLayout from "./components/FinanceLayout";
 import Modal from "./components/Modal";
 import ToastProvider from "./components/ToastProvider";
@@ -8,6 +17,16 @@ import { useToast } from "./components/toastContext";
 import { formatCurrency } from "./financeUtils";
 import BillAttachmentModal from "../../ui/BillAttachmentModal";
 import MaintenanceApprovals from "./overview/MaintenanceApprovals";
+import {
+  fetchExpenseBills,
+  fetchExpenseSettings,
+  reviewExpenseBill,
+  selectAllExpenseBills,
+  selectExpenseSettings,
+  updateExpenseSettings,
+} from "../../store/slices/expenseBillsSlice";
+import { fetchWorkOrders, selectAllWorkOrders } from "../../store/slices/workOrdersSlice";
+import { useLiveData } from "../../store/useLiveData";
 
 import overviewCss from "../../styles/finance-analyst/finance_overview.css?inline";
 import sharedCss from "../../styles/finance-analyst/finance_shared.css?inline";
@@ -70,15 +89,19 @@ function defaultFinanceInnerTab(group) {
   return "rejected";
 }
 
+// Loaded fresh each time the page opens; no polling.
+const LOADS = [fetchExpenseBills, fetchWorkOrders, fetchExpenseSettings];
+
 function FinanceExpensesContent() {
   const showToast = useToast();
+  const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const topTab = searchParams.get("tab") === "quotes" ? "quotes" : "bills";
 
-  const [bills, setBills] = useState([]);
-  const [quoteCount, setQuoteCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [reloadKey, setReloadKey] = useState(0);
+  const bills = useSelector(selectAllExpenseBills);
+  const quoteCount = useSelector(selectAllWorkOrders).filter((w) => w.status === "approval").length;
+  const savedCap = useSelector(selectExpenseSettings).auto_approve_cap;
+  const { loading, error } = useLiveData(LOADS, { intervalMs: 0 });
   const [woScope, setWoScope] = useState("active"); // "active" | "archived"
   const [expandedWos, setExpandedWos] = useState({});
   const [woInnerTab, setWoInnerTab] = useState({});
@@ -87,7 +110,6 @@ function FinanceExpensesContent() {
   // Cap modal state
   const [capModalOpen, setCapModalOpen] = useState(false);
   const [capInput, setCapInput] = useState("1500");
-  const [savedCap, setSavedCap] = useState(1500);
   const [savingCap, setSavingCap] = useState(false);
 
   // Sign-off / Review modal state
@@ -100,40 +122,8 @@ function FinanceExpensesContent() {
   const [previewModal, setPreviewModal] = useState(null); // { bill, initialAttachment }
 
   useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      api.get("/expense-bills"),
-      api.get("/work-orders").catch(() => []),
-      api.get("/expense-bills/settings").catch(() => ({
-        auto_approve_cap: 1500,
-        max_auto_approved_per_wo: 2,
-      })),
-    ])
-      .then(([data, wos, settings]) => {
-        if (!cancelled) {
-          setBills(Array.isArray(data) ? data : []);
-          const approvalWos = Array.isArray(wos)
-            ? wos.filter((w) => w.status === "approval")
-            : [];
-          setQuoteCount(approvalWos.length);
-          if (settings && typeof settings.auto_approve_cap === "number") {
-            setSavedCap(settings.auto_approve_cap);
-            setCapInput(String(settings.auto_approve_cap));
-          }
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          showToast(err.message || "Failed to load maintenance spend data.", "error");
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [showToast, reloadKey]);
+    if (error) showToast(error || "Failed to load maintenance spend data.", "error");
+  }, [error, showToast]);
 
   function switchTopTab(nextTab) {
     if (nextTab === "quotes") {
@@ -156,10 +146,9 @@ function FinanceExpensesContent() {
     }
     setSavingCap(true);
     try {
-      const updated = await api.patch("/expense-bills/settings", {
-        auto_approve_cap: numeric,
-      });
-      setSavedCap(updated.auto_approve_cap);
+      const updated = await dispatch(
+        updateExpenseSettings({ auto_approve_cap: numeric }),
+      ).unwrap();
       setCapInput(String(updated.auto_approve_cap));
       setCapModalOpen(false);
       showToast(
@@ -168,7 +157,6 @@ function FinanceExpensesContent() {
           : `Minor expense cap updated to ${formatCurrency(updated.auto_approve_cap)} per Work Order.`,
         "success",
       );
-      setReloadKey((k) => k + 1);
     } catch (err) {
       showToast(err.message || "Failed to update cap.", "error");
     } finally {
@@ -235,12 +223,13 @@ function FinanceExpensesContent() {
   async function handleApprove(billId) {
     setActionBusy(true);
     try {
-      await api.patch(`/expense-bills/${billId}`, { status: "approved" });
+      await dispatch(
+        reviewExpenseBill({ id: billId, changes: { status: "approved" } }),
+      ).unwrap();
       showToast("Expense bill verified and cleared for settlement.", "success");
       setReviewingBill(null);
       setRejecting(false);
       setRejectionReason("");
-      setReloadKey((k) => k + 1);
     } catch (err) {
       showToast(err.message || "Failed to approve bill.", "error");
     } finally {
@@ -255,10 +244,12 @@ function FinanceExpensesContent() {
     }
     setActionBusy(true);
     try {
-      await api.patch(`/expense-bills/${billId}`, {
-        status: "rejected",
-        rejection_reason: rejectionReason.trim(),
-      });
+      await dispatch(
+        reviewExpenseBill({
+          id: billId,
+          changes: { status: "rejected", rejection_reason: rejectionReason.trim() },
+        }),
+      ).unwrap();
       showToast(
         isRevoke
           ? "Auto-approval held & revoked; technician notified to attach receipt & resubmit."
@@ -268,7 +259,6 @@ function FinanceExpensesContent() {
       setReviewingBill(null);
       setRejecting(false);
       setRejectionReason("");
-      setReloadKey((k) => k + 1);
     } catch (err) {
       showToast(err.message || "Failed to update bill.", "error");
     } finally {
@@ -335,7 +325,7 @@ function FinanceExpensesContent() {
         </div>
 
         {topTab === "quotes" ? (
-          <MaintenanceApprovals onChange={() => setReloadKey((k) => k + 1)} />
+          <MaintenanceApprovals />
         ) : (
           <>
             {/* Active / Archived View Pills + Search */}

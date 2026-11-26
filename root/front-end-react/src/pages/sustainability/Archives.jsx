@@ -1,6 +1,38 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchSustainabilityReports,
+  removeSustainabilityReport,
+  restateSustainabilityReport,
+  selectAllSustainabilityReports,
+  selectSustainabilityReportsStatus,
+  submitSustainabilityReport,
+} from "../../store/slices/sustainabilityReportsSlice";
+import {
+  fetchInitiatives,
+  removeInitiative,
+  selectCompletedInitiatives,
+  selectInitiativesStatus,
+} from "../../store/slices/initiativesSlice";
+import {
+  fetchBuildings,
+  selectAllBuildings,
+} from "../../store/slices/buildingsSlice";
+import {
+  fetchTargets,
+  selectAllTargets,
+} from "../../store/slices/targetsSlice";
+import {
+  fetchUsers,
+  selectAllUsers,
+} from "../../store/slices/usersSlice";
+import {
+  fetchWastageReports,
+  removeWastageReport,
+  selectAllWastageReports,
+  selectWastageReportsStatus,
+} from "../../store/slices/wastageReportsSlice";
 import { useAuth } from "../../auth/useAuth";
 import overviewCss from "../../styles/sustainability_officer/sust_overview.css?inline";
 import sharedCss from "../../styles/sustainability_officer/sust_shared.css?inline";
@@ -38,111 +70,67 @@ export default function SustainabilityArchives() {
   };
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [reports, setReports] = useState([]);
-  const [initiatives, setInitiatives] = useState([]);
-  // For naming an initiative's buildings and target in its record.
-  const [buildings, setBuildings] = useState([]);
-  const [targets, setTargets] = useState([]);
-  const [wastage, setWastage] = useState([]);
+  const dispatch = useDispatch();
+  const reports = useSelector(selectAllSustainabilityReports);
+  const initiatives = useSelector(selectCompletedInitiatives);
+  const buildings = useSelector(selectAllBuildings);
+  const targets = useSelector(selectAllTargets);
+  const users = useSelector(selectAllUsers);
+  const wastageRows = useSelector(selectAllWastageReports);
+  const reportsStatus = useSelector(selectSustainabilityReportsStatus);
+  const initiativesStatus = useSelector(selectInitiativesStatus);
+  const wastageStatus = useSelector(selectWastageReportsStatus);
   const [toast, setToast] = useState(null);
-  const [loadErrors, setLoadErrors] = useState([]);
+  const loadErrors = [
+    reportsStatus === "failed" && "reports",
+    initiativesStatus === "failed" && "initiatives",
+    wastageStatus === "failed" && "wastage reports",
+  ].filter(Boolean);
 
   const showToast = useCallback((msg, type = "success") => {
     setToast({ msg, type });
   }, []);
 
-  // Fetch archives from backend on mount
+  // Load the records for each tab and their display names.
   useEffect(() => {
-    let active = true;
+    dispatch(fetchSustainabilityReports());
+    dispatch(fetchInitiatives());
+    // The audit page can change case status outside this store.
+    dispatch(fetchWastageReports({ force: true }));
+    dispatch(fetchUsers());
+    dispatch(fetchBuildings());
+    dispatch(fetchTargets());
+  }, [dispatch]);
 
-    Promise.allSettled([
-      api.get("/sustainability-reports"),
-      api.get("/initiatives"),
-      api.get("/wastage-reports"),
-      api.get("/users"),
-      api.get("/buildings"),
-      api.get("/targets"),
-    ])
-      .then(([reportsRes, initsRes, wastageRes, usersRes, buildingsRes, targetsRes]) => {
-        if (!active) return;
-        if (buildingsRes.status === "fulfilled" && Array.isArray(buildingsRes.value)) setBuildings(buildingsRes.value);
-        if (targetsRes.status === "fulfilled" && Array.isArray(targetsRes.value)) setTargets(targetsRes.value);
-
-        // Say which sections failed to load rather than showing them as empty.
-        const failed = [];
-        if (reportsRes.status !== "fulfilled") failed.push("reports");
-        if (initsRes.status !== "fulfilled") failed.push("initiatives");
-        if (wastageRes.status !== "fulfilled") failed.push("wastage reports");
-        setLoadErrors(failed);
-
-        if (
-          reportsRes.status === "fulfilled" &&
-          Array.isArray(reportsRes.value)
-        ) {
-          setReports(
-            [...reportsRes.value].sort((x, y) => String(y.generated_at).localeCompare(String(x.generated_at))),
-          );
-        }
-
-        // Archived initiatives only; the rest are still on the board. The
-        // server is the only record of what was archived.
-        if (initsRes.status === "fulfilled" && Array.isArray(initsRes.value)) {
-          setInitiatives(
-            initsRes.value
-              .filter((i) => i.archived_at)
-              .sort((x, y) => String(y.archived_at).localeCompare(String(x.archived_at))),
-          );
-        }
-
-        if (
-          wastageRes.status === "fulfilled" &&
-          Array.isArray(wastageRes.value)
-        ) {
-          // Who reported each one, by name; optional.
-          const directory = {};
-          if (usersRes.status === "fulfilled" && Array.isArray(usersRes.value))
-            usersRes.value.forEach((u) => (directory[u.user_id] = u));
-
-          // Finished cases only: closed, dismissed, or archived by the
-          // officer. The rest are still in the overview queue.
-          const archivedW = wastageRes.value
-            .map((raw) => {
-              const r = normalizeWastageReport(raw, user);
-              const reporter = directory[raw.reporter_id];
-              return {
-                ...r,
-                status: normalizeStatus(r.status),
-                shortId: reportRef(r.id),
-                priority: r.details?.priority || "Medium",
-                reporterName:
-                  reporter?.name ||
-                  (r.reporterName && r.reporterName !== "Unknown" ? r.reporterName : "Sustainability Officer"),
-              };
-            })
-            .filter(
-              (r) =>
-                r.status === "Closed" ||
-                r.status === "Dismissed" ||
-                r.details?.soArchived,
-            )
-            .sort((x, y) => {
-              const at = (r) =>
-                r.details?.closedAt || r.details?.deliveredAt || r.details?.dismissedAt || r.details?.soArchivedAt || r.timestamp;
-              return String(at(y)).localeCompare(String(at(x)));
-            });
-
-          setWastage(archivedW);
-        }
+  // Normalize finished cases for the archive and resolve reporter names.
+  const wastage = useMemo(() => {
+    const directory = Object.fromEntries(users.map((entry) => [entry.user_id, entry]));
+    return wastageRows
+      .map((raw) => {
+        const r = normalizeWastageReport(raw, user);
+        const reporter = directory[raw.reporter_id];
+        return {
+          ...r,
+          status: normalizeStatus(r.status),
+          shortId: reportRef(r.id),
+          priority: r.details?.priority || "Medium",
+          reporterName:
+            reporter?.name ||
+            (r.reporterName && r.reporterName !== "Unknown" ? r.reporterName : "Sustainability Officer"),
+        };
       })
-      .catch((err) => {
-        console.warn("[Archives] Failed to load archives:", err);
-        if (active) setLoadErrors(["archives"]);
+      .filter(
+        (r) =>
+          r.status === "Closed" ||
+          r.status === "Dismissed" ||
+          r.details?.soArchived,
+      )
+      .sort((x, y) => {
+        const at = (r) =>
+          r.details?.closedAt || r.details?.deliveredAt || r.details?.dismissedAt || r.details?.soArchivedAt || r.timestamp;
+        return String(at(y)).localeCompare(String(at(x)));
       });
-
-    return () => {
-      active = false;
-    };
-  }, [user]);
+  }, [user, users, wastageRows]);
 
   // Delete a saved report. Removed from the list only once the server
   // has deleted it.
@@ -150,8 +138,7 @@ export default function SustainabilityArchives() {
     const reportId = report.report_id || report.id;
     if (!window.confirm(`Delete "${report.title}" permanently? This cannot be undone.`)) return;
     try {
-      await api.delete(`/sustainability-reports/${reportId}`);
-      setReports((prev) => prev.filter((r) => (r.report_id || r.id) !== reportId));
+      await dispatch(removeSustainabilityReport(reportId)).unwrap();
       showToast("Report deleted.", "success");
     } catch (err) {
       showToast(err.message || "Could not delete the report.", "error");
@@ -163,8 +150,7 @@ export default function SustainabilityArchives() {
   // Send a draft to the Organization Admin for approval.
   const handleSubmitReport = async (report) => {
     try {
-      const updated = await api.patch(`/sustainability-reports/${report.report_id}/status`, { status: "submitted" });
-      setReports((prev) => prev.map((r) => (r.report_id === report.report_id ? { ...r, ...updated } : r)));
+      await dispatch(submitSustainabilityReport(report.report_id)).unwrap();
       showToast("Sent to the Organization Admin for approval.", "success");
     } catch (err) {
       showToast(err.message || "Could not submit the report.", "error");
@@ -175,11 +161,7 @@ export default function SustainabilityArchives() {
   const handleRestate = async (report) => {
     if (!window.confirm(`Start a corrected version of "${report.title}"? The published report stays as it is.`)) return;
     try {
-      const fresh = await api.post(`/sustainability-reports/${report.report_id}/restate`);
-      setReports((prev) => [
-        fresh,
-        ...prev.map((r) => (r.report_id === report.report_id ? { ...r, superseded_by: fresh.report_id } : r)),
-      ]);
+      await dispatch(restateSustainabilityReport(report.report_id)).unwrap();
       showToast("A corrected draft was created from today's readings.", "success");
     } catch (err) {
       showToast(err.message || "Could not restate the report.", "error");
@@ -191,8 +173,7 @@ export default function SustainabilityArchives() {
     const initId = init.initiative_id;
     if (!window.confirm(`Delete "${init.title}" permanently? This cannot be undone.`)) return;
     try {
-      await api.delete(`/initiatives/${initId}`);
-      setInitiatives((prev) => prev.filter((i) => i.initiative_id !== initId));
+      await dispatch(removeInitiative(initId)).unwrap();
       showToast("Initiative deleted.", "success");
     } catch (err) {
       showToast(err.message || "Could not delete the initiative.", "error");
@@ -202,8 +183,7 @@ export default function SustainabilityArchives() {
   // Delete a closed wastage report for good (Organization Admin only).
   const handleDeleteWastage = async (report) => {
     try {
-      await api.delete(`/wastage-reports/${report.id}`);
-      setWastage((prev) => prev.filter((w) => w.id !== report.id));
+      await dispatch(removeWastageReport(report.id)).unwrap();
       showToast(`WR-${report.shortId} deleted.`, "success");
     } catch (err) {
       showToast(err.message || "Could not delete the report.", "error");

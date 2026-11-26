@@ -1,5 +1,10 @@
-import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchPublicPlans,
+  selectPublicPlans,
+  selectPublicPlansStatus,
+} from "../../store/slices/subscriptionPlansSlice";
 import SectionHeader from "./SectionHeader";
 
 // 1,20,000 style rupee amounts, the way an Indian price list is written.
@@ -39,35 +44,19 @@ function PlanCard({ plan }) {
 }
 
 export default function Pricing() {
+  const dispatch = useDispatch();
   // Starts empty. The cards appear once the plans arrive from the server.
-  const [plans, setPlans] = useState([]);
-  // True once the request has failed, so the visitor is told instead of
-  // seeing an empty gap where the prices should be.
-  const [failed, setFailed] = useState(false);
+  const plans = useSelector(selectPublicPlans);
+  // The request failed, so the visitor is told instead of seeing an empty
+  // gap where the prices should be. Never show made-up prices: a page with
+  // no tiers is better than one showing prices the system would not charge.
+  const failed = useSelector(selectPublicPlansStatus) === "failed";
 
-  // Side effect: ask the server for the published pricing tiers, once, when
-  // the page first shows. The empty [] means "run after the first render only".
+  // Ask the server for the published pricing tiers when the section first
+  // shows. Works signed out: /subscription-plans/public needs no session.
   useEffect(() => {
-    let ignore = false; // set by the cleanup below
-
-    async function loadPlans() {
-      try {
-        const data = await api.get("/subscription-plans/public");
-        if (!ignore) setPlans(data);
-      } catch {
-        // Never show made-up prices: a page with no tiers is better than one
-        // showing prices the system would not actually charge. Say so instead.
-        if (!ignore) setFailed(true);
-      }
-    }
-    loadPlans();
-
-    // Cleanup: if the visitor leaves before the reply arrives, do not set
-    // state on a component that is gone.
-    return () => {
-      ignore = true;
-    };
-  }, []);
+    dispatch(fetchPublicPlans());
+  }, [dispatch]);
 
   return (
     <section className="section pricing" id="pricing">

@@ -601,6 +601,8 @@ export interface FinancialReport {
   financial_report_id: string;
   organization_id: string;
   generated_by_id: string;
+  /** When the report was created (ISO). Seeded reports have none. */
+  generated_at?: string;
   building_id: string | null;
   department_id: string | null;
   title: string;

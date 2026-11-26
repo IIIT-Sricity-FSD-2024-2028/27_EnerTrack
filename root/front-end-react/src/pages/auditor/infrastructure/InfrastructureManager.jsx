@@ -14,8 +14,9 @@
  * shows whatever the backend returns, plus an Organisation filter for a
  * Super Admin (an Organization Admin only ever sees their own organisation).
  *
- * `onChange` (optional) is called after every save or delete, so the page
- * around it can refresh anything that depends on buildings or meters.
+ * The lists live in the shared campus / buildings / departments / meters
+ * slices, so a save or delete here updates every page that shows them.
+ * `onChange` (optional) is still called after every save or delete.
  *
  * `showBudget` (default true) shows the budget fields in the campus,
  * building and department forms. The auditor page turns it off: budgets are
@@ -23,8 +24,33 @@
  * leave the stored budget as it is.
  */
 import { useEffect, useState } from "react";
-import api from "../../../api/client";
+import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../../auth/useAuth";
+import { useLiveData } from "../../../store/useLiveData";
+import {
+  fetchCampuses,
+  removeCampus,
+  selectAllCampuses,
+} from "../../../store/slices/campusSlice";
+import {
+  fetchBuildings,
+  removeBuilding,
+  selectAllBuildings,
+} from "../../../store/slices/buildingsSlice";
+import {
+  fetchDepartments,
+  removeDepartment,
+  selectAllDepartments,
+} from "../../../store/slices/departmentsSlice";
+import {
+  fetchMeters,
+  removeMeter,
+  selectAllMeters,
+} from "../../../store/slices/metersSlice";
+import {
+  fetchOrganizations,
+  selectAllOrganizations,
+} from "../../../store/slices/organizationsSlice";
 import Modal from "../../technician/components/Modal";
 import ToastStack from "../../technician/components/ToastStack";
 import { useToast } from "../../technician/components/useToast";
@@ -36,7 +62,6 @@ import CampusModal from "./CampusModal";
 import BuildingModal from "./BuildingModal";
 import DepartmentModal from "./DepartmentModal";
 import MeterModal from "./MeterModal";
-import { API_PATH } from "./infraConstants";
 
 import "../../../styles/shared/infrastructure_shared.css";
 
@@ -51,34 +76,32 @@ function loadOrgFilter() {
   }
 }
 
-/**
- * Gets all four lists (and the organisation names). Only fetches — it
- * does not touch React state, so it lives outside the component.
- */
-async function fetchInfrastructure(orgId) {
-  const [campuses, buildings, departments, meters, orgs] = await Promise.all([
-    api.get("/campus"),
-    api.get("/buildings"),
-    api.get("/departments"),
-    api.get("/meters"),
-    api.get("/organizations").catch(() => []),
-  ]);
+// Loaded fresh each time the manager opens (no polling). Module level, so
+// useLiveData gets the same array on every render.
+const LOADS = [fetchCampuses, fetchBuildings, fetchDepartments, fetchMeters];
 
-  /** Keep only this client's records when an orgId is given. */
-  function forOrg(list) {
-    if (!orgId) {
-      return list || [];
-    }
-    return (list || []).filter((r) => r.organization_id === orgId);
+// The delete thunk for each kind of record.
+const REMOVE = {
+  campus: removeCampus,
+  building: removeBuilding,
+  department: removeDepartment,
+  meter: removeMeter,
+};
+
+// The server deletes a campus's buildings (with their departments and
+// meters), and a building's departments and meters, along with it. These
+// lists are reloaded after such a delete so the children disappear too.
+const RELOAD_AFTER_DELETE = {
+  campus: [fetchBuildings, fetchDepartments, fetchMeters],
+  building: [fetchDepartments, fetchMeters],
+};
+
+/** Keep only one client's records when an orgId is given. */
+function forOrg(list, orgId) {
+  if (!orgId) {
+    return list;
   }
-
-  return {
-    campuses: forOrg(campuses),
-    buildings: forOrg(buildings),
-    departments: forOrg(departments),
-    meters: forOrg(meters),
-    orgs: orgs || [],
-  };
+  return list.filter((r) => r.organization_id === orgId);
 }
 
 export default function InfrastructureManager({ orgId, onChange, showBudget = true }) {
@@ -90,13 +113,20 @@ export default function InfrastructureManager({ orgId, onChange, showBudget = tr
   // campuses after "Act as".
   const canFilterOrgs = !orgId && role === "Super Admin";
 
-  const [campuses, setCampuses] = useState([]);
-  const [buildings, setBuildings] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [meters, setMeters] = useState([]);
-  const [orgs, setOrgs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const dispatch = useDispatch();
+  const campuses = forOrg(useSelector(selectAllCampuses), orgId);
+  const buildings = forOrg(useSelector(selectAllBuildings), orgId);
+  const departments = forOrg(useSelector(selectAllDepartments), orgId);
+  const meters = forOrg(useSelector(selectAllMeters), orgId);
+  // Only used for names, so a failed load just means ids are shown.
+  const orgs = useSelector(selectAllOrganizations);
+  const { loading, ready, error, reload } = useLiveData(LOADS, {
+    intervalMs: 0,
+  });
+
+  useEffect(() => {
+    dispatch(fetchOrganizations());
+  }, [dispatch]);
 
   const [selectedCampusId, setSelectedCampusId] = useState(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState(null);
@@ -107,35 +137,9 @@ export default function InfrastructureManager({ orgId, onChange, showBudget = tr
   // { kind: "delete", type: "campus", item: campus }. null = none.
   const [popup, setPopup] = useState(null);
 
-  function loadData() {
-    return fetchInfrastructure(orgId)
-      .then((data) => {
-        setError("");
-        setCampuses(data.campuses);
-        setBuildings(data.buildings);
-        setDepartments(data.departments);
-        setMeters(data.meters);
-        setOrgs(data.orgs);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }
-
-  // Load once when the manager opens. A different orgId never reaches a
-  // manager that is already open: the Audits page gives each client its
-  // own manager with key={organization_id}.
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /** After any save or delete: close the popup and reload everything. */
+  /** After any save or delete: close the popup. The lists are already up to date. */
   function afterChange() {
     setPopup(null);
-    loadData();
     if (onChange) {
       onChange();
     }
@@ -179,9 +183,12 @@ export default function InfrastructureManager({ orgId, onChange, showBudget = tr
 
   function handleDelete() {
     const { type, item } = popup;
-    api
-      .delete(API_PATH[type] + "/" + idOf(type, item))
+    dispatch(REMOVE[type](idOf(type, item)))
+      .unwrap()
       .then(() => {
+        for (const load of RELOAD_AFTER_DELETE[type] || []) {
+          dispatch(load({ force: true }));
+        }
         showToast("Deleted.", "success");
         afterChange();
       })
@@ -266,11 +273,11 @@ export default function InfrastructureManager({ orgId, onChange, showBudget = tr
   if (loading) {
     return <p className="muted">Loading…</p>;
   }
-  if (error) {
+  if (!ready) {
     return (
       <div>
         <p className="muted">Could not load infrastructure: {error}</p>
-        <button type="button" className="btn-dark" onClick={loadData}>
+        <button type="button" className="btn-dark" onClick={reload}>
           Retry
         </button>
       </div>

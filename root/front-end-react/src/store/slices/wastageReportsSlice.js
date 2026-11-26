@@ -26,11 +26,15 @@
  *   selectWastageAuditQueue        active cases for Sustainability Officer (!soArchived, not Closed/Dismissed)
  *   selectWastageReviewQueue       cases waiting on Finance (Forwarded to Finance | Cost Impact Added)
  *   selectArchivedWastageReports   finished/archived cases (Closed | Dismissed | soArchived)
+ *
+ * Second slice `wastageSignals` (GET /wastage-reports/signals): the
+ * Sustainability Overview's attention counts. fetchWastageSignals, selectWastageSignals.
  */
 import { createSelector } from "@reduxjs/toolkit";
 import api from "../../api/client";
 import { apiThunk } from "../apiThunk";
 import { createCrudSlice } from "../createCrudSlice";
+import { createResourceSlice } from "../createResourceSlice";
 import { selectCurrentUser } from "./authSlice";
 import { fetchWorkOrders } from "./workOrdersSlice";
 
@@ -190,3 +194,12 @@ export const selectArchivedWastageReports = createSelector(
 );
 
 export default wastageReports.reducer;
+
+// The signals endpoint supplies the Sustainability Overview's attention counts.
+const signals = createResourceSlice({
+  name: "wastageSignals",
+  path: "/wastage-reports/signals",
+});
+export const { fetch: fetchWastageSignals } = signals.thunks;
+export const { selectData: selectWastageSignals } = signals.selectors;
+export const wastageSignalsReducer = signals.reducer;

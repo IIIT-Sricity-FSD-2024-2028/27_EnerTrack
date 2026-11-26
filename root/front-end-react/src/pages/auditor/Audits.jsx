@@ -8,12 +8,30 @@
  * send the proposal. The client's own team carries the work out and marks
  * each measure done.
  *
- * Each card saves on its own and hands the result back up here, so this
- * page is the one place the audit list is kept.
+ * Each card saves on its own through the energyAudits slice, which updates
+ * the audit in place, so every card (and the list) shows the change.
  */
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useLocation } from "react-router-dom";
-import api from "../../api/client";
+import { useLiveData } from "../../store/useLiveData";
+import {
+  fetchEnergyAudits,
+  selectAllEnergyAudits,
+} from "../../store/slices/energyAuditsSlice";
+import {
+  fetchOrganizations,
+  selectAllOrganizations,
+} from "../../store/slices/organizationsSlice";
+import {
+  fetchSubscriptionPlans,
+  selectActiveSubscriptionPlans,
+} from "../../store/slices/subscriptionPlansSlice";
+import {
+  fetchBuildings,
+  selectAllBuildings,
+} from "../../store/slices/buildingsSlice";
+import { fetchMeters, selectAllMeters } from "../../store/slices/metersSlice";
 
 import ToastStack from "../technician/components/ToastStack";
 import { useToast } from "../technician/components/useToast";
@@ -30,81 +48,40 @@ import "../../styles/shared/tech_shared.css";
 import "../../styles/shared/platform_shared.css";
 import "./auditor.css";
 
-/**
- * Gets everything the page shows. Only fetches — it does not touch React
- * state, so it lives outside the component.
- *
- * Only the audits call is required. If any of the others fail, the page
- * still works with what it has (ids instead of names, an empty tier list).
- */
-async function fetchWorkspace() {
-  const [audits, orgs, buildings, meters, plans] = await Promise.all([
-    api.get("/energy-audits"),
-    api.get("/organizations").catch(() => []),
-    api.get("/buildings").catch(() => []),
-    api.get("/meters").catch(() => []),
-    api.get("/subscription-plans").catch(() => []),
-  ]);
-
-  return {
-    audits: audits || [],
-    orgs: orgs || [],
-    buildings: buildings || [],
-    meters: meters || [],
-    // Only live tiers can be proposed; a retired one is refused by the server.
-    plans: (plans || []).filter((p) => p.is_active),
-  };
-}
+// Only the audits are required, and they are re-read each time the page
+// opens. Module level, so useLiveData gets the same array on every render.
+const LOADS = [fetchEnergyAudits];
 
 export default function AuditorAudits() {
   const location = useLocation();
   const { toasts, showToast } = useToast();
+  const dispatch = useDispatch();
+  // Shared with the infrastructure manager below: a building it adds shows
+  // up in the recommendation form at once.
+  const buildings = useSelector(selectAllBuildings);
+  const meters = useSelector(selectAllMeters);
 
-  const [audits, setAudits] = useState([]);
-  const [orgs, setOrgs] = useState([]);
-  const [buildings, setBuildings] = useState([]);
-  const [meters, setMeters] = useState([]);
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const audits = useSelector(selectAllEnergyAudits);
+  // Names only: if they fail, ids are shown instead.
+  const orgs = useSelector(selectAllOrganizations);
+  // Only live tiers can be proposed; a retired one is refused by the server.
+  const plans = useSelector(selectActiveSubscriptionPlans);
+  const { loading, ready, error, reload } = useLiveData(LOADS, {
+    intervalMs: 0,
+  });
 
   // The Overview pipeline sends the clicked audit's id in the router state.
   const [selectedId, setSelectedId] = useState(
     location.state ? location.state.auditId : null,
   );
 
-  function loadData() {
-    return fetchWorkspace()
-      .then((data) => {
-        setError("");
-        setAudits(data.audits);
-        setOrgs(data.orgs);
-        setBuildings(data.buildings);
-        setMeters(data.meters);
-        setPlans(data.plans);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }
-
+  // The rest is best effort: the page works without it.
   useEffect(() => {
-    loadData();
-  }, []);
-
-  /** Called by the infrastructure manager after it saves or deletes. */
-  function reloadBuildingsAndMeters() {
-    Promise.all([api.get("/buildings"), api.get("/meters")])
-      .then(([newBuildings, newMeters]) => {
-        setBuildings(newBuildings || []);
-        setMeters(newMeters || []);
-      })
-      .catch(() => {
-        // Keep the old lists; the manager has already shown any error.
-      });
-  }
+    dispatch(fetchOrganizations());
+    dispatch(fetchSubscriptionPlans());
+    dispatch(fetchBuildings());
+    dispatch(fetchMeters());
+  }, [dispatch]);
 
   // ── Which audit is open ──────────────────────────────
   // The one picked, else the first still open, else the first of all.
@@ -116,38 +93,6 @@ export default function AuditorAudits() {
   }
   if (!audit) {
     audit = audits[0];
-  }
-
-  // ── Saving: each card hands back what the server returned ──
-
-  /** Swap in the updated copy of an audit the server sent back. */
-  function handleAuditSaved(updated) {
-    setAudits((current) =>
-      current.map((a) => (a.audit_id === updated.audit_id ? updated : a)),
-    );
-  }
-
-  /** Add a new finding, or replace an edited one, on the open audit. */
-  function handleFindingSaved(saved) {
-    const auditId = audit.audit_id;
-    setAudits((current) =>
-      current.map((a) => {
-        if (a.audit_id !== auditId) {
-          return a;
-        }
-        const findings = a.findings || [];
-        const exists = findings.some((f) => f.finding_id === saved.finding_id);
-        let newFindings;
-        if (exists) {
-          newFindings = findings.map((f) =>
-            f.finding_id === saved.finding_id ? saved : f,
-          );
-        } else {
-          newFindings = [...findings, saved];
-        }
-        return { ...a, findings: newFindings };
-      }),
-    );
   }
 
   /** An organisation's name, or its id if we could not load the names. */
@@ -167,12 +112,12 @@ export default function AuditorAudits() {
         <p className="muted">Loading engagements…</p>
       </div>
     );
-  } else if (error) {
+  } else if (!ready) {
     content = (
       <div className="card">
         <h2>Backend unavailable</h2>
         <p className="muted">{error}</p>
-        <button type="button" className="btn btn-dark" onClick={loadData}>
+        <button type="button" className="btn btn-dark" onClick={reload}>
           Retry
         </button>
       </div>
@@ -238,14 +183,12 @@ export default function AuditorAudits() {
               </div>
             </div>
 
-            {/* key= gives each client a fresh manager. onChange reloads
-                the buildings and meters this page uses, so a building
-                added here shows up in the recommendation form at once. */}
+            {/* key= gives each client a fresh manager. It saves through
+                the shared slices, so this page sees its changes at once. */}
             <div style={{ marginTop: "14px" }}>
               <InfrastructureManager
                 key={audit.organization_id}
                 orgId={audit.organization_id}
-                onChange={reloadBuildingsAndMeters}
                 showBudget={false}
               />
             </div>
@@ -256,13 +199,11 @@ export default function AuditorAudits() {
           <NotesCard
             key={"notes-" + audit.audit_id}
             audit={audit}
-            onSaved={handleAuditSaved}
             showToast={showToast}
           />
           <FindingsCard
             audit={audit}
             buildings={clientBuildings}
-            onFindingSaved={handleFindingSaved}
             showToast={showToast}
           />
           <ProposalCard
@@ -270,14 +211,9 @@ export default function AuditorAudits() {
             audit={audit}
             org={org}
             plans={plans}
-            onSaved={handleAuditSaved}
             showToast={showToast}
           />
-          <StatusCard
-            audit={audit}
-            onSaved={handleAuditSaved}
-            showToast={showToast}
-          />
+          <StatusCard audit={audit} showToast={showToast} />
         </div>
       </div>
     );

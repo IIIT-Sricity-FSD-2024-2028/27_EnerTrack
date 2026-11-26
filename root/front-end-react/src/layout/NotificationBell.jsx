@@ -1,16 +1,25 @@
 /**
  * NotificationBell — the signed-in user's notifications, from the server.
  *
- * Reads GET /notifications/mine, so a notification sent from someone else's
- * browser (a report forwarded to Finance, a report validated for its
- * reporter) shows up here on any device. It re-checks every minute, when the
- * window regains focus, and when opened.
+ * The list lives in the notifications slice (GET /notifications/mine), so a
+ * notification sent from someone else's browser (a report forwarded to
+ * Finance, a report validated for its reporter) shows up here on any device,
+ * and the technician inbox shows the same rows. It re-checks every 30 s,
+ * when the window regains focus, and when opened.
  */
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import api from "../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchNotifications,
+  markAllNotificationsRead,
+  selectAllNotifications,
+  selectNotificationsError,
+  selectNotificationsStatus,
+  selectUnreadCount,
+} from "../store/slices/notificationsSlice";
 import "./NotificationBell.css";
 
-const POLL_MS = 60_000;
+const POLL_MS = 30_000;
 
 function timeAgo(iso) {
   if (!iso) return "";
@@ -24,24 +33,20 @@ function timeAgo(iso) {
 }
 
 export default function NotificationBell() {
-  const [items, setItems] = useState([]);
+  const dispatch = useDispatch();
+  const items = useSelector(selectAllNotifications);
+  const unread = useSelector(selectUnreadCount);
+  const status = useSelector(selectNotificationsStatus);
+  const loadError = useSelector(selectNotificationsError);
+  const loaded = status === "succeeded" || status === "failed";
+  // UI only: whether the panel is open, and a failed "Mark all as read".
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState(null);
-  const [loaded, setLoaded] = useState(false);
+  const [actionError, setActionError] = useState(null);
+  const error = actionError || loadError;
   const panelId = useId();
   const wrapRef = useRef(null);
 
-  const load = useCallback(async () => {
-    try {
-      const res = await api.get("/notifications/mine");
-      setItems(Array.isArray(res) ? res : []);
-      setError(null);
-    } catch (err) {
-      setError(err.message || "Notifications could not be loaded.");
-    } finally {
-      setLoaded(true);
-    }
-  }, []);
+  const load = useCallback(() => dispatch(fetchNotifications({ force: true })), [dispatch]);
 
   useEffect(() => {
     const first = setTimeout(load, 0);
@@ -67,21 +72,18 @@ export default function NotificationBell() {
     };
   }, [open]);
 
-  const unread = items.filter((n) => !n.is_read).length;
-
   const toggle = () => {
     setOpen((v) => !v);
     if (!open) load();
   };
 
+  // The slice shows them read at once, and re-reads the list if saving fails.
   const markAllRead = async () => {
-    const before = items;
-    setItems((list) => list.map((n) => ({ ...n, is_read: true })));
+    setActionError(null);
     try {
-      await api.patch("/notifications/mine/read");
+      await dispatch(markAllNotificationsRead()).unwrap();
     } catch (err) {
-      setItems(before);
-      setError(err.message || "Could not mark notifications as read.");
+      setActionError(err.message || "Could not mark notifications as read.");
     }
   };
 

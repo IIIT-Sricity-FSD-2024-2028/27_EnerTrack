@@ -54,6 +54,8 @@ export class FinancialReportsService {
       financial_report_id: generatedId,
       ...createDto,
       generated_by_id,
+      // Stamped here rather than trusted from the body.
+      generated_at: new Date().toISOString(),
       organization_id: orgId,
       archived: createDto.archived ?? false,
     };

@@ -35,15 +35,26 @@ import {
 } from "./slices/dispatchSlice";
 // Person 2: admin / auditor
 import notifications from "./slices/notificationsSlice";
+import subscriptionPlans from "./slices/subscriptionPlansSlice";
+import subscriptions from "./slices/subscriptionsSlice";
+import platformInvoices from "./slices/platformInvoicesSlice";
+import auditRequests from "./slices/auditRequestsSlice";
+import energyAudits from "./slices/energyAuditsSlice";
+// Person 4: sustainability
+import initiatives from "./slices/initiativesSlice";
+import sustainabilityReports from "./slices/sustainabilityReportsSlice";
+import sustainabilityMetrics from "./slices/sustainabilityMetricsSlice";
+import targets from "./slices/targetsSlice";
 // Person 3: finance
 import energyCosts from "./slices/energyCostsSlice";
 import financialReports from "./slices/financialReportsSlice";
 import invoices from "./slices/invoicesSlice";
+import expenseBills, { expenseSettingsReducer as expenseSettings } from "./slices/expenseBillsSlice";
 // Person 5: wastage / campus
+import wastageReports, { wastageSignalsReducer as wastageSignals } from "./slices/wastageReportsSlice";
 import serviceRequests, {
   serviceCatalogueReducer as serviceCatalogue,
 } from "./slices/serviceRequestsSlice";
-import wastageReports from "./slices/wastageReportsSlice";
 
 const reducers = {
   auth,
@@ -63,17 +74,29 @@ const reducers = {
   dispatchQueue,
   myJobs,
   availability,
-  // Person 2: admin / auditor          (+ subscriptionPlans, subscriptions, platformInvoices, auditRequests, energyAudits)
+  // Person 2: admin / auditor
   notifications,
+  subscriptionPlans,
+  subscriptions,
+  platformInvoices,
+  auditRequests,
+  energyAudits,
+  // Person 4: sustainability
+  initiatives,
+  targets,
+  sustainabilityReports,
+  sustainabilityMetrics,
   // Person 3: finance
   energyCosts,
   financialReports,
   invoices,
-  // Person 4: sustainability           (initiatives, sustainabilityReports, sustainabilityMetrics)
+  expenseBills,
+  expenseSettings,
   // Person 5: wastage / campus
+  wastageReports,
+  wastageSignals,
   serviceRequests,
   serviceCatalogue,
-  wastageReports,
 };
 
 const appReducer = combineReducers(reducers);

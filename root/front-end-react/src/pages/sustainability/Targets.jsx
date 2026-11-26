@@ -1,5 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import api from "../../api/client";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  createTarget,
+  fetchTargets,
+  removeTarget,
+  selectAllTargets,
+  selectTargetsError,
+  selectTargetsStatus,
+} from "../../store/slices/targetsSlice";
+import {
+  fetchBuildings,
+  selectAllBuildings,
+} from "../../store/slices/buildingsSlice";
 import { useAuth } from "../../auth/useAuth";
 import TargetCard from "./components/TargetCard";
 import Toast from "./components/Toast";
@@ -27,15 +39,21 @@ export default function SustainabilityTargets() {
   const years = baselineYears(last);
   const firstOpenMonth = addMonths(last, 1);
 
-  const [targets, setTargets] = useState([]);
-  const [buildings, setBuildings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const dispatch = useDispatch();
+  const targets = useSelector(selectAllTargets);
+  const buildings = useSelector(selectAllBuildings);
+  const status = useSelector(selectTargetsStatus);
+  const loadError = useSelector(selectTargetsError);
+  const loading = status === "idle" || status === "loading";
   const [toast, setToast] = useState(null);
 
-  const [metric, setMetric] = useState("energy_kwh");
-  // Until the user picks a measure, default to one without an open target.
-  const metricTouched = useRef(false);
+  // Default to a measure without an open campus-wide target until edited.
+  const [selectedMetric, setMetric] = useState(null);
+  const freeMetric = METRICS.find(({ value }) => !targets.some((target) =>
+    target.metric === value && target.building_ids.length === 0 &&
+    (target.status === "proposed" || target.status === "active"),
+  ));
+  const metric = selectedMetric ?? freeMetric?.value ?? METRICS[0].value;
   const [reduction, setReduction] = useState("10");
   const [baselineYear, setBaselineYear] = useState(years[0] || "2025");
   const [deadline, setDeadline] = useState(`${Number(last.slice(0, 4)) + 1}-12`);
@@ -45,30 +63,10 @@ export default function SustainabilityTargets() {
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [t, b] = await Promise.all([api.get("/targets"), api.get("/buildings")]);
-      const list = Array.isArray(t) ? t : [];
-      setTargets(list);
-      setBuildings(Array.isArray(b) ? b : []);
-      if (!metricTouched.current) {
-        const open = (m) =>
-          list.some((x) => x.metric === m && x.building_ids.length === 0 && (x.status === "proposed" || x.status === "active"));
-        const free = METRICS.find((m) => !open(m.value));
-        if (free) setMetric(free.value);
-      }
-      setLoadError(null);
-    } catch (err) {
-      setLoadError(err.message || "Targets could not be loaded.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    const id = setTimeout(load, 0);
-    return () => clearTimeout(id);
-  }, [load]);
+    dispatch(fetchTargets({ force: true }));
+    dispatch(fetchBuildings());
+  }, [dispatch]);
 
   const metricInfo = METRICS.find((m) => m.value === metric);
   const reductionNum = Number(reduction);
@@ -101,7 +99,7 @@ export default function SustainabilityTargets() {
     }
     setSaving(true);
     try {
-      await api.post("/targets", {
+      await dispatch(createTarget({
         metric,
         baseline_from: `${baselineYear}-01`,
         baseline_to: `${baselineYear}-12`,
@@ -109,11 +107,10 @@ export default function SustainabilityTargets() {
         deadline,
         building_ids: scope,
         ...(note.trim() ? { note: note.trim() } : {}),
-      });
+      })).unwrap();
       setToast({ msg: "Target proposed. The Organization Admin has been asked to approve it.", type: "success" });
       setNote("");
       setScope([]);
-      await load();
     } catch (err) {
       setFormError(err.message || "The target could not be proposed.");
     } finally {
@@ -125,8 +122,7 @@ export default function SustainabilityTargets() {
     if (!window.confirm("Withdraw this proposed target?")) return;
     setBusyId(t.target_id);
     try {
-      await api.delete(`/targets/${t.target_id}`);
-      setTargets((list) => list.filter((x) => x.target_id !== t.target_id));
+      await dispatch(removeTarget(t.target_id)).unwrap();
       setToast({ msg: "Proposal withdrawn.", type: "success" });
     } catch (err) {
       setToast({ msg: err.message || "Could not withdraw the proposal.", type: "error" });
@@ -155,7 +151,7 @@ export default function SustainabilityTargets() {
       {loadError && (
         <p role="alert" className="tempty" style={{ color: "#991b1b", borderStyle: "solid", marginBottom: "16px" }}>
           {loadError}{" "}
-          <button type="button" className="tbtn" onClick={() => { setLoading(true); load(); }}>
+          <button type="button" className="tbtn" onClick={() => dispatch(fetchTargets({ force: true }))}>
             Retry
           </button>
         </p>
@@ -210,7 +206,6 @@ export default function SustainabilityTargets() {
                 id="tMetric"
                 value={metric}
                 onChange={(e) => {
-                  metricTouched.current = true;
                   setMetric(e.target.value);
                 }}
               >

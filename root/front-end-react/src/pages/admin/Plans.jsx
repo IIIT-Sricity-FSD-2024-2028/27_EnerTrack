@@ -11,36 +11,45 @@
  * Retiring one hides it from new clients without breaking existing contracts.
  */
 import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  createSubscriptionPlan,
+  fetchSubscriptionPlans,
+  removeSubscriptionPlan,
+  selectAllSubscriptionPlans,
+  selectSubscriptionPlansStatus,
+  updateSubscriptionPlan,
+} from "../../store/slices/subscriptionPlansSlice";
+import {
+  fetchSubscriptions,
+  selectSubscriberCountByPlan,
+} from "../../store/slices/subscriptionsSlice";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
-import { addToast, formatCurrency } from "./adminHelpers";
+import { addToast, formatCurrency, loadFailed } from "./adminHelpers";
 
 export default function Plans() {
-  const [plans, setPlans] = useState([]);
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const plans = useSelector(selectAllSubscriptionPlans);
+  // Clients per tier = its contracts not cancelled
+  const clientsByPlan = useSelector(selectSubscriberCountByPlan);
+  const plansStatus = useSelector(selectSubscriptionPlansStatus);
+  const loading = plansStatus === "idle" || plansStatus === "loading";
   const [toasts, setToasts] = useState([]);
   // The open popup: null, or { type: "add" | "edit" | "delete", plan }
   const [modal, setModal] = useState(null);
 
   // Load the tiers, and the contracts to count clients per tier
   useEffect(() => {
-    Promise.all([api.get("/subscription-plans"), api.get("/subscriptions")])
-      .then(([planList, subList]) => {
-        setPlans(Array.isArray(planList) ? planList : []);
-        setSubscriptions(Array.isArray(subList) ? subList : []);
-      })
-      .catch(() => {
+    Promise.all([
+      dispatch(fetchSubscriptionPlans()),
+      dispatch(fetchSubscriptions()),
+    ]).then((results) => {
+      if (results.some(loadFailed)) {
         addToast(setToasts, "Failed to load data from backend.", "error");
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function reloadPlans() {
-    const list = await api.get("/subscription-plans").catch(() => plans);
-    setPlans(Array.isArray(list) ? list : plans);
-  }
+      }
+    });
+  }, [dispatch]);
 
   // Called by <PlanFormModal> with the tier to save
   async function handleSave(payload) {
@@ -48,11 +57,12 @@ export default function Plans() {
     setModal(null);
     try {
       if (editing) {
-        await api.patch("/subscription-plans/" + editing.plan_id, payload);
+        await dispatch(
+          updateSubscriptionPlan({ id: editing.plan_id, changes: payload }),
+        ).unwrap();
       } else {
-        await api.post("/subscription-plans", payload);
+        await dispatch(createSubscriptionPlan(payload)).unwrap();
       }
-      await reloadPlans();
       addToast(
         setToasts,
         editing
@@ -68,10 +78,12 @@ export default function Plans() {
   // Retire / Reactivate: one click, no popup
   async function handleToggle(plan) {
     try {
-      await api.patch("/subscription-plans/" + plan.plan_id, {
-        is_active: !plan.is_active,
-      });
-      await reloadPlans();
+      await dispatch(
+        updateSubscriptionPlan({
+          id: plan.plan_id,
+          changes: { is_active: !plan.is_active },
+        }),
+      ).unwrap();
       addToast(
         setToasts,
         plan.is_active ? "Tier retired." : "Tier reactivated.",
@@ -89,8 +101,7 @@ export default function Plans() {
   async function handleDelete(plan) {
     setModal(null);
     try {
-      await api.delete("/subscription-plans/" + plan.plan_id);
-      await reloadPlans();
+      await dispatch(removeSubscriptionPlan(plan.plan_id)).unwrap();
       addToast(setToasts, "Tier deleted.", "success");
     } catch (err) {
       // e.g. the backend refuses while a contract still uses the tier
@@ -148,11 +159,7 @@ export default function Plans() {
                   </tr>
                 ) : (
                   plans.map((plan) => {
-                    // Clients on this tier = its contracts not cancelled
-                    const clients = subscriptions.filter(
-                      (s) =>
-                        s.plan_id === plan.plan_id && s.status !== "cancelled",
-                    ).length;
+                    const clients = clientsByPlan[plan.plan_id] || 0;
 
                     return (
                       <tr key={plan.plan_id}>

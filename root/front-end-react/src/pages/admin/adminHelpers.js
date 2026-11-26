@@ -79,6 +79,16 @@ export function formatCurrency(value) {
  * the removal runs 3 seconds later, when the list may already hold other
  * toasts, and this form always works on the latest list.
  */
+/**
+ * True when a dispatched load thunk (fetchUsers(), fetchOrganizations(), ...)
+ * really failed. A load skipped because the list is already there also
+ * comes back as a rejected action, with meta.condition set; that is not a
+ * failure. (So never .unwrap() a cached fetch: a skipped one would throw.)
+ */
+export function loadFailed(result) {
+  return Boolean(result?.error) && !result.meta?.condition;
+}
+
 export function addToast(setToasts, message, type = "info") {
   const id = Date.now() + Math.random(); // unique enough to be a React key
   setToasts((list) => [...list, { id, message, type }]);

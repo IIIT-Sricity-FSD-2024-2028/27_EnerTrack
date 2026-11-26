@@ -24,7 +24,10 @@ export default function SummaryCards({ loading }) {
 
   const totalCost = records.reduce((sum, c) => sum + c.total, 0);
   const totalBudget = records.reduce((sum, c) => sum + c.budget, 0);
-  const variance = totalBudget - totalCost;
+  // Only records with a budget can be over or under it; a record with none
+  // would otherwise count its whole cost as overspend.
+  const budgetedCost = records.filter((c) => c.budget > 0).reduce((sum, c) => sum + c.total, 0);
+  const variance = totalBudget - budgetedCost;
   // "Savings" = how far the under-budget departments stayed below budget
   const underBudget = records.filter((c) => c.variance > 0);
   const totalSavings = underBudget.reduce((sum, c) => sum + c.variance, 0);

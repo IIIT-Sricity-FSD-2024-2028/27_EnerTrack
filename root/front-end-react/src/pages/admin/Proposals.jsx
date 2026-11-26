@@ -14,7 +14,20 @@
  * the backend; this page only asks and shows the answer.
  */
 import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  answerProposal,
+  fetchEnergyAudits,
+  requestEnergyAudit,
+  selectAllEnergyAudits,
+  selectAnsweredProposals,
+  selectEnergyAuditsStatus,
+  selectOpenProposals,
+} from "../../store/slices/energyAuditsSlice";
+import {
+  fetchSubscriptionPlans,
+  selectAllSubscriptionPlans,
+} from "../../store/slices/subscriptionPlansSlice";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
 import { addToast, formatCurrency } from "./adminHelpers";
@@ -58,39 +71,33 @@ const labelStyle = {
 };
 
 export default function Proposals() {
-  const [audits, setAudits] = useState([]);
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  // This organisation's audits (the backend only sends its own), and the
+  // tiers, to show the recommended one's name, seats and features
+  const audits = useSelector(selectAllEnergyAudits);
+  const openProposals = useSelector(selectOpenProposals);
+  const answered = useSelector(selectAnsweredProposals);
+  const plans = useSelector(selectAllSubscriptionPlans);
+  const auditsStatus = useSelector(selectEnergyAuditsStatus);
+  const loading = auditsStatus === "idle" || auditsStatus === "loading";
   const [toasts, setToasts] = useState([]);
   // The open popup: null, { type: "request" }, or
   // { type: "answer", action: "accept" | "request-changes" | "decline", audit }
   const [modal, setModal] = useState(null);
 
-  // Load this organisation's audits (the backend only sends its own) and the
-  // tiers, to show the recommended one's name, seats and features
+  // The audits are re-read on every visit (the auditor may have sent or
+  // revised a proposal since); the tiers only once. A failure just shows
+  // the page without them, as before.
   useEffect(() => {
-    Promise.all([
-      api.get("/energy-audits").catch(() => []),
-      api.get("/subscription-plans").catch(() => []),
-    ])
-      .then(([auditList, planList]) => {
-        setAudits(Array.isArray(auditList) ? auditList : []);
-        setPlans(Array.isArray(planList) ? planList : []);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function reloadAudits() {
-    const list = await api.get("/energy-audits").catch(() => audits);
-    setAudits(Array.isArray(list) ? list : audits);
-  }
+    dispatch(fetchEnergyAudits({ force: true }));
+    dispatch(fetchSubscriptionPlans());
+  }, [dispatch]);
 
   // Called by the "Request an energy audit" popup
   async function handleRequest(note) {
     setModal(null);
     try {
-      await api.post("/energy-audits/request", note ? { note } : {});
-      await reloadAudits();
+      await dispatch(requestEnergyAudit(note)).unwrap();
       addToast(
         setToasts,
         "Audit requested. Your auditor has been notified.",
@@ -109,14 +116,11 @@ export default function Proposals() {
   async function handleAnswer(action, audit, note) {
     setModal(null);
     try {
-      await api.patch(
-        `/energy-audits/${audit.audit_id}/proposal/${action}`,
-        // Who answered comes from the signed-in session on the server.
-        action === "accept" ? {} : { response_note: note },
-      );
       // Accepting also creates the subscription and makes the organisation
-      // active, so read the audits again rather than guess
-      await reloadAudits();
+      // active; the thunk reloads those lists.
+      await dispatch(
+        answerProposal({ auditId: audit.audit_id, action, note }),
+      ).unwrap();
       addToast(setToasts, ANSWERS[action].toast, "success");
     } catch (err) {
       addToast(
@@ -128,14 +132,6 @@ export default function Proposals() {
   }
 
   const planOf = (id) => plans.find((p) => p.plan_id === id);
-  const openProposals = audits.filter(
-    (a) =>
-      a.proposal &&
-      (a.status === "proposed" || a.status === "changes-requested"),
-  );
-  const answered = audits.filter(
-    (a) => a.proposal && (a.status === "accepted" || a.status === "declined"),
-  );
 
   return (
     <AdminPage

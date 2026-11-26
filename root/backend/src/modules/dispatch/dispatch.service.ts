@@ -1529,6 +1529,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       target_id: targetId,
       message,
       is_read: false,
+      created_at: new Date().toISOString(),
     });
   }
 

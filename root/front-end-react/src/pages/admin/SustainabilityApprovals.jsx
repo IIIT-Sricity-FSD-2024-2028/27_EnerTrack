@@ -4,8 +4,26 @@
  * cannot open the Sustainability Officer's pages, so the decisions live here.
  * The proposer is notified of every decision (server side).
  */
-import { useCallback, useEffect, useId, useState } from "react";
-import api from "../../api/client";
+import { useEffect, useId, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useLiveData } from "../../store/useLiveData";
+import {
+  decideTarget as decideTargetThunk,
+  fetchTargets,
+  selectAllTargets,
+} from "../../store/slices/targetsSlice";
+import {
+  fetchInitiatives,
+  selectAllInitiatives,
+  updateInitiative,
+} from "../../store/slices/initiativesSlice";
+import {
+  decideSustainabilityReport,
+  fetchSustainabilityReports,
+  selectAllSustainabilityReports,
+} from "../../store/slices/sustainabilityReportsSlice";
+import { fetchUsers, selectAllUsers } from "../../store/slices/usersSlice";
+import { fetchBuildings, selectAllBuildings } from "../../store/slices/buildingsSlice";
 import AdminPage from "./AdminPage";
 import { addToast } from "./adminHelpers";
 import TargetCard from "../sustainability/components/TargetCard";
@@ -63,52 +81,35 @@ function Decision({ busy, onApprove, onReject, approveLabel = "Approve", rejectL
   );
 }
 
+// Loaded fresh when the page opens (no polling). Module level, so useLiveData
+// gets the same array on every render.
+const LOADS = [fetchTargets, fetchInitiatives, fetchSustainabilityReports];
+
 export default function SustainabilityApprovals() {
-  const [targets, setTargets] = useState([]);
-  const [initiatives, setInitiatives] = useState([]);
-  const [reports, setReports] = useState([]);
+  const dispatch = useDispatch();
+  const targets = useSelector(selectAllTargets);
+  const initiatives = useSelector(selectAllInitiatives);
+  const reports = useSelector(selectAllSustainabilityReports);
+  // Only for names and building labels: a failed load just leaves them out.
+  const users = useSelector(selectAllUsers);
+  const buildings = useSelector(selectAllBuildings);
+  const { loading, error } = useLiveData(LOADS, { intervalMs: 0 });
   const [openReport, setOpenReport] = useState(null);
-  const [names, setNames] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [tab, setTab] = useState("targets");
   const [busyId, setBusyId] = useState(null);
-  const [buildings, setBuildings] = useState([]);
   const { label: teamLabel } = useTeams();
-
-  const load = useCallback(async () => {
-    try {
-      const [t, i, u, r, b] = await Promise.all([
-        api.get("/targets"),
-        api.get("/initiatives"),
-        api.get("/users").catch(() => []),
-        api.get("/sustainability-reports"),
-        api.get("/buildings").catch(() => []),
-      ]);
-      setBuildings(Array.isArray(b) ? b : []);
-      setReports(Array.isArray(r) ? r : []);
-      setTargets(Array.isArray(t) ? t : []);
-      setInitiatives(Array.isArray(i) ? i : []);
-      setNames(Object.fromEntries((Array.isArray(u) ? u : []).map((x) => [x.user_id, x.name])));
-      setError(null);
-    } catch (err) {
-      setError(err.message || "Could not load proposals.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const names = useMemo(() => Object.fromEntries(users.map((x) => [x.user_id, x.name])), [users]);
 
   useEffect(() => {
-    const id = setTimeout(load, 0);
-    return () => clearTimeout(id);
-  }, [load]);
+    dispatch(fetchUsers());
+    dispatch(fetchBuildings());
+  }, [dispatch]);
 
   const decideTarget = async (t, status, note) => {
     setBusyId(t.target_id);
     try {
-      const updated = await api.patch(`/targets/${t.target_id}/status`, { status, ...(note ? { note } : {}) });
-      setTargets((list) => list.map((x) => (x.target_id === t.target_id ? updated : x)));
+      await dispatch(decideTargetThunk({ id: t.target_id, status, note })).unwrap();
       addToast(
         setToasts,
         {
@@ -129,8 +130,9 @@ export default function SustainabilityApprovals() {
   const decideInitiative = async (i, status, note) => {
     setBusyId(i.initiative_id);
     try {
-      const updated = await api.patch(`/initiatives/${i.initiative_id}`, { status, ...(note ? { decision_note: note } : {}) });
-      setInitiatives((list) => list.map((x) => (x.initiative_id === i.initiative_id ? { ...x, ...updated } : x)));
+      const { row: updated } = await dispatch(
+        updateInitiative({ id: i.initiative_id, changes: { status, ...(note ? { decision_note: note } : {}) } }),
+      ).unwrap();
       const sent = (updated?.jobs || []).length;
       addToast(
         setToasts,
@@ -149,8 +151,7 @@ export default function SustainabilityApprovals() {
   const decideReport = async (r, status, note) => {
     setBusyId(r.report_id);
     try {
-      const updated = await api.patch(`/sustainability-reports/${r.report_id}/status`, { status, ...(note ? { note } : {}) });
-      setReports((list) => list.map((x) => (x.report_id === r.report_id ? { ...x, ...updated } : x)));
+      await dispatch(decideSustainabilityReport({ id: r.report_id, status, note })).unwrap();
       addToast(
         setToasts,
         { approved: "Report approved. Publish it when ready.", draft: "Report sent back to the Sustainability Officer.", published: "Report published." }[status],
