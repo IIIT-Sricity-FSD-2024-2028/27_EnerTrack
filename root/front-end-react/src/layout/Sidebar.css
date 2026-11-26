@@ -44,6 +44,17 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   color: #111111;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.app-sidebar__brand:hover {
+  opacity: 0.8;
+}
+
+.app-sidebar__brand:focus-visible {
+  outline: 2px solid #1c2e2e;
+  outline-offset: 4px;
 }
 
 .app-sidebar__brand img {

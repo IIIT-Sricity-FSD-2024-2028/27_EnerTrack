@@ -16,8 +16,8 @@
  * On wider screens the button is hidden and everything is always shown.
  */
 import { useEffect, useId, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { NAV } from "../routes";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { NAV, PATHS } from "../routes";
 import "./Sidebar.css";
 
 export default function Sidebar({ area, role, title, footer, actions }) {
@@ -52,11 +52,16 @@ export default function Sidebar({ area, role, title, footer, actions }) {
     <aside className={`app-sidebar${open ? " is-open" : ""}`}>
       <div className="app-sidebar__top">
         {/* Same mark and wordmark as the landing page's navbar, so the brand
-            looks identical before and after signing in. */}
-        <div className="app-sidebar__brand">
+            looks identical before and after signing in. Like most sites, it
+            leads back to the landing page (the session stays signed in). */}
+        <Link
+          to={PATHS.landing}
+          className="app-sidebar__brand"
+          aria-label="EnerTrack home page"
+        >
           <img src="/assets/logo3.png" alt="" />
           <span>EnerTrack</span>
-        </div>
+        </Link>
 
         <div className="app-sidebar__tools">
           {actions}
