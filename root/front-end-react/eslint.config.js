@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  globalIgnores(["dist", "src/legacy", "src/styles"]),
+  globalIgnores(["dist", "src/styles"]),
 
   {
     files: ["**/*.{js,jsx}"],
@@ -43,6 +43,36 @@ export default defineConfig([
           name: "location",
           message:
             "Navigate with <Link> or useNavigate() — location reloads the app and drops router state.",
+        },
+      ],
+    },
+  },
+
+  {
+    // ── Merge-gate rule: server data goes through the Redux store ──
+    //
+    // Pages, layout and shared UI read data with useSelector and change it
+    // with dispatch(thunk). Only src/store (and src/api itself) may call the
+    // API client. A direct api.get in a page makes a private copy of server
+    // data that the rest of the app cannot see or refresh, and survives
+    // sign-out. Named helpers (isNetworkError, pingBackend,
+    // SESSION_EXPIRED_EVENT) are still fine to import.
+    //
+    // Need an endpoint? Add a thunk to its slice (see src/store/README.md).
+    files: ["src/**/*.{js,jsx}"],
+    ignores: ["src/store/**", "src/api/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/api/client", "**/api/client.js"],
+              importNames: ["default"],
+              message:
+                "Don't call the API from here: dispatch a thunk from src/store/slices instead (see src/store/README.md).",
+            },
+          ],
         },
       ],
     },

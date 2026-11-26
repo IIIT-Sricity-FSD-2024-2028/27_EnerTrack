@@ -6,8 +6,14 @@
  * initiatives, the Organization Admin approves them. "Details" opens the
  * same full record the officer's Archives shows.
  */
-import { Fragment, useEffect, useState } from "react";
-import api from "../../../api/client";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchBuildings, selectAllBuildings } from "../../../store/slices/buildingsSlice";
+import {
+  fetchInitiatives,
+  selectAllInitiatives,
+  selectInitiativesStatus,
+} from "../../../store/slices/initiativesSlice";
 import { useToast } from "../components/toastContext";
 import {
   SpendLine,
@@ -23,34 +29,28 @@ const STATUS = {
 
 export default function InitiativesSection() {
   const showToast = useToast();
-  const [initiatives, setInitiatives] = useState([]);
-  const [buildings, setBuildings] = useState([]);
+  const dispatch = useDispatch();
+  const all = useSelector(selectAllInitiatives);
+  const buildings = useSelector(selectAllBuildings);
+  const failed = useSelector(selectInitiativesStatus) === "failed";
   const [open, setOpen] = useState(null);
-  const [failed, setFailed] = useState(false);
+
+  // Only the approved ones (in progress or completed) belong here.
+  const initiatives = useMemo(
+    () => all.filter((i) => STATUS[String(i.status).toLowerCase()]),
+    [all],
+  );
 
   useEffect(() => {
-    let active = true;
-    Promise.all([
-      api.get("/initiatives"),
-      api.get("/buildings").catch(() => []),
-    ])
-      .then(([list, b]) => {
-        if (!active) return;
-        const rows = (Array.isArray(list) ? list : []).filter(
-          (i) => STATUS[String(i.status).toLowerCase()],
-        );
-        setInitiatives(rows);
-        setBuildings(Array.isArray(b) ? b : []);
-      })
-      .catch((error) => {
-        if (!active) return;
-        setFailed(true);
-        showToast(error.message || "Initiatives could not be loaded.", "error");
-      });
-    return () => {
-      active = false;
-    };
-  }, [showToast]);
+    // Spend figures move as bills are approved, so re-read on every visit.
+    dispatch(fetchInitiatives({ force: true }))
+      .unwrap()
+      .catch((error) =>
+        showToast(error.message || "Initiatives could not be loaded.", "error"),
+      );
+    // Building names only label the record; the page works without them.
+    dispatch(fetchBuildings());
+  }, [dispatch, showToast]);
 
   const sum = (key) =>
     initiatives.reduce((n, i) => n + Number(i.money?.[key] || 0), 0);

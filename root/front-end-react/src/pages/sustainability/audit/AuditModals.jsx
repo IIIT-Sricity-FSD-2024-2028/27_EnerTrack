@@ -8,7 +8,13 @@
  * the parent (WastageAuditQueue) does the saving.
  */
 import { useEffect, useState } from "react";
-import api from "../../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchFoodWasteSummary,
+  selectFoodWasteForPlace,
+  selectFoodWasteSummaryStatus,
+} from "../../../store/slices/foodWasteLogsSlice";
+import { checkWastageTarget } from "../../../store/slices/wastageReportsSlice";
 import Modal from "../components/Modal";
 
 const DISMISS_REASONS = ["One-off, not a pattern", "Already addressed", "Insufficient evidence", "Out of scope", "Other"];
@@ -165,23 +171,15 @@ export function TargetModal({ report, busy, onSubmit, onClose }) {
   const show = (n) => (Number.isFinite(n) ? n : "—");
 
   // Food: the current figure is the last 30 days of weigh-ins for the place.
-  const [food, setFood] = useState(null);
+  // null while loading, false when the place has no weigh-ins (or they failed).
+  const dispatch = useDispatch();
+  const foodStatus = useSelector(selectFoodWasteSummaryStatus);
+  const foodRow = useSelector((state) => selectFoodWasteForPlace(state, place));
   useEffect(() => {
-    if (!isFood) return undefined;
-    let live = true;
-    api
-      .get("/food-waste-logs/summary")
-      .then((rows) => {
-        if (!live) return;
-        const key = place.trim().toLowerCase().replace(/\s+/g, " ");
-        const row = (Array.isArray(rows) ? rows : []).find((r) => r.location.trim().toLowerCase().replace(/\s+/g, " ") === key);
-        setFood(row || false);
-      })
-      .catch(() => live && setFood(false));
-    return () => {
-      live = false;
-    };
-  }, [isFood, place]);
+    if (isFood) dispatch(fetchFoodWasteSummary({ force: true }));
+  }, [dispatch, isFood]);
+  const foodSettled = foodStatus === "succeeded" || foodStatus === "failed";
+  const food = foodRow || (foodSettled ? false : null);
 
   const measured = isFood ? Number(food?.kg_per_day_30d) : Number(sd.readingValue);
   const baseline = isFood ? Number(food?.kg_per_day_7d) : Number(sd.baselineValue);
@@ -304,16 +302,18 @@ export function VerifyTargetModal({ report, busy, onSubmit, onClose }) {
   const [check, setCheck] = useState(null);
   const [error, setError] = useState("");
 
+  const dispatch = useDispatch();
+
   useEffect(() => {
     let live = true;
-    api
-      .get(`/wastage-reports/${report.id}/target-check`)
+    dispatch(checkWastageTarget(report.id))
+      .unwrap()
       .then((res) => live && setCheck(res))
       .catch((err) => live && setError(err.message || "The readings could not be loaded."));
     return () => {
       live = false;
     };
-  }, [report.id]);
+  }, [dispatch, report.id]);
 
   const t = check?.target || report.metricTarget || {};
   const food = check?.food || null;

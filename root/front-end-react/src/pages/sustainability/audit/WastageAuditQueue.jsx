@@ -21,7 +21,6 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import api from "../../../api/client";
 import { useAuth } from "../../../auth/useAuth";
 import {
   addWastageComment,
@@ -33,6 +32,10 @@ import {
   updateWastageReport,
 } from "../../../store/slices/wastageReportsSlice";
 import { fetchUsers, selectAllUsers } from "../../../store/slices/usersSlice";
+import {
+  fetchFoodWasteSummary,
+  selectFoodWasteSummary,
+} from "../../../store/slices/foodWasteLogsSlice";
 import { reportRef } from "../../finance/financeUtils";
 import { DismissModal, SendBackModal, TargetModal, VerifyTargetModal } from "./AuditModals";
 import { RemedyModal } from "./CaseModals";
@@ -55,7 +58,7 @@ export default function WastageAuditQueue({ reloadKey = 0, onChanged, showToast 
   const [modal, setModal] = useState(null); // { kind, report }
   const [retryKey, setRetryKey] = useState(0);
   const [tab, setTab] = useState("action"); // 'action' | 'finance'
-  const [foodLogs, setFoodLogs] = useState([]); // kg a day per place, for food cases
+  const foodLogs = useSelector(selectFoodWasteSummary); // kg a day per place, for food cases
 
   const officerName = user?.name || "Sustainability Officer";
   const loading = status === "loading" || status === "idle";
@@ -64,23 +67,10 @@ export default function WastageAuditQueue({ reloadKey = 0, onChanged, showToast 
     const force = reloadKey > 0 || retryKey > 0;
     dispatch(fetchWastageReports(force ? { force: true } : undefined));
     dispatch(fetchUsers());
+    // Food cases show General Maintenance's weigh-ins; optional, so a failed
+    // load just leaves them out.
+    dispatch(fetchFoodWasteSummary({ force: true }));
   }, [dispatch, reloadKey, retryKey]);
-
-  useEffect(() => {
-    let active = true;
-    // Food cases show General Maintenance's weigh-ins; optional.
-    api
-      .get("/food-waste-logs/summary")
-      .then((food) => {
-        if (active) setFoodLogs(Array.isArray(food) ? food : []);
-      })
-      .catch(() => {
-        if (active) setFoodLogs([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, [reloadKey, retryKey]);
 
   const visible = useMemo(() => {
     const directory = {};

@@ -9,7 +9,13 @@
  * signal comes back when a new report arrives.
  */
 import { useEffect, useState } from "react";
-import api from "../../../api/client";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchWastageSignals,
+  openWastageCase,
+  selectWastageSignals,
+  setSignalWatched,
+} from "../../../store/slices/wastageReportsSlice";
 import { TYPE_COLORS } from "./auditShared";
 import { OpenCaseModal } from "./CaseModals";
 
@@ -21,37 +27,29 @@ function when(iso) {
 }
 
 export default function WasteSignals({ reloadKey = 0, onChanged, showToast }) {
-  const [signals, setSignals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const data = useSelector(selectWastageSignals);
+  const status = useSelector((state) => state.wastageSignals.status);
+  const error = useSelector((state) => state.wastageSignals.error);
+  const signals = Array.isArray(data) ? data : [];
+  const loading = status === "idle" || status === "loading";
   const [tab, setTab] = useState("hotspots"); // 'hotspots' | 'all'
   const [opening, setOpening] = useState(null); // { signal } or { signal: null } for a manual case
   const [busy, setBusy] = useState(false);
-  const [retryKey, setRetryKey] = useState(0);
 
+  // Reload on open and whenever the page's Refresh (reloadKey) is pressed.
   useEffect(() => {
-    let live = true;
-    api
-      .get("/wastage-reports/signals")
-      .then((rows) => {
-        if (!live) return;
-        setSignals(Array.isArray(rows) ? rows : []);
-        setError(null);
-      })
-      .catch((err) => live && setError(err.message || "The signals could not be loaded."))
-      .finally(() => live && setLoading(false));
-    return () => {
-      live = false;
-    };
-  }, [reloadKey, retryKey]);
+    dispatch(fetchWastageSignals({ force: true }));
+  }, [dispatch, reloadKey]);
+  const retry = () => dispatch(fetchWastageSignals({ force: true }));
 
   async function openCase(body) {
     setBusy(true);
     try {
-      await api.post("/wastage-reports", body);
+      // The new case is added to the list, and the signals reload with it.
+      await dispatch(openWastageCase(body)).unwrap();
       setOpening(null);
       showToast?.("Case opened. Plan its remedy in Wastage cases below.", "success");
-      setRetryKey((k) => k + 1);
       onChanged?.();
     } catch (err) {
       showToast?.("Could not open the case: " + err.message, "error");
@@ -62,9 +60,7 @@ export default function WasteSignals({ reloadKey = 0, onChanged, showToast }) {
 
   async function toggleWatch(signal) {
     try {
-      if (signal.watched) await api.post("/wastage-reports/signals/unwatch", { key: signal.key });
-      else await api.post("/wastage-reports/signals/watch", { key: signal.key });
-      setSignals((list) => list.map((s) => (s.key === signal.key ? { ...s, watched: !s.watched } : s)));
+      await dispatch(setSignalWatched({ key: signal.key, watch: !signal.watched })).unwrap();
     } catch (err) {
       showToast?.(err.message, "error");
     }
@@ -101,7 +97,7 @@ export default function WasteSignals({ reloadKey = 0, onChanged, showToast }) {
       {error && signals.length === 0 ? (
         <div className="so-empty" role="alert">
           Signals could not be loaded: {error}{" "}
-          <button type="button" className="so-btn" onClick={() => setRetryKey((k) => k + 1)}>
+          <button type="button" className="so-btn" onClick={retry}>
             Retry
           </button>
         </div>

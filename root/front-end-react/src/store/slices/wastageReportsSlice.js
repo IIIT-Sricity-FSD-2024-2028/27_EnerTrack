@@ -28,7 +28,11 @@
  *   selectArchivedWastageReports   finished/archived cases (Closed | Dismissed | soArchived)
  *
  * Second slice `wastageSignals` (GET /wastage-reports/signals): the
- * Sustainability Overview's attention counts. fetchWastageSignals, selectWastageSignals.
+ * Sustainability Overview's attention counts and the Wastage page's list.
+ * fetchWastageSignals, selectWastageSignals, setSignalWatched({ key, watch }).
+ *
+ * Also: openWastageCase(body) (POST, then reload signals),
+ * checkWastageTarget(id) (GET /:id/target-check, not stored).
  */
 import { createSelector } from "@reduxjs/toolkit";
 import api from "../../api/client";
@@ -127,7 +131,11 @@ const wastageReports = createCrudSlice({
       .addCase(addWastageComment.fulfilled, upsertIfRow)
       .addCase(archiveWastageReport.fulfilled, upsertIfRow)
       .addCase(uploadWastagePhotos.fulfilled, upsertIfRow)
-      .addCase(raiseWorkOrderFromWastage.fulfilled, upsertIfRow);
+      .addCase(raiseWorkOrderFromWastage.fulfilled, upsertIfRow)
+      .addMatcher(
+        (action) => action.type === "wastageReports/openCase/fulfilled",
+        upsertIfRow,
+      );
   },
 });
 
@@ -199,7 +207,43 @@ export default wastageReports.reducer;
 const signals = createResourceSlice({
   name: "wastageSignals",
   path: "/wastage-reports/signals",
+  extraReducers: (builder) => {
+    builder.addMatcher(
+      (action) => action.type === "wastageSignals/setWatched/fulfilled",
+      (state, { payload }) => {
+        const row = (state.data || []).find((s) => s.key === payload.key);
+        if (row) row.watched = payload.watch;
+      },
+    );
+  },
 });
 export const { fetch: fetchWastageSignals } = signals.thunks;
 export const { selectData: selectWastageSignals } = signals.selectors;
 export const wastageSignalsReducer = signals.reducer;
+
+/** Watch, or stop watching, a signal ({ key, watch: true | false }). */
+export const setSignalWatched = apiThunk(
+  "wastageSignals/setWatched",
+  async ({ key, watch }) => {
+    await api.post(`/wastage-reports/signals/${watch ? "watch" : "unwatch"}`, { key });
+    return { key, watch };
+  },
+);
+
+/**
+ * Open a case (from a signal, or by hand). The new case covers its signal on
+ * the server, so the signals reload too.
+ */
+export const openWastageCase = apiThunk(
+  "wastageReports/openCase",
+  async (body, { dispatch }) => {
+    const row = await api.post("/wastage-reports", body);
+    await dispatch(fetchWastageSignals({ force: true }));
+    return row;
+  },
+);
+
+/** The server's reading of whether a case met its target. Not stored. */
+export const checkWastageTarget = apiThunk("wastageReports/targetCheck", (id) =>
+  api.get(`/wastage-reports/${id}/target-check`),
+);

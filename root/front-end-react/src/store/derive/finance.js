@@ -1,5 +1,5 @@
 /**
- * financeApi.js
+ * store/derive/finance.js
  * Turns backend rows into the shape the Financial Analyst pages use.
  *
  * The backend sends snake_case rows ({ energy_cost_id, scope_label, ... }).
@@ -8,7 +8,30 @@
  * The finance slices (store/slices/energyCostsSlice, financialReportsSlice,
  * invoicesSlice) keep the raw rows and call these in their selectors.
  */
-import { statusFromRoi, statusFromVariance } from "./financeUtils";
+
+/* ── STATUS RULES (re-exported by pages/finance/financeUtils) ── */
+
+/** Newest period string ("2025-03") found in a list of cost records. */
+export function latestPeriod(costs) {
+  const periods = [...new Set(costs.map((c) => c.period))].sort().reverse();
+  return periods[0];
+}
+
+/** Budget minus total decides the status badge of a cost record. */
+export function statusFromVariance(variance, budget = 1) {
+  if (!(budget > 0)) return "no-budget"; // nothing to compare against
+  if (variance > 0) return "under-budget";
+  if (variance === 0) return "on-budget";
+  return "over-budget";
+}
+
+/** ROI decides whether a report is viable (same thresholds as the original). */
+export function statusFromRoi(roi) {
+  if (roi == null) return "marginal";
+  if (roi >= 15) return "viable";
+  if (roi >= 8) return "marginal";
+  return "not-viable";
+}
 
 /* ── ENERGY COSTS ─────────────────────────────────── */
 

@@ -10,9 +10,13 @@
  * is "general".
  */
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
-import api from "../../api/client";
+import { useDispatch, useSelector } from "react-redux";
 import { selectAvailability } from "../../store/slices/dispatchSlice";
+import {
+  fetchFoodWasteSummary,
+  logFoodWaste,
+  selectFoodWastePlaces,
+} from "../../store/slices/foodWasteLogsSlice";
 
 const MEALS = [
   { value: "breakfast", label: "Breakfast" },
@@ -27,23 +31,16 @@ export default function FoodLogCard() {
   const availability = useSelector(selectAvailability);
   const isGeneral = availability?.team === "general";
 
-  const [places, setPlaces] = useState([]);
+  const dispatch = useDispatch();
+  // The places already logged, so the same name is used every time.
+  const places = useSelector(selectFoodWastePlaces);
   const [form, setForm] = useState({ location: "", kg: "", meal: "lunch", date: today() });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null); // { text, error }
 
   useEffect(() => {
-    if (!isGeneral) return undefined;
-    let live = true;
-    // The places already logged, so the same name is used every time.
-    api
-      .get("/food-waste-logs/summary")
-      .then((rows) => live && setPlaces((Array.isArray(rows) ? rows : []).map((r) => r.location)))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [isGeneral]);
+    if (isGeneral) dispatch(fetchFoodWasteSummary());
+  }, [dispatch, isGeneral]);
 
   if (!isGeneral) return null;
 
@@ -57,10 +54,11 @@ export default function FoodLogCard() {
     if (form.date > today()) return setMessage({ text: "The date can't be in the future.", error: true });
     setBusy(true);
     try {
-      const saved = await api.post("/food-waste-logs", { location: form.location.trim(), kg, meal: form.meal, date: form.date });
+      const saved = await dispatch(
+        logFoodWaste({ location: form.location.trim(), kg, meal: form.meal, date: form.date }),
+      ).unwrap();
       setMessage({ text: `Logged ${saved.kg} kg at ${saved.location}.` });
       setForm((f) => ({ ...f, kg: "" }));
-      if (!places.includes(saved.location)) setPlaces((p) => [...p, saved.location]);
     } catch (err) {
       setMessage({ text: err.message, error: true });
     } finally {

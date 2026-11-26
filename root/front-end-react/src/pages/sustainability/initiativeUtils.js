@@ -3,8 +3,12 @@
  * useTeams() (technician teams from the server's catalogue, one list so a
  * renamed team can't drift), rupees() and day() formatting.
  */
-import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchServiceCatalogue,
+  selectServiceCatalogue,
+} from "../../store/slices/serviceRequestsSlice";
 
 /** Used only if the catalogue cannot be loaded; the server's list wins. */
 const FALLBACK_TEAMS = [
@@ -14,27 +18,16 @@ const FALLBACK_TEAMS = [
   { id: "hvac", label: "HVAC", work: "HVAC" },
 ];
 
-let cached = null;
-
 /** The technician teams { id, label, work } and a label lookup. */
 export function useTeams() {
-  const [teams, setTeams] = useState(cached || FALLBACK_TEAMS);
+  const dispatch = useDispatch();
+  const catalogue = useSelector(selectServiceCatalogue);
+  const teams =
+    Array.isArray(catalogue?.teams) && catalogue.teams.length ? catalogue.teams : FALLBACK_TEAMS;
+  // Loaded once per session (the store caches it); a failure keeps the fallback.
   useEffect(() => {
-    if (cached) return;
-    let active = true;
-    api
-      .get("/service-requests/catalogue")
-      .then((cat) => {
-        if (active && Array.isArray(cat?.teams) && cat.teams.length) {
-          cached = cat.teams;
-          setTeams(cat.teams);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
+    dispatch(fetchServiceCatalogue());
+  }, [dispatch]);
   const label = (id) => teams.find((t) => t.id === id)?.label || id || "";
   return { teams, label };
 }

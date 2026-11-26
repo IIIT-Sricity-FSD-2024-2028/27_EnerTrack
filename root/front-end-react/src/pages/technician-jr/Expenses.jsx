@@ -1,7 +1,20 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
-import api from "../../api/client";
 import { useAuth } from "../../auth/useAuth";
+import {
+  attachExpenseBillFiles,
+  fetchExpenseBills,
+  fetchExpenseSettings,
+  fileExpenseBill,
+  removeExpenseBillAttachment,
+  resubmitExpenseBill,
+  selectAllExpenseBills,
+  selectExpenseBillsStatus,
+  selectExpenseSettings,
+  withdrawExpenseBill,
+} from "../../store/slices/expenseBillsSlice";
+import { fetchWorkOrders, selectAllWorkOrders } from "../../store/slices/workOrdersSlice";
 import ToastStack from "../technician/components/ToastStack";
 import { useToast } from "../technician/components/useToast";
 import { formatId } from "../technician/techUtils";
@@ -74,12 +87,26 @@ export default function TechnicianJrExpenses() {
   const [searchParams] = useSearchParams();
   const preselectedWo = searchParams.get("wo");
 
-  const [workOrders, setWorkOrders] = useState([]);
-  const [bills, setBills] = useState([]);
-  const [autoApproveCap, setAutoApproveCap] = useState(1500);
-  const [maxAutoApprovedPerWo, setMaxAutoApprovedPerWo] = useState(2);
-  const [loading, setLoading] = useState(true);
-  const [reloadKey, setReloadKey] = useState(0);
+  const dispatch = useDispatch();
+  const allWorkOrders = useSelector(selectAllWorkOrders);
+  const bills = useSelector(selectAllExpenseBills);
+  const billsStatus = useSelector(selectExpenseBillsStatus);
+  const settings = useSelector(selectExpenseSettings);
+  const loading = billsStatus === "idle" || billsStatus === "loading";
+  const autoApproveCap =
+    typeof settings?.auto_approve_cap === "number" ? settings.auto_approve_cap : 1500;
+  const maxAutoApprovedPerWo =
+    typeof settings?.max_auto_approved_per_wo === "number" ? settings.max_auto_approved_per_wo : 2;
+
+  // Bills can only be filed against this technician's open jobs.
+  const workOrders = useMemo(
+    () =>
+      allWorkOrders.filter(
+        (wo) =>
+          wo.assigned_to_id === user?.user_id && ["inprogress", "review"].includes(wo.status),
+      ),
+    [allWorkOrders, user?.user_id],
+  );
   const [woScope, setWoScope] = useState("active"); // "active" | "archived"
   const [expandedWos, setExpandedWos] = useState({});
   const [woInnerTab, setWoInnerTab] = useState({});
@@ -113,18 +140,18 @@ export default function TechnicianJrExpenses() {
   const fileInputId = useId();
   const editFileInputId = useId();
 
+  // Load on open. The first answer also picks the work order, opens the
+  // upload form for a ?wo= link, and expands the groups that need attention.
   useEffect(() => {
     let cancelled = false;
+    // Settings are optional: without them the defaults above apply.
+    dispatch(fetchExpenseSettings({ force: true }));
 
     Promise.all([
-      api.get("/work-orders"),
-      api.get("/expense-bills"),
-      api.get("/expense-bills/settings").catch(() => ({
-        auto_approve_cap: 1500,
-        max_auto_approved_per_wo: 2,
-      })),
+      dispatch(fetchWorkOrders({ force: true })).unwrap(),
+      dispatch(fetchExpenseBills({ force: true })).unwrap(),
     ])
-      .then(([woList, billList, settings]) => {
+      .then(([woList, billList]) => {
         if (cancelled) return;
         const activeWos = (woList || []).filter(
           (wo) =>
@@ -132,7 +159,6 @@ export default function TechnicianJrExpenses() {
             ["inprogress", "review"].includes(wo.status),
         );
         const loadedBills = Array.isArray(billList) ? billList : [];
-        setWorkOrders(activeWos);
         setWoId((prev) => {
           if (preselectedWo && activeWos.some((w) => w.work_order_id === preselectedWo)) {
             return preselectedWo;
@@ -142,13 +168,6 @@ export default function TechnicianJrExpenses() {
           }
           return prev;
         });
-        setBills(loadedBills);
-        if (settings && typeof settings.auto_approve_cap === "number") {
-          setAutoApproveCap(settings.auto_approve_cap);
-        }
-        if (settings && typeof settings.max_auto_approved_per_wo === "number") {
-          setMaxAutoApprovedPerWo(settings.max_auto_approved_per_wo);
-        }
         if (!autoOpenedUploadRef.current && preselectedWo) {
           autoOpenedUploadRef.current = true;
           if (activeWos.some((w) => w.work_order_id === preselectedWo)) {
@@ -165,19 +184,15 @@ export default function TechnicianJrExpenses() {
           }
           setExpandedWos(initialExpanded);
         }
-        setLoading(false);
       })
       .catch((err) => {
-        if (!cancelled) {
-          showToast(err.message || "Failed to load data.", "error");
-          setLoading(false);
-        }
+        if (!cancelled) showToast(err.message || "Failed to load data.", "error");
       });
 
     return () => {
       cancelled = true;
     };
-  }, [user?.user_id, preselectedWo, showToast, reloadKey]);
+  }, [dispatch, user?.user_id, preselectedWo, showToast]);
 
   const selectedWo = workOrders.find((w) => w.work_order_id === woId);
   const estimatedTotal =
@@ -274,13 +289,13 @@ export default function TechnicianJrExpenses() {
           amount: Number(amount),
           notes: notes.trim() || undefined,
         };
-        createdRecord = await api.post("/expense-bills", payload);
+        createdRecord = await dispatch(fileExpenseBill(payload)).unwrap();
         currentId = createdRecord.expense_bill_id;
         setDraftBillId(currentId);
       }
 
       if (selectedFiles.length > 0) {
-        await api.upload(`/expense-bills/${currentId}/attachments`, "files", selectedFiles);
+        await dispatch(attachExpenseBillFiles({ id: currentId, files: selectedFiles })).unwrap();
       }
 
       const wasAutoApproved = createdRecord?.auto_approved;
@@ -305,7 +320,6 @@ export default function TechnicianJrExpenses() {
         ...prev,
         [woId]: wasAutoApproved ? "approved" : "submitted",
       }));
-      setReloadKey((k) => k + 1);
     } catch (err) {
       showToast(err.message || "Failed to submit expense bill.", "error");
     } finally {
@@ -318,9 +332,8 @@ export default function TechnicianJrExpenses() {
       return;
     }
     try {
-      await api.delete(`/expense-bills/${billId}`);
+      await dispatch(withdrawExpenseBill(billId)).unwrap();
       showToast("Expense bill deleted.", "success");
-      setReloadKey((k) => k + 1);
     } catch (err) {
       showToast(err.message || "Failed to delete expense bill.", "error");
     }
@@ -336,10 +349,12 @@ export default function TechnicianJrExpenses() {
 
   async function handleDeleteExistingAttachment(billId, filename) {
     try {
-      const updated = await api.delete(`/expense-bills/${billId}/attachments/${filename}`);
-      setEditingBill(updated);
+      const updated = await dispatch(
+        removeExpenseBillAttachment({ id: billId, filename }),
+      ).unwrap();
+      // The form keeps the technician's unsaved edits; only the files change.
+      setEditingBill((prev) => (prev ? { ...prev, attachments: updated.attachments } : prev));
       showToast("Attachment removed.", "success");
-      setReloadKey((k) => k + 1);
     } catch (err) {
       showToast(err.message || "Failed to remove attachment.", "error");
     }
@@ -391,21 +406,19 @@ export default function TechnicianJrExpenses() {
         status: "submitted",
       };
 
-      await api.patch(`/expense-bills/${editingBill.expense_bill_id}`, payload);
-
       if (editFiles.length > 0) {
-        await api.upload(
-          `/expense-bills/${editingBill.expense_bill_id}/attachments`,
-          "files",
-          editFiles,
-        );
+        await dispatch(
+          attachExpenseBillFiles({ id: editingBill.expense_bill_id, files: editFiles }),
+        ).unwrap();
       }
+      await dispatch(
+        resubmitExpenseBill({ id: editingBill.expense_bill_id, changes: payload }),
+      ).unwrap();
 
       showToast("Bill updated and resubmitted for Finance review!", "success");
       setEditingBill(null);
       setEditFiles([]);
       setWoInnerTab((prev) => ({ ...prev, [targetWoId]: "submitted" }));
-      setReloadKey((k) => k + 1);
     } catch (err) {
       showToast(err.message || "Failed to resubmit bill.", "error");
     } finally {

@@ -44,12 +44,26 @@ fault notes, sendFault → new work order, closeWorkOrder (order closed, fault
 and alert resolved), sweep, availability toggle, and a sign-in switch
 clearing the previous role's data.
 
-## PR 4: `feat/redux-cleanup` (last)
-- ESLint `no-restricted-imports`: block `**/api/client` (except `isNetworkError`,
-  `pingBackend`) and `**/legacy/universalDB` under `src/pages/**` and `src/layout/**`.
-- Merge the three toast systems (finance `ToastProvider`, technician
-  `useToast`, admin `addToast`) into `ui.toasts` + one `<Toasts />`.
-- Delete unused `legacy/*` files; final role-by-role smoke test.
+## PR 4: `feat/redux-cleanup` ✅ (done)
+- ESLint `no-restricted-imports`: the default `api` import from `api/client`
+  fails lint everywhere outside `src/store` and `src/api`. Named helpers
+  (`isNetworkError`, `pingBackend`, `SESSION_EXPIRED_EVENT`) stay allowed.
+- The last direct API calls moved into slices:
+  - technician `Expenses`: `fileExpenseBill`, `resubmitExpenseBill`,
+    `withdrawExpenseBill`, `attachExpenseBillFiles`, `removeExpenseBillAttachment`
+  - food weigh-ins: new `foodWasteLogsSlice` (`fetchFoodWasteSummary`,
+    `logFoodWaste`), used by `FoodLogCard`, the officer's food cases and the
+    target modal
+  - waste signals: `setSignalWatched`, `openWastageCase`, `checkWastageTarget`
+  - finance `InitiativesSection`: the initiatives and buildings slices
+  - `useTeams()`: `fetchServiceCatalogue`
+  - photos and receipts: `store/files.js` `fetchFileUrl(path)`
+- Pure helpers the store used from page folders moved to `store/derive/`
+  (`finance.js`, `auditImpact.js`); `financeUtils` re-exports the shared ones.
+- `src/legacy/` deleted (nothing imported it). `npm test` runs vitest.
+- Not done, on purpose: merging the four toast systems. They're UI only
+  (no server data) and each area styles its own; that's a design change,
+  not a Redux one.
 
 ## Reviewing teammates' PRs: checklist
 - No `api.` in pages; no `useState` holding server lists.
