@@ -1,5 +1,5 @@
 /**
- * store/index.js: the one Redux store.
+ * store/store.js: the one Redux store.
  *
  * Adding a slice: import its reducer and add ONE line to `reducers` below,
  * keyed by the slice's `name`. Keep the list grouped by owner so merges

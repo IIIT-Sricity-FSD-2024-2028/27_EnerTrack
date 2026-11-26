@@ -8,7 +8,7 @@
  * and ui/BackendStatusBanner.jsx reads it from there.
  *
  * The store hands us its dispatch at start-up (bindBackendStatus, called in
- * store/index.js) so this file, and the API client, never import the store.
+ * store/store.js) so this file, and the API client, never import the store.
  * That import would be circular: the store's slices import the API client.
  */
 import { backendOffline, backendOnline } from "../store/slices/uiSlice";

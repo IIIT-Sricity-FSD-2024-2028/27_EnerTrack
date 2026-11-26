@@ -36,8 +36,8 @@ must follow.
 
 ## Shared rules (short version)
 - Branch: `feat/redux-<area>-<what>`, e.g. `feat/redux-finance-invoices`.
-- Only add your own line(s) to `reducers` in `src/store/index.js`, inside
-  your block. Nothing else in `store/index.js`, `createCrudSlice.js`,
+- Only add your own line(s) to `reducers` in `src/store/store.js`, inside
+  your block. Nothing else in `store/store.js`, `createCrudSlice.js`,
   `apiThunk.js` or `actions.js`. Ask Person 1.
 - Need a thunk in someone else's slice? Message them, or send a small PR to
   their slice file. Never copy the fetch into your page.

@@ -6,7 +6,7 @@
  *                                       initialData: { queued: [], team_status: [] } });
  *
  * gives you
- *   queue.reducer                  register it in store/index.js
+ *   queue.reducer                  register it in store/store.js
  *   queue.thunks.fetch(arg?)       GET path → state.data (cached like fetchAll;
  *                                  `{ force: true }` reloads)
  *   queue.actions.dataSet(value)   replace the data (e.g. with a PUT's answer)
