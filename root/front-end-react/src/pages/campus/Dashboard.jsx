@@ -12,6 +12,7 @@
  * reach the server is not a report, and the visitor is told so.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useToast } from "../../ui/useToast";
 import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../auth/useAuth";
 import { fetchBuildings, selectAllBuildings } from "../../store/slices/buildingsSlice";
@@ -42,7 +43,7 @@ export default function Dashboard() {
   const campusIssues = useSelector(selectCampusIssues);
 
   const [showNearby, setShowNearby] = useState(false);
-  const [toast, setToast] = useState({ text: "", error: false, show: false });
+  const showToast = useToast();
   const [loadError, setLoadError] = useState("");
   // A submitted report opened from My Reports, shown read-only in place of the form.
   const [viewing, setViewing] = useState(null);
@@ -82,11 +83,7 @@ export default function Dashboard() {
   }, [loadTickets]);
 
   function show(text, error = false) {
-    setToast({ text, error, show: true });
-    setTimeout(
-      () => setToast((t) => ({ ...t, show: false })),
-      error ? 5000 : 4000,
-    );
+    showToast(text, error ? "error" : "success");
   }
 
   // "It is fixed" on a fixed issue. Returns true when it went through.
@@ -194,16 +191,6 @@ export default function Dashboard() {
       />
 
       <WasteOutcomes />
-
-      <div
-        className={
-          "eu-toast" +
-          (toast.show ? " show" : "") +
-          (toast.error ? " error" : "")
-        }
-      >
-        {toast.text}
-      </div>
     </div>
   );
 }

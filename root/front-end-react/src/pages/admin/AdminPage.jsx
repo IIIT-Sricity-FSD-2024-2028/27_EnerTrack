@@ -2,15 +2,15 @@
  * AdminPage — the frame every admin page sits in.
  *
  * Gives each page the admin styles, the "Welcome back, {name}" heading with
- * the page's own subtitle, the "Loading from backend…" spinner, the toasts,
- * and the role rule:
+ * the page's own subtitle, the "Loading from backend…" spinner, and the
+ * role rule (toasts come from the shared useToast()):
  *   - Organisations, Registrations, Pricing Plans, Revenue: Super Admin only
  *   - EnerTrack Proposal: Organization Admin only
  * Anyone else is sent back to User Management, like adminLayout.js did.
  *
  * Usage, inside a page:
  *   <AdminPage subtitle="..." requiredRole="Super Admin"
- *              loading={loading} toasts={toasts}>
+ *              loading={loading}>
  *     ...the page's own content...
  *   </AdminPage>
  *
@@ -26,7 +26,6 @@ export default function AdminPage({
   subtitle,
   requiredRole,
   loading,
-  toasts,
   children,
 }) {
   const { user } = useAuth();
@@ -59,16 +58,6 @@ export default function AdminPage({
           children
         )}
       </section>
-
-      {toasts.length > 0 && (
-        <div className="toast-stack">
-          {toasts.map((toast) => (
-            <div key={toast.id} className={`toast ${toast.type}`}>
-              {toast.message}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

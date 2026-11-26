@@ -12,8 +12,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import FinanceLayout from "./components/FinanceLayout";
-import ToastProvider from "./components/ToastProvider";
-import { useToast } from "./components/toastContext";
+import { useToast } from "../../ui/useToast";
 import {
   fetchWastageReports,
   selectWastageRows,
@@ -355,13 +354,10 @@ function ArchivesContent() {
 }
 
 /**
- * The page as App.jsx routes to it. ToastProvider sits here, above the page,
- * so the page's own useToast() calls can reach it.
+ * The page as App.jsx routes to it.
  */
 export default function FinanceArchives() {
   return (
-    <ToastProvider>
-      <ArchivesContent />
-    </ToastProvider>
+    <ArchivesContent />
   );
 }

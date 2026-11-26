@@ -14,7 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../../auth/useAuth";
 import Badge from "../components/Badge";
 import Modal from "../components/Modal";
-import { useToast } from "../components/toastContext";
+import { useToast } from "../../../ui/useToast";
 import { can, formatCurrency, formatDate } from "../financeUtils";
 import {
   createInvoice,

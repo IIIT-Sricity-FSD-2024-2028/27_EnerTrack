@@ -194,6 +194,17 @@ the reducer. Have the thunk reload the affected lists with
 `{ force: true }` once it succeeds (see `coordinatorAction` in
 `slices/dispatchSlice.js`). The page then only dispatches and shows a toast.
 
+### Messages: `useToast`
+
+```jsx
+import { useToast } from "../../ui/useToast";
+const showToast = useToast();
+showToast("Saved.", "success"); // success | error | warning | info
+```
+
+One list for the whole app (`state.ui.toasts`), drawn once by
+`ui/Toaster.jsx`. Don't keep toasts in component state.
+
 ## 3. Session (`authSlice`)
 
 Pages keep using `useAuth()` (same shape as before: `user`, `role`,

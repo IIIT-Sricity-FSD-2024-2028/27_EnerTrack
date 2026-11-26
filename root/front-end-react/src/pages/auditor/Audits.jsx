@@ -33,8 +33,7 @@ import {
 } from "../../store/slices/buildingsSlice";
 import { fetchMeters, selectAllMeters } from "../../store/slices/metersSlice";
 
-import ToastStack from "../technician/components/ToastStack";
-import { useToast } from "../technician/components/useToast";
+import { useToast } from "../../ui/useToast";
 import Badge from "./components/Badge";
 import EngagementList from "./audits/EngagementList";
 import NotesCard from "./audits/NotesCard";
@@ -54,7 +53,7 @@ const LOADS = [fetchEnergyAudits];
 
 export default function AuditorAudits() {
   const location = useLocation();
-  const { toasts, showToast } = useToast();
+  const showToast = useToast();
   const dispatch = useDispatch();
   // Shared with the infrastructure manager below: a building it adds shows
   // up in the recommendation form at once.
@@ -232,7 +231,6 @@ export default function AuditorAudits() {
 
       {content}
 
-      <ToastStack toasts={toasts} />
     </div>
   );
 }

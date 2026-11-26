@@ -12,8 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import FinanceLayout from "./components/FinanceLayout";
 import Modal from "./components/Modal";
-import ToastProvider from "./components/ToastProvider";
-import { useToast } from "./components/toastContext";
+import { useToast } from "../../ui/useToast";
 import { formatCurrency } from "./financeUtils";
 import BillAttachmentModal from "../../ui/BillAttachmentModal";
 import MaintenanceApprovals from "./overview/MaintenanceApprovals";
@@ -840,8 +839,6 @@ function FinanceExpensesContent() {
 
 export default function FinanceExpenses() {
   return (
-    <ToastProvider>
-      <FinanceExpensesContent />
-    </ToastProvider>
+    <FinanceExpensesContent />
   );
 }

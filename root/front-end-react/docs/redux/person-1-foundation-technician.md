@@ -61,9 +61,11 @@ clearing the previous role's data.
 - Pure helpers the store used from page folders moved to `store/derive/`
   (`finance.js`, `auditImpact.js`); `financeUtils` re-exports the shared ones.
 - `src/legacy/` deleted (nothing imported it). `npm test` runs vitest.
-- Not done, on purpose: merging the four toast systems. They're UI only
-  (no server data) and each area styles its own; that's a design change,
-  not a Redux one.
+- Toasts: the five separate systems (finance `ToastProvider`, technician
+  `useToast` + `ToastStack`, admin `addToast`, sustainability `<Toast>`,
+  campus `eu-toast`) are one now. The list lives in `ui.toasts`; pages call
+  `const showToast = useToast()` from `src/ui/useToast.js`, and `<Toaster />`
+  in `main.jsx` draws them in one style. Old toast components and CSS deleted.
 
 ## Reviewing teammates' PRs: checklist
 - No `api.` in pages; no `useState` holding server lists.

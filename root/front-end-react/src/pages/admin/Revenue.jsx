@@ -43,7 +43,6 @@ export default function Revenue() {
       subtitle="Platform revenue across every client. MRR reflects live contracts and current staff counts."
       requiredRole="Super Admin"
       loading={loading}
-      toasts={[]}
     >
       {summary ? <RevenueReport summary={summary} /> : <NoSummary />}
     </AdminPage>

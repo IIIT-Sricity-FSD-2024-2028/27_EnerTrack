@@ -18,7 +18,7 @@ import {
   updateWastageReport,
 } from "../../../store/slices/wastageReportsSlice";
 import { fetchUsers, selectAllUsers } from "../../../store/slices/usersSlice";
-import { useToast } from "../components/toastContext";
+import { useToast } from "../../../ui/useToast";
 import CostImpactModal from "./CostImpactModal";
 import WastageReportCard from "./WastageReportCard";
 

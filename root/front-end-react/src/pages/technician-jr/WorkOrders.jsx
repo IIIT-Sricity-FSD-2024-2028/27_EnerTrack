@@ -32,8 +32,7 @@ import {
 } from "../../store/slices/workOrdersSlice";
 import { jobAction } from "../../store/slices/dispatchSlice";
 
-import ToastStack from "../technician/components/ToastStack";
-import { useToast } from "../technician/components/useToast";
+import { useToast } from "../../ui/useToast";
 import WorkOrderBoard from "../technician/workorders/WorkOrderBoard";
 import CostEstimateCard from "../technician/workorders/CostEstimateCard";
 import TaskFlow from "../technician/workorders/TaskFlow";
@@ -51,7 +50,7 @@ const LOADS = [fetchUsers, fetchWorkOrders];
 
 export default function TechnicianJrWorkOrders() {
   const { user } = useAuth();
-  const { toasts, showToast } = useToast();
+  const showToast = useToast();
   const dispatch = useDispatch();
 
   const users = useSelector(selectAllUsers);
@@ -321,7 +320,6 @@ export default function TechnicianJrWorkOrders() {
 
       {content}
 
-      <ToastStack toasts={toasts} />
     </div>
   );
 }

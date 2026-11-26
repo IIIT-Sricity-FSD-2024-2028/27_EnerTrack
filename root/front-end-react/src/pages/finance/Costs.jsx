@@ -12,9 +12,8 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Badge from "./components/Badge";
 import FinanceLayout from "./components/FinanceLayout";
-import ToastProvider from "./components/ToastProvider";
 import Modal from "./components/Modal";
-import { useToast } from "./components/toastContext";
+import { useToast } from "../../ui/useToast";
 import { useAuth } from "../../auth/useAuth";
 import CostBreakdown from "./costs/CostBreakdown";
 import CostFormModal from "./costs/CostFormModal";
@@ -347,13 +346,10 @@ function CostsContent() {
 }
 
 /**
- * The page as App.jsx routes to it. ToastProvider sits here, above the page,
- * so the page's own useToast() calls can reach it.
+ * The page as App.jsx routes to it.
  */
 export default function FinanceCosts() {
   return (
-    <ToastProvider>
-      <CostsContent />
-    </ToastProvider>
+    <CostsContent />
   );
 }

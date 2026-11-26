@@ -71,15 +71,6 @@ export function formatCurrency(value) {
 }
 
 /**
- * Shows a toast for 3 seconds. Each page keeps its own list of toasts in
- * state and passes its setter here:  addToast(setToasts, "Saved.", "success")
- * type: "info" (dark), "success" (green), "warning" (amber), "error" (red).
- *
- * The setter is given a function (list) => newList instead of a new list:
- * the removal runs 3 seconds later, when the list may already hold other
- * toasts, and this form always works on the latest list.
- */
-/**
  * True when a dispatched load thunk (fetchUsers(), fetchOrganizations(), ...)
  * really failed. A load skipped because the list is already there also
  * comes back as a rejected action, with meta.condition set; that is not a
@@ -87,14 +78,6 @@ export function formatCurrency(value) {
  */
 export function loadFailed(result) {
   return Boolean(result?.error) && !result.meta?.condition;
-}
-
-export function addToast(setToasts, message, type = "info") {
-  const id = Date.now() + Math.random(); // unique enough to be a React key
-  setToasts((list) => [...list, { id, message, type }]);
-  setTimeout(() => {
-    setToasts((list) => list.filter((toast) => toast.id !== id));
-  }, 3000);
 }
 
 /**

@@ -45,8 +45,7 @@ import {
 } from "../../store/slices/dispatchSlice";
 
 import StatCard from "./components/StatCard";
-import ToastStack from "./components/ToastStack";
-import { useToast } from "./components/useToast";
+import { useToast } from "../../ui/useToast";
 import { BellIcon, CheckIcon, ClipboardIcon, WarningIcon } from "./components/icons";
 import NeedsYou from "./overview/NeedsYou";
 import IssueBoard from "./overview/IssueBoard";
@@ -93,7 +92,7 @@ const LOADS = [
 
 export default function TechnicianOverview() {
   const { user } = useAuth();
-  const { toasts, showToast } = useToast();
+  const showToast = useToast();
   const dispatch = useDispatch();
 
   const alerts = useSelector(selectAllAlerts);
@@ -299,7 +298,6 @@ export default function TechnicianOverview() {
 
       {content}
 
-      <ToastStack toasts={toasts} />
     </div>
   );
 }

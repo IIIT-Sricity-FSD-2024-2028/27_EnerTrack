@@ -449,33 +449,6 @@ body {
   margin: 8px 0 0;
 }
 
-/* ── 11. Success toast (slides up from bottom-right) ── */
-.eu-toast {
-  position: fixed;
-  bottom: 28px;
-  right: 28px;
-  background: #111827;
-  color: white;
-  padding: 14px 20px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  transform: translateY(80px);
-  opacity: 0;
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 9999;
-}
-
-.eu-toast.show {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.eu-toast.error {
-  background: #b42318;
-}
-
 /* ── 12. Finished-report styles (Archives, later Wastage) ──
    From the <style> blocks in enduser_archives.html / enduser_wastage.html,
    where both pages define them identically. */

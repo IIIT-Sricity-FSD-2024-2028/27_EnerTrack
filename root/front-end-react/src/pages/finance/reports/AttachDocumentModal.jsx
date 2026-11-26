@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import Modal from "../components/Modal";
-import { useToast } from "../components/toastContext";
+import { useToast } from "../../../ui/useToast";
 import { uploadInvoiceDocument } from "../../../store/slices/invoicesSlice";
 
 export default function AttachDocumentModal({ invoice, onClose }) {

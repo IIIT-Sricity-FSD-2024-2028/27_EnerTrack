@@ -14,6 +14,7 @@
  * user, an Organization Admin only their own organisation's.
  */
 import { useEffect, useState } from "react";
+import { useToast } from "../../ui/useToast";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -37,7 +38,6 @@ import BulkImportModal from "./BulkImportModal";
 import CredentialsModal from "./CredentialsModal";
 import SearchBox from "./SearchBox";
 import {
-  addToast,
   formatLabel,
   assignableRoles,
   loadFailed,
@@ -111,7 +111,7 @@ function UsersPage() {
   const organizations = useSelector(selectAllOrganizations);
   const usersStatus = useSelector(selectUsersStatus);
   const loading = usersStatus === "idle" || usersStatus === "loading";
-  const [toasts, setToasts] = useState([]);
+  const showToast = useToast();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   // What is typed in the search box. Like the filters, not remembered
   // between visits: an old search would make the table look empty on return.
@@ -134,10 +134,10 @@ function UsersPage() {
     dispatch(fetchOrganizations());
     dispatch(fetchUsers()).then((result) => {
       if (loadFailed(result)) {
-        addToast(setToasts, "Failed to load data from backend.", "error");
+        showToast("Failed to load data from backend.", "error");
       }
     });
-  }, [dispatch]);
+  }, [dispatch, showToast]);
 
   function isMe(u) {
     return me.user_id === u.user_id || me.id === u.user_id;
@@ -162,9 +162,7 @@ function UsersPage() {
       } else {
         await dispatch(createUser(payload)).unwrap();
       }
-      addToast(
-        setToasts,
-        `${editing ? "Updated" : "Added"} ${payload.name}.`,
+      showToast(`${editing ? "Updated" : "Added"} ${payload.name}.`,
         "success",
       );
       // The password exists only in this form. Show it once so it can be
@@ -180,7 +178,7 @@ function UsersPage() {
         });
       }
     } catch (err) {
-      addToast(setToasts, err.message || "Could not save the user.", "error");
+      showToast(err.message || "Could not save the user.", "error");
     }
   }
 
@@ -188,9 +186,9 @@ function UsersPage() {
     setModal(null);
     try {
       await dispatch(removeUser(target.user_id)).unwrap();
-      addToast(setToasts, `Deleted ${target.name}.`, "success");
+      showToast(`Deleted ${target.name}.`, "success");
     } catch (err) {
-      addToast(setToasts, err.message || "Could not delete the user.", "error");
+      showToast(err.message || "Could not delete the user.", "error");
     }
   }
 
@@ -200,9 +198,7 @@ function UsersPage() {
       const session = await impersonate(target.user_id);
       navigate(homeForRole(session.role)); // their own home page
     } catch (err) {
-      addToast(
-        setToasts,
-        err.message || "Could not act as that user.",
+      showToast(err.message || "Could not act as that user.",
         "error",
       );
     }
@@ -224,7 +220,6 @@ function UsersPage() {
     <AdminPage
       subtitle="Create your team's and campus's accounts and hand over their credentials."
       loading={loading}
-      toasts={toasts}
     >
       <section className="dashboard-section">
         <div className="section-toolbar">

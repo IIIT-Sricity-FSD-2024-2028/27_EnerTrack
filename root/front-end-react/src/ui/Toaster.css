@@ -1,0 +1,61 @@
+/* One toast style for every role. Sits above modals and page content, below
+   the backend-offline banner. */
+.app-toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 99998;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.app-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 240px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 8px;
+  color: #fff;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+  animation: app-toast-in 0.18s ease-out;
+}
+
+.app-toast--success { background: #166534; }
+.app-toast--error { background: #b91c1c; }
+.app-toast--warning { background: #b45309; }
+.app-toast--info { background: #1f2937; }
+
+.app-toast__icon { font-weight: 700; padding-top: 1px; }
+.app-toast__text { flex: 1; overflow-wrap: anywhere; }
+
+.app-toast__close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.8;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+}
+.app-toast__close:hover,
+.app-toast__close:focus-visible { opacity: 1; }
+
+@keyframes app-toast-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-toast { animation: none; }
+}

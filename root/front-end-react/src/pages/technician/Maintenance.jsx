@@ -46,8 +46,7 @@ import {
 import { sendFault } from "../../store/slices/dispatchSlice";
 
 import Modal from "./components/Modal";
-import ToastStack from "./components/ToastStack";
-import { useToast } from "./components/useToast";
+import { useToast } from "../../ui/useToast";
 import FaultTiles from "./maintenance/FaultTiles";
 import NotesSection from "./maintenance/NotesSection";
 import SensorReadout from "./maintenance/SensorReadout";
@@ -71,7 +70,7 @@ const LOADS = [
 
 export default function TechnicianMaintenance() {
   const { user } = useAuth();
-  const { toasts, showToast } = useToast();
+  const showToast = useToast();
   const dispatch = useDispatch();
 
   const faults = useSelector(selectAllFaults);
@@ -392,7 +391,6 @@ export default function TechnicianMaintenance() {
       {content}
       {popup}
 
-      <ToastStack toasts={toasts} />
     </div>
   );
 }

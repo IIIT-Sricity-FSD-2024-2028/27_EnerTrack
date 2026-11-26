@@ -40,8 +40,7 @@ import {
 import { fetchFaults } from "../../store/slices/faultsSlice";
 
 import Modal from "./components/Modal";
-import ToastStack from "./components/ToastStack";
-import { useToast } from "./components/useToast";
+import { useToast } from "../../ui/useToast";
 import ServiceRequestPanel from "./workorders/ServiceRequestPanel";
 import NewWorkOrderForm from "./workorders/NewWorkOrderForm";
 import WorkOrderBoard from "./workorders/WorkOrderBoard";
@@ -65,7 +64,7 @@ const CREATING = "creating";
 
 export default function TechnicianWorkOrders() {
   const { user } = useAuth();
-  const { toasts, showToast } = useToast();
+  const showToast = useToast();
   const dispatch = useDispatch();
 
   const users = useSelector(selectAllUsers);
@@ -380,7 +379,6 @@ export default function TechnicianWorkOrders() {
         </Modal>
       )}
 
-      <ToastStack toasts={toasts} />
     </div>
   );
 }

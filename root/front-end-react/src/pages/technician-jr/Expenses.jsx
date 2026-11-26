@@ -15,8 +15,7 @@ import {
   withdrawExpenseBill,
 } from "../../store/slices/expenseBillsSlice";
 import { fetchWorkOrders, selectAllWorkOrders } from "../../store/slices/workOrdersSlice";
-import ToastStack from "../technician/components/ToastStack";
-import { useToast } from "../technician/components/useToast";
+import { useToast } from "../../ui/useToast";
 import { formatId } from "../technician/techUtils";
 import BillAttachmentModal from "../../ui/BillAttachmentModal";
 
@@ -83,7 +82,7 @@ function defaultTechInnerTab(group) {
 
 export default function TechnicianJrExpenses() {
   const { user } = useAuth();
-  const { toasts, showToast } = useToast();
+  const showToast = useToast();
   const [searchParams] = useSearchParams();
   const preselectedWo = searchParams.get("wo");
 
@@ -546,7 +545,6 @@ export default function TechnicianJrExpenses() {
 
   return (
     <div className="tech-expenses-container">
-      <ToastStack toasts={toasts} />
 
       {/* Clean Header Row */}
       <div className="tech-header-row">

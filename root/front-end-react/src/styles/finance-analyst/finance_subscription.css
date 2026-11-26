@@ -245,25 +245,6 @@
   padding: 28px 0;
 }
 
-/* ─── Toast ──────────────────────────────────────────────────────── */
-.sub-toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  padding: 13px 20px;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 14px;
-  max-width: 420px;
-  z-index: 9999;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-}
-
-.sub-toast.success { background: #10b981; }
-.sub-toast.error { background: #ef4444; }
-
 @media (max-width: 1000px) {
   .sub-grid {
     grid-template-columns: repeat(2, 1fr);

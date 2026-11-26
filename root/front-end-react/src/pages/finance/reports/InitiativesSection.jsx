@@ -14,7 +14,7 @@ import {
   selectAllInitiatives,
   selectInitiativesStatus,
 } from "../../../store/slices/initiativesSlice";
-import { useToast } from "../components/toastContext";
+import { useToast } from "../../../ui/useToast";
 import {
   SpendLine,
   InitiativeSummary,

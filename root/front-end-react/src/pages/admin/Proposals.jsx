@@ -14,6 +14,7 @@
  * the backend; this page only asks and shows the answer.
  */
 import { useEffect, useState } from "react";
+import { useToast } from "../../ui/useToast";
 import { useDispatch, useSelector } from "react-redux";
 import {
   answerProposal,
@@ -30,7 +31,7 @@ import {
 } from "../../store/slices/subscriptionPlansSlice";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
-import { addToast, formatCurrency } from "./adminHelpers";
+import { formatCurrency } from "./adminHelpers";
 
 // The words of each answer's popup, and its toast afterwards
 const ANSWERS = {
@@ -80,7 +81,7 @@ export default function Proposals() {
   const plans = useSelector(selectAllSubscriptionPlans);
   const auditsStatus = useSelector(selectEnergyAuditsStatus);
   const loading = auditsStatus === "idle" || auditsStatus === "loading";
-  const [toasts, setToasts] = useState([]);
+  const showToast = useToast();
   // The open popup: null, { type: "request" }, or
   // { type: "answer", action: "accept" | "request-changes" | "decline", audit }
   const [modal, setModal] = useState(null);
@@ -98,15 +99,11 @@ export default function Proposals() {
     setModal(null);
     try {
       await dispatch(requestEnergyAudit(note)).unwrap();
-      addToast(
-        setToasts,
-        "Audit requested. Your auditor has been notified.",
+      showToast("Audit requested. Your auditor has been notified.",
         "success",
       );
     } catch (err) {
-      addToast(
-        setToasts,
-        err.message || "Could not request an audit.",
+      showToast(err.message || "Could not request an audit.",
         "error",
       );
     }
@@ -121,11 +118,9 @@ export default function Proposals() {
       await dispatch(
         answerProposal({ auditId: audit.audit_id, action, note }),
       ).unwrap();
-      addToast(setToasts, ANSWERS[action].toast, "success");
+      showToast(ANSWERS[action].toast, "success");
     } catch (err) {
-      addToast(
-        setToasts,
-        err.message || "Could not send your answer.",
+      showToast(err.message || "Could not send your answer.",
         "error",
       );
     }
@@ -138,7 +133,6 @@ export default function Proposals() {
       subtitle="What EnerTrack's auditor recommends for your organisation, and what it would cost."
       requiredRole="Organization Admin"
       loading={loading}
-      toasts={toasts}
     >
       <section className="panel">
         <div className="panel-header">

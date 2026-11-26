@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useToast } from "../../ui/useToast";
 import {
   fetchMetricsSeries,
   selectMetricsSeries,
@@ -14,7 +15,6 @@ import {
   fetchAlerts,
   selectAllAlerts,
 } from "../../store/slices/alertsSlice";
-import Toast from "./components/Toast";
 import MetricCard from "./components/MetricCard";
 import BuildingsTable from "./components/BuildingsTable";
 import { monitoringPeriods } from "./periods";
@@ -78,14 +78,7 @@ export default function SustainabilityMonitoring() {
   const openAlerts = new Set(alerts.filter((alert) => alert.status !== "resolved").map((alert) => alert.meter_id));
   const buildingNames = Object.fromEntries(buildings.map((building) => [building.building_id, building.name]));
 
-  const [toast, setToast] = useState(null);
-  const showToast = useCallback((msg, type = "success") => {
-    setToast({ msg, type });
-  }, []);
-
-  const closeToast = useCallback(() => {
-    setToast(null);
-  }, []);
+  const showToast = useToast();
 
   // Switching to a previously loaded period uses the existing cache entry.
   useEffect(() => {
@@ -171,7 +164,6 @@ export default function SustainabilityMonitoring() {
       <style>{monitorCss}</style>
       <style>{sustLayoutCss}</style>
 
-      <Toast toast={toast} onClose={closeToast} />
 
       {/* HEADER */}
       <header
