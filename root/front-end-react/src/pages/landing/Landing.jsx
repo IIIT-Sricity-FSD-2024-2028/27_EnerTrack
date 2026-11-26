@@ -15,7 +15,6 @@ import RoleCards from "./RoleCards";
 import Stages from "./Stages";
 import Pricing from "./Pricing";
 import Capabilities from "./Capabilities";
-import Results from "./Results";
 import Footer from "./Footer";
 
 export default function Landing() {
@@ -51,7 +50,6 @@ export default function Landing() {
       <Stages />
       <Pricing />
       <Capabilities />
-      <Results />
       <Footer />
     </div>
   );

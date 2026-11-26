@@ -788,93 +788,6 @@
     color: var(--text-secondary);
   }
 
-  /* ── Results: the year-over-year proof, made visible ────────────
-   The product's one real differentiator is that its savings figure is a
-   checkable comparison rather than a claimed percentage, so this section
-   is built as that comparison rather than a stat-card grid. */
-  .proof-panel {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
-    gap: var(--space-6);
-    align-items: center;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-soft);
-    padding: var(--space-5);
-  }
-
-  .proof-compare {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-
-  .proof-bar-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 6px;
-    gap: var(--space-2);
-  }
-
-  .proof-bar-label {
-    font-size: 14px;
-    color: var(--text-muted);
-  }
-
-  .proof-bar-value {
-    font-size: 15px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .proof-bar-track {
-    height: 14px;
-    border-radius: var(--radius-full);
-    background: var(--bg-main);
-    overflow: hidden;
-  }
-
-  .proof-bar-fill {
-    height: 100%;
-    border-radius: var(--radius-full);
-  }
-
-  /* Widths are the actual ratio of the two figures (513,744 / 583,800),
-   not decoration — the shorter bar is shorter by exactly as much as the
-   consumption dropped. */
-  .proof-bar-fill--before {
-    width: 100%;
-    background: var(--line);
-  }
-
-  .proof-bar-fill--after {
-    width: 88%;
-    background: var(--primary-green);
-  }
-
-  .proof-result {
-    text-align: center;
-    border-left: 1px solid var(--line);
-    padding-left: var(--space-6);
-  }
-
-  .proof-delta {
-    display: block;
-    font-family: "Source Serif 4", Georgia, serif;
-    font-size: 44px;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--primary-green);
-    margin-bottom: var(--space-2);
-  }
-
-  .proof-result p {
-    font-size: 14px;
-    color: var(--text-secondary);
-  }
-
   /* ── Footer ──────────────────────────────────────────────────── */
   .footer {
     max-width: var(--page-max);
@@ -969,17 +882,6 @@
     .about-image {
       max-width: 280px;
       margin: 0 auto;
-    }
-    .proof-panel {
-      grid-template-columns: 1fr;
-      gap: var(--space-4);
-    }
-    .proof-result {
-      text-align: left;
-      border-left: none;
-      border-top: 1px solid var(--line);
-      padding-left: 0;
-      padding-top: var(--space-4);
     }
     .section {
       padding: 56px var(--gutter);

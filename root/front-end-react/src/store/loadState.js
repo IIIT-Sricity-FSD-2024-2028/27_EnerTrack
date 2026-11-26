@@ -49,3 +49,22 @@ export function addLoadCases(builder, thunk, onFulfilled) {
       if (state.status !== "succeeded") state.status = "failed";
     });
 }
+
+/**
+ * unwrapLoad: like .unwrap(), for a cached load (fetchX() without force).
+ *
+ * A load the cache skips, because the data is already there or the same
+ * load is still running (React StrictMode runs effects twice in dev), comes
+ * back as a *rejected* action with meta.condition set. .unwrap() throws on it
+ * ("Aborted due to condition callback returning false"), which a page would
+ * show as an error. This treats a skip as success and only throws on a real
+ * failure.
+ *
+ *   Promise.all([unwrapLoad(dispatch(fetchBuildings())), ...]).catch(showError);
+ */
+export function unwrapLoad(promise) {
+  return promise.then((action) => {
+    if (action.error && !action.meta?.condition) throw action.error;
+    return action.payload;
+  });
+}

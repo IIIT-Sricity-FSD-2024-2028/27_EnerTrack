@@ -131,6 +131,11 @@ export default function Invoices() {
   action on a _different_ endpoint changed this list server-side.
 - `.unwrap()` turns the thunk result back into a normal promise that throws
   `{ message, isNetworkError }`, so existing try/catch + toast code keeps working.
+- **Never `.unwrap()` a cached load** (`fetchX()` without `force`). When the
+  cache skips it (already loaded, or StrictMode's second run in dev) it
+  throws "Aborted due to condition callback returning false". Use
+  `unwrapLoad(dispatch(fetchX()))` from `store/loadState.js`: a skip counts
+  as success. Lint flags the bad form.
 - Do not re-fetch after create/update/remove. The slice already has the saved row.
 
 ### Loading status
