@@ -52,8 +52,7 @@ import {
   selectAllOrganizations,
 } from "../../../store/slices/organizationsSlice";
 import Modal from "../../technician/components/Modal";
-import ToastStack from "../../technician/components/ToastStack";
-import { useToast } from "../../technician/components/useToast";
+import { useToast } from "../../../ui/useToast";
 
 import CampusPanel from "./CampusPanel";
 import BuildingPanel from "./BuildingPanel";
@@ -105,7 +104,7 @@ function forOrg(list, orgId) {
 }
 
 export default function InfrastructureManager({ orgId, onChange, showBudget = true }) {
-  const { toasts, showToast } = useToast();
+  const showToast = useToast();
   const { role } = useAuth();
   // Only EnerTrack staff see more than one organisation, so only they need
   // to filter by it. Gating the filter itself (not just the dropdown) also
@@ -400,7 +399,6 @@ export default function InfrastructureManager({ orgId, onChange, showBudget = tr
         </Modal>
       )}
 
-      <ToastStack toasts={toasts} />
     </section>
   );
 }

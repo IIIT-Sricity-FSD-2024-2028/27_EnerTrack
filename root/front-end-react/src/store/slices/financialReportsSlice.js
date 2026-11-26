@@ -19,7 +19,7 @@
  */
 import { createSelector } from "@reduxjs/toolkit";
 import { createCrudSlice } from "../createCrudSlice";
-import { normalizeReport } from "../../pages/finance/financeApi";
+import { normalizeReport } from "../derive/finance";
 import { selectAllUsers } from "./usersSlice";
 
 const financialReports = createCrudSlice({

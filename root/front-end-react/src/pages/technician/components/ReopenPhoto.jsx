@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import api from "../../../api/client";
+import { useDispatch } from "react-redux";
+import { fetchFileUrl } from "../../../store/files";
 
 /**
  * The photo a reporter sent with "still broken". Fetched with the sign-in
  * token (a bare <img> could not send it) only once someone asks to see it.
  */
 export default function ReopenPhoto({ ticketId }) {
+  const dispatch = useDispatch();
   const [url, setUrl] = useState(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => () => url && URL.revokeObjectURL(url), [url]);
@@ -16,8 +18,8 @@ export default function ReopenPhoto({ ticketId }) {
         type="button"
         className="btn btn-light btn-sm"
         onClick={() =>
-          api
-            .getBlobUrl(`/service-requests/${ticketId}/reopen-photo`)
+          dispatch(fetchFileUrl(`/service-requests/${ticketId}/reopen-photo`))
+            .unwrap()
             .then(setUrl)
             .catch(() => setFailed(true))
         }

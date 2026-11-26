@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { store } from "./store";
 import App from "./App.jsx";
 import BackendStatusBanner from "./ui/BackendStatusBanner.jsx";
+import Toaster from "./ui/Toaster.jsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")).render(
@@ -13,6 +14,7 @@ createRoot(document.getElementById("root")).render(
       <BrowserRouter>
         <App />
         <BackendStatusBanner />
+        <Toaster />
       </BrowserRouter>
     </Provider>
   </StrictMode>,

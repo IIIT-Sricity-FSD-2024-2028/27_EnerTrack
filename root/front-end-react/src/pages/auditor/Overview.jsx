@@ -30,7 +30,7 @@ import Kpi from "./components/Kpi";
 import ImpactTable from "./overview/ImpactTable";
 import Pipeline from "./overview/Pipeline";
 import OutstandingTable from "./overview/OutstandingTable";
-import { hasComparison } from "./overview/impact";
+import { hasComparison } from "../../store/derive/auditImpact";
 import { formatCurrency, formatKwh } from "./auditorUtils";
 
 import "../../styles/shared/tech_shared.css";

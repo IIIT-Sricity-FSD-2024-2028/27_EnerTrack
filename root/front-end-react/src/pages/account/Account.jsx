@@ -3,14 +3,13 @@
  *
  * Three cards, one job each: change your details, change your password,
  * delete your account. Each card keeps its own form state; this page only
- * owns the toast messages, and hands each card `notify` as a prop so it can
+ * hands each card `notify` (the shared useToast) as a prop so it can
  * report "saved" without knowing how toasts are drawn.
  *
  * It is the same page for every role. DashboardLayout puts the sidebar of the
  * person's own area around it.
  */
-import ToastStack from "../technician/components/ToastStack";
-import { useToast } from "../technician/components/useToast";
+import { useToast } from "../../ui/useToast";
 import DeleteCard from "./DeleteCard";
 import DetailsCard from "./DetailsCard";
 import PasswordCard from "./PasswordCard";
@@ -19,7 +18,7 @@ import "../../styles/shared/tech_shared.css";
 import "./account.css";
 
 export default function Account() {
-  const { toasts, showToast } = useToast();
+  const showToast = useToast();
 
   return (
     <div className="account-page">
@@ -37,7 +36,6 @@ export default function Account() {
       </div>
       <DeleteCard />
 
-      <ToastStack toasts={toasts} />
     </div>
   );
 }

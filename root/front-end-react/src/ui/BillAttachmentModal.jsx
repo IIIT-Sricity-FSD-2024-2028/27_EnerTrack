@@ -3,7 +3,8 @@
  * Supports PDF iframe display and image preview with multi-attachment tabs.
  */
 import { useEffect, useState } from "react";
-import api from "../api/client";
+import { useDispatch } from "react-redux";
+import { fetchFileUrl } from "../store/files";
 import Modal from "../pages/finance/components/Modal";
 
 export default function BillAttachmentModal({ bill, initialAttachment, onClose }) {
@@ -11,6 +12,7 @@ export default function BillAttachmentModal({ bill, initialAttachment, onClose }
   const [selectedFilename, setSelectedFilename] = useState(
     initialAttachment?.filename || attachments[0]?.filename || "",
   );
+  const dispatch = useDispatch();
   const [blobUrl, setBlobUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -24,8 +26,8 @@ export default function BillAttachmentModal({ bill, initialAttachment, onClose }
     let cancelled = false;
     let url = null;
 
-    api
-      .getBlobUrl(currentAttachment.url)
+    dispatch(fetchFileUrl(currentAttachment.url))
+      .unwrap()
       .then((createdBlobUrl) => {
         if (cancelled) {
           URL.revokeObjectURL(createdBlobUrl);
@@ -46,7 +48,7 @@ export default function BillAttachmentModal({ bill, initialAttachment, onClose }
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [currentAttachment]);
+  }, [dispatch, currentAttachment]);
 
   if (!currentAttachment) return null;
 

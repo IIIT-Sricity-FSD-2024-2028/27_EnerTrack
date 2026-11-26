@@ -17,12 +17,10 @@ import InfrastructureManager from "../auditor/infrastructure/InfrastructureManag
 export default function Infrastructure() {
   return (
     // No requiredRole: both admin roles may open this page. The manager
-    // loads and shows its own spinner and toasts, so AdminPage gets
-    // loading={false} and an empty toasts list.
+    // loads and shows its own spinner, so AdminPage gets loading={false}.
     <AdminPage
       subtitle="Maintain campuses, buildings, departments, and meter inventory."
       loading={false}
-      toasts={[]}
     >
       <InfrastructureManager />
     </AdminPage>

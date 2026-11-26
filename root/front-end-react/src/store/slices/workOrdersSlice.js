@@ -20,6 +20,7 @@
  * and reload this list themselves, because the server changes several
  * records at once.
  */
+import { createSelector } from "@reduxjs/toolkit";
 import { apiThunk } from "../apiThunk";
 import { createCrudSlice } from "../createCrudSlice";
 import { updateAlert } from "./alertsSlice";
@@ -46,6 +47,11 @@ export const {
   selectStatus: selectWorkOrdersStatus,
   selectError: selectWorkOrdersError,
 } = workOrders.selectors;
+
+/** Estimates waiting for Finance to approve (status "approval"). */
+export const selectWorkOrdersAwaitingApproval = createSelector([selectAllWorkOrders], (rows) =>
+  rows.filter((w) => w.status === "approval"),
+);
 
 export const createWorkOrderFromRequest = apiThunk(
   "workOrders/createFromRequest",

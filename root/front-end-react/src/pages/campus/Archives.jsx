@@ -7,98 +7,23 @@
  *     status, or because a technician closed the work order made from them)
  *   - Wastage Report Archives: wastage reports the visitor archived,
  *     each drawn by <WastageArchiveCard>
- *
- * Works with the backend stopped: then reads the browser's local store.
  */
-import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useEffect, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../auth/useAuth";
-import universalDB from "../../legacy/universalDB";
+import {
+  fetchServiceRequests,
+  selectAllServiceRequests,
+} from "../../store/slices/serviceRequestsSlice";
+import {
+  fetchWastageReports,
+  selectWastageRows,
+} from "../../store/slices/wastageReportsSlice";
 import WastageArchiveCard from "./WastageArchiveCard";
 import { splitDescription } from "./serviceRequestHelpers";
 import campusCss from "./campus.css?inline";
 
-// Loads this user's archived items. Returns { wastage: [...], requests: [...] }.
-// Backend first; if that fails or finds nothing, the local store.
-async function fetchArchives(user) {
-  let wastage = [];
-  let requests = [];
-
-  try {
-    // Work orders are staff-only. Closing a job closes its request on the
-    // server, so the request's own status is all a student needs here.
-    const [wastageReports, serviceRequests] = await Promise.all([
-      api.get("/wastage-reports"),
-      api.get("/service-requests"),
-    ]);
-
-    // My wastage reports that I archived, newest archive first
-    if (Array.isArray(wastageReports)) {
-      wastage = wastageReports
-        .filter((r) => r.reporter_id === user.user_id && r.details?.archived)
-        .map((r) => ({
-          id: r.wastage_report_id,
-          type: r.type,
-          status: r.status,
-          specificData: r.details?.specificData || {},
-          costImpact: r.details?.costImpact || null,
-          metricTarget: r.details?.metricTarget || null,
-          priority: r.details?.priority || "Low",
-          archivedAt: r.details?.archivedAt,
-          dismissReason: r.details?.dismissReason,
-        }))
-        .sort(
-          (a, b) => new Date(b.archivedAt || 0) - new Date(a.archivedAt || 0),
-        );
-    }
-
-    // My service requests that are finished
-    if (Array.isArray(serviceRequests)) {
-      requests = serviceRequests
-        .filter((sr) => {
-          const closed = ["closed", "resolved", "completed"].includes(
-            String(sr.status).toLowerCase(),
-          );
-          return sr.reporter_id === user.user_id && closed;
-        })
-        .map((sr) => {
-          const parts = splitDescription(sr.description);
-          return {
-            id: sr.service_request_id,
-            description: parts.description || "Service request",
-            location: parts.location,
-            issueType: sr.issue_type || parts.issueType,
-            timestamp: sr.created_at, // when it was filed (none on seeded rows)
-          };
-        })
-        // The backend lists oldest first, so reverse it: newest on top
-        .reverse();
-    }
-  } catch (err) {
-    console.warn("[EndUser] Failed to fetch archives from backend:", err);
-  }
-
-  // Fallback: items saved in the browser while the backend was down
-  if (wastage.length === 0 && requests.length === 0) {
-    const local = universalDB.data.workflow;
-    wastage = local.wastageReports
-      .filter((r) => r.reporterEmail === user.email && r.archived)
-      .sort(
-        (a, b) =>
-          new Date(b.archivedAt || b.timestamp) -
-          new Date(a.archivedAt || a.timestamp),
-      );
-    requests = local.serviceRequests
-      .filter(
-        (sr) =>
-          sr.reporterEmail === user.email &&
-          String(sr.status).toLowerCase() === "closed",
-      )
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  }
-
-  return { wastage, requests };
-}
+const CLOSED_STATUSES = ["closed", "resolved", "completed"];
 
 // Style shared by the two small section headings
 const sectionTitleStyle = {
@@ -108,17 +33,58 @@ const sectionTitleStyle = {
 };
 
 export default function Archives() {
+  const dispatch = useDispatch();
   const { user } = useAuth();
-  const [wastage, setWastage] = useState([]);
-  const [requests, setRequests] = useState([]);
+  const wastageRows = useSelector(selectWastageRows);
+  const serviceRequests = useSelector(selectAllServiceRequests);
 
-  // Load the archives when the page opens
   useEffect(() => {
-    fetchArchives(user).then((result) => {
-      setWastage(result.wastage);
-      setRequests(result.requests);
-    });
-  }, [user]);
+    dispatch(fetchWastageReports());
+    dispatch(fetchServiceRequests());
+  }, [dispatch]);
+
+  const wastage = useMemo(() => {
+    if (!user) return [];
+    return wastageRows
+      .filter((r) => r.reporterId === user.user_id && r.details?.archived)
+      .map((r) => ({
+        id: r.id,
+        type: r.type,
+        status: r.status,
+        specificData: r.specificData || {},
+        costImpact: r.costImpact || null,
+        metricTarget: r.metricTarget || null,
+        priority: r.priority || "Low",
+        archivedAt: r.details?.archivedAt,
+        dismissReason: r.details?.dismissReason,
+      }))
+      .sort(
+        (a, b) => new Date(b.archivedAt || 0) - new Date(a.archivedAt || 0),
+      );
+  }, [wastageRows, user]);
+
+  const requests = useMemo(() => {
+    if (!user) return [];
+    return serviceRequests
+      .filter((sr) => {
+        const closed = CLOSED_STATUSES.includes(
+          String(sr.status).toLowerCase(),
+        );
+        return sr.reporter_id === user.user_id && closed;
+      })
+      .map((sr) => {
+        const parts = splitDescription(sr.description);
+        return {
+          id: sr.service_request_id,
+          description: parts.description || "Service request",
+          location: parts.location,
+          issueType: sr.issue_type || parts.issueType,
+          timestamp: sr.created_at, // when it was filed (none on seeded rows)
+        };
+      })
+      // The backend lists oldest first, so reverse it: newest on top
+      .reverse();
+  }, [serviceRequests, user]);
 
   const total = wastage.length + requests.length;
 

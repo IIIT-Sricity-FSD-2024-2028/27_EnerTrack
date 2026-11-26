@@ -8,8 +8,7 @@
 import { useEffect } from "react";
 import { useAuth } from "../../auth/useAuth";
 import FinanceLayout from "./components/FinanceLayout";
-import ToastProvider from "./components/ToastProvider";
-import { useToast } from "./components/toastContext";
+import { useToast } from "../../ui/useToast";
 import { fetchBuildings } from "../../store/slices/buildingsSlice";
 import { fetchDepartments } from "../../store/slices/departmentsSlice";
 import { fetchEnergyCosts } from "../../store/slices/energyCostsSlice";
@@ -56,13 +55,10 @@ function OverviewContent() {
 }
 
 /**
- * The page as App.jsx routes to it. ToastProvider sits here, above the page,
- * so the page's own useToast() calls can reach it.
+ * The page as App.jsx routes to it.
  */
 export default function FinanceOverview() {
   return (
-    <ToastProvider>
-      <OverviewContent />
-    </ToastProvider>
+    <OverviewContent />
   );
 }

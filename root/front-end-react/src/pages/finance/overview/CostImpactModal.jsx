@@ -7,7 +7,7 @@
 import { useState } from "react";
 import FormField from "../components/FormField";
 import Modal from "../components/Modal";
-import { useToast } from "../components/toastContext";
+import { useToast } from "../../../ui/useToast";
 import { validateForm } from "../financeUtils";
 
 const RULES = {

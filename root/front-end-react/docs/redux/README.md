@@ -30,9 +30,9 @@ must follow.
    bases from Person 1's technician PR. Extend them; don't recreate them.
 3. Persons 2–5 work in parallel, **one PR per slice group** (each plan lists
    its PRs). Small PRs, each one leaves the app working.
-4. Person 1 does the final cleanup PR: an ESLint rule that forbids
-   `api/client` in pages, the toast systems merged into `ui`, legacy imports
-   removed.
+4. Person 1's final cleanup PR ✅: an ESLint rule forbids calling
+   `api/client` outside `src/store`, the last direct calls moved into
+   slices, and `src/legacy/` is deleted.
 
 ## Shared rules (short version)
 - Branch: `feat/redux-<area>-<what>`, e.g. `feat/redux-finance-invoices`.

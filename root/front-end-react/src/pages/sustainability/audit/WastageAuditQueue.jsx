@@ -16,13 +16,26 @@
  * Cases with Finance ("Forwarded to Finance", "Cost Impact Added") are listed
  * without buttons. Dismissed and Closed cases go to archives.
  *
- * This component owns the list (state) and the save logic; each case is
+ * This component reads from Redux and dispatches thunks; each case is
  * drawn by <WastageAuditCard>, which reports clicks back through props.
  */
-import { useEffect, useState } from "react";
-import api from "../../../api/client";
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../../auth/useAuth";
-import { addWastageComment, normalizeWastageReport, updateWastageReport } from "../../finance/financeApi";
+import {
+  addWastageComment,
+  fetchWastageReports,
+  raiseWorkOrderFromWastage,
+  selectWastageAuditQueue,
+  selectWastageReportsError,
+  selectWastageReportsStatus,
+  updateWastageReport,
+} from "../../../store/slices/wastageReportsSlice";
+import { fetchUsers, selectAllUsers } from "../../../store/slices/usersSlice";
+import {
+  fetchFoodWasteSummary,
+  selectFoodWasteSummary,
+} from "../../../store/slices/foodWasteLogsSlice";
 import { reportRef } from "../../finance/financeUtils";
 import { DismissModal, SendBackModal, TargetModal, VerifyTargetModal } from "./AuditModals";
 import { RemedyModal } from "./CaseModals";
@@ -33,79 +46,64 @@ import { normalizeStatus } from "./auditShared";
 const WITH_FINANCE = ["Forwarded to Finance", "Cost Impact Added"];
 const FINISHED = ["Dismissed", "Closed"];
 
-/** The server is the only record; if it cannot be reached, the queue says so. */
-async function loadRawReports() {
-  const rows = await api.get("/wastage-reports");
-  return Array.isArray(rows) ? rows : [];
-}
-
 export default function WastageAuditQueue({ reloadKey = 0, onChanged, showToast }) {
+  const dispatch = useDispatch();
   const { user } = useAuth();
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const rawQueue = useSelector(selectWastageAuditQueue);
+  const status = useSelector(selectWastageReportsStatus);
+  const loadError = useSelector(selectWastageReportsError);
+  const users = useSelector(selectAllUsers);
+
   const [busyId, setBusyId] = useState(null); // case being saved
   const [modal, setModal] = useState(null); // { kind, report }
-  const [loadError, setLoadError] = useState(null);
   const [retryKey, setRetryKey] = useState(0);
   const [tab, setTab] = useState("action"); // 'action' | 'finance'
-  const [foodLogs, setFoodLogs] = useState([]); // kg a day per place, for food cases
+  const foodLogs = useSelector(selectFoodWasteSummary); // kg a day per place, for food cases
 
   const officerName = user?.name || "Sustainability Officer";
+  const loading = status === "loading" || status === "idle";
 
   useEffect(() => {
-    let active = true;
+    const force = reloadKey > 0 || retryKey > 0;
+    dispatch(fetchWastageReports(force ? { force: true } : undefined));
+    dispatch(fetchUsers());
+    // Food cases show General Maintenance's weigh-ins; optional, so a failed
+    // load just leaves them out.
+    dispatch(fetchFoodWasteSummary({ force: true }));
+  }, [dispatch, reloadKey, retryKey]);
 
-    Promise.all([
-      loadRawReports(),
-      // Only used to show who opened each case; optional.
-      api.get("/users").catch(() => []),
-      // Food cases show General Maintenance's weigh-ins; optional.
-      api.get("/food-waste-logs/summary").catch(() => []),
-    ])
-      .then(([rows, users, food]) => {
-        if (!active) return;
-        setFoodLogs(Array.isArray(food) ? food : []);
-        const directory = {};
-        (Array.isArray(users) ? users : []).forEach((u) => {
-          if (u.user_id) directory[u.user_id] = u;
-        });
-        setLoadError(null);
-        setReports(
-          rows.map((raw) => {
-            const r = normalizeWastageReport(raw, user);
-            const opener = directory[raw.reporter_id] || null;
-            return {
-              ...r,
-              status: normalizeStatus(r.status),
-              shortId: reportRef(r.id),
-              reporterName: opener?.name || (r.reporterName && r.reporterName !== "Unknown" ? r.reporterName : "Sustainability Officer"),
-            };
-          }),
-        );
+  const visible = useMemo(() => {
+    const directory = {};
+    users.forEach((u) => {
+      if (u.user_id) directory[u.user_id] = u;
+    });
+    return rawQueue
+      .map((r) => {
+        const opener = directory[r.reporterId] || null;
+        return {
+          ...r,
+          status: normalizeStatus(r.status),
+          shortId: reportRef(r.id),
+          reporterName:
+            opener?.name ||
+            (r.reporterName && r.reporterName !== "Unknown"
+              ? r.reporterName
+              : "Sustainability Officer"),
+        };
       })
-      .catch((error) => {
-        if (!active) return;
-        console.error("[SO Wastage] Failed to load cases", error);
-        setLoadError(error.message || "The server could not be reached.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [user, reloadKey, retryKey]);
+      .filter((r) => !r.details?.soArchived && !FINISHED.includes(r.status));
+  }, [rawQueue, users]);
 
   /**
-   * Saves the changes and swaps the updated case into state.
+   * Saves the changes through Redux.
    * Returns null (after an error toast) if the server refuses.
    */
   async function saveReport(report, changes) {
     setBusyId(report.id);
     try {
-      const updated = await updateWastageReport(report, changes);
-      setReports((list) => list.map((r) => (r.id === updated.id ? updated : r)));
+      const updated = await dispatch(
+        updateWastageReport({ report, changes }),
+      ).unwrap();
       // A case that closes or is dismissed changes the signals panel too.
       if (changes.status && FINISHED.includes(changes.status)) onChanged?.();
       return updated;
@@ -138,12 +136,14 @@ export default function WastageAuditQueue({ reloadKey = 0, onChanged, showToast 
       );
     } else if (action === "raiseWorkOrder") {
       // Sends the physical part of the remedy to the right team as a job.
+      setBusyId(report.id);
       try {
-        await api.post(`/wastage-reports/${report.id}/work-order`, {});
+        await dispatch(raiseWorkOrderFromWastage(report.id)).unwrap();
         showToast?.("Work order created and sent to a technician.", "success");
-        setRetryKey((k) => k + 1);
       } catch (error) {
         showToast?.(error.message, "error");
+      } finally {
+        setBusyId(null);
       }
     } else if (action === "checkNow") {
       // Check before the deadline: move to Verify Target, then open the check.
@@ -215,16 +215,16 @@ export default function WastageAuditQueue({ reloadKey = 0, onChanged, showToast 
     showToast?.(`${report.type} target set to ${value} ${unit}.`, "success");
   }
 
-  async function handleVerify({ status, outcome }) {
+  async function handleVerify({ status: nextStatus, outcome }) {
     const report = modal.report;
     const saved = await saveReport(report, {
-      status,
+      status: nextStatus,
       targetOutcome: { ...outcome, checkedAt: new Date().toISOString(), checkedBy: officerName },
     });
     if (!saved) return;
     setModal(null);
     showToast?.(
-      status === "Target Met"
+      nextStatus === "Target Met"
         ? "Recorded as met. Close the case to tell the people who reported the waste."
         : "Recorded as missed. Set a new target, or close the case.",
       "success",
@@ -234,8 +234,14 @@ export default function WastageAuditQueue({ reloadKey = 0, onChanged, showToast 
   async function handleAddComment(report, text) {
     setBusyId(report.id);
     try {
-      const updated = await addWastageComment(report, { author: officerName, role: "Sustainability Officer", text });
-      setReports((list) => list.map((r) => (r.id === updated.id ? updated : r)));
+      await dispatch(
+        addWastageComment({
+          id: report.id,
+          author: officerName,
+          role: "Sustainability Officer",
+          text,
+        }),
+      ).unwrap();
     } catch (error) {
       showToast?.("Could not save the comment: " + error.message, "error");
     } finally {
@@ -243,9 +249,6 @@ export default function WastageAuditQueue({ reloadKey = 0, onChanged, showToast 
     }
   }
 
-  const visible = reports
-    .filter((r) => !r.details?.soArchived && !FINISHED.includes(r.status))
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   const withFinance = visible.filter((r) => WITH_FINANCE.includes(r.status));
   const needsAction = visible.filter((r) => !WITH_FINANCE.includes(r.status));
   const shown = tab === "finance" ? withFinance : needsAction;
@@ -268,21 +271,18 @@ export default function WastageAuditQueue({ reloadKey = 0, onChanged, showToast 
       </div>
 
       <div id="wastageAuditContainer" role="tabpanel">
-        {loadError && reports.length === 0 ? (
+        {loadError && visible.length === 0 ? (
           <div className="so-empty" role="alert">
             Wastage cases could not be loaded: {loadError}{" "}
             <button
               type="button"
               className="so-btn"
-              onClick={() => {
-                setLoading(true);
-                setRetryKey((k) => k + 1);
-              }}
+              onClick={() => setRetryKey((k) => k + 1)}
             >
               Retry
             </button>
           </div>
-        ) : loading && reports.length === 0 ? (
+        ) : loading && visible.length === 0 ? (
           <div className="so-empty">Loading wastage cases…</div>
         ) : shown.length === 0 ? (
           <div className="so-empty">

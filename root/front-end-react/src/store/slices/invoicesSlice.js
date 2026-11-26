@@ -22,7 +22,7 @@ import { createSelector } from "@reduxjs/toolkit";
 import api from "../../api/client";
 import { apiThunk } from "../apiThunk";
 import { createCrudSlice } from "../createCrudSlice";
-import { normalizeInvoice } from "../../pages/finance/financeApi";
+import { normalizeInvoice } from "../derive/finance";
 
 export const uploadInvoiceDocument = apiThunk("invoices/uploadDocument", ({ id, file }) =>
   api.upload(`/invoices/${id}/document`, "file", file),

@@ -10,6 +10,7 @@
  * own tab rule never let one open this tab, so that view is left out.)
  */
 import { useEffect, useState } from "react";
+import { useToast } from "../../ui/useToast";
 import { useDispatch, useSelector } from "react-redux";
 import {
   createOrganization,
@@ -28,7 +29,6 @@ import AdminPage from "./AdminPage";
 import Modal from "./Modal";
 import SearchBox from "./SearchBox";
 import {
-  addToast,
   formatCurrency,
   formatLabel,
   loadFailed,
@@ -45,7 +45,7 @@ export default function Organizations() {
   const users = useSelector(selectAllUsers); // only to count each org's users
   const orgStatus = useSelector(selectOrganizationsStatus);
   const loading = orgStatus === "idle" || orgStatus === "loading";
-  const [toasts, setToasts] = useState([]);
+  const showToast = useToast();
   const [search, setSearch] = useState("");
   // The open popup: null, or { type: "add" | "edit" | "delete", org }
   const [modal, setModal] = useState(null);
@@ -60,10 +60,10 @@ export default function Organizations() {
       dispatch(fetchUsers()),
     ]).then(([orgs, campusList]) => {
       if (loadFailed(orgs) || loadFailed(campusList)) {
-        addToast(setToasts, "Failed to load data from backend.", "error");
+        showToast("Failed to load data from backend.", "error");
       }
     });
-  }, [dispatch]);
+  }, [dispatch, showToast]);
 
   // Called by <OrgFormModal> with the organisation to save
   async function handleSave(payload) {
@@ -77,15 +77,11 @@ export default function Organizations() {
       } else {
         await dispatch(createOrganization(payload)).unwrap();
       }
-      addToast(
-        setToasts,
-        editing ? "Organisation updated." : "Organisation added.",
+      showToast(editing ? "Organisation updated." : "Organisation added.",
         "success",
       );
     } catch (err) {
-      addToast(
-        setToasts,
-        err.message || "Could not save organisation.",
+      showToast(err.message || "Could not save organisation.",
         "error",
       );
     }
@@ -97,12 +93,10 @@ export default function Organizations() {
       await dispatch(removeOrganization(org.organization_id)).unwrap();
       // The backend deleted the organisation's users with it
       dispatch(fetchUsers({ force: true }));
-      addToast(setToasts, "Organisation deleted.", "success");
+      showToast("Organisation deleted.", "success");
     } catch (err) {
       // e.g. the backend refuses while the organisation still owns campuses
-      addToast(
-        setToasts,
-        err.message || "Could not delete organisation.",
+      showToast(err.message || "Could not delete organisation.",
         "error",
       );
     }
@@ -125,7 +119,6 @@ export default function Organizations() {
       subtitle="Client organisations. Each one is a separate tenant with its own isolated data."
       requiredRole="Super Admin"
       loading={loading}
-      toasts={toasts}
     >
       <section className="panel">
         <div className="panel-header">

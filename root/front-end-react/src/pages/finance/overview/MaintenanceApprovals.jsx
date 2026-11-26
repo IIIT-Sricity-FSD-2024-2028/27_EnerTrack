@@ -20,11 +20,11 @@
  */
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useToast } from "../components/toastContext";
+import { useToast } from "../../../ui/useToast";
 import { formatCurrency } from "../financeUtils";
 import {
   fetchWorkOrders,
-  selectAllWorkOrders,
+  selectWorkOrdersAwaitingApproval,
   updateWorkOrder,
 } from "../../../store/slices/workOrdersSlice";
 
@@ -115,7 +115,7 @@ const ESTIMATE = { label: "Estimate to approve", tone: "action" };
 export default function MaintenanceApprovals() {
   const showToast = useToast();
   const dispatch = useDispatch();
-  const workOrders = useSelector(selectAllWorkOrders).filter((w) => w.status === "approval");
+  const workOrders = useSelector(selectWorkOrdersAwaitingApproval);
   const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {

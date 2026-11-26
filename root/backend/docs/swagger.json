@@ -2270,6 +2270,85 @@
         ]
       }
     },
+    "/api/dispatch/rework-requests/{ticketId}": {
+      "post": {
+        "operationId": "DispatchController_decideRework",
+        "summary": "Decide a rework request on an initiative job",
+        "description": "The Sustainability Officer asked for a closed initiative job to be redone. decision: same (the technician who did it), auto (the system picks), pick (assignee_id), each with finish_by (YYYY-MM-DD, today or later); or decline with a note (sent to the officer). Pending requests are listed in GET /dispatch/queue as rework_requests.",
+        "parameters": [
+          {
+            "name": "ticketId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideReworkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Decision recorded; a rework job was sent unless declined."
+          },
+          "400": {
+            "description": "No request waiting, bad decision, date or note."
+          }
+        },
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/api/dispatch/technicians/{userId}/back-on-duty": {
+      "post": {
+        "operationId": "DispatchController_backOnDuty",
+        "summary": "Put a technician back on duty",
+        "description": "Clears 'off for today' (declined a job as unwell by mistake, or missed answering one) and switches them available, so jobs can be sent to them again today. Waiting jobs are offered again. The technician is told.",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
     "/api/dispatch/sweep": {
       "post": {
         "operationId": "DispatchController_sweep",
@@ -7213,7 +7292,7 @@
       "post": {
         "operationId": "ServiceRequestsController_stillBroken",
         "summary": "Still broken",
-        "description": "Files the same problem again as a new report linked to the fixed one, raised one level because it happened before.",
+        "description": "Files the same problem again as a new report linked to the fixed one, raised one level because it happened before. reason (what is still wrong) is required; a photo is optional (multipart field 'photo', JPEG or PNG, up to 5 MB). The new job is offered first to the technician who did the fix; if they cannot take it, it is ranked as usual and the coordinator is told.",
         "parameters": [
           {
             "name": "x-user-id",
@@ -7241,9 +7320,92 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "photo": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "photo": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
-          "201": {
-            "description": ""
+          "400": {
+            "description": "No reason, not yours, too late to reopen, or the photo is not a JPEG/PNG."
+          }
+        },
+        "tags": [
+          "service-requests"
+        ]
+      }
+    },
+    "/api/service-requests/{id}/reopen-photo": {
+      "get": {
+        "operationId": "ServiceRequestsController_reopenPhoto",
+        "summary": "Photo sent with a 'still broken' report",
+        "description": "Streams the photo the reporter attached when they said the fix did not work. Staff in the organisation, and the reporter themselves.",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-role",
+            "required": false,
+            "in": "header",
+            "description": "User role for RBAC.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "No such report, or it has no photo."
           }
         },
         "tags": [
@@ -8844,7 +9006,7 @@
       "get": {
         "operationId": "InitiativesController_findAll",
         "summary": "List All Initiatives",
-        "description": "Retrieves all initiatives. Sustainability Officer and Organization Admin can view.",
+        "description": "Retrieves all initiatives, each with its jobs, spend (money.spent from approved expense bills) and payback. Sustainability Officer, Organization Admin and Financial Analyst can view.",
         "parameters": [
           {
             "name": "x-role",
@@ -9084,11 +9246,11 @@
         ]
       }
     },
-    "/api/initiatives/{id}/jobs/{workOrderId}/send-back": {
+    "/api/initiatives/{id}/jobs/{workOrderId}/rework-request": {
       "post": {
-        "operationId": "InitiativesController_sendBack",
-        "summary": "Send initiative work back",
-        "description": "For an in-progress initiative with on-site work: one of its closed jobs was not done properly. Creates a new job for the same technician type through normal dispatch, with the reason (shown to the technician) and finish_by (YYYY-MM-DD, today or later) as its finish date. The initiative cannot be completed until that job is closed too. 400 if the job is still open, the reason is under 3 characters or the date is missing or past.",
+        "operationId": "InitiativesController_requestRework",
+        "summary": "Ask for rework on an initiative job",
+        "description": "For an in-progress initiative with on-site work: one of its closed jobs was not done as required. Records a rework request with the reason and notifies the coordinators, who decide who redoes it and by when, or decline (POST /dispatch/rework-requests/:ticketId). One open request per job; the initiative cannot be completed while it is pending. 400 if the job is still open or the reason is under 3 characters; 409 if already requested or redone.",
         "parameters": [
           {
             "name": "id",
@@ -9105,6 +9267,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -9112,20 +9282,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SendBackDto"
+                "$ref": "#/components/schemas/ReworkRequestDto"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Rework job created; returns the initiative with its jobs."
-          },
-          "400": {
-            "description": "Job still open, initiative not in progress, or bad reason/date."
-          },
-          "404": {
-            "description": "Initiative or job not found."
+            "description": "Request recorded; returns the initiative with its jobs."
           }
         },
         "tags": [
@@ -10696,6 +10860,10 @@
         "type": "object",
         "properties": {}
       },
+      "DecideReworkDto": {
+        "type": "object",
+        "properties": {}
+      },
       "NeedsPartsDto": {
         "type": "object",
         "properties": {}
@@ -10782,7 +10950,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$2I2HbSDaDOHrZSwG.xtv6.C0IvurjF.zf/O8VN3ZG94Q6ni97Yrm2",
+          "password": "$2b$08$SJt6aSzN/5WqP7cqYqQvuuuXq3rFtmnyD.CrrDTomVRfFsGU.vHy2",
           "role": "Organization Admin"
         }
       },
@@ -10798,7 +10966,7 @@
           "name": "Aadithya",
           "email": "aadi@gmail.com",
           "phone": "9876543210",
-          "password": "$2b$08$2I2HbSDaDOHrZSwG.xtv6.C0IvurjF.zf/O8VN3ZG94Q6ni97Yrm2",
+          "password": "$2b$08$SJt6aSzN/5WqP7cqYqQvuuuXq3rFtmnyD.CrrDTomVRfFsGU.vHy2",
           "role": "Organization Admin"
         }
       },
@@ -11310,7 +11478,7 @@
           ]
         }
       },
-      "SendBackDto": {
+      "ReworkRequestDto": {
         "type": "object",
         "properties": {}
       },

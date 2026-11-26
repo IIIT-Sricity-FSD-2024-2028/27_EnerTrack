@@ -11,6 +11,7 @@
  * Retiring one hides it from new clients without breaking existing contracts.
  */
 import { useEffect, useState } from "react";
+import { useToast } from "../../ui/useToast";
 import { useDispatch, useSelector } from "react-redux";
 import {
   createSubscriptionPlan,
@@ -26,7 +27,7 @@ import {
 } from "../../store/slices/subscriptionsSlice";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
-import { addToast, formatCurrency, loadFailed } from "./adminHelpers";
+import { formatCurrency, loadFailed } from "./adminHelpers";
 
 export default function Plans() {
   const dispatch = useDispatch();
@@ -35,7 +36,7 @@ export default function Plans() {
   const clientsByPlan = useSelector(selectSubscriberCountByPlan);
   const plansStatus = useSelector(selectSubscriptionPlansStatus);
   const loading = plansStatus === "idle" || plansStatus === "loading";
-  const [toasts, setToasts] = useState([]);
+  const showToast = useToast();
   // The open popup: null, or { type: "add" | "edit" | "delete", plan }
   const [modal, setModal] = useState(null);
 
@@ -46,10 +47,10 @@ export default function Plans() {
       dispatch(fetchSubscriptions()),
     ]).then((results) => {
       if (results.some(loadFailed)) {
-        addToast(setToasts, "Failed to load data from backend.", "error");
+        showToast("Failed to load data from backend.", "error");
       }
     });
-  }, [dispatch]);
+  }, [dispatch, showToast]);
 
   // Called by <PlanFormModal> with the tier to save
   async function handleSave(payload) {
@@ -63,15 +64,13 @@ export default function Plans() {
       } else {
         await dispatch(createSubscriptionPlan(payload)).unwrap();
       }
-      addToast(
-        setToasts,
-        editing
+      showToast(editing
           ? "Tier updated — effective from the next invoice."
           : "Tier added.",
         "success",
       );
     } catch (err) {
-      addToast(setToasts, err.message || "Could not save tier.", "error");
+      showToast(err.message || "Could not save tier.", "error");
     }
   }
 
@@ -84,15 +83,11 @@ export default function Plans() {
           changes: { is_active: !plan.is_active },
         }),
       ).unwrap();
-      addToast(
-        setToasts,
-        plan.is_active ? "Tier retired." : "Tier reactivated.",
+      showToast(plan.is_active ? "Tier retired." : "Tier reactivated.",
         "success",
       );
     } catch (err) {
-      addToast(
-        setToasts,
-        err.message || "Could not change tier status.",
+      showToast(err.message || "Could not change tier status.",
         "error",
       );
     }
@@ -102,10 +97,10 @@ export default function Plans() {
     setModal(null);
     try {
       await dispatch(removeSubscriptionPlan(plan.plan_id)).unwrap();
-      addToast(setToasts, "Tier deleted.", "success");
+      showToast("Tier deleted.", "success");
     } catch (err) {
       // e.g. the backend refuses while a contract still uses the tier
-      addToast(setToasts, err.message || "Could not delete tier.", "error");
+      showToast(err.message || "Could not delete tier.", "error");
     }
   }
 
@@ -114,7 +109,6 @@ export default function Plans() {
       subtitle="EnerTrack's price catalogue. Every figure the billing engine uses lives on these rows."
       requiredRole="Super Admin"
       loading={loading}
-      toasts={toasts}
     >
       <section className="panel">
         <div className="panel-header">

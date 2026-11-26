@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useToast } from "../../ui/useToast";
 import {
   createTarget,
   fetchTargets,
@@ -14,7 +15,6 @@ import {
 } from "../../store/slices/buildingsSlice";
 import { useAuth } from "../../auth/useAuth";
 import TargetCard from "./components/TargetCard";
-import Toast from "./components/Toast";
 import { addMonths, lastFullMonth, periodName } from "./periods";
 import sustLayoutCss from "./sustainability.css?inline";
 import "./components/targets.css";
@@ -45,7 +45,7 @@ export default function SustainabilityTargets() {
   const status = useSelector(selectTargetsStatus);
   const loadError = useSelector(selectTargetsError);
   const loading = status === "idle" || status === "loading";
-  const [toast, setToast] = useState(null);
+  const showToast = useToast();
 
   // Default to a measure without an open campus-wide target until edited.
   const [selectedMetric, setMetric] = useState(null);
@@ -108,7 +108,7 @@ export default function SustainabilityTargets() {
         building_ids: scope,
         ...(note.trim() ? { note: note.trim() } : {}),
       })).unwrap();
-      setToast({ msg: "Target proposed. The Organization Admin has been asked to approve it.", type: "success" });
+      showToast("Target proposed. The Organization Admin has been asked to approve it.", "success");
       setNote("");
       setScope([]);
     } catch (err) {
@@ -123,9 +123,9 @@ export default function SustainabilityTargets() {
     setBusyId(t.target_id);
     try {
       await dispatch(removeTarget(t.target_id)).unwrap();
-      setToast({ msg: "Proposal withdrawn.", type: "success" });
+      showToast("Proposal withdrawn.", "success");
     } catch (err) {
-      setToast({ msg: err.message || "Could not withdraw the proposal.", type: "error" });
+      showToast(err.message || "Could not withdraw the proposal.", "error");
     } finally {
       setBusyId(null);
     }
@@ -138,7 +138,6 @@ export default function SustainabilityTargets() {
   return (
     <div className="sustainability-targets-page" style={{ width: "100%" }}>
       <style>{sustLayoutCss}</style>
-      <Toast toast={toast} onClose={() => setToast(null)} />
 
       <header style={{ marginBottom: "20px" }}>
         <h1 style={{ margin: "0 0 4px", fontSize: "26px", fontWeight: 700, color: "#111827" }}>Targets</h1>

@@ -36,8 +36,7 @@
    rules (body line-height, h1 font, .card width) also hit the finance
    pages. Scoped to .fa-page so nothing outside finance changes — the same
    approach the technician pages use (.tech-page). */
-.fa-page,
-.fa-toast-container {
+.fa-page {
   line-height: normal; /* auth_shared: body { line-height: 1.65 } */
 }
 .fa-page h1 {
@@ -239,42 +238,6 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-}
-
-/* ── TOASTS (showToast) ────────────────────────────── */
-@keyframes faToastIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.fa-toast-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 9999;
-  pointer-events: none;
-}
-.fa-toast {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #fff;
-  border: 1px solid;
-  padding: 12px 18px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: "Inter", sans-serif;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  pointer-events: auto;
-  min-width: 240px;
-  max-width: 380px;
-  animation: faToastIn 0.25s ease;
-}
-.fa-toast-icon {
-  font-weight: 700;
-  font-size: 16px;
 }
 
 /* ── NOTIFICATION BELL (renderBellIcon) ────────────── */

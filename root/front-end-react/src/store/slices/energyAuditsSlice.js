@@ -30,7 +30,7 @@ import { createSelector } from "@reduxjs/toolkit";
 import api from "../../api/client";
 import { apiThunk } from "../apiThunk";
 import { createCrudSlice } from "../createCrudSlice";
-import { impactClients } from "../../pages/auditor/overview/impact";
+import { impactClients } from "../derive/auditImpact";
 import {
   fetchOrganizationSavings,
   fetchOrganizations,

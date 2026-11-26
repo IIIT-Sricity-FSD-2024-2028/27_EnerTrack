@@ -9,6 +9,11 @@ store/
   actions.js          resetData: empties every data slice on sign-out / act-as
   apiThunk.js         createAsyncThunk that keeps isNetworkError on errors
   createCrudSlice.js  factory: one resource → slice + CRUD thunks + selectors
+  createResourceSlice.js  factory: one computed value (summary, queue, ...)
+  loadState.js        status / refreshing / error every slice carries
+  useLiveData.js      hook: load some slices on open and poll them
+  files.js            fetchFileUrl(path): a protected file as a blob URL
+  derive/             pure functions selectors use (finance row shapes, ...)
   slices/             one file per backend resource
 ```
 
@@ -73,6 +78,11 @@ Then add one line to `reducers` in `store/index.js` (in your own block).
 - **One owner per slice file.** If you need a thunk in someone else's slice, ask
   them, or send them a small PR.
 - **Never `api.*` in a page.** If a page needs an endpoint, add a thunk.
+  Lint enforces it: importing the default `api` from `api/client` fails
+  anywhere outside `src/store` and `src/api`.
+- **The store never imports from `src/pages`.** A pure helper both need
+  (row shapes, status rules) lives in `store/derive/`, and the page imports
+  it from there.
 - **No local copies of server data.** `useState` is for UI only: modals,
   filters, search text, form fields, busy flags.
 - Endpoints that only return a one-off value and are not app data (e.g.
@@ -184,6 +194,17 @@ the reducer. Have the thunk reload the affected lists with
 `{ force: true }` once it succeeds (see `coordinatorAction` in
 `slices/dispatchSlice.js`). The page then only dispatches and shows a toast.
 
+### Messages: `useToast`
+
+```jsx
+import { useToast } from "../../ui/useToast";
+const showToast = useToast();
+showToast("Saved.", "success"); // success | error | warning | info
+```
+
+One list for the whole app (`state.ui.toasts`), drawn once by
+`ui/Toaster.jsx`. Don't keep toasts in component state.
+
 ## 3. Session (`authSlice`)
 
 Pages keep using `useAuth()` (same shape as before: `user`, `role`,
@@ -197,8 +218,8 @@ automatically. You don't need to handle it.
 
 ## 4. Before you open a PR
 
-- `npm run lint` and `npm run build` pass.
-- `grep -rn "api/client" <your page folders>` only finds `isNetworkError` imports.
+- `npm run lint`, `npm run build` and `npm test` pass. (Lint already fails
+  on a direct API call in a page.)
 - Redux DevTools (browser extension) shows `x/fetchAll/pending → fulfilled`,
   and a create/update/delete changes the list without a second fetch.
 - Sign out, sign in as a different role: no data from the first person shows.

@@ -28,11 +28,10 @@ all origins with `x-role` and `x-org-id` allowed, so no dev proxy is needed.
 
 | Path | What it is |
 | --- | --- |
-| `src/api/client.js` | The old `js/shared/api.js`, ported. Two lines changed: the base URL reads from `.env`, and it exports instead of setting `window.api`. Use `api.get/post/patch/put/delete/upload/getBlobUrl` exactly as before. |
-| `src/auth/context.js` | The context object, alone, so Fast Refresh works. |
-| `src/auth/AuthContext.jsx` | Owns the session. `login`, `logout`, `adoptSession`, `impersonate`, `stopImpersonating`. Writes `localStorage` first, then state — `client.js` reads `localStorage` on every request to build headers. |
-| `src/auth/useAuth.js` | `const { user, role, login, logout } = useAuth()`. The only way a page touches the session. |
-| `src/legacy/` | `universalDB.js`, `mockData.js`, `notifications.js`, `sensorSimulator.js`, copied unchanged. Already ES modules. Import them where your page used them before. |
+| `src/api/client.js` | The old `js/shared/api.js`, ported. Only `src/store` calls it (lint enforces this); pages import just its named helpers such as `isNetworkError`. |
+| `src/store/` | The Redux store: one slice per backend resource. Pages read with `useSelector` and change data with `dispatch(thunk)`. Conventions in `src/store/README.md`. |
+| `src/store/slices/authSlice.js` | Owns the session. Writes `localStorage` first, then state, because `client.js` reads `localStorage` on every request to build headers. |
+| `src/auth/useAuth.js` | `const { user, role, adoptSession, logout } = useAuth()`. The only way a page touches the session. |
 | `src/styles/` | All 25 stylesheets, copied unchanged. Import the one your page needs at the top of your route component. |
 | `public/assets/` | All 80 images. Reference them as `/assets/logo_technician.png` — absolute from the web root, no `../../`. |
 
@@ -109,16 +108,9 @@ in the `x-role` header, and the bug that produces is very hard to see.
 
 ## Known debt, stated deliberately
 
-`src/legacy/universalDB.js` is a 1,100-line client-side store over
-`localStorage` that predates the backend. It is ported as-is and still backs the
-four finance modules (`energyCosts`, `invoices`, `reports`, `activity`) and the
-archive pages. Finishing that migration is a backend-integration task, not a
-React task, and folding it into this port would put roughly 2,100 extra lines on
-one person. It is debt we are choosing, not debt we missed.
-
 Likewise, `x-role` is a client-supplied header with no token — anyone with
 devtools can edit the session and become a Super Admin. That is true of the
 current app too; the backend's own Swagger text says so at
 `users.controller.ts:40`. What changed is that the session now lives in one
-module, so adding a real token later means changing `AuthContext` and
+module, so adding a real token later means changing `authSlice` and
 `client.js` and nothing else.

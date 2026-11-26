@@ -642,51 +642,6 @@ textarea {
   gap: 10px;
 }
 
-/* ─── TOAST ──────────────────────────────── */
-.toast-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 2000;
-}
-
-.toast {
-  padding: 12px 20px;
-  border-radius: 10px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: var(--shadow-pop);
-  animation: toast-in 0.2s ease;
-}
-
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.toast--success {
-  background: var(--green);
-}
-.toast--error {
-  background: var(--red);
-}
-.toast--warning {
-  background: var(--amber);
-}
-.toast--info {
-  background: var(--blue);
-}
-
 /* ─── RESPONSIVE / UTILITIES ─────────────── */
 .no-margin {
   margin: 0 !important;

@@ -52,6 +52,7 @@ import invoices from "./slices/invoicesSlice";
 import expenseBills, { expenseSettingsReducer as expenseSettings } from "./slices/expenseBillsSlice";
 // Person 5: wastage / campus
 import wastageReports, { wastageSignalsReducer as wastageSignals } from "./slices/wastageReportsSlice";
+import foodWasteSummary from "./slices/foodWasteLogsSlice";
 import serviceRequests, {
   serviceCatalogueReducer as serviceCatalogue,
 } from "./slices/serviceRequestsSlice";
@@ -95,6 +96,7 @@ const reducers = {
   // Person 5: wastage / campus
   wastageReports,
   wastageSignals,
+  foodWasteSummary,
   serviceRequests,
   serviceCatalogue,
 };

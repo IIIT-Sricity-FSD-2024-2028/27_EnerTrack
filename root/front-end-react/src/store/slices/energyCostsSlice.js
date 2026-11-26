@@ -15,8 +15,7 @@
  */
 import { createSelector } from "@reduxjs/toolkit";
 import { createCrudSlice } from "../createCrudSlice";
-import { normalizeCost } from "../../pages/finance/financeApi";
-import { latestPeriod } from "../../pages/finance/financeUtils";
+import { latestPeriod, normalizeCost } from "../derive/finance";
 import { selectAllBuildings } from "./buildingsSlice";
 import { selectAllDepartments } from "./departmentsSlice";
 

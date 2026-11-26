@@ -397,40 +397,6 @@ body {
   font-size: 12px;
 }
 
-/* ── 9. Toasts (messages, bottom-right) ── */
-.toast-stack {
-  position: fixed;
-  right: 22px;
-  bottom: 22px;
-  z-index: 120;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.toast {
-  min-width: 240px;
-  max-width: 380px;
-  border-radius: 8px;
-  color: #ffffff;
-  background: #111827;
-  box-shadow: var(--shadow);
-  padding: 12px 14px;
-  font-size: 14px;
-}
-
-.toast.success {
-  background: var(--green);
-}
-
-.toast.warning {
-  background: var(--amber);
-}
-
-.toast.error {
-  background: var(--red);
-}
-
 /* ── 10. "Loading from backend…" spinner (was inline in adminLayout.js) ── */
 .admin-loading {
   display: flex;
@@ -563,11 +529,6 @@ body {
   color: inherit;
   line-height: normal;
   margin-bottom: 0;
-}
-
-.toast {
-  font-weight: 400;
-  animation: none;
 }
 
 /* auth_shared: a 6px gap above form errors and its own line height */

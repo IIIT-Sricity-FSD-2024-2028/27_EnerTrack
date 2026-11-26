@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useToast } from "../../ui/useToast";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchSustainabilityReports,
@@ -40,11 +41,10 @@ import sustLayoutCss from "./sustainability.css?inline";
 import WastageArchive from "./archives/WastageArchive";
 import ReportDocument from "./components/ReportDocument";
 import { periodName } from "./periods";
-import Toast from "./components/Toast";
 import "./archives.css";
 import { InitiativeSummary } from "./initiativeShared";
 import { normalizeStatus } from "./audit/auditShared";
-import { normalizeWastageReport } from "../finance/financeApi";
+import { normalizeWastageReport } from "../../store/slices/wastageReportsSlice";
 import { reportRef, wastageSummary } from "../finance/financeUtils";
 
 export default function SustainabilityArchives() {
@@ -80,16 +80,12 @@ export default function SustainabilityArchives() {
   const reportsStatus = useSelector(selectSustainabilityReportsStatus);
   const initiativesStatus = useSelector(selectInitiativesStatus);
   const wastageStatus = useSelector(selectWastageReportsStatus);
-  const [toast, setToast] = useState(null);
+  const showToast = useToast();
   const loadErrors = [
     reportsStatus === "failed" && "reports",
     initiativesStatus === "failed" && "initiatives",
     wastageStatus === "failed" && "wastage reports",
   ].filter(Boolean);
-
-  const showToast = useCallback((msg, type = "success") => {
-    setToast({ msg, type });
-  }, []);
 
   // Load the records for each tab and their display names.
   useEffect(() => {
@@ -230,7 +226,6 @@ export default function SustainabilityArchives() {
       <style>{overviewCss}</style>
       <style>{sharedCss}</style>
       <style>{sustLayoutCss}</style>
-      <Toast toast={toast} onClose={() => setToast(null)} />
 
       {/* Header */}
       <header className="arc-head">

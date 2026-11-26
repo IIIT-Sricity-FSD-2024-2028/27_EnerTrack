@@ -7,7 +7,7 @@
  * calculated figures instead, which are kept in the `calculated` state.
  */
 import { useState } from "react";
-import { useToast } from "../components/toastContext";
+import { useToast } from "../../../ui/useToast";
 import { formatCurrency, statusFromRoi } from "../financeUtils";
 
 const VIABILITY = {

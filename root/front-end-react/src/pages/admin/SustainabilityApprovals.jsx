@@ -5,6 +5,7 @@
  * The proposer is notified of every decision (server side).
  */
 import { useEffect, useId, useMemo, useState } from "react";
+import { useToast } from "../../ui/useToast";
 import { useDispatch, useSelector } from "react-redux";
 import { useLiveData } from "../../store/useLiveData";
 import {
@@ -25,7 +26,6 @@ import {
 import { fetchUsers, selectAllUsers } from "../../store/slices/usersSlice";
 import { fetchBuildings, selectAllBuildings } from "../../store/slices/buildingsSlice";
 import AdminPage from "./AdminPage";
-import { addToast } from "./adminHelpers";
 import TargetCard from "../sustainability/components/TargetCard";
 import ReportDocument from "../sustainability/components/ReportDocument";
 import { periodName } from "../sustainability/periods";
@@ -95,7 +95,7 @@ export default function SustainabilityApprovals() {
   const buildings = useSelector(selectAllBuildings);
   const { loading, error } = useLiveData(LOADS, { intervalMs: 0 });
   const [openReport, setOpenReport] = useState(null);
-  const [toasts, setToasts] = useState([]);
+  const showToast = useToast();
   const [tab, setTab] = useState("targets");
   const [busyId, setBusyId] = useState(null);
   const { label: teamLabel } = useTeams();
@@ -110,9 +110,7 @@ export default function SustainabilityApprovals() {
     setBusyId(t.target_id);
     try {
       await dispatch(decideTargetThunk({ id: t.target_id, status, note })).unwrap();
-      addToast(
-        setToasts,
-        {
+      showToast({
           active: "Target approved. Tracking has started.",
           rejected: "Target rejected.",
           met: "Target closed as met.",
@@ -121,7 +119,7 @@ export default function SustainabilityApprovals() {
         "success",
       );
     } catch (err) {
-      addToast(setToasts, err.message || "Could not save the decision.", "error");
+      showToast(err.message || "Could not save the decision.", "error");
     } finally {
       setBusyId(null);
     }
@@ -134,15 +132,13 @@ export default function SustainabilityApprovals() {
         updateInitiative({ id: i.initiative_id, changes: { status, ...(note ? { decision_note: note } : {}) } }),
       ).unwrap();
       const sent = (updated?.jobs || []).length;
-      addToast(
-        setToasts,
-        status === "approved"
+      showToast(status === "approved"
           ? `Initiative approved. Work has started${sent ? `: ${sent} job${sent === 1 ? "" : "s"} sent` : ""}.`
           : "Initiative rejected. The proposer has been told why.",
         "success",
       );
     } catch (err) {
-      addToast(setToasts, err.message || "Could not save the decision.", "error");
+      showToast(err.message || "Could not save the decision.", "error");
     } finally {
       setBusyId(null);
     }
@@ -152,13 +148,11 @@ export default function SustainabilityApprovals() {
     setBusyId(r.report_id);
     try {
       await dispatch(decideSustainabilityReport({ id: r.report_id, status, note })).unwrap();
-      addToast(
-        setToasts,
-        { approved: "Report approved. Publish it when ready.", draft: "Report sent back to the Sustainability Officer.", published: "Report published." }[status],
+      showToast({ approved: "Report approved. Publish it when ready.", draft: "Report sent back to the Sustainability Officer.", published: "Report published." }[status],
         "success",
       );
     } catch (err) {
-      addToast(setToasts, err.message || "Could not save the decision.", "error");
+      showToast(err.message || "Could not save the decision.", "error");
     } finally {
       setBusyId(null);
     }
@@ -186,7 +180,6 @@ export default function SustainabilityApprovals() {
       subtitle="Targets and initiatives the Sustainability Officer has asked you to approve."
       requiredRole="Organization Admin"
       loading={loading}
-      toasts={toasts}
     >
       {error && (
         <p role="alert" className="tempty" style={{ color: "#991b1b", borderStyle: "solid" }}>

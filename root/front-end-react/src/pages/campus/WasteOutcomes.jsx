@@ -7,8 +7,12 @@
  * those), in plain words: what is being done and how it ended. Nothing shows
  * until there is at least one.
  */
-import { useEffect, useState } from "react";
-import api from "../../api/client";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchWastageReports,
+  selectAllWastageReports,
+} from "../../store/slices/wastageReportsSlice";
 
 /** Where a case is, in an occupant's words. */
 function stage(status) {
@@ -25,18 +29,12 @@ function stage(status) {
 }
 
 export default function WasteOutcomes() {
-  const [cases, setCases] = useState([]);
+  const dispatch = useDispatch();
+  const cases = useSelector(selectAllWastageReports);
 
   useEffect(() => {
-    let live = true;
-    api
-      .get("/wastage-reports")
-      .then((rows) => live && setCases(Array.isArray(rows) ? rows : []))
-      .catch(() => live && setCases([]));
-    return () => {
-      live = false;
-    };
-  }, []);
+    dispatch(fetchWastageReports());
+  }, [dispatch]);
 
   // Only cases that grew out of reports (older self-filed records are in Archives).
   const shown = cases.filter((c) => (c.source_request_ids || []).length > 0 && !c.details?.archived);

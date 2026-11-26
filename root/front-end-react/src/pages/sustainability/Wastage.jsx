@@ -10,7 +10,7 @@
  * Opening a case from a signal, or closing one, refreshes both.
  */
 import { useCallback, useState } from "react";
-import Toast from "./components/Toast";
+import { useToast } from "../../ui/useToast";
 import WasteSignals from "./audit/WasteSignals";
 import WastageAuditQueue from "./audit/WastageAuditQueue";
 import overviewCss from "./overview.css?inline";
@@ -18,10 +18,8 @@ import sustLayoutCss from "./sustainability.css?inline";
 
 export default function SustainabilityWastage() {
   const [reloadKey, setReloadKey] = useState(0);
-  const [toast, setToast] = useState(null);
 
-  const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
-  const closeToast = useCallback(() => setToast(null), []);
+  const showToast = useToast();
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
   return (
@@ -29,7 +27,6 @@ export default function SustainabilityWastage() {
       <style>{overviewCss}</style>
       <style>{sustLayoutCss}</style>
 
-      <Toast toast={toast} onClose={closeToast} />
 
       <header className="so-header">
         <div>

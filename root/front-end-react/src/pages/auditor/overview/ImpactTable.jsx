@@ -17,7 +17,7 @@ import {
   formatPeriodRange,
   hasComparison,
   measurableFrom,
-} from "./impact";
+} from "../../../store/derive/auditImpact";
 
 export default function ImpactTable({ impact, orgName }) {
   return (

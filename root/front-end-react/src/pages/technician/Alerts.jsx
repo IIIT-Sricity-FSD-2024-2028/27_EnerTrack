@@ -37,8 +37,7 @@ import {
   selectAllBuildings,
 } from "../../store/slices/buildingsSlice";
 
-import ToastStack from "./components/ToastStack";
-import { useToast } from "./components/useToast";
+import { useToast } from "../../ui/useToast";
 import AlertQueue from "./alerts/AlertQueue";
 import AlertDetail from "./alerts/AlertDetail";
 import AlertLog from "./alerts/AlertLog";
@@ -52,7 +51,7 @@ import "./technician.css";
 const LOADS = [fetchAlerts, fetchFaults, fetchMeters, fetchBuildings];
 
 export default function TechnicianAlerts() {
-  const { toasts, showToast } = useToast();
+  const showToast = useToast();
   const dispatch = useDispatch();
 
   const alerts = useSelector(selectAllAlerts);
@@ -204,7 +203,6 @@ export default function TechnicianAlerts() {
 
       {content}
 
-      <ToastStack toasts={toasts} />
     </div>
   );
 }

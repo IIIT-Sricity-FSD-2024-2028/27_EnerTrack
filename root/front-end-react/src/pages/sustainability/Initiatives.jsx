@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useToast } from "../../ui/useToast";
 import { useDispatch, useSelector } from "react-redux";
 import {
   archiveInitiative,
@@ -384,7 +385,7 @@ export default function SustainabilityInitiatives() {
   const completed = useSelector((state) => selectInitiativesByStatus(state, "completed"));
   const columns = { proposed, "in-progress": inProgress, completed };
   const rejected = useSelector((state) => selectInitiativesByStatus(state, "rejected"));
-  const [toast, setToast] = useState(null);
+  const showToast = useToast();
 
   // New initiative form fields
   const [newTitle, setNewTitle] = useState("");
@@ -411,11 +412,6 @@ export default function SustainabilityInitiatives() {
 
   // Edit modal
   const [editingInit, setEditingInit] = useState(null);
-
-  const showToast = useCallback((msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
-  }, []);
 
   // Load the board and the optional reference data for the form and cards.
   useEffect(() => {
@@ -621,32 +617,6 @@ export default function SustainabilityInitiatives() {
     <div className="sustainability-initiatives-page" style={{ width: "100%" }}>
       <style>{initiativesCss}</style>
       <style>{sustLayoutCss}</style>
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background:
-              toast.type === "error"
-                ? "#ef4444"
-                : toast.type === "warning"
-                  ? "#f59e0b"
-                  : toast.type === "info"
-                    ? "#3b82f6"
-                    : "#059669",
-            color: "#ffffff",
-            padding: "10px 18px",
-            borderRadius: "8px",
-            boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
-            zIndex: 9999,
-            fontWeight: "600",
-            fontSize: "13px",
-          }}
-        >
-          {toast.msg}
-        </div>
-      )}
 
       {/* HEADER */}
       <header className="page-header">

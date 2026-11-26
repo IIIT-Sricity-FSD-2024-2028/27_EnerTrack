@@ -6,8 +6,16 @@
  * Deliberately shows no names, no priority and no +1 counts, so nobody can
  * see how many friends to ask for a +1 to push a ticket up.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import api from "../../api/client";
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchBuildings, selectAllBuildings } from "../../store/slices/buildingsSlice";
+import {
+  fetchCampusIssues,
+  fetchServiceCatalogue,
+  plusOneServiceRequest,
+  selectCampusIssues,
+  selectServiceCatalogue,
+} from "../../store/slices/serviceRequestsSlice";
 import { statusLabel } from "./serviceRequestHelpers";
 import campusCss from "./campus.css?inline";
 
@@ -21,33 +29,27 @@ const DOT = {
 };
 
 export default function CampusIssues() {
-  const [catalogue, setCatalogue] = useState(null);
-  const [buildings, setBuildings] = useState([]);
+  const dispatch = useDispatch();
+  const catalogue = useSelector(selectServiceCatalogue);
+  const buildings = useSelector(selectAllBuildings);
+  const issues = useSelector(selectCampusIssues);
+
   const [buildingId, setBuildingId] = useState("");
   const [floor, setFloor] = useState("");
-  const [issues, setIssues] = useState([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([api.get("/service-requests/catalogue"), api.get("/buildings")])
-      .then(([cat, b]) => {
-        setCatalogue(cat);
-        setBuildings(Array.isArray(b) ? b : []);
-      })
-      .catch((e) => setError(e.message));
-  }, []);
+    Promise.all([
+      dispatch(fetchServiceCatalogue()).unwrap(),
+      dispatch(fetchBuildings()).unwrap(),
+    ]).catch((e) => setError(e.message));
+  }, [dispatch]);
 
-  const load = useCallback(() => {
-    const q = new URLSearchParams();
-    if (buildingId) q.set("building_id", buildingId);
-    if (buildingId && floor) q.set("floor", floor);
-    api
-      .get(`/service-requests/campus-issues${q.size ? `?${q}` : ""}`)
-      .then((list) => setIssues(Array.isArray(list) ? list : []))
+  useEffect(() => {
+    dispatch(fetchCampusIssues({ buildingId, floor }))
+      .unwrap()
       .catch((e) => setError(e.message));
-  }, [buildingId, floor]);
-
-  useEffect(load, [load]);
+  }, [dispatch, buildingId, floor]);
 
   // One group per kind of problem, in the catalogue's order; anything the
   // catalogue does not know goes last under "Other".
@@ -69,8 +71,7 @@ export default function CampusIssues() {
 
   async function plusOne(id) {
     try {
-      await api.post(`/service-requests/${id}/plus-one`, {});
-      load();
+      await dispatch(plusOneServiceRequest(id)).unwrap();
     } catch (e) {
       setError(e.message);
     }

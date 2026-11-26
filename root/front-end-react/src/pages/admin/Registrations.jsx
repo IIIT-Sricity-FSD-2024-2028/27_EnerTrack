@@ -11,6 +11,7 @@
  * deny); only the screen uses the plainer words.
  */
 import { useEffect, useState } from "react";
+import { useToast } from "../../ui/useToast";
 import { useDispatch, useSelector } from "react-redux";
 import {
   decideAuditRequest,
@@ -21,7 +22,7 @@ import {
 } from "../../store/slices/auditRequestsSlice";
 import AdminPage from "./AdminPage";
 import Modal from "./Modal";
-import { addToast, loadFailed } from "./adminHelpers";
+import { loadFailed } from "./adminHelpers";
 
 const STATUS_LABELS = { approved: "Approved", denied: "Rejected" };
 
@@ -42,7 +43,7 @@ export default function Registrations() {
   const decided = useSelector(selectDecidedAuditRequests);
   const status = useSelector(selectAuditRequestsStatus);
   const loading = status === "idle" || status === "loading";
-  const [toasts, setToasts] = useState([]);
+  const showToast = useToast();
   // The open popup: null, or { kind: "approve" | "deny", request }
   const [decision, setDecision] = useState(null);
   const [note, setNote] = useState("");
@@ -52,14 +53,12 @@ export default function Registrations() {
   useEffect(() => {
     dispatch(fetchAuditRequests({ force: true })).then((result) => {
       if (loadFailed(result)) {
-        addToast(
-          setToasts,
-          result.error.message || "Could not load registrations.",
+        showToast(result.error.message || "Could not load registrations.",
           "error",
         );
       }
     });
-  }, [dispatch]);
+  }, [dispatch, showToast]);
 
   function openDecision(kind, request) {
     setNote("");
@@ -79,9 +78,7 @@ export default function Registrations() {
       await dispatch(
         decideAuditRequest({ id: request.request_id, kind, body }),
       ).unwrap();
-      addToast(
-        setToasts,
-        kind === "approve"
+      showToast(kind === "approve"
           ? `Approved ${request.name}. Their administrator can sign in now.`
           : `Rejected ${request.name}.`,
         "success",
@@ -89,7 +86,7 @@ export default function Registrations() {
     } catch (err) {
       // For example "already decided", or the name was taken in the
       // meantime: re-read the list so it shows where things really stand.
-      addToast(setToasts, err.message, "error");
+      showToast(err.message, "error");
       dispatch(fetchAuditRequests({ force: true }));
     }
     setBusy(false);
@@ -101,7 +98,6 @@ export default function Registrations() {
       subtitle="Organisations asking to join EnerTrack. Approve one to create its account."
       requiredRole="Super Admin"
       loading={loading}
-      toasts={toasts}
     >
       <section className="panel">
         <div className="panel-header">
